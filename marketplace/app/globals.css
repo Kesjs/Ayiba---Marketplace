@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-coral-50: #FAECE7;
+  --color-coral-100: #F5C4B3;
+  --color-coral-200: #F0997B;
+  --color-coral-400: #D85A30;
+  --color-coral-600: #993C1D;
+  --color-coral-800: #712B13;
+  --color-coral-900: #4A1B0C;
+
+  --color-teal-50: #E1F5EE;
+  --color-teal-100: #9FE1CB;
+  --color-teal-200: #5DCAA5;
+  --color-teal-400: #1D9E75;
+  --color-teal-600: #0F6E56;
+  --color-teal-800: #085041;
+  --color-teal-900: #04342C;
+
+  --color-amber-50: #FAEEDA;
+  --color-amber-100: #FAC775;
+  --color-amber-400: #EF9F27;
+  --color-amber-600: #BA7517;
+  --color-amber-800: #633806;
+
+  --color-red-50: #FCEBEB;
+  --color-red-100: #F7C1C1;
+  --color-red-400: #E24B4A;
+  --color-red-600: #A32D2D;
+  --color-red-800: #791F1F;
+
+  --color-gray-50: #F1EFE8;
+  --color-gray-100: #D3D1C7;
+  --color-gray-200: #B4B2A9;
+  --color-gray-400: #888780;
+  --color-gray-600: #5F5E5A;
+  --color-gray-800: #444441;
+  --color-gray-900: #2C2C2A;
+
+  --color-white: #FFFFFF;
+
+  --radius-default: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 9999px;
+
+  --font-sans: 'Inter', -apple-system, sans-serif;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+}
+
+/* Supprimer la barre de scroll tout en permettant le scroll */
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
+/* Activer le swipe horizontal sur tous les écrans */
+html, body {
+  overscroll-behavior-x: contain;
+  touch-action: pan-y;
+}
+
+/* Permettre le swipe horizontal sur les conteneurs scrollables */
+.overflow-x-auto {
+  overscroll-behavior-x: contain;
+  touch-action: pan-x;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Supprimer spécifiquement le scroll horizontal sur mobile */
+@media (max-width: 767px) {
+  .overflow-x-auto {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,14 @@
+<svg viewBox="0 0 320 100" width="512" height="160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g id="Monogram-AY">
+    <path d="M45 25L20 80" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+    <path d="M45 25L70 55V80" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+    <path d="M70 55L95 25" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+    <path d="M30 60C38 64 52 64 60 60" stroke="#D85A30" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="95" cy="13" r="5.5" fill="#1D9E75"/>
+  </g>
+  <g id="Text-iba">
+    <text x="115" y="80" fontFamily="system-ui, -apple-system, sans-serif" fontSize="70" fontWeight="500" fill="#111827" letterSpacing="-0.02em">
+      iba
+    </text>
+  </g>
+</svg>

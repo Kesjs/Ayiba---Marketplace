@@ -1,0 +1,8 @@
+node_modules
+.next
+.kombai
+.env*.local
+dist
+build
+*.tsbuildinfo
+.DS_Store

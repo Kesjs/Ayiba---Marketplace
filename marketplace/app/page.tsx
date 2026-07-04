@@ -10,17 +10,22 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProductCard } from "@/components/ui/ProductCard";
+import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, MOCK_PRODUCTS, MOCK_STORES } from "@/lib/mock-data";
 import { useUser } from "@/lib/hooks/useUser";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/context/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
 
 export default function Home() {
   const router = useRouter();
   const { user, profile, loading: userLoading } = useUser();
+  const { addItem } = useCart();
+  const { showToast } = useToast();
   const [products, setProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -48,6 +53,22 @@ export default function Home() {
   const sectionVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  };
+
+  const handleAddToCart = (product: any) => {
+    addItem({
+      id: product.id,
+      nom: product.nom,
+      prix: product.prix,
+      vendeur_id: product.vendeur_id || "default",
+      photos: product.photos
+    });
+    showToast("Produit ajouté au panier", "success");
+  };
+
+  const handleToggleFavorite = (productId: string) => {
+    // TODO: Implement favorites logic
+    showToast("Favori ajouté", "success");
   };
 
   return (
@@ -326,15 +347,15 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 md:gap-8 min-h-[400px]">
             {productsToShow.map((product) => (
               <Link key={product.id} href={`/produits/${product.id}`} className="block transition-transform hover:-translate-y-1 duration-300">
-                <ProductCard
+                <ProductCardModern
                   image={product.photos[0]}
                   category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
                   name={product.nom}
                   rating={product.rating}
                   reviewCount={product.reviewCount}
                   price={product.prix}
-                  onAddToCart={() => {}}
-                  onToggleFavorite={() => {}}
+                  onAddToCart={() => handleAddToCart(product)}
+                  onToggleFavorite={() => handleToggleFavorite(product.id)}
                 />
               </Link>
             ))}
@@ -379,15 +400,15 @@ export default function Home() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
             {trendingProducts.map((product) => (
               <Link key={product.id} href={`/produits/${product.id}`} className="block transition-transform hover:-translate-y-1 duration-300">
-                <ProductCard
+                <ProductCardModern
                   image={product.photos[0]}
                   category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
                   name={product.nom}
                   rating={product.rating}
                   reviewCount={product.reviewCount}
                   price={product.prix}
-                  onAddToCart={() => {}}
-                  onToggleFavorite={() => {}}
+                  onAddToCart={() => handleAddToCart(product)}
+                  onToggleFavorite={() => handleToggleFavorite(product.id)}
                 />
               </Link>
             ))}

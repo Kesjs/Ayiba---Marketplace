@@ -144,7 +144,7 @@ export function ProductCardModern({
         </button>
       </div>
 
-      <div className="p-5 flex flex-col gap-3">
+      <div className="p-5 flex flex-col gap-3 relative">
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-coral-600 uppercase tracking-wider">{category}</p>
           <div className="flex items-center gap-1 bg-amber-50 px-2 py-1 rounded-lg">
@@ -163,17 +163,17 @@ export function ProductCardModern({
             </p>
           )}
         </div>
-        <button
+        <motion.button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             onAddToCart();
           }}
-          className="w-full py-3 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-coral-500 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg"
+          whileTap={{ scale: 0.85 }}
+          className="absolute bottom-5 right-5 w-10 h-10 bg-gray-900 text-white rounded-xl flex items-center justify-center hover:bg-coral-500 transition-all duration-300 shadow-lg"
         >
           <i className="ti ti-shopping-cart text-base" />
-          Ajouter au panier
-        </button>
+        </motion.button>
       </div>
     </motion.div>
   );

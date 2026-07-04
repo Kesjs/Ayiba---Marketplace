@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useCart } from '@/context/CartContext'
 import { useUser } from '@/lib/hooks/useUser'
@@ -14,6 +13,7 @@ import {
   Heart, Star, ShoppingCart, MessageCircle, Share2, 
   ChevronLeft, ChevronRight, Minus, Plus, Shield, Truck 
 } from 'lucide-react'
+import { MOCK_PRODUCTS } from '@/lib/mock-data'
 
 interface Product {
   id: string
@@ -37,7 +37,6 @@ interface Product {
 export default function ProductDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const supabase = createClient()
   const { showToast } = useToast()
   const { addItem } = useCart()
   const { user } = useUser()
@@ -51,40 +50,33 @@ export default function ProductDetailPage() {
     fetchProduct()
   }, [params.id])
 
-  const fetchProduct = async () => {
+  const fetchProduct = () => {
     setLoading(true)
     try {
-      const { data: { user: authUser } } = await supabase.auth.getUser()
-
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          vendeur:users!products_vendeur_id_fkey(id, full_name, avatar_url, note_moyenne, nb_avis)
-        `)
-        .eq('id', params.id)
-        .eq('statut', 'actif')
-        .single()
-
-      if (error) throw error
-
-      // Check if favorite
-      let isFavorite = false
-      if (authUser) {
-        const { data: favData } = await supabase
-          .from('favorites')
-          .select('*')
-          .eq('user_id', authUser.id)
-          .eq('product_id', params.id)
-          .single()
-        isFavorite = !!favData
+      // Use mock data
+      const mockProduct = MOCK_PRODUCTS.find(p => p.id === params.id)
+      
+      if (!mockProduct) {
+        throw new Error('Product not found')
       }
 
       setProduct({
-        ...data,
-        vendeur: data.vendeur,
+        id: mockProduct.id,
+        nom: mockProduct.nom,
+        description: mockProduct.description || "Produit de qualité disponible sur Ayiba.",
+        prix: mockProduct.prix,
+        ancien_prix: mockProduct.ancien_prix || null,
+        categorie: mockProduct.categorie || "Divers",
+        photos: mockProduct.photos,
+        vendeur: {
+          id: mockProduct.vendeur_id || "default",
+          full_name: "Vendeur Ayiba",
+          avatar_url: null,
+          note_moyenne: 4.5,
+          nb_avis: 42
+        },
         distance: 0,
-        is_favorite: isFavorite
+        is_favorite: false
       })
     } catch (error) {
       console.error('Error fetching product:', error)
@@ -110,7 +102,7 @@ export default function ProductDetailPage() {
     showToast(`${quantity} article(s) ajouté(s) au panier`, 'success')
   }
 
-  const handleToggleFavorite = async () => {
+  const handleToggleFavorite = () => {
     if (!product) return
 
     if (!user) {
@@ -119,36 +111,12 @@ export default function ProductDetailPage() {
       return
     }
 
-    try {
-      if (product.is_favorite) {
-        const { error } = await supabase
-          .from('favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('product_id', product.id)
-
-        if (error) throw error
-        showToast('Retiré des favoris', 'info')
-      } else {
-        const { error } = await supabase
-          .from('favorites')
-          .insert({
-            user_id: user.id,
-            product_id: product.id
-          })
-
-        if (error) throw error
-        showToast('Ajouté aux favoris', 'success')
-      }
-
-      setProduct({ ...product, is_favorite: !product.is_favorite })
-    } catch (error) {
-      console.error('Error toggling favorite:', error)
-      showToast('Erreur lors de la modification des favoris', 'error')
-    }
+    // Toggle favorite locally (mock)
+    setProduct({ ...product, is_favorite: !product.is_favorite })
+    showToast(product.is_favorite ? 'Retiré des favoris' : 'Ajouté aux favoris', 'success')
   }
 
-  const handleContactSeller = async () => {
+  const handleContactSeller = () => {
     if (!product) return
 
     if (!user) {
@@ -157,37 +125,8 @@ export default function ProductDetailPage() {
       return
     }
 
-    try {
-      // Check if conversation exists
-      const { data: existingConv } = await supabase
-        .from('conversations')
-        .select('*')
-        .eq('client_id', user.id)
-        .eq('vendeur_id', product.vendeur.id)
-        .eq('product_id', product.id)
-        .single()
-
-      if (existingConv) {
-        router.push(`/messages/${existingConv.id}`)
-      } else {
-        // Create new conversation
-        const { data: newConv, error } = await supabase
-          .from('conversations')
-          .insert({
-            client_id: user.id,
-            vendeur_id: product.vendeur.id,
-            product_id: product.id
-          })
-          .select()
-          .single()
-
-        if (error) throw error
-        router.push(`/messages/${newConv.id}`)
-      }
-    } catch (error) {
-      console.error('Error contacting seller:', error)
-      showToast('Erreur lors de la création de la conversation', 'error')
-    }
+    // Mock: show toast for now
+    showToast('Conversation avec le vendeur (mock)', 'info')
   }
 
   const handleShare = () => {

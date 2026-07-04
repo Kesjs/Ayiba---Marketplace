@@ -300,9 +300,9 @@ export default function Home() {
           <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar mb-8">
             <button
               onClick={() => { setActiveTab("Tout"); setVisibleProductsCount(8); }}
-              className={`flex-shrink-0 px-6 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${
+              className={`shrink-0 px-6 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${
                 activeTab === "Tout"
-                  ? 'bg-coral-500 text-white shadow-lg shadow-coral-500/20'
+                  ? 'bg-coral-50 text-coral-600 border-2 border-coral-200'
                   : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-100'
               }`}
             >
@@ -314,7 +314,7 @@ export default function Home() {
                 onClick={() => { setActiveTab(cat.label); setVisibleProductsCount(8); }}
                 className={`shrink-0 px-6 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${
                   activeTab === cat.label
-                    ? 'bg-coral-500 text-white shadow-lg shadow-coral-500/20'
+                    ? 'bg-coral-50 text-coral-600 border-2 border-coral-200'
                     : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-100'
                 }`}
               >
@@ -366,7 +366,7 @@ export default function Home() {
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500">
-                <Star className="fill-amber-500" size={24} />
+                <Star size={24} />
               </div>
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Produits du moment</h2>
             </div>

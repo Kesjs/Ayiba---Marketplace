@@ -33,7 +33,6 @@ export function ProductCardMinimal({
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.3 }}
       onClick={onClick}
@@ -114,7 +113,6 @@ export function ProductCardModern({
       initial={{ opacity: 0, scale: 0.95 }}
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true }}
-      whileHover={{ y: -8 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.3 }}
       onClick={onClick}
@@ -198,7 +196,6 @@ export function ProductCardCompact({
       initial={{ opacity: 0 }}
       whileInView={{ opacity: 1 }}
       viewport={{ once: true }}
-      whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2 }}
       onClick={onClick}

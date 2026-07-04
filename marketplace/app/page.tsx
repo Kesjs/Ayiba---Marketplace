@@ -14,9 +14,13 @@ import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { useRouter } from "next/navigation";
 import { CATEGORIES, MOCK_PRODUCTS, MOCK_STORES } from "@/lib/mock-data";
+import { useUser } from "@/lib/hooks/useUser";
+import { motion, AnimatePresence } from "framer-motion";
+import { HomeSkeleton } from "@/components/ui/Skeleton";
 
 export default function Home() {
   const router = useRouter();
+  const { user, profile, loading: userLoading } = useUser();
   const [products, setProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
@@ -28,7 +32,7 @@ export default function Home() {
     const timer = setTimeout(() => {
       setProducts(MOCK_PRODUCTS);
       setProductsLoading(false);
-    }, 800);
+    }, 1200); // Un peu plus long pour voir le skeleton
     return () => clearTimeout(timer);
   }, []);
 
@@ -41,9 +45,96 @@ export default function Home() {
 
   const trendingProducts = [...products].sort((a, b) => b.rating - a.rating).slice(0, 4);
 
+  const sectionVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
+
+      {productsLoading ? (
+        <div className="pt-20">
+          <HomeSkeleton />
+        </div>
+      ) : (
+        <>
+          {/* --- ROLE BASED WIDGETS --- */}
+      <AnimatePresence>
+        {profile && (
+          <motion.section 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pt-24 pb-4 bg-white"
+          >
+            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+              <div className="bg-gray-50 rounded-[32px] p-6 md:p-8 border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-2xl bg-coral-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-sm">
+                    <img src={`https://i.pravatar.cc/150?u=${profile.id}`} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">Bienvenue, {profile.full_name || "l'ami"} !</h2>
+                    <p className="text-sm text-gray-500 font-medium">Content de vous revoir sur Ayiba.</p>
+                  </div>
+                </div>
+
+                {profile.role === "client" && (
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Favoris</p>
+                      <p className="text-xl font-bold text-gray-900">12</p>
+                    </div>
+                    <div className="w-px h-8 bg-gray-200" />
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Commandes</p>
+                      <p className="text-xl font-bold text-gray-900">3</p>
+                    </div>
+                    <Link href="/profil">
+                      <Button className="h-11 px-6 rounded-xl text-xs font-bold">Mon Profil</Button>
+                    </Link>
+                  </div>
+                )}
+
+                {profile.role === "vendeur" && (
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Ventes du jour</p>
+                      <p className="text-xl font-bold text-teal-600">45 000 F</p>
+                    </div>
+                    <div className="w-px h-8 bg-gray-200" />
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Stock</p>
+                      <p className="text-xl font-bold text-gray-900">24</p>
+                    </div>
+                    <Link href="/vendeur/dashboard">
+                      <Button className="h-11 px-6 rounded-xl text-xs font-bold">Mon Dashboard</Button>
+                    </Link>
+                  </div>
+                )}
+
+                {profile.role === "livreur" && (
+                  <div className="flex items-center gap-6">
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Gains</p>
+                      <p className="text-xl font-bold text-amber-600">8 500 F</p>
+                    </div>
+                    <div className="w-px h-8 bg-gray-200" />
+                    <div className="text-center">
+                      <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Missions</p>
+                      <p className="text-xl font-bold text-gray-900">4</p>
+                    </div>
+                    <Link href="/livreur/missions">
+                      <Button className="h-11 px-6 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-700">Mes Missions</Button>
+                    </Link>
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
 
       {/* --- HERO SECTION --- */}
       <section className="relative pt-10 pb-20 md:pt-16 md:pb-28 overflow-hidden">
@@ -126,7 +217,13 @@ export default function Home() {
       </section>
 
       {/* --- 1. EXPLORER LES BOUTIQUES --- */}
-      <section className="py-12 bg-white">
+      <motion.section 
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        className="py-12 bg-white"
+      >
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -172,10 +269,16 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* --- 2. DYNAMIC CATEGORIES & PRODUCTS --- */}
-      <section className="py-20 bg-gray-50/50 border-y border-gray-100">
+      <motion.section 
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        className="py-20 bg-gray-50/50 border-y border-gray-100"
+      >
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
             <div>
@@ -197,9 +300,9 @@ export default function Home() {
           <div className="flex gap-2 overflow-x-auto pb-6 no-scrollbar mb-8">
             <button
               onClick={() => { setActiveTab("Tout"); setVisibleProductsCount(8); }}
-              className={`px-6 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${
-                activeTab === "Tout" 
-                  ? 'bg-coral-500 text-white shadow-lg shadow-coral-500/20' 
+              className={`flex-shrink-0 px-6 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${
+                activeTab === "Tout"
+                  ? 'bg-coral-500 text-white shadow-lg shadow-coral-500/20'
                   : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-100'
               }`}
             >
@@ -209,9 +312,9 @@ export default function Home() {
               <button
                 key={cat.id}
                 onClick={() => { setActiveTab(cat.label); setVisibleProductsCount(8); }}
-                className={`px-6 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${
-                  activeTab === cat.label 
-                    ? 'bg-coral-500 text-white shadow-lg shadow-coral-500/20' 
+                className={`shrink-0 px-6 py-2.5 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 ${
+                  activeTab === cat.label
+                    ? 'bg-coral-500 text-white shadow-lg shadow-coral-500/20'
                     : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-100'
                 }`}
               >
@@ -249,10 +352,16 @@ export default function Home() {
             </div>
           )}
         </div>
-      </section>
+      </motion.section>
 
       {/* --- 3. PRODUITS DU MOMENT --- */}
-      <section className="py-24 bg-white">
+      <motion.section 
+        variants={sectionVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+        className="py-24 bg-white"
+      >
         <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
           <div className="flex items-center justify-between mb-12">
             <div className="flex items-center gap-4">
@@ -284,7 +393,7 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* --- 4. THE AYIBA ECOSYSTEM (TRUST) --- */}
       <section id="comment-ca-marche" className="py-24 bg-gray-50/50 text-gray-900 overflow-hidden relative border-y border-gray-100">
@@ -368,6 +477,8 @@ export default function Home() {
       </section>
 
       <Footer />
+        </>
+      )}
 
       <style jsx global>{`
         @keyframes float {

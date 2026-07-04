@@ -32,7 +32,10 @@ export function Button({
   };
 
   return (
-    <button className={`${base} ${variants[variant]} ${className}`} {...props}>
+    <button 
+      className={`${base} ${variants[variant]} active:scale-95 transition-all duration-200 ${className}`} 
+      {...props}
+    >
       {children}
     </button>
   );

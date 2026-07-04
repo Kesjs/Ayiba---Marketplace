@@ -16,7 +16,7 @@ export function DashboardLayout({ children, role, userName, title }: DashboardLa
       <Sidebar role={role} userName={userName} />
       
       <main className="flex-1 lg:pl-64 transition-all duration-300">
-        <div className="p-4 md:p-8 lg:p-10 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 lg:p-10 pb-24 md:pb-8 lg:pb-10 max-w-7xl mx-auto">
           {/* Header Bar */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-10">
             <div>

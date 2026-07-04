@@ -3,12 +3,23 @@ import "./globals.css";
 import 'leaflet/dist/leaflet.css'
 
 import { CartProvider } from "@/context/CartContext";
+import { ToastProvider } from "@/context/ToastContext";
 import NextTopLoader from 'nextjs-toploader';
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { BottomNav } from "@/components/ui/BottomNav";
+import { Toast } from "@/components/ui/Toast";
+import { PageTransition } from "@/components/ui/PageTransition";
 
 export const metadata: Metadata = {
   title: "Ayiba - Marketplace de proximité",
   description: "Trouve des produits près de chez toi, livrés en toute sécurité",
+  manifest: "/manifest.json",
+  themeColor: "#FF6653",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Ayiba",
+  },
   icons: {
     icon: "/favicon.png",
   },
@@ -52,8 +63,18 @@ export default function RootLayout({
           speed={200}
           shadow="0 0 10px #FF6653,0 0 5px #FF6653"
         />
-        <CartProvider>{children}</CartProvider>
-        <ScrollToTop />
+        <CartProvider>
+          <ToastProvider>
+            <main className="flex-1 pb-20 lg:pb-0">
+              <PageTransition>
+                {children}
+              </PageTransition>
+            </main>
+            <BottomNav />
+            <Toast />
+            <ScrollToTop />
+          </ToastProvider>
+        </CartProvider>
       </body>
     </html>
   );

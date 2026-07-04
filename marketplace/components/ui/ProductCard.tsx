@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 interface ProductCardProps {
   image: string;
@@ -28,7 +29,13 @@ export function ProductCard({
   onClick,
 }: ProductCardProps) {
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, scale: 0.95 }}
+      whileInView={{ opacity: 1, scale: 1 }}
+      viewport={{ once: true }}
+      whileHover={{ y: -8 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.3 }}
       onClick={onClick}
       className="flex flex-col bg-white border border-gray-100 rounded-[32px] overflow-hidden w-full text-left hover:border-coral-200 hover:shadow-2xl hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer group/card"
     >
@@ -107,6 +114,6 @@ export function ProductCard({
           Ajouter au panier
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }

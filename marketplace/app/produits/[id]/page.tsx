@@ -338,7 +338,7 @@ export default function ProductDetailPage() {
                     </span>
                   </div>
                 </div>
-                <Button variant="outline" size="sm" onClick={handleContactSeller}>
+                <Button variant="outline" onClick={handleContactSeller}>
                   <MessageCircle size={16} className="mr-2" />
                   Contacter
                 </Button>
@@ -380,7 +380,6 @@ export default function ProductDetailPage() {
             {/* Add to cart */}
             <Button 
               variant="primary" 
-              size="lg" 
               className="w-full h-14 text-base"
               onClick={handleAddToCart}
             >

@@ -18,12 +18,12 @@ import {
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useCart } from "@/context/CartContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const { user, profile } = useUser();
-  const { itemCount } = useCart();
+  const { profile } = useUser();
+  const { itemCount, openCart } = useCart();
 
   const role = profile?.role || "guest";
 
@@ -53,13 +53,13 @@ export function BottomNav() {
     guest: [
       { label: "Accueil", icon: Home, href: "/" },
       { label: "Catalogue", icon: Search, href: "/catalogue" },
-      { label: "Panier", icon: ShoppingBag, href: "/catalogue", isCentral: true, badge: itemCount },
+      { label: "Panier", icon: ShoppingBag, href: "/catalogue", isCentral: true, badge: itemCount, openCart: true },
       { label: "Compte", icon: User, href: "/auth/inscription" },
     ],
     client: [
       { label: "Accueil", icon: Home, href: "/" },
       { label: "Favoris", icon: Heart, href: "/favoris" },
-      { label: "Panier", icon: ShoppingBag, href: "/catalogue", isCentral: true, badge: itemCount },
+      { label: "Panier", icon: ShoppingBag, href: "/catalogue", isCentral: true, badge: itemCount, openCart: true },
       { label: "Profil", icon: User, href: "/profil" },
     ],
     vendeur: [
@@ -95,22 +95,40 @@ export function BottomNav() {
           const isActive = pathname === item.href;
           
           if (item.isCentral) {
+            const CentralInner = (
+              <motion.div 
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2 + i * 0.1, type: "spring" }}
+                whileTap={{ scale: 0.9 }}
+                className="w-14 h-14 bg-coral-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-coral-500/40 relative"
+              >
+                <item.icon size={24} strokeWidth={2.5} />
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-white text-coral-500 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-coral-500">
+                    {item.badge}
+                  </span>
+                )}
+              </motion.div>
+            );
+
+            if (item.openCart) {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={openCart}
+                  className="relative -top-6"
+                  aria-label="Ouvrir le panier"
+                >
+                  {CentralInner}
+                </button>
+              );
+            }
+
             return (
               <Link key={item.label} href={item.href} className="relative -top-6">
-                <motion.div 
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2 + i * 0.1, type: "spring" }}
-                  whileTap={{ scale: 0.9 }}
-                  className="w-14 h-14 bg-coral-500 rounded-full flex items-center justify-center text-white shadow-xl shadow-coral-500/40 relative"
-                >
-                  <item.icon size={24} strokeWidth={2.5} />
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-white text-coral-500 text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-coral-500">
-                      {item.badge}
-                    </span>
-                  )}
-                </motion.div>
+                {CentralInner}
               </Link>
             );
           }

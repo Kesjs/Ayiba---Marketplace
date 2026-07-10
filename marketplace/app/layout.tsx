@@ -65,7 +65,7 @@ export default function RootLayout({
         />
         <CartProvider>
           <ToastProvider>
-            <main className="flex-1 pb-32o lg:pb-0">
+            <main className="flex-1 pb-24 lg:pb-0">
               <PageTransition>
                 {children}
               </PageTransition>

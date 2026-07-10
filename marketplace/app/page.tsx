@@ -191,7 +191,7 @@ export default function Home() {
 </h1>
 
         <p className="text-base md:text-lg text-gray-500 mb-10 max-w-xl leading-relaxed font-medium text-center lg:text-left mx-auto lg:ml-0">
-          Des milliers de produits vérifiés, livrés en toute confiance grâce à notre paiement protégé et notre code de validation.
+ Trouvez des milliers de produits près de chez vous. Votre argent est bloqué en sécurité jusqu’à ce que vous validiez la réception.
         </p>
 
 

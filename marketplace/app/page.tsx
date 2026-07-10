@@ -176,21 +176,24 @@ export default function Home() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
       {/* Contenu texte - pleine largeur puisque l'image est en fond */}
       <div className={`lg:col-span-12 xl:col-span-8 transition-all duration-1000 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}>
-        <div className="inline-flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-full px-4 py-1.5 mb-8 shadow-sm">
-          <BadgeCheck className="w-4 h-4 text-teal-600" />
-          <span className="text-[10px] font-bold text-teal-800 uppercase tracking-widest leading-none">
-            Achats 100% Sécurisés • Bénin
-          </span>
+        <div className="flex justify-center lg:justify-start">
+          <div className="inline-flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-full px-4 py-1.5 mb-8 shadow-sm">
+            <BadgeCheck className="w-4 h-4 text-teal-600" />
+            <span className="text-[10px] font-bold text-teal-800 uppercase tracking-widest leading-none">
+              100% Garanti • Bénin
+            </span>
+          </div>
         </div>
 
-        <h1 className="text-[32px] md:text-[48px] lg:text-[56px] font-semibold text-gray-900 leading-[1.1] mb-6 tracking-tight text-center lg:text-left">
-          Tout votre quartier, <br />
-          <span className="text-coral-500">en toute confiance.</span>
+        <h1 className="text-[24px] md:text-[42px] lg:text-[56px] font-semibold text-gray-900 leading-[1.15] mb-6 tracking-tight text-center lg:text-left">
+          La marketplace béninoise <br className="md:hidden" />
+          pour acheter et vendre en toute sécurité
         </h1>
 
         <p className="text-base md:text-lg text-gray-500 mb-10 max-w-xl leading-relaxed font-medium text-center lg:text-left mx-auto lg:ml-0">
-          Achetez local, l'esprit tranquille. Votre argent est protégé jusqu'à ce que vous validiez la livraison.
+          Des milliers de produits vérifiés, livrés en toute confiance grâce à notre paiement protégé et notre code de validation.
         </p>
+
 
         {/* CTAs */}
         <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center lg:justify-start">

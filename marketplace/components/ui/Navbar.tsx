@@ -346,7 +346,8 @@ export function Navbar() {
               <Menu size={22} className="text-gray-900" />
             </button>
           </div>
-
+        </div>
+   
       </header>
 
       {/* Drawer mobile */}

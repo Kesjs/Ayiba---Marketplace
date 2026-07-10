@@ -164,7 +164,7 @@ export default function Home() {
   <div className="absolute -top-24 -right-24 w-96 h-96 bg-teal-50/50 rounded-full blur-3xl -z-10" />
 
   {/* Illustration en background subtil - visible sur tous les écrans */}
-  <div className="absolute inset-0 -z-10 flex items-center justify-center lg:justify-end pointer-events-none">
+  <div className="absolute inset-0 -z-0 flex items-center justify-center lg:justify-end pointer-events-none">
     <img
       src="/images/hero-illustration.png"
       alt=""

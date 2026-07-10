@@ -206,31 +206,32 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Trust Indicators */}
-        <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-8 gap-y-6">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shadow-xs border border-teal-100/50">
-              <Lock size={18} />
-            </div>
-            <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Paiement Escrow</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shadow-xs border border-coral-100/50">
-              <Key size={18} />
-            </div>
-            <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Validation par OTP</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-xs border border-amber-100/50">
-              <UserCheck size={18} />
-            </div>
-            <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Acteurs Vérifiés</p>
-          </div>
-        </div>
+        {/* Trust Indicators - 3 sur une ligne, compact sur mobile */}
+<div className="grid grid-cols-3 gap-3 max-w-md mx-auto lg:mx-0 lg:max-w-none lg:flex lg:gap-8">
+  <div className="flex flex-col lg:flex-row items-center lg:items-center gap-2 lg:gap-3 text-center lg:text-left">
+    <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shadow-xs border border-teal-100/50 shrink-0">
+      <Lock size={18} />
+    </div>
+    <p className="text-[11px] lg:text-[13px] font-bold text-gray-700 leading-tight">Paiement Escrow</p>
+  </div>
+  <div className="flex flex-col lg:flex-row items-center lg:items-center gap-2 lg:gap-3 text-center lg:text-left">
+    <div className="w-9 h-9 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shadow-xs border border-coral-100/50 shrink-0">
+      <Key size={18} />
+    </div>
+    <p className="text-[11px] lg:text-[13px] font-bold text-gray-700 leading-tight">Validation par OTP</p>
+  </div>
+  <div className="flex flex-col lg:flex-row items-center lg:items-center gap-2 lg:gap-3 text-center lg:text-left">
+    <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-xs border border-amber-100/50 shrink-0">
+      <UserCheck size={18} />
+    </div>
+    <p className="text-[11px] lg:text-[13px] font-bold text-gray-700 leading-tight">Acteurs Vérifiés</p>
+  </div>
+</div>
       </div>
     </div>
   </div>
 </section>
+
 
 
       {/* --- 1. EXPLORER LES BOUTIQUES --- */}

@@ -158,84 +158,80 @@ export default function Home() {
       </AnimatePresence>
 
       {/* --- HERO SECTION --- */}
-      <section className="relative pt-10 pb-20 md:pt-16 md:pb-28 overflow-hidden">
-        {/* Wave Background Decoration */}
-        <div className="absolute top-0 right-0 w-2/3 h-[110%] -z-10 bg-linear-to-bl from-coral-50/40 via-white to-transparent opacity-80" />
-        <div className="absolute -top-24 -right-24 w-96 h-96 bg-teal-50/50 rounded-full blur-3xl -z-10" />
+<section className="relative pt-10 pb-20 md:pt-16 md:pb-28 overflow-hidden">
+  {/* Wave Background Decoration */}
+  <div className="absolute top-0 right-0 w-2/3 h-[110%] -z-10 bg-gradient-to-bl from-coral-50/40 via-white to-transparent opacity-80" />
+  <div className="absolute -top-24 -right-24 w-96 h-96 bg-teal-50/50 rounded-full blur-3xl -z-10" />
 
-        <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
-            {/* Left Content */}
-            <div className={`lg:col-span-7 transition-all duration-1000 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}>
-              <div className="inline-flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-full px-4 py-1.5 mb-8 shadow-sm">
-                <BadgeCheck className="w-4 h-4 text-teal-600" />
-                <span className="text-[10px] font-bold text-teal-800 uppercase tracking-widest leading-none">Marketplace 100% de Confiance • Bénin</span>
-              </div>
-              
-              <h1 className="text-[32px] md:text-[48px] lg:text-[56px] font-semibold text-gray-900 leading-[1.1] mb-6 tracking-tight text-center lg:text-left">
-                Tout votre quartier, <br />
-                <span className="text-coral-500">en un clic.</span>
-              </h1>
-              
-              <p className="text-base md:text-lg text-gray-500 mb-10 max-w-xl leading-relaxed font-medium text-center lg:text-left mx-auto lg:ml-0">
-                Achetez local sereinement. Votre argent est en sécurité jusqu'à ce que vous validiez la livraison par votre code secret.
-              </p>
+  {/* Illustration en background subtil - visible sur tous les écrans */}
+  <div className="absolute inset-0 -z-10 flex items-center justify-center lg:justify-end pointer-events-none">
+    <img
+      src="/images/hero-illustration.png"
+      alt=""
+      className="w-full max-w-2xl lg:max-w-3xl h-auto object-contain opacity-[0.08] lg:opacity-[0.12]"
+    />
+  </div>
 
-              {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center lg:justify-start">
-                <Link href="/catalogue" className="w-full sm:w-auto">
-                  <Button className="h-12 px-8 text-base font-bold rounded-xl shadow-xl shadow-coral-500/20 w-full">
-                    Parcourir le catalogue
-                  </Button>
-                </Link>
-                <Link href="/#comment-ca-marche" className="w-full sm:w-auto">
-                  <Button variant="outline" className="h-12 px-8 text-base font-bold rounded-xl border-2 w-full">
-                    Comment ça marche ?
-                  </Button>
-                </Link>
-              </div>
+  <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      {/* Contenu texte - pleine largeur puisque l'image est en fond */}
+      <div className={`lg:col-span-12 xl:col-span-8 transition-all duration-1000 ${mounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-12'}`}>
+        <div className="inline-flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-full px-4 py-1.5 mb-8 shadow-sm">
+          <BadgeCheck className="w-4 h-4 text-teal-600" />
+          <span className="text-[10px] font-bold text-teal-800 uppercase tracking-widest leading-none">
+            Achats 100% Sécurisés • Bénin
+          </span>
+        </div>
 
-              {/* Trust Indicators */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-8 gap-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shadow-xs border border-teal-100/50">
-                    <Lock size={18} />
-                  </div>
-                  <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Paiement Escrow</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shadow-xs border border-coral-100/50">
-                    <Key size={18} />
-                  </div>
-                  <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Validation par OTP</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-xs border border-amber-100/50">
-                    <UserCheck size={18} />
-                  </div>
-                  <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Acteurs Vérifiés</p>
-                </div>
-              </div>
+        <h1 className="text-[32px] md:text-[48px] lg:text-[56px] font-semibold text-gray-900 leading-[1.1] mb-6 tracking-tight text-center lg:text-left">
+          Tout votre quartier, <br />
+          <span className="text-coral-500">en toute confiance.</span>
+        </h1>
+
+        <p className="text-base md:text-lg text-gray-500 mb-10 max-w-xl leading-relaxed font-medium text-center lg:text-left mx-auto lg:ml-0">
+          Achetez local, l'esprit tranquille. Votre argent est protégé jusqu'à ce que vous validiez la livraison.
+        </p>
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-12 justify-center lg:justify-start">
+          <Link href="/catalogue" className="w-full sm:w-auto">
+            <Button className="h-12 px-8 text-base font-bold rounded-xl shadow-xl shadow-coral-500/20 w-full">
+              Parcourir le catalogue
+            </Button>
+          </Link>
+          <Link href="/#comment-ca-marche" className="w-full sm:w-auto">
+            <Button variant="outline" className="h-12 px-8 text-base font-bold rounded-xl border-2 w-full">
+              Comment ça marche ?
+            </Button>
+          </Link>
+        </div>
+
+        {/* Trust Indicators */}
+        <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-8 gap-y-6">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shadow-xs border border-teal-100/50">
+              <Lock size={18} />
             </div>
-
-            {/* Right Visual (Main Illustration) */}
-            <div className={`lg:col-span-5 relative transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
-               <div className="relative w-full aspect-square flex items-center justify-center max-w-[400px] lg:max-w-none mx-auto mt-12 lg:mt-0">
-                  <div className="relative w-full h-full p-4">
-                    {/* Background blob to adapt the image feel to our site colors */}
-                    <div className="absolute inset-10 bg-coral-100/30 rounded-full blur-[80px] -z-10" />
-                    
-                    <img 
-                      src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRj4SlLivGfdSxVvssk_bQJwJWAR0g27V93OxZXWRpH6Bfu46J3Iwb8YtU&s=10" 
-                      alt="Ayiba Shopping Illustration" 
-                      className="w-full h-full object-contain mix-blend-multiply opacity-90 transition-opacity hover:opacity-100"
-                    />
-                  </div>
-               </div>
+            <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Paiement Escrow</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shadow-xs border border-coral-100/50">
+              <Key size={18} />
             </div>
+            <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Validation par OTP</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-xs border border-amber-100/50">
+              <UserCheck size={18} />
+            </div>
+            <p className="text-[13px] font-bold text-gray-700 whitespace-nowrap">Acteurs Vérifiés</p>
           </div>
         </div>
-      </section>
+      </div>
+    </div>
+  </div>
+</section>
+
 
       {/* --- 1. EXPLORER LES BOUTIQUES --- */}
       <motion.section 

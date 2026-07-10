@@ -168,7 +168,7 @@ export default function Home() {
     <img
       src="/images/hero-illustration.png"
       alt=""
-      className="w-full max-w-2xl lg:max-w-3xl h-auto object-contain opacity-[0.08] lg:opacity-[0.12]"
+      className="w-full max-w-2xl lg:max-w-3xl h-auto object-contain opacity-[0.18] lg:opacity-[0.22]"
     />
   </div>
 

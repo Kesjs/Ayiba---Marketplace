@@ -185,7 +185,7 @@ export default function Home() {
           </div>
         </div>
 
-        <<h1 className="text-[26px] md:text-[42px] lg:text-[56px] font-semibold text-gray-900 leading-[1.15] mb-6 tracking-tight text-center lg:text-left">
+        <h1 className="text-[26px] md:text-[42px] lg:text-[56px] font-semibold text-gray-900 leading-[1.15] mb-6 tracking-tight text-center lg:text-left">
   La marketplace béninoise <br />
   qui livre en toute confiance
 </h1>

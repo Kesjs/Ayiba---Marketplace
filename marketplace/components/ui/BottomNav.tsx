@@ -18,6 +18,7 @@ export function BottomNav() {
   
   const role = profile?.role || "guest";
 
+  // Liste des pages où la navigation est masquée
   const hideOnPaths = [
     '/auth', '/admin', '/cgu', '/privacy', '/compte-suspendu', 
     '/devenir-vendeur', '/devenir-livreur', '/accueil', 
@@ -28,28 +29,29 @@ export function BottomNav() {
   const shouldHide = hideOnPaths.some(path => pathname.startsWith(path));
   if (shouldHide) return null;
 
+  // Structure fixe : Accueil est le premier
   const navItems = {
     guest: [
+      { label: "Accueil", icon: Home, href: "/" },
       { label: "Catalogue", icon: Search, href: "/catalogue" },
       { label: "Explorer", icon: MapPin, href: "/explorer" },
-      { label: "Accueil", icon: Home, href: "/", isCentral: true },
       { label: "Partenaire", icon: Briefcase, isAction: true },
     ],
     client: [
+      { label: "Accueil", icon: Home, href: "/" },
       { label: "Favoris", icon: Heart, href: "/favoris" },
       { label: "Explorer", icon: MapPin, href: "/explorer" },
-      { label: "Accueil", icon: Home, href: "/", isCentral: true },
       { label: "Profil", icon: User, href: "/profil" },
     ],
     vendeur: [
       { label: "Articles", icon: Package, href: "/vendeur/articles" },
       { label: "Dashboard", icon: LayoutDashboard, href: "/vendeur/dashboard" },
-      { label: "Publier", icon: PlusSquare, href: "/vendeur/articles/nouveau", isCentral: true },
+      { label: "Publier", icon: PlusSquare, href: "/vendeur/articles/nouveau" },
       { label: "Messages", icon: MessageSquare, href: "/vendeur/messages" },
     ],
     livreur: [
       { label: "Missions", icon: Truck, href: "/livreur/missions" },
-      { label: "Actives", icon: ClipboardList, href: "/livreur/missions", isCentral: true },
+      { label: "Actives", icon: ClipboardList, href: "/livreur/missions" },
       { label: "Carte", icon: MapPin, href: "/livreur/carte" },
       { label: "Profil", icon: User, href: "/livreur/profil" },
     ],
@@ -94,46 +96,30 @@ export function BottomNav() {
         )}
       </AnimatePresence>
 
-      {/* Barre de navigation */}
+      {/* Barre de navigation fixe */}
       <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden px-4 pb-4 pointer-events-none">
         <motion.nav 
           initial={{ y: 100 }} animate={{ y: 0 }}
-          className="bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[32px] shadow-2xl shadow-black/10 flex items-center justify-around p-2 pointer-events-auto"
+          className="bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-lg flex items-center justify-around p-3 pointer-events-auto"
         >
           {currentItems.map((item) => {
             const isActive = pathname === item.href;
 
             if (item.isAction) {
               return (
-                <button key={item.label} onClick={() => setIsPartnerOpen(true)} className="flex flex-col items-center gap-1 py-2 px-4">
+                <button key={item.label} onClick={() => setIsPartnerOpen(true)} className="flex flex-col items-center gap-1">
                   <item.icon size={22} className="text-gray-400" />
                   <span className="text-[10px] font-bold uppercase text-gray-400">{item.label}</span>
                 </button>
               );
             }
-            
-            if (item.isCentral) {
-              return (
-                <Link key={item.label} href={item.href} className="relative -top-8">
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="w-16 h-16 bg-white border-4 border-gray-50 rounded-full flex items-center justify-center shadow-lg shadow-black/10 relative"
-                  >
-                    <div className="w-12 h-12 bg-coral-500 rounded-full flex items-center justify-center text-white">
-                      <item.icon size={26} strokeWidth={2.5} />
-                    </div>
-                  </motion.div>
-                </Link>
-              );
-            }
 
             return (
-              <Link key={item.label} href={item.href} className="flex flex-col items-center gap-1 py-2 px-4">
+              <Link key={item.label} href={item.href} className="flex flex-col items-center gap-1">
                 <motion.div whileTap={{ scale: 0.9 }}>
                   <item.icon size={22} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "text-coral-500" : "text-gray-400"} />
                 </motion.div>
-                <span className={`text-[10px] font-bold uppercase tracking-widest ${isActive ? "text-gray-900" : "text-gray-400"}`}>
+                <span className={`text-[10px] font-bold uppercase tracking-wide ${isActive ? "text-gray-900" : "text-gray-400"}`}>
                   {item.label}
                 </span>
               </Link>

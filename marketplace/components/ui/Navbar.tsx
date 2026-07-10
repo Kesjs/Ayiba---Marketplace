@@ -314,22 +314,39 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile Actions */}
-          <div className="flex md:hidden items-center gap-2 shrink-0">
-             <button
-              onClick={() => setMobileOpen(true)}
-              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50"
-            >
-              <Search size={20} className="text-gray-600" />
-            </button>
+                   {/* Mobile Actions */}
+          <div className="flex md:hidden items-center gap-1 shrink-0">
+            {/* Bouton Recherche */}
             <button
               onClick={() => setMobileOpen(true)}
               className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50"
+              aria-label="Rechercher"
+            >
+              <Search size={20} className="text-gray-600" />
+            </button>
+
+            {/* Nouveau bouton Panier */}
+            <button
+              onClick={openCart}
+              className="relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50"
+              aria-label="Voir le panier"
+            >
+              <ShoppingCart size={20} className="text-gray-600" />
+              {itemCount > 0 && (
+                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-coral-400 border border-white rounded-full" />
+              )}
+            </button>
+
+            {/* Bouton Menu */}
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50"
+              aria-label="Menu"
             >
               <Menu size={22} className="text-gray-900" />
             </button>
           </div>
-        </div>
+
       </header>
 
       {/* Drawer mobile */}

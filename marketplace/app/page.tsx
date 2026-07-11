@@ -414,7 +414,8 @@ export default function Home() {
                           rating={product.rating}
                           reviewCount={product.reviewCount}
                           price={product.prix}
-                          oldPrice={product.ancien_prix}
+                          oldPrice={product.ancien_prix ?? undefined}
+
                           onAddToCart={() => handleAddToCart(product)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
                         />
@@ -496,7 +497,8 @@ export default function Home() {
                         rating={product.rating}
                         reviewCount={product.reviewCount}
                         price={product.prix}
-                        oldPrice={product.ancien_prix}
+                        oldPrice={product.ancien_prix ?? undefined}
+
                         onAddToCart={() => handleAddToCart(product)}
                         onToggleFavorite={() => handleToggleFavorite(product.id)}
                       />
@@ -613,7 +615,8 @@ export default function Home() {
                         rating={product.rating}
                         reviewCount={product.reviewCount}
                         price={product.prix}
-                        oldPrice={product.ancien_prix}
+                        oldPrice={product.ancien_prix ?? undefined}
+
                         onAddToCart={() => handleAddToCart(product)}
                         onToggleFavorite={() => handleToggleFavorite(product.id)}
                       />

@@ -19,6 +19,7 @@ import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 
 
 // Témoignages (à remplacer plus tard par de vrais avis en base)
@@ -46,18 +47,18 @@ const TESTIMONIALS = [
   },
 ];
 
-// ============================================
+// ============================================// ============================================
 // VARIANTS D'ANIMATION
 // ============================================
 
 // Reveal simple pour les sections (fade + montée)
-const sectionVariants = {
+const sectionVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
 };
 
 // Container en cascade pour les grilles de produits (effet "dépôt en cascade")
-const gridStagger = {
+const gridStagger: Variants = {
   hidden: {},
   visible: {
     transition: { staggerChildren: 0.07, delayChildren: 0.05 }
@@ -65,25 +66,23 @@ const gridStagger = {
 };
 
 // Item enfant de la grille produit (hérite du parent automatiquement)
-// APRÈS
-const gridItem = {
+const gridItem: Variants = {
   hidden: { opacity: 0, y: 24, scale: 0.97 },
   visible: {
     opacity: 1, y: 0, scale: 1,
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const }
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] }
   }
 };
 
-
 // Reveal plus léger pour catégories / témoignages (moins de déplacement)
-const lightStagger = {
+const lightStagger: Variants = {
   hidden: {},
   visible: {
     transition: { staggerChildren: 0.06, delayChildren: 0.05 }
   }
 };
 
-const lightItem = {
+const lightItem: Variants = {
   hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1, y: 0,
@@ -92,19 +91,18 @@ const lightItem = {
 };
 
 // Cascade pour le contenu texte du Hero (badge, titre, paragraphe, CTAs, trust indicators)
-const heroContainer = {
+const heroContainer: Variants = {
   hidden: {},
   visible: {
     transition: { staggerChildren: 0.12, delayChildren: 0.1 }
   }
 };
 
-// APRÈS
-const heroItem = {
+const heroItem: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: {
     opacity: 1, y: 0,
-    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const }
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
   }
 };
 

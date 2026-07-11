@@ -65,13 +65,15 @@ const gridStagger = {
 };
 
 // Item enfant de la grille produit (hérite du parent automatiquement)
+// APRÈS
 const gridItem = {
   hidden: { opacity: 0, y: 24, scale: 0.97 },
   visible: {
     opacity: 1, y: 0, scale: 1,
-    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] }
+    transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] as const }
   }
 };
+
 
 // Reveal plus léger pour catégories / témoignages (moins de déplacement)
 const lightStagger = {
@@ -97,13 +99,15 @@ const heroContainer = {
   }
 };
 
+// APRÈS
 const heroItem = {
   hidden: { opacity: 0, y: 24 },
   visible: {
     opacity: 1, y: 0,
-    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const }
   }
 };
+
 
 export default function Home() {
   const router = useRouter();

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   ShieldCheck, Lock, Key, Store, Bike, ArrowRight, BadgeCheck, 
-  UserCheck, Wallet,Star, 
+  UserCheck, Wallet, Star, 
   CheckCircle2, ChevronRight, Search, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -17,8 +17,9 @@ import { CATEGORIES, MOCK_PRODUCTS, MOCK_STORES } from "@/lib/mock-data";
 import { useUser } from "@/lib/hooks/useUser";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform, Variants } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
+
 
 
 

@@ -1,13 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { validateBeninPhone } from "@/lib/validation";
-import { X, Phone, ShieldCheck, Store, Bike, User, ArrowRight } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-
-const supabase = createClient();
+import { X, Mail, Lock, ShieldCheck, Store, Bike, User, Eye, EyeOff } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,183 +12,68 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const router = useRouter();
-  const [step, setStep] = useState<"phone" | "otp">("phone");
-  const [phone, setPhone] = useState("");
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [mode, setMode] = useState<"connexion" | "inscription">("connexion");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [canResend, setCanResend] = useState(false);
-  const [countdown, setCountdown] = useState(30);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
-  const handleSendOtp = async () => {
+  const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+
+  // SIMULATION — à remplacer par supabase.auth.signInWithPassword / signUp
+  const handleSubmit = async () => {
     setError(null);
-    setLoading(true);
 
-    // Validate phone format using shared function
-    const validation = validateBeninPhone(phone);
-    if (!validation.isValid) {
-      setError(validation.error || "Numéro invalide");
-      setLoading(false);
+    if (!validateEmail(email)) {
+      setError("Adresse email invalide");
+      return;
+    }
+    if (password.length < 6) {
+      setError("Le mot de passe doit contenir au moins 6 caractères");
       return;
     }
 
-    try {
-      const response = await fetch('/api/auth/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: validation.formatted })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.error?.includes('déjà') || data.error?.includes('already')) {
-          setError("Ce numéro est déjà associé à un compte");
-        } else {
-          setError(data.error || "Erreur lors de l'envoi du code");
-        }
-        setLoading(false);
-        return;
-      }
-
-      setStep("otp");
-      setCountdown(30);
-      setCanResend(false);
-
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            setCanResend(true);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } catch (err) {
-      setError("Erreur de connexion");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    setError(null);
     setLoading(true);
 
-    try {
-      const otpCode = otp.join("");
-      const validation = validateBeninPhone(phone);
-      
-      const response = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: validation.formatted, token: otpCode })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        if (data.error?.includes('expiré') || data.error?.includes('expired')) {
-          setError("Ce code a expiré. Veuillez le renvoyer.");
-        } else if (data.error?.includes('incorrect') || data.error?.includes('invalid')) {
-          setError("Code incorrect");
-        } else {
-          setError(data.error || "Erreur de vérification");
-        }
-        setLoading(false);
-        return;
-      }
-
-      // Check if user exists and their role
-      const { data: userData } = await supabase
-        .from("users")
-        .select("role")
-        .eq("id", data.user?.id)
-        .single();
-
-      if (userData?.role) {
-        // Existing user with a role
-        if (intendedRole && userData.role !== intendedRole) {
-          // User wants to become a different role (e.g., client -> vendeur)
-          setError(`Vous avez déjà un compte ${userData.role}. Pour devenir ${intendedRole}, veuillez créer un nouveau compte.`);
-          setLoading(false);
-          return;
-        }
-        // Redirect to existing dashboard
-        const redirectPath =
-          userData.role === "client"
-            ? "/catalogue"
-            : userData.role === "vendeur"
-            ? "/vendeur/dashboard"
-            : userData.role === "livreur"
-            ? "/livreur/missions"
-            : "/admin/dashboard";
-        router.push(redirectPath);
-      } else if (intendedRole) {
-        // New user with intended role - create user with role
-        await supabase.from("users").insert({
-          id: data.user?.id,
-          phone: data.user?.phone || "",
-          role: intendedRole,
-        });
-        const kycPath = intendedRole === "vendeur" ? "/vendeur/kyc" : "/livreur/kyc";
-        router.push(kycPath);
-      } else {
-        // New user - redirect to role selection
-        router.push("/auth/choix-role");
-      }
-    } catch (err) {
-      setError("Erreur de vérification");
-    } finally {
+    setTimeout(() => {
       setLoading(false);
-    }
+      onClose();
+
+      if (mode === "inscription") {
+        // Simule un nouvel utilisateur -> choix du rôle si pas déjà précisé
+        router.push(intendedRole ? `/${intendedRole}/kyc` : "/auth/choix-role");
+      } else {
+        // Simule une connexion existante -> redirection client par défaut
+        router.push(intendedRole ? `/${intendedRole}/dashboard` : "/catalogue");
+      }
+    }, 1000);
   };
 
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) return;
-    if (!/^\d*$/.test(value)) return;
+  // SIMULATION — à remplacer par supabase.auth.signInWithOAuth({ provider: 'google' })
+  const handleGoogleAuth = async () => {
+    setError(null);
+    setGoogleLoading(true);
 
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      const nextInput = document.getElementById(`otp-${index + 1}`);
-      nextInput?.focus();
-    }
-  };
-
-  const handleOtpPaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").slice(0, 6);
-    
-    if (!/^\d+$/.test(pastedData)) return;
-
-    const newOtp = pastedData.split("").slice(0, 6);
-    setOtp([...newOtp, ...Array(6 - newOtp.length).fill("")]);
-  };
-
-  const handleResendOtp = async () => {
-    setCountdown(30);
-    setCanResend(false);
-    await handleSendOtp();
+    setTimeout(() => {
+      setGoogleLoading(false);
+      onClose();
+      router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue");
+    }, 1000);
   };
 
   const handleDemoLogin = async (role: "admin" | "vendeur" | "livreur" | "client") => {
     setError(null);
     setLoading(true);
-    
-    // Pour la démo, on simule une connexion réussie
-    // Dans un vrai projet, on appellerait une route qui génère une session
+
     setTimeout(() => {
       onClose();
       const redirectPaths: Record<string, string> = {
         admin: "/admin/dashboard",
         vendeur: "/vendeur/dashboard",
         livreur: "/livreur/missions",
-        client: "/catalogue"
+        client: "/catalogue",
       };
       router.push(redirectPaths[role]);
       setLoading(false);
@@ -208,133 +88,157 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg p-6 max-w-sm w-full"
+        className="bg-white rounded-lg p-6 max-w-sm w-full relative max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        {step === "phone" ? (
-          <>
-            <h2 className="text-[18px] font-medium text-gray-900 mb-2">
-              Bienvenue sur Ayiba
-            </h2>
-            <p className="text-[14px] text-gray-600 mb-4">
-              Entre ton numéro pour continuer
-            </p>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
+          <X size={18} />
+        </button>
 
-            <div className="flex border border-gray-100 rounded focus-within:border-coral-400">
-              <div className="bg-gray-50 border-r border-gray-100 px-3 text-sm text-gray-600 flex items-center gap-2">
-                <span className="text-lg">🇧🇯</span>
-                +229
-              </div>
-              <input
-                type="tel"
-                placeholder="97 00 00 00"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                className="flex-1 h-10 text-sm px-3 focus:outline-none"
-              />
-            </div>
+        <h2 className="text-[18px] font-medium text-gray-900 mb-1">
+          Bienvenue sur Ayiba
+        </h2>
+        <p className="text-[14px] text-gray-600 mb-4">
+          {mode === "connexion" ? "Connecte-toi pour continuer" : "Crée ton compte pour continuer"}
+        </p>
 
-            {error && (
-              <p className="text-[12px] text-red-400 mt-2">{error}</p>
-            )}
+        {/* Toggle Connexion / Inscription */}
+        <div className="flex bg-gray-50 rounded-lg p-1 mb-5">
+          <button
+            onClick={() => { setMode("connexion"); setError(null); }}
+            className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
+              mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+            }`}
+          >
+            Se connecter
+          </button>
+          <button
+            onClick={() => { setMode("inscription"); setError(null); }}
+            className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
+              mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+            }`}
+          >
+            S'inscrire
+          </button>
+        </div>
 
+        {/* Google */}
+        <button
+          onClick={handleGoogleAuth}
+          disabled={googleLoading}
+          className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18">
+            <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"/>
+            <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
+            <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/>
+            <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
+          </svg>
+          {googleLoading ? "Connexion..." : "Continuer avec Google"}
+        </button>
+
+        <div className="flex items-center gap-3 my-4">
+          <div className="flex-1 h-px bg-gray-100" />
+          <span className="text-[11px] text-gray-400 uppercase tracking-wide">ou</span>
+          <div className="flex-1 h-px bg-gray-100" />
+        </div>
+
+        {/* Email */}
+        <div className="mb-3">
+          <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
+            <Mail size={16} className="text-gray-400 shrink-0" />
+            <input
+              type="email"
+              placeholder="Adresse email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="flex-1 h-11 text-sm px-2 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Mot de passe */}
+        <div className="mb-2">
+          <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
+            <Lock size={16} className="text-gray-400 shrink-0" />
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Mot de passe"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="flex-1 h-11 text-sm px-2 focus:outline-none"
+            />
             <button
-              onClick={handleSendOtp}
-              disabled={loading || phone.length < 8}
-              className="w-full bg-coral-400 text-white rounded px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed mt-4"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="text-gray-400 shrink-0"
             >
-              {loading ? "Envoi..." : "Recevoir le code"}
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
+          </div>
+        </div>
 
-            <p className="text-[11px] text-gray-400 mt-3 text-center">
-              En continuant tu acceptes nos conditions d'utilisation
-            </p>
-
-            {/* Section Démo */}
-            <div className="mt-8 pt-6 border-t border-gray-100">
-              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">
-                Accès Rapide (Démo)
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => handleDemoLogin("admin")}
-                  className="flex items-center gap-2 p-3 bg-gray-900 text-white rounded-xl hover:bg-black transition-colors"
-                >
-                  <ShieldCheck size={16} className="text-amber-400" />
-                  <span className="text-[11px] font-bold">Admin</span>
-                </button>
-                <button
-                  onClick={() => handleDemoLogin("vendeur")}
-                  className="flex items-center gap-2 p-3 bg-coral-50 text-coral-600 rounded-xl hover:bg-coral-100 transition-colors"
-                >
-                  <Store size={16} />
-                  <span className="text-[11px] font-bold">Vendeur</span>
-                </button>
-                <button
-                  onClick={() => handleDemoLogin("livreur")}
-                  className="flex items-center gap-2 p-3 bg-teal-50 text-teal-600 rounded-xl hover:bg-teal-100 transition-colors"
-                >
-                  <Bike size={16} />
-                  <span className="text-[11px] font-bold">Livreur</span>
-                </button>
-                <button
-                  onClick={() => handleDemoLogin("client")}
-                  className="flex items-center gap-2 p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
-                >
-                  <User size={16} />
-                  <span className="text-[11px] font-bold">Client</span>
-                </button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <>
-            <h2 className="text-[18px] font-medium text-gray-900 mb-2">
-              Code de confirmation
-            </h2>
-            <p className="text-[14px] text-gray-600 mb-4">
-              Code envoyé au +229 {phone.slice(0, 2)} XX XX XX
-            </p>
-
-            <div className="flex gap-2 mb-4">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  id={`otp-${index}`}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleOtpChange(index, e.target.value)}
-                  onPaste={handleOtpPaste}
-                  className="w-10 h-12 text-center text-lg font-medium border border-gray-100 rounded focus:border-coral-400 focus:outline-none"
-                />
-              ))}
-            </div>
-
-            {error && (
-              <p className="text-[12px] text-red-400 mb-4">{error}</p>
-            )}
-
-            <button
-              onClick={handleVerifyOtp}
-              disabled={loading || otp.join("").length < 6}
-              className="w-full bg-coral-400 text-white rounded px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? "Vérification..." : "Valider"}
-            </button>
-
-            <button
-              onClick={handleResendOtp}
-              disabled={!canResend}
-              className="w-full text-[13px] text-coral-400 mt-3 disabled:text-gray-400 disabled:cursor-not-allowed"
-            >
-              {canResend
-                ? "Code non reçu ? Renvoyer"
-                : `Renvoyer dans ${countdown}s`}
-            </button>
-          </>
+        {mode === "connexion" && (
+          <button className="text-[12px] text-coral-500 mb-2 block">
+            Mot de passe oublié ?
+          </button>
         )}
+
+        {error && (
+          <p className="text-[12px] text-red-400 mt-1 mb-2">{error}</p>
+        )}
+
+        <button
+          onClick={handleSubmit}
+          disabled={loading || !email || !password}
+          className="w-full bg-coral-400 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+        >
+          {loading ? "Chargement..." : mode === "connexion" ? "Se connecter" : "Créer mon compte"}
+        </button>
+
+        <p className="text-[11px] text-gray-400 mt-3 text-center">
+          En continuant tu acceptes nos conditions d'utilisation
+        </p>
+
+        {/* Section Démo */}
+        <div className="mt-8 pt-6 border-t border-gray-100">
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-widest mb-4 text-center">
+            Accès Rapide (Démo)
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => handleDemoLogin("admin")}
+              className="flex items-center gap-2 p-3 bg-gray-900 text-white rounded-xl hover:bg-black transition-colors"
+            >
+              <ShieldCheck size={16} className="text-amber-400" />
+              <span className="text-[11px] font-bold">Admin</span>
+            </button>
+            <button
+              onClick={() => handleDemoLogin("vendeur")}
+              className="flex items-center gap-2 p-3 bg-coral-50 text-coral-600 rounded-xl hover:bg-coral-100 transition-colors"
+            >
+              <Store size={16} />
+              <span className="text-[11px] font-bold">Vendeur</span>
+            </button>
+            <button
+              onClick={() => handleDemoLogin("livreur")}
+              className="flex items-center gap-2 p-3 bg-teal-50 text-teal-600 rounded-xl hover:bg-teal-100 transition-colors"
+            >
+              <Bike size={16} />
+              <span className="text-[11px] font-bold">Livreur</span>
+            </button>
+            <button
+              onClick={() => handleDemoLogin("client")}
+              className="flex items-center gap-2 p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100 transition-colors"
+            >
+              <User size={16} />
+              <span className="text-[11px] font-bold">Client</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

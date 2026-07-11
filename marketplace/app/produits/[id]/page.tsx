@@ -18,6 +18,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { MOCK_PRODUCTS, MOCK_STORES, CATEGORIES } from '@/lib/mock-data'
+import { ScrollToTop } from '@/components/ui/ScrollToTop' // ← Import de ton composant
 
 interface Product {
   id: string
@@ -42,7 +43,7 @@ interface Product {
   is_favorite: boolean
 }
 
-// Avis clients (mock générique — à terme, à lier réellement par produit en base)
+// Avis clients (mock générique)
 const MOCK_REVIEWS = [
   {
     name: "Chimène A.",
@@ -79,7 +80,6 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [justAdded, setJustAdded] = useState(false)
-  const [showScrollTop, setShowScrollTop] = useState(false)
 
   useEffect(() => {
     fetchProduct()
@@ -87,13 +87,6 @@ export default function ProductDetailPage() {
     setQuantity(1)
     window.scrollTo(0, 0)
   }, [params.id])
-
-  // Bouton "remonter en haut" après un certain scroll
-  useEffect(() => {
-    const handleScroll = () => setShowScrollTop(window.scrollY > 500)
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
 
   const fetchProduct = () => {
     setLoading(true)
@@ -107,7 +100,6 @@ export default function ProductDetailPage() {
       const store = MOCK_STORES.find(s => s.id === mockProduct.vendeur_id)
       const categoryLabel = CATEGORIES.find(c => c.id === mockProduct.categorie)?.label || 'Divers'
 
-      // Distance fixe déterministe par produit (mock — à remplacer par la vraie géoloc plus tard)
       const pseudoDistance = (mockProduct.id.charCodeAt(0) % 12) + 1
 
       setProduct({
@@ -204,8 +196,6 @@ export default function ProductDetailPage() {
       showToast('Lien copié', 'success')
     }
   }
-
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
   if (loading) {
     return (
@@ -384,7 +374,6 @@ export default function ProductDetailPage() {
               <span className="text-sm text-gray-500">({product.reviewCount} avis)</span>
             </div>
 
-            {/* Infos de livraison — hyperlocal, argument fort Ayiba */}
             <div className="bg-teal-50/50 border border-teal-100 rounded-xl p-4 flex flex-col gap-2">
               <div className="flex items-center gap-2 text-sm">
                 <MapPin size={16} className="text-teal-600 shrink-0" />
@@ -400,13 +389,11 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <h3 className="text-sm font-bold text-gray-900 mb-2">Description</h3>
               <p className="text-gray-600 leading-relaxed text-sm md:text-base">{product.description}</p>
             </div>
 
-            {/* Caractéristiques */}
             <div>
               <h3 className="text-sm font-bold text-gray-900 mb-3">Caractéristiques</h3>
               <div className="grid grid-cols-2 gap-3">
@@ -419,7 +406,6 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Seller Info */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
               <div className="flex items-center gap-3">
                 {product.vendeur.avatar_url ? (
@@ -456,7 +442,6 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Trust badges — les 3 vrais piliers Ayiba */}
             <div className="grid grid-cols-3 gap-2">
               <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-amber-50 rounded-xl">
                 <Wallet size={18} className="text-amber-500" />
@@ -492,8 +477,8 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Actions — panier (icône, cohérent avec ProductCardModern) + acheter maintenant */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            {/* Actions Desktop Only */}
+            <div className="hidden md:flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleAddToCart}
                 className={`flex-1 h-13 md:h-14 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-colors duration-300 ${
@@ -575,47 +560,34 @@ export default function ProductDetailPage() {
         )}
       </main>
 
-      {/* Barre sticky mobile */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]">
+      {/* Barre sticky mobile améliorée */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-3">
           <div className="shrink-0">
-            <p className="text-lg font-black text-gray-900 leading-none">
-              {product.prix.toLocaleString('fr-FR')} <span className="text-[10px] font-bold">FCFA</span>
+            <p className="text-2xl font-black text-gray-900 leading-none">
+              {product.prix.toLocaleString('fr-FR')} <span className="text-base font-bold text-gray-500">FCFA</span>
             </p>
           </div>
           <button
             onClick={handleAddToCart}
-            className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center shrink-0 transition-colors duration-300 ${
-              justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900'
+            className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all ${
+              justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900 hover:bg-gray-50'
             }`}
             aria-label="Ajouter au panier"
           >
-            <ShoppingBag size={20} />
+            <ShoppingBag size={26} />
           </button>
           <button
             onClick={handleBuyNow}
-            className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm"
+            className="flex-1 h-14 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-base transition-all shadow-md"
           >
             Acheter maintenant
           </button>
         </div>
       </div>
 
-      {/* Bouton remonter en haut */}
-      <AnimatePresence>
-        {showScrollTop && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={scrollToTop}
-            className="fixed right-4 bottom-24 md:bottom-8 w-11 h-11 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-lg z-40"
-            aria-label="Remonter en haut"
-          >
-            <ChevronUp size={20} />
-          </motion.button>
-        )}
-      </AnimatePresence>
+      {/* Scroll To Top (seulement ton composant) */}
+      <ScrollToTop />
 
       <Footer />
     </div>

@@ -17,13 +17,6 @@ import {
   ChevronDown,
 } from "lucide-react";
 
-const STATS = [
-  { value: "127", label: "Vendeurs actifs" },
-  { value: "2 341", label: "Produits disponibles" },
-  { value: "892", label: "Commandes livrées" },
-  { value: "98%", label: "Satisfaction client" },
-];
-
 const STEPS = [
   {
     number: "01",
@@ -113,7 +106,7 @@ export default function DevenirVendeurPage() {
               <div className="inline-flex items-center gap-2 bg-coral-50 border border-coral-100 rounded-full px-4 py-2 mb-8">
                 <Store className="w-4 h-4 text-coral-500" />
                 <span className="text-sm font-medium text-coral-700">
-                  Rejoignez 127 vendeurs actifs
+                  Deviens vendeur sur Ayiba
                 </span>
               </div>
 
@@ -149,20 +142,6 @@ export default function DevenirVendeurPage() {
                     <span>Livraison gérée</span>
                   </div>
                 </div>
-            </div>
-          </div>
-        </section>
-
-        {/* STATS BANDEAU */}
-        <section className="bg-white border-b border-gray-100 py-6">
-          <div className="max-w-7xl mx-auto px-4 md:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {STATS.map((s, i) => (
-                <div key={i} className="text-center group">
-                  <p className="text-3xl md:text-4xl font-bold text-coral-500 mb-1 tracking-tight group-hover:scale-110 transition-transform duration-300">{s.value}</p>
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none">{s.label}</p>
-                </div>
-              ))}
             </div>
           </div>
         </section>

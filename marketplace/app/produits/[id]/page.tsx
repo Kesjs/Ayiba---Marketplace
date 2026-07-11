@@ -18,7 +18,7 @@ import {
   CheckCircle2
 } from 'lucide-react'
 import { MOCK_PRODUCTS, MOCK_STORES, CATEGORIES } from '@/lib/mock-data'
-import { ScrollToTop } from '@/components/ui/ScrollToTop' // ← Import de ton composant
+import { ScrollToTop } from '@/components/ui/ScrollToTop'
 
 interface Product {
   id: string
@@ -43,7 +43,6 @@ interface Product {
   is_favorite: boolean
 }
 
-// Avis clients (mock générique)
 const MOCK_REVIEWS = [
   {
     name: "Chimène A.",
@@ -80,6 +79,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [justAdded, setJustAdded] = useState(false)
+  const [showStickyBar, setShowStickyBar] = useState(false)
 
   useEffect(() => {
     fetchProduct()
@@ -87,6 +87,14 @@ export default function ProductDetailPage() {
     setQuantity(1)
     window.scrollTo(0, 0)
   }, [params.id])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowStickyBar(window.scrollY > 300)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const fetchProduct = () => {
     setLoading(true)
@@ -221,6 +229,8 @@ export default function ProductDetailPage() {
   const discount = product.ancien_prix
     ? Math.round(((product.ancien_prix - product.prix) / product.ancien_prix) * 100)
     : null
+
+  const totalPrice = product.prix * quantity
 
   const specs = [
     { label: "Catégorie", value: product.categorie },
@@ -475,6 +485,11 @@ export default function ProductDetailPage() {
                   <Plus size={18} />
                 </button>
               </div>
+              {quantity > 1 && (
+                <span className="text-sm text-gray-500">
+                  Total : <strong className="text-gray-900">{totalPrice.toLocaleString('fr-FR')} FCFA</strong>
+                </span>
+              )}
             </div>
 
             {/* Actions Desktop Only */}
@@ -560,33 +575,45 @@ export default function ProductDetailPage() {
         )}
       </main>
 
-      {/* Barre sticky mobile améliorée */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
-        <div className="flex items-center gap-3">
-          <div className="shrink-0">
-            <p className="text-2xl font-black text-gray-900 leading-none">
-              {product.prix.toLocaleString('fr-FR')} <span className="text-base font-bold text-gray-500">FCFA</span>
-            </p>
-          </div>
-          <button
-            onClick={handleAddToCart}
-            className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all ${
-              justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900 hover:bg-gray-50'
-            }`}
-            aria-label="Ajouter au panier"
+      {/* Barre sticky mobile — visible uniquement après scroll > 300px */}
+      <AnimatePresence>
+        {showStickyBar && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
           >
-            <ShoppingBag size={26} />
-          </button>
-          <button
-            onClick={handleBuyNow}
-            className="flex-1 h-14 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-base transition-all shadow-md"
-          >
-            Acheter maintenant
-          </button>
-        </div>
-      </div>
+            <div className="flex items-center gap-3">
+              <div className="shrink-0">
+                <p className="text-2xl font-black text-gray-900 leading-none">
+                  {totalPrice.toLocaleString('fr-FR')} <span className="text-base font-bold text-gray-500">FCFA</span>
+                </p>
+                {quantity > 1 && (
+                  <p className="text-[11px] text-gray-400 mt-0.5">{quantity} article(s)</p>
+                )}
+              </div>
+              <button
+                onClick={handleAddToCart}
+                className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all ${
+                  justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900 hover:bg-gray-50'
+                }`}
+                aria-label="Ajouter au panier"
+              >
+                <ShoppingBag size={26} />
+              </button>
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 h-14 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-base transition-all shadow-md"
+              >
+                Acheter maintenant
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Scroll To Top (seulement ton composant) */}
       <ScrollToTop />
 
       <Footer />

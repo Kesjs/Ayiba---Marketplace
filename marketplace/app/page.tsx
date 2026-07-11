@@ -292,66 +292,59 @@ export default function Home() {
             )}
           </AnimatePresence>
 
-          {/* --- 3. FLASH DEALS --- */}
-          <motion.section 
-            variants={sectionVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="py-16 bg-gradient-to-br from-coral-50/60 via-white to-amber-50/30"
-          >
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
-                <div className="flex items-center gap-4">
-  <div className="w-12 h-12 rounded-2xl bg-coral-50 flex items-center justify-center text-coral-500">
-    <Zap size={22} />
+         {/* --- 3. FLASH DEALS --- */}
+<motion.section 
+  variants={sectionVariants}
+  initial="hidden"
+  whileInView="visible"
+  viewport={{ once: true, margin: "-100px" }}
+  className="py-16 bg-gradient-to-br from-coral-50/60 via-white to-amber-50/30"
+>
+  <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-coral-50 flex items-center justify-center text-coral-500">
+          <Zap size={22} />
+        </div>
+        <div>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Ventes flash</h2>
+          <p className="text-gray-500 text-sm mt-1">Offres limitées, jusqu'à épuisement des stocks</p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 bg-white rounded-2xl px-4 py-2.5 border border-coral-100 shadow-sm self-start sm:self-auto">
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden xs:inline">Se termine dans</span>
+        <div className="flex items-center gap-1 font-mono font-bold text-coral-600 text-sm">
+          <span className="bg-coral-50 px-2 py-1 rounded-lg">{String(countdown.h).padStart(2, '0')}</span>:
+          <span className="bg-coral-50 px-2 py-1 rounded-lg">{String(countdown.m).padStart(2, '0')}</span>:
+          <span className="bg-coral-50 px-2 py-1 rounded-lg">{String(countdown.s).padStart(2, '0')}</span>
+        </div>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      {flashDealsProducts.map((product) => {
+        const { oldPrice } = getDiscountInfo(product.prix);
+        return (
+          <Link key={product.id} href={`/produits/${product.id}`} className="block">
+            <ProductCardModern
+              image={product.photos[0]}
+              category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
+              name={product.nom}
+              rating={product.rating}
+              reviewCount={product.reviewCount}
+              price={product.prix}
+              oldPrice={oldPrice}
+              onAddToCart={() => handleAddToCart(product)}
+              onToggleFavorite={() => handleToggleFavorite(product.id)}
+            />
+          </Link>
+        );
+      })}
+    </div>
   </div>
-  <div>
-    <h2 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Ventes flash</h2>
-    <p className="text-gray-500 text-sm mt-1">Offres limitées, jusqu'à épuisement des stocks</p>
-  </div>
-</div>
+</motion.section>
 
-
-                <div className="flex items-center gap-2 bg-white rounded-2xl px-4 py-2.5 border border-coral-100 shadow-sm self-start sm:self-auto">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden xs:inline">Se termine dans</span>
-                  <div className="flex items-center gap-1 font-mono font-bold text-coral-600 text-sm">
-                    <span className="bg-coral-50 px-2 py-1 rounded-lg">{String(countdown.h).padStart(2, '0')}</span>:
-                    <span className="bg-coral-50 px-2 py-1 rounded-lg">{String(countdown.m).padStart(2, '0')}</span>:
-                    <span className="bg-coral-50 px-2 py-1 rounded-lg">{String(countdown.s).padStart(2, '0')}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
-                {flashDealsProducts.map((product) => {
-                  const { oldPrice, discount } = getDiscountInfo(product.prix);
-                  return (
-                    <div key={product.id} className="relative">
-                      <div className="absolute top-3 left-3 z-10 bg-coral-500 text-white text-[11px] font-bold px-2.5 py-1 rounded-lg shadow-md">
-                        -{discount}%
-                      </div>
-                      <Link href={`/produits/${product.id}`} className="block transition-transform hover:-translate-y-1 duration-300">
-                        <ProductCardModern
-                          image={product.photos[0]}
-                          category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
-                          name={product.nom}
-                          rating={product.rating}
-                          reviewCount={product.reviewCount}
-                          price={product.prix}
-                          onAddToCart={() => handleAddToCart(product)}
-                          onToggleFavorite={() => handleToggleFavorite(product.id)}
-                        />
-                      </Link>
-                      <p className="text-xs text-gray-400 line-through font-medium mt-1 ml-1">
-                        {oldPrice.toLocaleString('fr-FR')} F
-                      </p>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </motion.section>
 
           {/* --- 4. POUR VOUS (produits + tabs) --- */}
           <motion.section 

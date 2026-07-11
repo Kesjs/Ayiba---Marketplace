@@ -20,8 +20,6 @@ import { useToast } from "@/context/ToastContext";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
 
-// Icônes utilisées pour illustrer les catégories populaires (cycle si + de catégories que d'icônes)
-const CATEGORY_ICONS = [Utensils, Shirt, Smartphone, Store, Bike, Wallet];
 
 // Témoignages (à remplacer plus tard par de vrais avis en base)
 const TESTIMONIALS = [
@@ -704,31 +702,31 @@ export default function Home() {
               </div>
 
               <motion.div
-                variants={lightStagger}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-80px" }}
-                className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-6"
-              >
-                {CATEGORIES.map((cat, i) => {
-                  const Icon = CATEGORY_ICONS[i % CATEGORY_ICONS.length];
-                  const count = products.filter(p => p.categorie === cat.id).length;
-                  return (
-                    <motion.div key={cat.id} variants={lightItem}>
-                      <Link
-                        href={`/catalogue?categorie=${cat.id}`}
-                        className="group flex flex-col items-center text-center p-4 md:p-6 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-coral-50/30 hover:shadow-lg hover:shadow-coral-500/5 transition-all duration-300"
-                      >
-                        <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gray-50 group-hover:bg-white flex items-center justify-center text-gray-500 group-hover:text-coral-500 mb-3 md:mb-4 transition-all duration-300 group-hover:scale-110 shadow-sm">
-                          <Icon size={22} />
-                        </div>
-                        <h3 className="text-xs md:text-sm font-bold text-gray-900 mb-0.5 md:mb-1">{cat.label}</h3>
-                        <p className="text-[10px] md:text-xs text-gray-400 font-medium">{count} produits</p>
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </motion.div>
+  variants={lightStagger}
+  initial="hidden"
+  whileInView="visible"
+  viewport={{ once: true, margin: "-80px" }}
+  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-6"
+>
+  {CATEGORIES.map((cat) => {
+    const count = products.filter(p => p.categorie === cat.id).length;
+    return (
+      <motion.div key={cat.id} variants={lightItem}>
+        <Link
+          href={`/catalogue?categorie=${cat.id}`}
+          className="group flex flex-col items-center text-center p-4 md:p-6 rounded-3xl border border-gray-100 hover:border-coral-100 hover:shadow-lg transition-all duration-300"
+        >
+          <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${cat.color} flex items-center justify-center mb-3 md:mb-4 transition-transform duration-300 group-hover:scale-110 shadow-sm`}>
+            <cat.icon size={22} />
+          </div>
+          <h3 className="text-xs md:text-sm font-bold text-gray-900 mb-0.5 md:mb-1">{cat.label}</h3>
+          <p className="text-[10px] md:text-xs text-gray-400 font-medium">{count} produits</p>
+        </Link>
+      </motion.div>
+    );
+  })}
+</motion.div>
+
             </div>
           </motion.section>
 

@@ -55,15 +55,15 @@ export function ProductCardModern({
       viewport={{ once: true }}
       transition={{ duration: 0.3 }}
       onClick={onClick}
-      className="flex flex-col w-full text-left cursor-pointer group/card"
+      className="flex flex-col w-full text-left cursor-pointer"
     >
-      {/* IMAGE — carrée, sans bordure ni ombre */}
-      <div className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden mb-2">
+      {/* IMAGE — carrée, aucune bordure, aucune ombre */}
+      <div className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden mb-2 group/image">
         <Image
           src={image}
           alt={name}
           fill
-          className="object-cover transition-transform duration-500 group-hover/card:scale-105"
+          className="object-cover transition-transform duration-500 group-hover/image:scale-105"
         />
 
         <button
@@ -78,14 +78,12 @@ export function ProductCardModern({
         </button>
       </div>
 
-      {/* TEXTE */}
+      {/* TEXTE — aucune carte, directement sur fond blanc */}
       <div className="flex flex-col gap-1 px-0.5">
-        {/* Nom, discret, une seule ligne tronquée */}
         <p className="text-xs text-gray-600 font-medium truncate">
           {name}
         </p>
 
-        {/* Note + avis */}
         <div className="flex items-center gap-1.5">
           <div className="flex items-center gap-0.5">
             <Star size={10} className="fill-amber-400 text-amber-400" />
@@ -95,18 +93,18 @@ export function ProductCardModern({
           <span className="text-[10px] text-gray-400">{reviewCount} avis</span>
         </div>
 
-        {/* Ligne prix + bouton panier à droite */}
-        <div className="flex items-center justify-between mt-0.5">
+        {/* Ligne prix + icône panier à droite, sans fond ni bordure */}
+        <div className="flex items-center justify-between mt-0.5 gap-2">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <p className="text-base font-black text-gray-900">
+            <p className="text-base font-black text-gray-900 whitespace-nowrap">
               {price.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
             </p>
             {discount && (
               <>
-                <span className="text-[10px] font-bold text-coral-500 bg-coral-50 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] font-bold text-coral-500 bg-coral-50 px-1.5 py-0.5 rounded whitespace-nowrap">
                   -{discount}%
                 </span>
-                <span className="text-[11px] text-gray-400 line-through font-medium">
+                <span className="text-[11px] text-gray-400 line-through font-medium whitespace-nowrap">
                   {oldPrice!.toLocaleString("fr-FR")}
                 </span>
               </>
@@ -116,11 +114,15 @@ export function ProductCardModern({
           <button
             type="button"
             onClick={handleAddToCart}
-            className={`shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
-              justAdded ? "bg-teal-600" : "bg-gray-950 hover:bg-coral-500"
-            }`}
+            className="shrink-0 p-1 -m-1"
+            aria-label="Ajouter au panier"
           >
-            <ShoppingBag size={14} className="text-white" />
+            <ShoppingBag
+              size={19}
+              className={`transition-colors duration-300 ${
+                justAdded ? "text-teal-600" : "text-gray-900 hover:text-coral-500"
+              }`}
+            />
           </button>
         </div>
       </div>

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { 
   ShieldCheck, Lock, Key, Store, Bike, ArrowRight, BadgeCheck, 
-  UserCheck, Wallet, Utensils, Shirt, Smartphone, Star, 
+  UserCheck, Wallet,Star, 
   CheckCircle2, ChevronRight, Search, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -19,7 +19,7 @@ import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
-import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+
 
 
 // Témoignages (à remplacer plus tard par de vrais avis en base)

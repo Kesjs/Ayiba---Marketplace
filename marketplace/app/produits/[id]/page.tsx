@@ -2,18 +2,22 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useToast } from '@/context/ToastContext'
 import { useCart } from '@/context/CartContext'
 import { useUser } from '@/lib/hooks/useUser'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
-import { motion } from 'framer-motion'
+import { ProductCardModern } from '@/components/ui/ProductCardVariants'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
-  Heart, Star, ShoppingCart, MessageCircle, Share2, 
-  ChevronLeft, ChevronRight, Minus, Plus, Shield, Truck 
+  Heart, Star, ShoppingBag, MessageCircle, Share2, 
+  ChevronLeft, ChevronRight, Minus, Plus, 
+  Wallet, Key, ShieldCheck, MapPin, Truck, ChevronUp,
+  CheckCircle2
 } from 'lucide-react'
-import { MOCK_PRODUCTS } from '@/lib/mock-data'
+import { MOCK_PRODUCTS, MOCK_STORES, CATEGORIES } from '@/lib/mock-data'
 
 interface Product {
   id: string
@@ -22,17 +26,46 @@ interface Product {
   prix: number
   ancien_prix: number | null
   categorie: string
+  categorieId: string
   photos: string[]
+  rating: number
+  reviewCount: number
   vendeur: {
     id: string
     full_name: string
     avatar_url: string | null
     note_moyenne: number
-    nb_avis: number
+    productCount: number
+    isVerified: boolean
   }
-  distance: number
+  distanceKm: number
   is_favorite: boolean
 }
+
+// Avis clients (mock générique — à terme, à lier réellement par produit en base)
+const MOCK_REVIEWS = [
+  {
+    name: "Chimène A.",
+    rating: 5,
+    date: "Il y a 2 semaines",
+    text: "Produit conforme à la description, livraison rapide. Je recommande sans hésiter.",
+    avatar: "https://i.pravatar.cc/150?u=review-1",
+  },
+  {
+    name: "Yssouf D.",
+    rating: 4,
+    date: "Il y a 1 mois",
+    text: "Bonne qualité pour le prix. Léger délai à la livraison mais rien de grave, le vendeur a bien communiqué.",
+    avatar: "https://i.pravatar.cc/150?u=review-2",
+  },
+  {
+    name: "Aïcha M.",
+    rating: 5,
+    date: "Il y a 2 mois",
+    text: "Exactement ce que j'attendais. Le paiement sécurisé m'a rassurée pour ma première commande sur Ayiba.",
+    avatar: "https://i.pravatar.cc/150?u=review-3",
+  },
+]
 
 export default function ProductDetailPage() {
   const params = useParams()
@@ -45,37 +78,58 @@ export default function ProductDetailPage() {
   const [loading, setLoading] = useState(true)
   const [quantity, setQuantity] = useState(1)
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
+  const [justAdded, setJustAdded] = useState(false)
+  const [showScrollTop, setShowScrollTop] = useState(false)
 
   useEffect(() => {
     fetchProduct()
+    setCurrentImageIndex(0)
+    setQuantity(1)
+    window.scrollTo(0, 0)
   }, [params.id])
+
+  // Bouton "remonter en haut" après un certain scroll
+  useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 500)
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const fetchProduct = () => {
     setLoading(true)
     try {
-      // Use mock data
       const mockProduct = MOCK_PRODUCTS.find(p => p.id === params.id)
-      
+
       if (!mockProduct) {
         throw new Error('Product not found')
       }
+
+      const store = MOCK_STORES.find(s => s.id === mockProduct.vendeur_id)
+      const categoryLabel = CATEGORIES.find(c => c.id === mockProduct.categorie)?.label || 'Divers'
+
+      // Distance fixe déterministe par produit (mock — à remplacer par la vraie géoloc plus tard)
+      const pseudoDistance = (mockProduct.id.charCodeAt(0) % 12) + 1
 
       setProduct({
         id: mockProduct.id,
         nom: mockProduct.nom,
         description: mockProduct.description || "Produit de qualité disponible sur Ayiba.",
         prix: mockProduct.prix,
-        ancien_prix: mockProduct.ancien_prix || null,
-        categorie: mockProduct.categorie || "Divers",
+        ancien_prix: mockProduct.ancien_prix ?? null,
+        categorie: categoryLabel,
+        categorieId: mockProduct.categorie,
         photos: mockProduct.photos,
+        rating: mockProduct.rating,
+        reviewCount: mockProduct.reviewCount,
         vendeur: {
           id: mockProduct.vendeur_id || "default",
-          full_name: "Vendeur Ayiba",
-          avatar_url: null,
-          note_moyenne: 4.5,
-          nb_avis: 42
+          full_name: store?.nom || "Boutique Ayiba",
+          avatar_url: store?.logo || null,
+          note_moyenne: store?.rating || 4.5,
+          productCount: store?.productCount || 0,
+          isVerified: store?.isVerified ?? false,
         },
-        distance: 0,
+        distanceKm: pseudoDistance,
         is_favorite: false
       })
     } catch (error) {
@@ -89,7 +143,6 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!product) return
-
     for (let i = 0; i < quantity; i++) {
       addItem({
         id: product.id,
@@ -99,33 +152,43 @@ export default function ProductDetailPage() {
         photos: product.photos
       })
     }
+    setJustAdded(true)
     showToast(`${quantity} article(s) ajouté(s) au panier`, 'success')
+    setTimeout(() => setJustAdded(false), 1500)
+  }
+
+  const handleBuyNow = () => {
+    if (!product) return
+    for (let i = 0; i < quantity; i++) {
+      addItem({
+        id: product.id,
+        nom: product.nom,
+        prix: product.prix,
+        vendeur_id: product.vendeur.id,
+        photos: product.photos
+      })
+    }
+    router.push('/checkout')
   }
 
   const handleToggleFavorite = () => {
     if (!product) return
-
     if (!user) {
       showToast('Connectez-vous pour ajouter aux favoris', 'warning')
       router.push('/auth/inscription')
       return
     }
-
-    // Toggle favorite locally (mock)
     setProduct({ ...product, is_favorite: !product.is_favorite })
     showToast(product.is_favorite ? 'Retiré des favoris' : 'Ajouté aux favoris', 'success')
   }
 
   const handleContactSeller = () => {
     if (!product) return
-
     if (!user) {
       showToast('Connectez-vous pour contacter le vendeur', 'warning')
       router.push('/auth/inscription')
       return
     }
-
-    // Mock: show toast for now
     showToast('Conversation avec le vendeur (mock)', 'info')
   }
 
@@ -141,6 +204,8 @@ export default function ProductDetailPage() {
       showToast('Lien copié', 'success')
     }
   }
+
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' })
 
   if (loading) {
     return (
@@ -163,22 +228,37 @@ export default function ProductDetailPage() {
 
   if (!product) return null
 
+  const discount = product.ancien_prix
+    ? Math.round(((product.ancien_prix - product.prix) / product.ancien_prix) * 100)
+    : null
+
+  const specs = [
+    { label: "Catégorie", value: product.categorie },
+    { label: "Vendu par", value: product.vendeur.full_name },
+    { label: "État", value: "Neuf" },
+    { label: "Livraison estimée", value: "24 à 48h" },
+  ]
+
+  const similarProducts = MOCK_PRODUCTS
+    .filter(p => p.categorie === product.categorieId && p.id !== product.id)
+    .slice(0, 4)
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 py-6 md:py-8 pb-28 md:pb-8">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+        <div className="flex items-center gap-2 text-sm text-gray-500 mb-4 md:mb-6">
           <button onClick={() => router.back()} className="hover:text-gray-900 flex items-center gap-1">
             <ChevronLeft size={16} />
             Retour
           </button>
           <span>/</span>
-          <span className="text-gray-900">{product.nom}</span>
+          <span className="text-gray-900 truncate">{product.nom}</span>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8 lg:gap-12">
           {/* Images */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -200,7 +280,6 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Image navigation */}
               {product.photos.length > 1 && (
                 <>
                   <button
@@ -229,7 +308,12 @@ export default function ProductDetailPage() {
                 </>
               )}
 
-              {/* Action buttons */}
+              {discount && (
+                <div className="absolute top-4 left-4 bg-coral-500 text-white rounded-lg px-3 py-1 text-sm font-bold">
+                  -{discount}%
+                </div>
+              )}
+
               <div className="absolute top-4 right-4 flex gap-2">
                 <button
                   onClick={handleToggleFavorite}
@@ -249,9 +333,8 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Thumbnails */}
             {product.photos.length > 1 && (
-              <div className="flex gap-3 mt-4 overflow-x-auto pb-2">
+              <div className="flex gap-3 mt-4 overflow-x-auto pb-2 no-scrollbar">
                 {product.photos.map((photo, i) => (
                   <button
                     key={i}
@@ -272,88 +355,120 @@ export default function ProductDetailPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="space-y-6"
+            className="space-y-5 md:space-y-6"
           >
-            {/* Category */}
-            <div>
-              <span className="text-xs font-bold text-coral-600 uppercase tracking-wider">
-                {product.categorie}
-              </span>
-            </div>
+            <span className="text-xs font-bold text-coral-600 uppercase tracking-wider">
+              {product.categorie}
+            </span>
 
-            {/* Title */}
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight">
+            <h1 className="text-xl md:text-3xl font-bold text-gray-900 leading-tight -mt-2">
               {product.nom}
             </h1>
 
-            {/* Price */}
-            <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-black text-gray-900">
-                {product.prix.toLocaleString()} <span className="text-lg font-bold">FCFA</span>
+            <div className="flex items-baseline gap-3 flex-wrap">
+              <span className="text-2xl md:text-3xl font-black text-gray-900">
+                {product.prix.toLocaleString('fr-FR')} <span className="text-base font-bold">FCFA</span>
               </span>
               {product.ancien_prix && (
-                <span className="text-lg text-gray-400 line-through font-medium">
-                  {product.ancien_prix.toLocaleString()} FCFA
+                <span className="text-base md:text-lg text-gray-400 line-through font-medium">
+                  {product.ancien_prix.toLocaleString('fr-FR')} FCFA
                 </span>
               )}
             </div>
 
-            {/* Rating */}
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 bg-amber-50 px-3 py-1.5 rounded-lg">
                 <Star size={16} className="fill-amber-500 text-amber-500" />
-                <span className="text-sm font-bold text-amber-700">{product.vendeur.note_moyenne.toFixed(1)}</span>
+                <span className="text-sm font-bold text-amber-700">{product.rating.toFixed(1)}</span>
               </div>
-              <span className="text-sm text-gray-500">({product.vendeur.nb_avis} avis)</span>
+              <span className="text-sm text-gray-500">({product.reviewCount} avis)</span>
+            </div>
+
+            {/* Infos de livraison — hyperlocal, argument fort Ayiba */}
+            <div className="bg-teal-50/50 border border-teal-100 rounded-xl p-4 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-sm">
+                <MapPin size={16} className="text-teal-600 shrink-0" />
+                <span className="text-gray-700 font-medium">
+                  Vendeur à environ <strong>{product.distanceKm} km</strong> de vous
+                </span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <Truck size={16} className="text-teal-600 shrink-0" />
+                <span className="text-gray-700 font-medium">
+                  Livraison estimée : <strong>24 à 48h</strong>
+                </span>
+              </div>
             </div>
 
             {/* Description */}
-            <div className="prose prose-sm">
+            <div>
               <h3 className="text-sm font-bold text-gray-900 mb-2">Description</h3>
-              <p className="text-gray-600 leading-relaxed">{product.description}</p>
+              <p className="text-gray-600 leading-relaxed text-sm md:text-base">{product.description}</p>
+            </div>
+
+            {/* Caractéristiques */}
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-3">Caractéristiques</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {specs.map((spec, i) => (
+                  <div key={i} className="bg-gray-50 rounded-lg px-3 py-2.5">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">{spec.label}</p>
+                    <p className="text-sm font-semibold text-gray-900 truncate">{spec.value}</p>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Seller Info */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3">
                 {product.vendeur.avatar_url ? (
                   <img
                     src={product.vendeur.avatar_url}
                     alt={product.vendeur.full_name}
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-12 h-12 rounded-xl object-cover shrink-0"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-coral-100 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-xl bg-coral-100 flex items-center justify-center shrink-0">
                     <span className="text-coral-800 font-bold">
                       {product.vendeur.full_name.charAt(0).toUpperCase()}
                     </span>
                   </div>
                 )}
-                <div className="flex-1">
-                  <h3 className="text-sm font-bold text-gray-900">{product.vendeur.full_name}</h3>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-sm font-bold text-gray-900 truncate">{product.vendeur.full_name}</h3>
+                    {product.vendeur.isVerified && (
+                      <CheckCircle2 size={14} className="text-teal-500 fill-teal-50 shrink-0" />
+                    )}
+                  </div>
                   <div className="flex items-center gap-1">
                     <Star size={12} className="fill-amber-500 text-amber-500" />
                     <span className="text-xs text-gray-600">
-                      {product.vendeur.note_moyenne.toFixed(1)} ({product.vendeur.nb_avis} avis)
+                      {product.vendeur.note_moyenne.toFixed(1)} • {product.vendeur.productCount} produits
                     </span>
                   </div>
                 </div>
-                <Button variant="outline" onClick={handleContactSeller}>
+                <Button variant="outline" onClick={handleContactSeller} className="shrink-0">
                   <MessageCircle size={16} className="mr-2" />
                   Contacter
                 </Button>
               </div>
             </div>
 
-            {/* Trust badges */}
-            <div className="flex gap-4">
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <Shield size={16} className="text-teal-500" />
-                <span>Paiement sécurisé</span>
+            {/* Trust badges — les 3 vrais piliers Ayiba */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-amber-50 rounded-xl">
+                <Wallet size={18} className="text-amber-500" />
+                <span className="text-[10px] font-bold text-gray-700 leading-tight">Paiement Escrow</span>
               </div>
-              <div className="flex items-center gap-2 text-xs text-gray-600">
-                <Truck size={16} className="text-teal-500" />
-                <span>Livraison rapide</span>
+              <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-coral-50 rounded-xl">
+                <Key size={18} className="text-coral-500" />
+                <span className="text-[10px] font-bold text-gray-700 leading-tight">Validation OTP</span>
+              </div>
+              <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-teal-50 rounded-xl">
+                <ShieldCheck size={18} className="text-teal-500" />
+                <span className="text-[10px] font-bold text-gray-700 leading-tight">Vendeur Vérifié</span>
               </div>
             </div>
 
@@ -367,7 +482,7 @@ export default function ProductDetailPage() {
                 >
                   <Minus size={18} />
                 </button>
-                <span className="w-12 text-center text-lg font-bold">{quantity}</span>
+                <span className="w-10 text-center text-lg font-bold">{quantity}</span>
                 <button
                   onClick={() => setQuantity(quantity + 1)}
                   className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
@@ -377,18 +492,130 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {/* Add to cart */}
-            <Button 
-              variant="primary" 
-              className="w-full h-14 text-base"
-              onClick={handleAddToCart}
-            >
-              <ShoppingCart size={20} className="mr-2" />
-              Ajouter au panier
-            </Button>
+            {/* Actions — panier (icône, cohérent avec ProductCardModern) + acheter maintenant */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleAddToCart}
+                className={`flex-1 h-13 md:h-14 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-colors duration-300 ${
+                  justAdded
+                    ? 'border-teal-600 text-teal-600 bg-teal-50'
+                    : 'border-gray-900 text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <ShoppingBag size={18} />
+                {justAdded ? 'Ajouté ✓' : 'Ajouter au panier'}
+              </button>
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 h-13 md:h-14 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors duration-300"
+              >
+                Acheter maintenant
+              </button>
+            </div>
           </motion.div>
         </div>
+
+        {/* Avis clients */}
+        <section className="mt-14 md:mt-20 pt-10 md:pt-14 border-t border-gray-100">
+          <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-6 md:mb-8">
+            Avis clients <span className="text-gray-400 font-medium">({product.reviewCount})</span>
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            {MOCK_REVIEWS.map((review, i) => (
+              <div key={i} className="bg-gray-50 rounded-2xl p-5 md:p-6">
+                <div className="flex items-center gap-1 mb-3">
+                  {Array.from({ length: 5 }).map((_, s) => (
+                    <Star
+                      key={s}
+                      size={13}
+                      className={s < review.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}
+                    />
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 leading-relaxed mb-4">"{review.text}"</p>
+                <div className="flex items-center gap-3">
+                  <img src={review.avatar} alt={review.name} className="w-9 h-9 rounded-full object-cover" />
+                  <div>
+                    <p className="text-xs font-bold text-gray-900">{review.name}</p>
+                    <p className="text-[11px] text-gray-400">{review.date}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Produits similaires */}
+        {similarProducts.length > 0 && (
+          <section className="mt-14 md:mt-20 pt-10 md:pt-14 border-t border-gray-100">
+            <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-6 md:mb-8">
+              Produits similaires
+            </h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+              {similarProducts.map((p) => (
+                <Link key={p.id} href={`/produits/${p.id}`} className="block">
+                  <ProductCardModern
+                    image={p.photos[0]}
+                    category={CATEGORIES.find(c => c.id === p.categorie)?.label || 'Divers'}
+                    name={p.nom}
+                    rating={p.rating}
+                    reviewCount={p.reviewCount}
+                    price={p.prix}
+                    oldPrice={p.ancien_prix ?? undefined}
+                    onAddToCart={() => {
+                      addItem({ id: p.id, nom: p.nom, prix: p.prix, vendeur_id: p.vendeur_id || "default", photos: p.photos })
+                      showToast('Produit ajouté au panier', 'success')
+                    }}
+                    onToggleFavorite={() => showToast('Favori ajouté', 'success')}
+                  />
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </main>
+
+      {/* Barre sticky mobile */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-40 shadow-[0_-4px_16px_rgba(0,0,0,0.04)]">
+        <div className="flex items-center gap-3">
+          <div className="shrink-0">
+            <p className="text-lg font-black text-gray-900 leading-none">
+              {product.prix.toLocaleString('fr-FR')} <span className="text-[10px] font-bold">FCFA</span>
+            </p>
+          </div>
+          <button
+            onClick={handleAddToCart}
+            className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center shrink-0 transition-colors duration-300 ${
+              justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900'
+            }`}
+            aria-label="Ajouter au panier"
+          >
+            <ShoppingBag size={20} />
+          </button>
+          <button
+            onClick={handleBuyNow}
+            className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm"
+          >
+            Acheter maintenant
+          </button>
+        </div>
+      </div>
+
+      {/* Bouton remonter en haut */}
+      <AnimatePresence>
+        {showScrollTop && (
+          <motion.button
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            onClick={scrollToTop}
+            className="fixed right-4 bottom-24 md:bottom-8 w-11 h-11 bg-gray-900 text-white rounded-full flex items-center justify-center shadow-lg z-40"
+            aria-label="Remonter en haut"
+          >
+            <ChevronUp size={20} />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       <Footer />
     </div>

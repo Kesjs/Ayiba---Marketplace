@@ -127,7 +127,7 @@ export function Navbar() {
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/catalogue?search=${encodeURIComponent(searchQuery.trim())}`);
+      router.push(`/recherche?q=${encodeURIComponent(searchQuery.trim())}`);
       setShowSearchOverlay(false);
       setMobileOpen(false);
       setSearchQuery("");
@@ -136,7 +136,7 @@ export function Navbar() {
 
   const handleSuggestionClick = (suggestion: string) => {
     setSearchQuery(suggestion);
-    router.push(`/catalogue?search=${encodeURIComponent(suggestion)}`);
+    router.push(`/recherche?q=${encodeURIComponent(suggestion)}`);
     setShowSearchOverlay(false);
   };
 

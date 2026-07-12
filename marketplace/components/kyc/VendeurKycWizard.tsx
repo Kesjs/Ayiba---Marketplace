@@ -63,7 +63,7 @@ export function VendeurKycWizard() {
     if (step < totalSteps) {
       setStep(step + 1);
     } else {
-      setStep(totalSteps + 1); // écran récap
+      setStep(totalSteps + 1);
     }
   };
 
@@ -88,7 +88,6 @@ export function VendeurKycWizard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header avec indicateur d'étapes */}
       <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
         <div className="max-w-2xl mx-auto">
           {!isRecap && (
@@ -104,7 +103,6 @@ export function VendeurKycWizard() {
         </div>
       </div>
 
-      {/* Contenu */}
       <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8">
         <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm">
           {step === 1 && (
@@ -242,4 +240,62 @@ export function VendeurKycWizard() {
                   <CheckCircle2 size={28} className="text-teal-500" />
                 </div>
                 <h2 className="text-lg font-bold text-gray-900 mb-1">Vérifie tes informations</h2>
-                
+                <p className="text-sm text-gray-500">
+                  Ton compte sera validé sous 24h après soumission.
+                </p>
+              </div>
+
+              <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Nom</span>
+                  <span className="font-medium text-gray-900">{data.nomComplet}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Boutique</span>
+                  <span className="font-medium text-gray-900">{data.nomBoutique}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Localisation</span>
+                  <span className="font-medium text-gray-900">{data.quartier}, {data.commune}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Paiement</span>
+                  <span className="font-medium text-gray-900">
+                    {data.mobileMoneyNetwork?.toUpperCase()} • {data.mobileMoneyNumber}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="w-full h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
+              >
+                {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}
+              </button>
+            </div>
+          )}
+
+          {!isRecap && (
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+              <button
+                onClick={handleBack}
+                disabled={step === 1}
+                className="flex items-center gap-1 text-sm font-medium text-gray-500 disabled:opacity-0 transition-opacity"
+              >
+                <ChevronLeft size={16} />
+                Précédent
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={!isStepValid()}
+                className="flex items-center gap-1 h-11 px-6 rounded-lg bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {step === totalSteps ? "Voir le récap" : "Suivant"}
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    

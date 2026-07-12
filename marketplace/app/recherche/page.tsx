@@ -2,98 +2,138 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { ProductCard } from '@/components/ui/ProductCard'
+import Link from 'next/link'
+import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
-import { Search, ArrowLeft } from 'lucide-react'
-
-interface Product {
-  id: string
-  nom: string
-  description: string
-  prix: number
-  ancien_prix: number | null
-  categorie: string
-  photos: string[]
-  vendeur_id: string
-}
+import { CATEGORIES, MOCK_PRODUCTS } from '@/lib/mock-data'
+import { useCart } from '@/context/CartContext'
+import { useToast } from '@/context/ToastContext'
+import { Search, ArrowLeft, X } from 'lucide-react'
 
 function SearchResults() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const query = searchParams.get('q') || ''
-  const supabase = createClient()
+  const { addItem } = useCart()
+  const { showToast } = useToast()
 
-  const [products, setProducts] = useState<Product[]>([])
+  const initialQuery = searchParams.get('q') || ''
+  const [query, setQuery] = useState(initialQuery)
+  const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (query) {
-      fetchProducts()
-    } else {
+    setLoading(true)
+    const timer = setTimeout(() => {
+      if (!query.trim()) {
+        setProducts([])
+        setLoading(false)
+        return
+      }
+
+      const q = query.trim().toLowerCase()
+      const filtered = MOCK_PRODUCTS.filter((p) => {
+        const categoryLabel = CATEGORIES.find((c) => c.id === p.categorie)?.label || ''
+        return (
+          p.nom.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q) ||
+          categoryLabel.toLowerCase().includes(q)
+        )
+      })
+
+      setProducts(filtered)
       setLoading(false)
-      setProducts([])
-    }
+    }, 400)
+    return () => clearTimeout(timer)
   }, [query])
 
-  const fetchProducts = async () => {
-    setLoading(true)
-    try {
-      // Simple search using ilike on name and description
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('statut', 'actif')
-        .or(`nom.ilike.%${query}%,description.ilike.%${query}%,categorie.ilike.%${query}%`)
-        .order('created_at', { ascending: false })
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    router.replace(`/recherche?q=${encodeURIComponent(query.trim())}`)
+  }
 
-      if (error) throw error
-      setProducts(data || [])
-    } catch (error) {
-      console.error('Error searching products:', error)
-    } finally {
-      setLoading(false)
-    }
+  const handleAddToCart = (product: any) => {
+    addItem({
+      id: product.id,
+      nom: product.nom,
+      prix: product.prix,
+      vendeur_id: product.vendeur_id || 'default',
+      photos: product.photos,
+    })
+    showToast('Produit ajouté au panier', 'success')
   }
 
   return (
     <div className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-8 lg:px-12 py-8">
-      <div className="flex items-center gap-4 mb-8">
-        <button 
+      <div className="flex items-center gap-4 mb-6">
+        <button
           onClick={() => router.back()}
-          className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          className="p-2 hover:bg-gray-100 rounded-full transition-colors shrink-0"
+          aria-label="Retour"
         >
           <ArrowLeft size={20} />
         </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {query ? `Résultats pour "${query}"` : 'Recherche'}
+        <form onSubmit={handleSubmit} className="flex-1 relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher un produit, une marque..."
+            className="w-full h-12 pl-11 pr-10 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-500/20 focus:border-coral-500 transition-all text-sm font-medium"
+            autoFocus
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-200 rounded-full text-gray-400"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </form>
+      </div>
+
+      {query.trim() && (
+        <div className="mb-6">
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">
+            Résultats pour "{query.trim()}"
           </h1>
-          <p className="text-gray-500 text-sm">
+          <p className="text-gray-500 text-sm mt-1">
             {products.length} {products.length > 1 ? 'produits trouvés' : 'produit trouvé'}
           </p>
         </div>
-      </div>
+      )}
 
       {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {[...Array(8)].map((_, i) => (
             <ProductCardSkeleton key={i} />
           ))}
         </div>
+      ) : !query.trim() ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+            <Search size={32} className="text-gray-300" />
+          </div>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Que cherches-tu ?</h2>
+          <p className="text-gray-500 max-w-sm mx-auto text-sm">
+            Tape un nom de produit, une marque ou une catégorie pour commencer.
+          </p>
+        </div>
       ) : products.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
-          <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-            <Search size={32} className="text-gray-400" />
+          <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
+            <Search size={32} className="text-gray-300" />
           </div>
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Aucun résultat trouvé</h2>
+          <h2 className="text-lg font-bold text-gray-900 mb-2">Aucun résultat trouvé</h2>
           <p className="text-gray-500 max-w-md mx-auto mb-8 text-sm">
-            Nous n'avons trouvé aucun produit correspondant à votre recherche. Essayez avec d'autres mots-clés ou parcourez le catalogue complet.
+            Nous n'avons trouvé aucun produit correspondant à "{query.trim()}". Essaie avec d'autres mots-clés.
           </p>
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             <Button variant="secondary" onClick={() => router.push('/')}>
               Retour à l'accueil
             </Button>
@@ -103,21 +143,21 @@ function SearchResults() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              image={product.photos?.[0] || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=600&fit=crop'}
-              category={product.categorie}
-              name={product.nom}
-              rating={4.5}
-              reviewCount={12}
-              price={product.prix}
-              oldPrice={product.ancien_prix || undefined}
-              onAddToCart={() => {}}
-              onToggleFavorite={() => {}}
-              onClick={() => router.push(`/produits/${product.id}`)}
-            />
+            <Link key={product.id} href={`/produits/${product.id}`} className="block">
+              <ProductCardModern
+                image={product.photos[0]}
+                category={CATEGORIES.find((c) => c.id === product.categorie)?.label || 'Divers'}
+                name={product.nom}
+                rating={product.rating}
+                reviewCount={product.reviewCount}
+                price={product.prix}
+                oldPrice={product.ancien_prix ?? undefined}
+                onAddToCart={() => handleAddToCart(product)}
+                onToggleFavorite={() => showToast('Favori ajouté', 'success')}
+              />
+            </Link>
           ))}
         </div>
       )}
@@ -127,9 +167,15 @@ function SearchResults() {
 
 export default function SearchPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-white">
       <Navbar />
-      <Suspense fallback={<div className="flex-1 flex items-center justify-center">Chargement...</div>}>
+      <Suspense
+        fallback={
+          <div className="flex-1 flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        }
+      >
         <SearchResults />
       </Suspense>
       <Footer />

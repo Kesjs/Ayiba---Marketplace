@@ -20,7 +20,6 @@ export function BottomNav() {
 
   const role = profile?.role || "guest";
 
-  // Masquer la bottom bar au scroll vers le bas, la réafficher au scroll vers le haut
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
@@ -37,14 +36,12 @@ export function BottomNav() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Retour haptique léger au clic (mobile uniquement, no-op si non supporté)
   const triggerHaptic = () => {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
       navigator.vibrate(10);
     }
   };
 
-  // Liste des pages où la navigation est masquée
   const hideOnPaths = [
     '/auth', '/admin', '/cgu', '/privacy', '/compte-suspendu', 
     '/devenir-vendeur', '/devenir-livreur', '/accueil', 
@@ -55,15 +52,13 @@ export function BottomNav() {
   const shouldHide = hideOnPaths.some(path => pathname.startsWith(path));
   if (shouldHide) return null;
 
-  // TODO: remplacer ces valeurs par de vraies données (Supabase) une fois branché
   const mockBadges = {
-    messages: 3,       // vendeur : messages non lus
-    dashboard: 2,       // vendeur : commandes en attente
-    missions: 5,        // livreur : missions disponibles à proximité
-    favoris: 0,          // client : favoris en promo
+    messages: 3,
+    dashboard: 2,
+    missions: 5,
+    favoris: 0,
   };
 
-  // Structure fixe : Accueil est le premier
   const navItems = {
     guest: [
       { label: "Accueil", icon: Home, href: "/" },
@@ -100,7 +95,6 @@ export function BottomNav() {
 
   return (
     <>
-      {/* Menu Partenaire (Bottom Sheet) */}
       <AnimatePresence>
         {isPartnerOpen && (
           <>
@@ -130,7 +124,6 @@ export function BottomNav() {
         )}
       </AnimatePresence>
 
-      {/* Barre de navigation fixe (flottante) */}
       <motion.div
         animate={{ y: visible ? 0 : 120, opacity: visible ? 1 : 0 }}
         transition={{ duration: 0.25, ease: "easeInOut" }}
@@ -147,7 +140,7 @@ export function BottomNav() {
                 <button
                   key={item.label}
                   onClick={() => { triggerHaptic(); setIsPartnerOpen(true); }}
-                  className="relative flex flex-col items-center justify-center gap-1 min-w-[44px] min-h-[44px] rounded-2xl"
+                  className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl"
                 >
                   <item.icon size={22} className="text-gray-400" />
                   <span className="text-[10px] font-bold uppercase text-gray-400">{item.label}</span>
@@ -160,7 +153,7 @@ export function BottomNav() {
                 key={item.label}
                 href={item.href}
                 onClick={triggerHaptic}
-                className="relative flex flex-col items-center justify-center gap-1 min-w-[44px] min-h-[44px] rounded-2xl"
+                className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl min-w-[64px]"
               >
                 {isActive && (
                   <motion.div

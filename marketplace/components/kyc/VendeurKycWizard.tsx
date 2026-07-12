@@ -298,4 +298,6 @@ export function VendeurKycWizard() {
           )}
         </div>
       </div>
-    
+    </div>
+  );
+}

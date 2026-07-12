@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail, Lock, ShieldCheck, Store, Bike, User, Eye, EyeOff } from "lucide-react";
+import { X, Mail, Lock, ShieldCheck, Store, Bike, User, Eye, EyeOff, Check } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -16,11 +16,23 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  const isEmailValid = email.length > 0 && validateEmail(email);
+
+  const getPasswordStrength = (value: string) => {
+    if (value.length === 0) return null;
+    if (value.length < 6) return { label: "Trop court", color: "bg-red-400", width: "25%" };
+    if (value.length < 8) return { label: "Faible", color: "bg-amber-400", width: "50%" };
+    if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) return { label: "Correct", color: "bg-amber-400", width: "70%" };
+    return { label: "Solide", color: "bg-teal-500", width: "100%" };
+  };
+
+  const passwordStrength = mode === "inscription" ? getPasswordStrength(password) : null;
 
   // SIMULATION — à remplacer par supabase.auth.signInWithPassword / signUp
   const handleSubmit = async () => {
@@ -42,10 +54,8 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       onClose();
 
       if (mode === "inscription") {
-        // Simule un nouvel utilisateur -> choix du rôle si pas déjà précisé
         router.push(intendedRole ? `/${intendedRole}/kyc` : "/auth/choix-role");
       } else {
-        // Simule une connexion existante -> redirection client par défaut
         router.push(intendedRole ? `/${intendedRole}/dashboard` : "/catalogue");
       }
     }, 1000);
@@ -102,7 +112,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           Bienvenue sur Ayiba
         </h2>
         <p className="text-[14px] text-gray-600 mb-4">
-          {mode === "connexion" ? "Connecte-toi pour continuer" : "Crée ton compte pour continuer"}
+          {mode === "connexion" ? "Heureux de te revoir !" : "Rejoins-nous en quelques secondes"}
         </p>
 
         {/* Toggle Connexion / Inscription */}
@@ -148,7 +158,9 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
 
         {/* Email */}
         <div className="mb-3">
-          <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
+          <div className={`flex items-center border rounded-lg px-3 transition-colors ${
+            isEmailValid ? "border-teal-300" : "border-gray-200 focus-within:border-coral-400"
+          }`}>
             <Mail size={16} className="text-gray-400 shrink-0" />
             <input
               type="email"
@@ -157,11 +169,12 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               onChange={(e) => setEmail(e.target.value)}
               className="flex-1 h-11 text-sm px-2 focus:outline-none"
             />
+            {isEmailValid && <Check size={16} className="text-teal-500 shrink-0" />}
           </div>
         </div>
 
         {/* Mot de passe */}
-        <div className="mb-2">
+        <div className="mb-1">
           <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
             <Lock size={16} className="text-gray-400 shrink-0" />
             <input
@@ -181,10 +194,35 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           </div>
         </div>
 
+        {/* Indicateur de force du mot de passe (inscription uniquement) */}
+        {passwordStrength && (
+          <div className="mb-2 mt-1.5">
+            <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className={`h-full ${passwordStrength.color} transition-all duration-300`}
+                style={{ width: passwordStrength.width }}
+              />
+            </div>
+            <span className="text-[11px] text-gray-400 mt-1 block">{passwordStrength.label}</span>
+          </div>
+        )}
+
+        {/* Se souvenir de moi + mot de passe oublié (connexion uniquement) */}
         {mode === "connexion" && (
-          <button className="text-[12px] text-coral-500 mb-2 block">
-            Mot de passe oublié ?
-          </button>
+          <div className="flex items-center justify-between mt-2 mb-2">
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-coral-500 focus:ring-coral-400"
+              />
+              <span className="text-[12px] text-gray-600">Se souvenir de moi</span>
+            </label>
+            <button className="text-[12px] text-coral-500">
+              Mot de passe oublié ?
+            </button>
+          </div>
         )}
 
         {error && (
@@ -194,13 +232,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         <button
           onClick={handleSubmit}
           disabled={loading || !email || !password}
-          className="w-full bg-coral-400 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+          className="w-full bg-coral-400 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed mt-3"
         >
           {loading ? "Chargement..." : mode === "connexion" ? "Se connecter" : "Créer mon compte"}
         </button>
 
         <p className="text-[11px] text-gray-400 mt-3 text-center">
-          En continuant tu acceptes nos conditions d'utilisation
+          En continuant, tu acceptes nos conditions d'utilisation.
         </p>
 
         {/* Section Démo */}

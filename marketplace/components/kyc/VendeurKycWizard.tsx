@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, X } from "lucide-react";
 
 const STEP_LABELS = ["Identité", "Boutique", "Localisation", "Paiement"];
 
@@ -42,6 +42,29 @@ export function VendeurKycWizard() {
 
   const update = <K extends keyof VendeurFormData>(key: K, value: VendeurFormData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const hasProgress = () => {
+    return (
+      data.nomComplet.trim().length > 0 ||
+      data.photoProfil !== null ||
+      data.photoCni !== null ||
+      data.nomBoutique.trim().length > 0 ||
+      data.description.trim().length > 0 ||
+      data.quartier.trim().length > 0 ||
+      data.commune.trim().length > 0 ||
+      data.mobileMoneyNumber.length > 0
+    );
+  };
+
+  const handleCancel = () => {
+    if (hasProgress()) {
+      const confirmed = window.confirm(
+        "Tu as des informations non enregistrées. Veux-tu vraiment quitter ?"
+      );
+      if (!confirmed) return;
+    }
+    router.push("/");
   };
 
   const isStepValid = () => {
@@ -89,17 +112,26 @@ export function VendeurKycWizard() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
-        <div className="max-w-2xl mx-auto">
-          {!isRecap && (
-            <StepIndicator currentStep={step} totalSteps={totalSteps} stepLabels={STEP_LABELS} />
-          )}
-          {isRecap && (
-            <div className="text-center">
-              <span className="text-xs font-bold text-coral-500 uppercase tracking-wide">
-                Récapitulatif
-              </span>
-            </div>
-          )}
+        <div className="max-w-2xl mx-auto flex items-center gap-4">
+          <button
+            onClick={handleCancel}
+            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
+            aria-label="Annuler l'inscription"
+          >
+            <X size={20} />
+          </button>
+          <div className="flex-1">
+            {!isRecap && (
+              <StepIndicator currentStep={step} totalSteps={totalSteps} stepLabels={STEP_LABELS} />
+            )}
+            {isRecap && (
+              <div className="text-center">
+                <span className="text-xs font-bold text-coral-500 uppercase tracking-wide">
+                  Récapitulatif
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -278,14 +310,22 @@ export function VendeurKycWizard() {
 
           {!isRecap && (
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-              <button
-                onClick={handleBack}
-                disabled={step === 1}
-                className="flex items-center gap-1 text-sm font-medium text-gray-500 disabled:opacity-0 transition-opacity"
-              >
-                <ChevronLeft size={16} />
-                Précédent
-              </button>
+              {step === 1 ? (
+                <button
+                  onClick={handleCancel}
+                  className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  Annuler
+                </button>
+              ) : (
+                <button
+                  onClick={handleBack}
+                  className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  <ChevronLeft size={16} />
+                  Précédent
+                </button>
+              )}
               <button
                 onClick={handleNext}
                 disabled={!isStepValid()}

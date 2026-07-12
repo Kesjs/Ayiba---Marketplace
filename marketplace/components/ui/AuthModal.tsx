@@ -237,9 +237,17 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           {loading ? "Chargement..." : mode === "connexion" ? "Se connecter" : "Créer mon compte"}
         </button>
 
-        <p className="text-[11px] text-gray-400 mt-3 text-center">
-          En continuant, tu acceptes nos conditions d'utilisation.
-        </p>
+        <p className="text-[11px] text-gray-400 mt-3 text-center leading-relaxed">
+  En continuant, tu acceptes nos{" "}
+  <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">
+    conditions d'utilisation
+  </a>{" "}
+  et notre{" "}
+  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">
+    politique de confidentialité
+  </a>.
+</p>
+
 
         {/* Section Démo */}
         <div className="mt-8 pt-6 border-t border-gray-100">

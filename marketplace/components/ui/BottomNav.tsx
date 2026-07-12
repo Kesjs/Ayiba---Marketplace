@@ -34,13 +34,13 @@ export function BottomNav() {
     guest: [
       { label: "Accueil", icon: Home, href: "/" },
       { label: "Catalogue", icon: Search, href: "/catalogue" },
-      { label: "Explorer", icon: MapPin, href: "/explorer" },
+      { label: "Explorer", icon: MapPin, href: "/boutiques" },
       { label: "Partenaire", icon: Briefcase, isAction: true },
     ],
     client: [
       { label: "Accueil", icon: Home, href: "/" },
       { label: "Favoris", icon: Heart, href: "/favoris" },
-      { label: "Explorer", icon: MapPin, href: "/explorer" },
+      { label: "Explorer", icon: MapPin, href: "/boutiques" },
       { label: "Profil", icon: User, href: "/profil" },
     ],
     vendeur: [

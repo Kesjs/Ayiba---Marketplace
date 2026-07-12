@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, Menu, X, ChevronDown, Store, Bike, Clock } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AuthModal } from "@/components/ui/AuthModal";
+import { CartDrawer } from "@/components/ui/CartDrawer";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { useCart } from "@/context/CartContext";
 import { createClient } from "@/lib/supabase/client";
@@ -463,6 +464,7 @@ export function Navbar() {
       </div>
 
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <CartDrawer />
     </>
   );
 }

@@ -3,17 +3,21 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { ProductCard } from '@/components/ui/ProductCard'
+import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
 import { CATEGORIES, MOCK_PRODUCTS } from '@/lib/mock-data'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
+import { useCart } from '@/context/CartContext'
+import { useToast } from '@/context/ToastContext'
 import { Search, SlidersHorizontal, LayoutGrid, List, X, ChevronDown } from 'lucide-react'
 
 function CatalogueContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { addItem } = useCart()
+  const { showToast } = useToast()
   
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -55,6 +59,17 @@ function CatalogueContent() {
     return () => clearTimeout(timer)
   }, [selectedCategory, searchQuery, sortBy])
 
+  const handleAddToCart = (product: any) => {
+    addItem({
+      id: product.id,
+      nom: product.nom,
+      prix: product.prix,
+      vendeur_id: product.vendeur_id || "default",
+      photos: product.photos
+    })
+    showToast('Produit ajouté au panier', 'success')
+  }
+
   return (
     <>
       <Navbar />
@@ -62,7 +77,7 @@ function CatalogueContent() {
         {/* Page Header */}
         <section className="bg-white border-b border-gray-100 py-12">
           <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-4">La Grande Boutique</h1>
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-4">Découvrez nos produits</h1>
             <p className="text-gray-500 font-medium max-w-2xl">Parcourez tout le catalogue Ayiba. Sécurité garantie, livraison locale rapide.</p>
             
             <div className="mt-8 flex flex-col md:flex-row gap-4">
@@ -161,16 +176,17 @@ function CatalogueContent() {
                   : "flex flex-col gap-6"
                 }>
                   {products.map((product) => (
-                    <Link key={product.id} href={`/produits/${product.id}`} className="block transition-transform hover:-translate-y-1 duration-300">
-                      <ProductCard
+                    <Link key={product.id} href={`/produits/${product.id}`} className="block">
+                      <ProductCardModern
                         image={product.photos[0]}
                         category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
                         name={product.nom}
                         rating={product.rating}
                         reviewCount={product.reviewCount}
                         price={product.prix}
-                        onAddToCart={() => {}}
-                        onToggleFavorite={() => {}}
+                        oldPrice={product.ancien_prix ?? undefined}
+                        onAddToCart={() => handleAddToCart(product)}
+                        onToggleFavorite={() => showToast('Favori ajouté', 'success')}
                       />
                     </Link>
                   ))}

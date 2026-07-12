@@ -42,8 +42,9 @@ export function BottomNav() {
     }
   };
 
+  // '/admin' retiré : le BottomNav reste actif dans tous les dashboards, avec ses items adaptés par rôle
   const hideOnPaths = [
-    '/auth', '/admin', '/cgu', '/privacy', '/compte-suspendu', 
+    '/auth', '/cgu', '/privacy', '/compte-suspendu', 
     '/devenir-vendeur', '/devenir-livreur', '/accueil', 
     '/commandes', '/messages', '/favoris', '/historique', 
     '/profil', '/produits'
@@ -127,7 +128,7 @@ export function BottomNav() {
       <motion.div
         animate={{ y: visible ? 0 : 120, opacity: visible ? 1 : 0 }}
         transition={{ duration: 0.25, ease: "easeInOut" }}
-        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden px-4 pb-4 pointer-events-none"
+        className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none"
       >
         <nav className="relative bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-lg flex items-center justify-around p-2 pointer-events-auto">
           {currentItems.map((item) => {

@@ -19,7 +19,12 @@ const translateError = (err: any): string => {
 
   const message = typeof err === "string" 
     ? err 
-    : err.message || JSON.stringify(err);
+    : err.message || err.msg || err.error_description || JSON.stringify(err);
+
+  // Si le message n'est qu'un JSON vide, invalide ou une chaîne vide
+  if (!message || message === "{}" || message.trim() === "" || message === "null") {
+    return "Une erreur est survenue. Veuillez réessayer.";
+  }
 
   const lowerMsg = message.toLowerCase();
 
@@ -390,10 +395,10 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
                 </p>
 
                 <div className="flex bg-gray-50 rounded-lg p-1 mb-5">
-                  <button onClick={() => switchMode("connexion")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+                  <button onClick={() => switchMode("connexion")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
                     Se connecter
                   </button>
-                  <button onClick={() => switchMode("inscription")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+                  <button onClick={() => switchMode("inscription")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
                     S'inscrire
                   </button>
                 </div>

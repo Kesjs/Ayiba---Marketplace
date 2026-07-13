@@ -52,7 +52,7 @@ export function useVendeurMessages() {
       const partnerIds = new Set<string>();
       const grouped = new Map<string, Conversation>();
 
-      (msgs || []).forEach((m) => {
+      (msgs || []).forEach((m: any) => {
         const partnerId = m.expediteur_id === user.id ? m.destinataire_id : m.expediteur_id;
         partnerIds.add(partnerId);
 

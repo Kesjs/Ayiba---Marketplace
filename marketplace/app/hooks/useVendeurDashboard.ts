@@ -12,6 +12,7 @@ export function useVendeurDashboard() {
   const [vendeur, setVendeur] = useState<any>(null);
   const [stats, setStats] = useState<any>(null);
   const [chiffreAffaires, setChiffreAffaires] = useState<any>(null);
+  const [evolution, setEvolution] = useState<any>(null);
   const [commandes, setCommandes] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
 
@@ -55,6 +56,15 @@ export function useVendeurDashboard() {
 
       if (caError && caError.code !== "PGRST116") throw caError;
 
+      /* Évolution période actuelle vs précédente (pour les % de variation) */
+      const { data: evolutionData, error: evolutionError } = await supabase
+        .from("vue_stats_vendeur_evolution")
+        .select("*")
+        .eq("vendeur_id", user.id)
+        .single();
+
+      if (evolutionError && evolutionError.code !== "PGRST116") throw evolutionError;
+
       /* Commandes récentes */
       const { data: commandesData, error: commandesError } = await supabase
         .from("vue_commandes_recentes")
@@ -78,6 +88,7 @@ export function useVendeurDashboard() {
       setVendeur(vendeurData);
       setStats(statsData || null);
       setChiffreAffaires(caData || null);
+      setEvolution(evolutionData || null);
       setCommandes(commandesData || []);
       setMessages(messagesData || []);
     } catch (err: any) {
@@ -98,6 +109,7 @@ export function useVendeurDashboard() {
     vendeur,
     stats,
     chiffreAffaires,
+    evolution,
     commandes,
     messages,
     refresh: loadDashboard,

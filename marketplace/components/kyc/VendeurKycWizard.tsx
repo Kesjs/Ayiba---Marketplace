@@ -376,9 +376,12 @@ export function VendeurKycWizard() {
               </div>
 
               {!data.photoProfil && (
-                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-center">
-                  Ta photo de profil a été perdue lors d'un rechargement. Retourne à l'étape 1 pour la réajouter.
-                </p>
+                <button
+                  onClick={() => setStep(1)}
+                  className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-center hover:bg-amber-100 transition-colors"
+                >
+                  Ta photo de profil a été perdue lors d'un rechargement. Touche ici pour la réajouter.
+                </button>
               )}
 
               <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-3 text-sm">
@@ -404,13 +407,22 @@ export function VendeurKycWizard() {
 
               {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || !data.photoProfil}
-                className="w-full h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
-              >
-                {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setStep(totalSteps)}
+                  className="flex items-center gap-1 h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
+                >
+                  <ChevronLeft size={16} />
+                  Modifier
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || !data.photoProfil}
+                  className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
+                >
+                  {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}
+                </button>
+              </div>
             </div>
           )}
 

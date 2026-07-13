@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const STEP_LABELS = ["Identité", "Boutique", "Localisation", "Paiement"];
+const STORAGE_KEY = "ayiba-vendeur-kyc-draft";
 
 interface VendeurFormData {
   nomComplet: string;
@@ -21,6 +22,9 @@ interface VendeurFormData {
   mobileMoneyNetwork: "mtn" | "moov" | "celtiis" | null;
   mobileMoneyNumber: string;
 }
+
+// Les fichiers (File) ne sont pas sérialisables en JSON — on ne persiste que les champs texte
+type PersistedFields = Omit<VendeurFormData, "photoProfil" | "photoCni">;
 
 const INITIAL_DATA: VendeurFormData = {
   nomComplet: "",
@@ -40,10 +44,41 @@ export function VendeurKycWizard() {
   const [data, setData] = useState<VendeurFormData>(INITIAL_DATA);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   const totalSteps = 4;
+
+  // Restaure le brouillon au montage (étape + champs texte, pas les photos)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved) as { step: number; fields: PersistedFields };
+        setData((prev) => ({ ...prev, ...parsed.fields }));
+        setStep(parsed.step || 1);
+      }
+    } catch {
+      // brouillon corrompu, on l'ignore silencieusement
+    } finally {
+      setHydrated(true);
+    }
+  }, []);
+
+  // Sauvegarde à chaque changement (étape ou champs texte), une fois l'hydratation initiale faite
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    const { photoProfil, photoCni, ...fields } = data;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, fields }));
+  }, [data, step, hydrated]);
 
   const update = <K extends keyof VendeurFormData>(key: K, value: VendeurFormData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const clearDraft = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
   };
 
   const hasProgress = () => {
@@ -66,6 +101,7 @@ export function VendeurKycWizard() {
       );
       if (!confirmed) return;
     }
+    clearDraft();
     router.push("/");
   };
 
@@ -145,6 +181,7 @@ export function VendeurKycWizard() {
       });
       if (insertError) throw insertError;
 
+      clearDraft();
       router.push("/vendeur/dashboard");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue, réessaie.");
@@ -154,6 +191,15 @@ export function VendeurKycWizard() {
   };
 
   const isRecap = step === totalSteps + 1;
+
+  // Évite un flash de l'étape 1 pendant la lecture du localStorage
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -191,6 +237,12 @@ export function VendeurKycWizard() {
                   On a besoin de vérifier ton identité pour protéger la communauté Ayiba.
                 </p>
               </div>
+
+              {data.photoProfil === null && step === 1 && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                  Après un rechargement de page, tes textes sont conservés mais tu devras réajouter tes photos.
+                </p>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -323,6 +375,12 @@ export function VendeurKycWizard() {
                 </p>
               </div>
 
+              {!data.photoProfil && (
+                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-center">
+                  Ta photo de profil a été perdue lors d'un rechargement. Retourne à l'étape 1 pour la réajouter.
+                </p>
+              )}
+
               <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-3 text-sm">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Nom</span>
@@ -348,7 +406,7 @@ export function VendeurKycWizard() {
 
               <button
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || !data.photoProfil}
                 className="w-full h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
               >
                 {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}

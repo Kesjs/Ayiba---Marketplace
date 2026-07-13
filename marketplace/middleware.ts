@@ -25,7 +25,6 @@ export async function middleware(req: NextRequest) {
     },
   });
 
-  // getUser() revérifie le JWT auprès de Supabase (contrairement à getSession())
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -57,20 +56,17 @@ export async function middleware(req: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (!userData?.role) {
-      return NextResponse.redirect(new URL("/auth/choix-role", req.url));
-    }
-    if (userData.statut === "suspendu") {
+    if (userData?.statut === "suspendu") {
       return NextResponse.redirect(new URL("/compte-suspendu", req.url));
     }
-    if (vendeurRoutes.some((r) => path.startsWith(r)) && userData.role !== "vendeur") {
-      return NextResponse.redirect(new URL("/auth/choix-role", req.url));
+    if (vendeurRoutes.some((r) => path.startsWith(r)) && userData?.role !== "vendeur") {
+      return NextResponse.redirect(new URL("/catalogue", req.url));
     }
-    if (livreurRoutes.some((r) => path.startsWith(r)) && userData.role !== "livreur") {
-      return NextResponse.redirect(new URL("/auth/choix-role", req.url));
+    if (livreurRoutes.some((r) => path.startsWith(r)) && userData?.role !== "livreur") {
+      return NextResponse.redirect(new URL("/catalogue", req.url));
     }
-    if (adminRoutes.some((r) => path.startsWith(r)) && userData.role !== "admin") {
-      return NextResponse.redirect(new URL("/auth/choix-role", req.url));
+    if (adminRoutes.some((r) => path.startsWith(r)) && userData?.role !== "admin") {
+      return NextResponse.redirect(new URL("/catalogue", req.url));
     }
   }
 

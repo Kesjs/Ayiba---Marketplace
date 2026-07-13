@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, CheckCircle2, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthModalProps {
@@ -13,23 +13,43 @@ interface AuthModalProps {
 
 type Mode = "connexion" | "inscription" | "mot-de-passe-oublie";
 
-// Détecte le fournisseur mail depuis le domaine, pour proposer un raccourci direct
-function getMailProviderLink(email: string): { name: string; url: string } | null {
-  const domain = email.split("@")[1]?.toLowerCase();
-  if (!domain) return null;
-  if (domain.includes("gmail")) return { name: "Gmail", url: "https://mail.google.com" };
-  if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live")) {
-    return { name: "Outlook", url: "https://outlook.live.com/mail" };
+// Traduction des erreurs Supabase en français
+const translateError = (message: string): string => {
+  const lowerMsg = message.toLowerCase();
+
+  if (lowerMsg.includes("user already registered") || lowerMsg.includes("already exists")) {
+    return "Un compte existe déjà avec cet email. Connecte-toi ou réinitialise ton mot de passe.";
   }
-  if (domain.includes("yahoo")) return { name: "Yahoo Mail", url: "https://mail.yahoo.com" };
-  return null;
-}
+  if (lowerMsg.includes("invalid login credentials") || lowerMsg.includes("invalid credentials")) {
+    return "Email ou mot de passe incorrect.";
+  }
+  if (lowerMsg.includes("email not confirmed")) {
+    return "Tu dois confirmer ton adresse email avant de te connecter.";
+  }
+  if (lowerMsg.includes("password")) {
+    if (lowerMsg.includes("too short") || lowerMsg.includes("6 characters")) {
+      return "Le mot de passe doit contenir au moins 6 caractères.";
+    }
+  }
+  if (lowerMsg.includes("rate limit") || lowerMsg.includes("too many requests")) {
+    return "Trop de tentatives. Veuillez réessayer dans quelques instants.";
+  }
+  if (lowerMsg.includes("invalid email")) {
+    return "Adresse email invalide.";
+  }
+
+  // Retour du message original si non reconnu
+  return message
+    .replace("User already registered", "Un compte existe déjà avec cet email")
+    .replace("Invalid email", "Adresse email invalide");
+};
 
 const RESEND_COOLDOWN = 45;
 
 export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const router = useRouter();
   const supabase = createClient();
+
   const [mode, setMode] = useState<Mode>("connexion");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,12 +59,10 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  // État dédié "vérifie ta boîte mail" (inscription) — remplace tout le formulaire une fois affiché
   const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
 
-  // État dédié "lien envoyé" (mot de passe oublié) — même logique que ci-dessus
   const [pendingResetEmail, setPendingResetEmail] = useState<string | null>(null);
   const [resetCooldown, setResetCooldown] = useState(0);
   const [resettingResend, setResettingResend] = useState(false);
@@ -71,6 +89,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) return { label: "Correct", color: "bg-amber-400", width: "70%" };
     return { label: "Solide", color: "bg-teal-500", width: "100%" };
   };
+
   const passwordStrength = mode === "inscription" ? getPasswordStrength(password) : null;
 
   const switchMode = (m: Mode) => {
@@ -89,7 +108,8 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         redirectTo: `${window.location.origin}/auth/callback`,
       });
       setLoading(false);
-      if (resetError) return setError(resetError.message);
+      if (resetError) return setError(translateError(resetError.message));
+
       setPendingResetEmail(email);
       setResetCooldown(RESEND_COOLDOWN);
       return;
@@ -114,13 +134,14 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         },
       });
       setLoading(false);
-      if (signUpError) return setError(signUpError.message);
 
-      // Supabase renvoie un "faux succès" (sans erreur, sans email envoyé)
-      // quand l'email existe déjà et est confirmé. Le seul signal fiable
-      // est un tableau d'identités vide.
+      if (signUpError) {
+        setError(translateError(signUpError.message));
+        return;
+      }
+
       if (data.user && data.user.identities && data.user.identities.length === 0) {
-        setError("Un compte existe déjà avec cet email. Connecte-toi plutôt, ou réinitialise ton mot de passe si tu l'as oublié.");
+        setError("Un compte existe déjà avec cet email. Connecte-toi plutôt.");
         return;
       }
 
@@ -135,7 +156,10 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
-      if (signInError) return setError(signInError.message);
+      if (signInError) {
+        setError(translateError(signInError.message));
+        return;
+      }
 
       onClose();
       router.push(intendedRole ? `/${intendedRole}/dashboard` : "/catalogue");
@@ -154,7 +178,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     });
     setResending(false);
     if (resendError) {
-      setError(resendError.message);
+      setError(translateError(resendError.message));
       return;
     }
     setResendCooldown(RESEND_COOLDOWN);
@@ -169,7 +193,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     });
     setResettingResend(false);
     if (resendError) {
-      setError(resendError.message);
+      setError(translateError(resendError.message));
       return;
     }
     setResetCooldown(RESEND_COOLDOWN);
@@ -197,7 +221,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     setGoogleLoading(false);
-    if (oauthError) setError(oauthError.message);
+    if (oauthError) setError(translateError(oauthError.message));
   };
 
   if (!isOpen) return null;
@@ -219,14 +243,11 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         </button>
 
         {pendingConfirmationEmail ? (
-          // ============================================
-          // ÉCRAN DÉDIÉ — vérifie ta boîte mail (inscription)
-          // ============================================
+          // ÉCRAN VÉRIFICATION EMAIL (INSCRIPTION)
           <div className="text-center pt-4">
             <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-5">
               <Mail size={28} className="text-teal-600" />
             </div>
-
             <h2 className="text-[18px] font-bold text-gray-900 mb-2">Vérifie ta boîte mail</h2>
             <p className="text-[14px] text-gray-600 leading-relaxed mb-1">
               Nous avons envoyé un lien de confirmation à
@@ -236,14 +257,9 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             </p>
 
             {mailProviderConfirmation && (
-              <a
-                href={mailProviderConfirmation.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors mb-3"
-              >
-                Ouvrir {mailProviderConfirmation.name}
-                <ExternalLink size={14} />
+              <a href={mailProviderConfirmation.url} target="_blank" rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 mb-3">
+                Ouvrir {mailProviderConfirmation.name} <ExternalLink size={14} />
               </a>
             )}
 
@@ -254,36 +270,22 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            <button
-              onClick={handleResendConfirmation}
-              disabled={resendCooldown > 0 || resending}
-              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mb-4"
-            >
+            <button onClick={handleResendConfirmation} disabled={resendCooldown > 0 || resending}
+              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4">
               <RefreshCw size={14} className={resending ? "animate-spin" : ""} />
-              {resendCooldown > 0
-                ? `Renvoyer l'email (${resendCooldown}s)`
-                : resending
-                ? "Envoi..."
-                : "Renvoyer l'email"}
+              {resendCooldown > 0 ? `Renvoyer l'email (${resendCooldown}s)` : resending ? "Envoi..." : "Renvoyer l'email"}
             </button>
 
-            <button
-              onClick={handleEditEmail}
-              className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500 transition-colors"
-            >
-              <Pencil size={12} />
-              Mauvaise adresse ? Modifier
+            <button onClick={handleEditEmail} className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500">
+              <Pencil size={12} /> Mauvaise adresse ? Modifier
             </button>
           </div>
         ) : pendingResetEmail ? (
-          // ============================================
-          // ÉCRAN DÉDIÉ — lien de réinitialisation envoyé
-          // ============================================
+          // ÉCRAN MOT DE PASSE OUBLIÉ
           <div className="text-center pt-4">
             <div className="w-16 h-16 bg-coral-50 rounded-full flex items-center justify-center mx-auto mb-5">
               <KeyRound size={28} className="text-coral-500" />
             </div>
-
             <h2 className="text-[18px] font-bold text-gray-900 mb-2">Vérifie ta boîte mail</h2>
             <p className="text-[14px] text-gray-600 leading-relaxed mb-1">
               Nous avons envoyé un lien de réinitialisation à
@@ -293,14 +295,9 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             </p>
 
             {mailProviderReset && (
-              <a
-                href={mailProviderReset.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 transition-colors mb-3"
-              >
-                Ouvrir {mailProviderReset.name}
-                <ExternalLink size={14} />
+              <a href={mailProviderReset.url} target="_blank" rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 mb-3">
+                Ouvrir {mailProviderReset.name} <ExternalLink size={14} />
               </a>
             )}
 
@@ -311,28 +308,18 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            <button
-              onClick={handleResendReset}
-              disabled={resetCooldown > 0 || resettingResend}
-              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors mb-4"
-            >
+            <button onClick={handleResendReset} disabled={resetCooldown > 0 || resettingResend}
+              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4">
               <RefreshCw size={14} className={resettingResend ? "animate-spin" : ""} />
-              {resetCooldown > 0
-                ? `Renvoyer le lien (${resetCooldown}s)`
-                : resettingResend
-                ? "Envoi..."
-                : "Renvoyer le lien"}
+              {resetCooldown > 0 ? `Renvoyer le lien (${resetCooldown}s)` : resettingResend ? "Envoi..." : "Renvoyer le lien"}
             </button>
 
-            <button
-              onClick={handleEditResetEmail}
-              className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500 transition-colors"
-            >
-              <Pencil size={12} />
-              Mauvaise adresse ? Modifier
+            <button onClick={handleEditResetEmail} className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500">
+              <Pencil size={12} /> Mauvaise adresse ? Modifier
             </button>
           </div>
         ) : (
+          // FORMULAIRE PRINCIPAL
           <>
             {mode === "mot-de-passe-oublie" ? (
               <>
@@ -340,7 +327,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
                   <ArrowLeft size={14} /> Retour
                 </button>
                 <h2 className="text-[18px] font-medium text-gray-900 mb-1">Mot de passe oublié</h2>
-                <p className="text-[14px] text-gray-600 mb-4">On t'envoie un lien pour le réinitialiser.</p>
+                <p className="text-[14px] text-gray-600 mb-4">On t’envoie un lien pour le réinitialiser.</p>
               </>
             ) : (
               <>
@@ -350,12 +337,10 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
                 </p>
 
                 <div className="flex bg-gray-50 rounded-lg p-1 mb-5">
-                  <button onClick={() => switchMode("connexion")}
-                    className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+                  <button onClick={() => switchMode("connexion")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
                     Se connecter
                   </button>
-                  <button onClick={() => switchMode("inscription")}
-                    className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+                  <button onClick={() => switchMode("inscription")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
                     S'inscrire
                   </button>
                 </div>
@@ -379,11 +364,12 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </>
             )}
 
+            {/* Champs du formulaire */}
             <div className="mb-3">
               <div className={`flex items-center border rounded-lg px-3 transition-colors ${isEmailValid ? "border-teal-300" : "border-gray-200 focus-within:border-coral-400"}`}>
                 <Mail size={16} className="text-gray-400 shrink-0" />
-                <input type="email" placeholder="Adresse email" value={email}
-                  onChange={(e) => setEmail(e.target.value)} className="flex-1 h-11 text-sm px-2 focus:outline-none" />
+                <input type="email" placeholder="Adresse email" value={email} onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 h-11 text-sm px-2 focus:outline-none" />
                 {isEmailValid && <Check size={16} className="text-teal-500 shrink-0" />}
               </div>
             </div>
@@ -413,23 +399,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             {mode === "inscription" && (
               <div className="mb-1">
                 <div className={`flex items-center border rounded-lg px-3 transition-colors ${
-                  confirmPassword.length > 0
-                    ? password === confirmPassword
-                      ? "border-teal-300"
-                      : "border-red-300"
-                    : "border-gray-200 focus-within:border-coral-400"
+                  confirmPassword.length > 0 ? (password === confirmPassword ? "border-teal-300" : "border-red-300") : "border-gray-200 focus-within:border-coral-400"
                 }`}>
                   <Lock size={16} className="text-gray-400 shrink-0" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Confirmer le mot de passe"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="flex-1 h-11 text-sm px-2 focus:outline-none"
-                  />
-                  {confirmPassword.length > 0 && password === confirmPassword && (
-                    <Check size={16} className="text-teal-500 shrink-0" />
-                  )}
+                  <input type={showPassword ? "text" : "password"} placeholder="Confirmer le mot de passe"
+                    value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="flex-1 h-11 text-sm px-2 focus:outline-none" />
+                  {confirmPassword.length > 0 && password === confirmPassword && <Check size={16} className="text-teal-500 shrink-0" />}
                 </div>
               </div>
             )}
@@ -453,13 +429,12 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               className="w-full bg-coral-400 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed mt-3">
               {loading ? "Chargement..." :
                 mode === "connexion" ? "Se connecter" :
-                mode === "inscription" ? "Créer mon compte" :
-                "Envoyer le lien"}
+                mode === "inscription" ? "Créer mon compte" : "Envoyer le lien"}
             </button>
 
             {mode !== "mot-de-passe-oublie" && (
               <p className="text-[11px] text-gray-400 mt-3 text-center leading-relaxed">
-                En continuant, vous acceptee nos{" "}
+                En continuant, vous acceptez nos{" "}
                 <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">conditions d'utilisation</a>{" "}
                 et notre{" "}
                 <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">politique de confidentialité</a>.
@@ -470,4 +445,16 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       </div>
     </div>
   );
+}
+
+// Fonction manquante dans le code original (ajoutée)
+function getMailProviderLink(email: string): { name: string; url: string } | null {
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain) return null;
+  if (domain.includes("gmail")) return { name: "Gmail", url: "https://mail.google.com" };
+  if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live")) {
+    return { name: "Outlook", url: "https://outlook.live.com/mail" };
+  }
+  if (domain.includes("yahoo")) return { name: "Yahoo Mail", url: "https://mail.yahoo.com" };
+  return null;
 }

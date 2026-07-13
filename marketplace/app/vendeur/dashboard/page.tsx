@@ -1,7 +1,7 @@
 "use client";
 
 import { useVendeurDashboard } from "@/hooks/useVendeurDashboard";
-import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { 
   TrendingUp, 
@@ -9,7 +9,6 @@ import {
   ShoppingBag, 
   Star, 
   Plus, 
-  Clock, 
   MessageSquare,
   MoreVertical
 } from "lucide-react";
@@ -17,6 +16,8 @@ import Link from "next/link";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 
 export default function VendeurDashboardPage() {
+  const router = useRouter();
+
   const {
     loading,
     error,
@@ -219,7 +220,7 @@ export default function VendeurDashboardPage() {
                             </td>
                             <td className="px-8 py-6 text-right">
                               <button
-                                onClick={() => window.location.href = `/vendeur/commandes/${order.id}`}
+                                onClick={() => router.push(`/vendeur/commandes/${order.id}`)}
                                 className="p-3 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
                               >
                                 <MoreVertical size={20} />

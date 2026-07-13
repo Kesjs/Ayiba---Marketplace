@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useVendeurMessages } from "@/hooks/useVendeurMessages";
+import { useVendeurMessages } from "../../hooks/useVendeurMessages";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { Send, User, ArrowLeft } from "lucide-react";

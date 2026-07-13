@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export function useVendeurDashboard() {
 
-  const supabase = createClient();
+const supabase = useMemo(() => createClient(), []);
 
 
   const [loading, setLoading] = useState(true);

@@ -51,7 +51,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       if (!validateEmail(email)) return setError("Adresse email invalide");
       setLoading(true);
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       });
       setLoading(false);
       if (resetError) return setError(resetError.message);
@@ -68,19 +68,21 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: { role: intendedRole ?? "client" },
+        },
       });
       setLoading(false);
       if (signUpError) return setError(signUpError.message);
 
-      // Avec confirmation email activée, pas de session tant que le lien n'est pas cliqué
       if (!data.session) {
         setMessage("Vérifie ta boîte mail pour confirmer ton compte et continuer.");
         return;
       }
 
       onClose();
-      router.push(intendedRole ? `/${intendedRole}/kyc` : "/auth/choix-role");
+      router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue");
     } else {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);

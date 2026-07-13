@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, exitDemoMode } = useUser();
+  const { profile, loading, exitDemoMode } = useUser();
   const [isPartnerOpen, setIsPartnerOpen] = useState(false);
   const [isVendeurMenuOpen, setIsVendeurMenuOpen] = useState(false);
   const [visible, setVisible] = useState(true);
@@ -67,6 +67,11 @@ export function BottomNav() {
 
   const shouldHide = hideOnPaths.some(path => pathname.startsWith(path));
   if (shouldHide) return null;
+
+  // ⬇️ CORRECTIF : tant que le profil charge, on n'affiche rien
+  // plutôt que de fallback sur "guest" (ce qui causait le flash "Catalogue"
+  // pour les vendeurs juste après connexion).
+  if (loading) return null;
 
   const mockBadges = {
     messages: 3,

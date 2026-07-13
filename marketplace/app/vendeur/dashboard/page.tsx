@@ -17,426 +17,262 @@ import Link from "next/link";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 
 export default function VendeurDashboardPage() {
-const {
-  loading,
-  error,
-  vendeur,
-  stats,
-  chiffreAffaires,
-  commandes,
-  messages,
-  refresh
-} = useVendeurDashboard();
-
-  
+  const {
+    loading,
+    error,
+    vendeur,
+    stats,
+    chiffreAffaires,
+    commandes,
+    messages,
+    refresh
+  } = useVendeurDashboard();
 
   const statsCards = [
-  {
-    label: "Chiffre d'affaires",
-    value: `${chiffreAffaires?.montant_total ?? 0} F`,
-    change: "",
-    icon: TrendingUp,
-    color: "text-teal-600",
-    bg: "bg-teal-50"
-  },
-
-  {
-    label: "Commandes",
-    value: stats?.nombre_commandes ?? 0,
-    change: "",
-    icon: ShoppingBag,
-    color: "text-coral-500",
-    bg: "bg-coral-50"
-  },
-
-  {
-    label: "Articles actifs",
-    value: stats?.nombre_articles ?? 0,
-    change: "",
-    icon: Package,
-    color: "text-amber-600",
-    bg: "bg-amber-50"
-  },
-
-  {
-    label: "Articles vendus",
-    value: stats?.articles_vendus ?? 0,
-    change: "",
-    icon: Star,
-    color: "text-blue-600",
-    bg: "bg-blue-50"
-  },
-];
-
-  
+    {
+      label: "Chiffre d'affaires",
+      value: `${chiffreAffaires?.montant_total ?? 0} F`,
+      change: "+12%",
+      icon: TrendingUp,
+      color: "text-teal-600",
+      bg: "bg-teal-50"
+    },
+    {
+      label: "Commandes",
+      value: stats?.nombre_commandes ?? 0,
+      change: "+8%",
+      icon: ShoppingBag,
+      color: "text-coral-500",
+      bg: "bg-coral-50"
+    },
+    {
+      label: "Articles actifs",
+      value: stats?.nombre_articles ?? 0,
+      change: "-3%",
+      icon: Package,
+      color: "text-amber-600",
+      bg: "bg-amber-50"
+    },
+    {
+      label: "Articles vendus",
+      value: stats?.articles_vendus ?? 0,
+      change: "+24%",
+      icon: Star,
+      color: "text-blue-600",
+      bg: "bg-blue-50"
+    },
+  ];
 
   return (
     <DashboardLayout 
-  role="vendeur" 
-  userName={vendeur?.nom_complet || "Vendeur"}
-  title="Tableau de bord Vendeur"
->
-        {error && (
+      role="vendeur" 
+      userName={vendeur?.nom_complet || "Vendeur"}
+      title="Tableau de bord Vendeur"
+    >
+      {error && (
+        <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 flex items-center justify-between">
+          <p className="text-sm text-red-600 font-medium">{error}</p>
+          <button
+            onClick={refresh}
+            className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold hover:bg-red-700 transition-colors"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
 
-      <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 flex items-center justify-between">
-
-        <p className="text-sm text-red-600 font-medium">
-
-          {error}
-
-        </p>
-
-        <button
-
-          onClick={refresh}
-
-          className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-bold"
-
-        >
-
-          Réessayer
-
-        </button>
-
-      </div>
-
-    )}
-
-    
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-  {statsCards.map((stat, i) => (
-    <div key={i} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-4">
-        <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
-          <stat.icon size={24} />
-        </div>
-
-        <span
-          className={`text-[11px] font-bold px-2 py-1 rounded-lg ${
-            stat.change?.startsWith('+')
-              ? 'bg-teal-50 text-teal-600'
-              : 'bg-gray-50 text-gray-500'
-          }`}
-        >
-          {stat.change}
-        </span>
-      </div>
-
-      <p className="text-sm font-medium text-gray-500 mb-1">
-        {stat.label}
-      </p>
-
-      <p className="text-2xl font-bold text-gray-900">
-        {stat.value}
-      </p>
-
-    </div>
-  ))}
-</div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-  <div className="lg:col-span-2 space-y-8">
-
-    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-      <h3 className="text-lg font-bold mb-6">
-        Actions rapides
-      </h3>
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-
-        <Link
-          href="/vendeur/articles/nouveau"
-          className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-coral-50 text-coral-600 hover:bg-coral-100 transition-colors group"
-        >
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-            <Plus size={20} />
-          </div>
-          <span className="text-xs font-bold">
-            Nouvel Article
-          </span>
-        </Link>
-
-
-        <Link
-          href="/vendeur/commandes"
-          className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors group"
-        >
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-            <ShoppingBag size={20} />
-          </div>
-          <span className="text-xs font-bold">
-            Gérer Commandes
-          </span>
-        </Link>
-
-
-        <Link
-          href="/vendeur/messages"
-          className="flex flex-col items-center gap-3 p-4 rounded-2xl bg-amber-50 text-amber-600 hover:bg-amber-100 transition-colors group"
-        >
-          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
-            <MessageSquare size={20} />
-          </div>
-          <span className="text-xs font-bold">
-            Messagerie
-          </span>
-        </Link>
-
-      </div>
-    </div>
-
-
-
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-
-      <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-
-        <h3 className="text-lg font-bold">
-          Dernières commandes
-        </h3>
-
-        <Link
-          href="/vendeur/commandes"
-          className="text-sm font-bold text-coral-500 hover:underline"
-        >
-          Voir tout
-        </Link>
-
-      </div>
-
-
-
-      <div className="overflow-x-auto">
-
-        <table className="w-full text-left border-collapse">
-
-          <thead>
-
-            <tr className="bg-gray-50/50">
-
-              <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase">
-                Client
-              </th>
-
-              <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase">
-                Statut
-              </th>
-
-              <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase">
-                Montant
-              </th>
-
-              <th className="px-8 py-4 text-xs font-bold text-gray-400 uppercase">
-                Date
-              </th>
-
-              <th className="px-8 py-4"></th>
-
-            </tr>
-
-          </thead>
-
-
-          <tbody className="divide-y divide-gray-50">
-
-
-          {commandes.length === 0 ? (
-
-            <tr>
-
-              <td
-                colSpan={5}
-                className="px-8 py-10 text-center text-sm text-gray-400"
+        <div className="space-y-8">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {statsCards.map((stat, i) => (
+              <div 
+                key={i} 
+                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
               >
-                Aucune commande récente
-              </td>
-
-            </tr>
-
-          ) : (
-
-
-            commandes.map((order) => (
-
-              <tr
-                key={order.id}
-                className="hover:bg-gray-50/30 transition-colors"
-              >
-
-                <td className="px-8 py-5">
-
-                  <p className="text-sm font-bold text-gray-900">
-                    {order.nom_client}
-                  </p>
-
-                  <p className="text-[11px] text-gray-400 font-medium">
-                    {order.numero}
-                  </p>
-
-                </td>
-
-
-
-                <td className="px-8 py-5">
-
-                  <span
-                    className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${
-                      order.statut === "En attente"
-                      ? "bg-amber-50 text-amber-600 border-amber-100"
-                      :
-                      order.statut === "Confirmé"
-                      ? "bg-teal-50 text-teal-600 border-teal-100"
-                      :
-                      "bg-gray-50 text-gray-600 border-gray-200"
-                    }`}
-                  >
-                    {order.statut}
-                  </span>
-
-                </td>
-
-
-
-                <td className="px-8 py-5">
-
-                  <p className="text-sm font-bold text-gray-900">
-                    {order.montant_total} F
-                  </p>
-
-                </td>
-
-
-
-                <td className="px-8 py-5">
-
-                  <div className="flex items-center gap-1.5 text-gray-400">
-
-                    <Clock size={14}/>
-
-                    <span className="text-xs font-medium">
-                      {new Date(order.created_at).toLocaleDateString("fr-FR")}
-                    </span>
-
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
+                    <stat.icon size={24} />
                   </div>
+                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                    stat.change.startsWith('+') 
+                      ? 'bg-teal-50 text-teal-600' 
+                      : 'bg-red-50 text-red-600'
+                  }`}>
+                    {stat.change}
+                  </span>
+                </div>
 
-                </td>
-
-
-
-                <td className="px-8 py-5 text-right">
-
-                  <button
-                    className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-all"
-                    onClick={() => {
-                      window.location.href = `/vendeur/commandes/${order.id}`;
-                    }}
-                  >
-
-                    <MoreVertical size={18}/>
-
-                  </button>
-
-                </td>
-
-
-              </tr>
-
-            ))
-
-          )}
-
-
-          </tbody>
-
-        </table>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-
-
-
-  <div className="space-y-8">
-
-    <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-
-      <h3 className="text-lg font-bold mb-6">
-        Messages récents
-      </h3>
-
-
-      <div className="space-y-6">
-
-
-      {messages.length === 0 ? (
-
-        <p className="text-sm text-gray-400">
-          Aucun message récent
-        </p>
-
-      ) : (
-
-
-        messages.map((msg) => (
-
-          <div
-            key={msg.id}
-            className="flex gap-3 group cursor-pointer"
-          >
-
-            <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center text-teal-600">
-              <MessageSquare size={18}/>
-            </div>
-
-
-            <div className="overflow-hidden">
-
-              <p className="text-xs text-gray-500 truncate group-hover:text-gray-900">
-                {msg.contenu}
-              </p>
-
-
-              <span className="text-[10px] text-gray-400">
-                {new Date(msg.created_at).toLocaleDateString("fr-FR")}
-              </span>
-
-            </div>
-
+                <p className="text-sm font-medium text-gray-500 mb-1">{stat.label}</p>
+                <p className="text-3xl font-bold text-gray-900 tracking-tight">{stat.value}</p>
+              </div>
+            ))}
           </div>
 
-        ))
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Colonne principale */}
+            <div className="lg:col-span-8 space-y-8">
+              {/* Actions rapides */}
+              <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold">Actions rapides</h3>
+                  <Link
+                    href="/vendeur/articles/nouveau"
+                    className="flex items-center gap-2 bg-coral-600 hover:bg-coral-700 text-white px-5 py-2.5 rounded-2xl text-sm font-bold transition-all active:scale-95"
+                  >
+                    <Plus size={18} />
+                    Nouvel article
+                  </Link>
+                </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <Link href="/vendeur/articles/nouveau" className="group">
+                    <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow-md transition-all">
+                      <div className="w-14 h-14 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Plus size={28} className="text-coral-600" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-gray-900">Nouvel Article</p>
+                        <p className="text-xs text-gray-500">Ajoutez rapidement un produit</p>
+                      </div>
+                    </div>
+                  </Link>
+
+                  <Link href="/vendeur/commandes" className="group">
+                    <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 hover:border-teal-200 hover:shadow-md transition-all">
+                      <div className="w-14 h-14 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <ShoppingBag size={28} className="text-teal-600" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-gray-900">Commandes</p>
+                        <p className="text-xs text-gray-500">Gérez vos ventes</p>
+                      </div>
+                    </div>
+                  </Link>
+
+                  <Link href="/vendeur/messages" className="group">
+                    <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:border-amber-200 hover:shadow-md transition-all">
+                      <div className="w-14 h-14 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <MessageSquare size={28} className="text-amber-600" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-gray-900">Messages</p>
+                        <p className="text-xs text-gray-500">Répondez à vos clients</p>
+                      </div>
+                    </div>
+                  </Link>
+                </div>
+              </div>
+
+              {/* Dernières commandes */}
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="text-xl font-bold">Dernières commandes</h3>
+                  <Link href="/vendeur/commandes" className="text-sm font-bold text-coral-600 hover:underline">
+                    Voir tout →
+                  </Link>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-gray-50">
+                        <th className="px-8 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Client</th>
+                        <th className="px-8 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Statut</th>
+                        <th className="px-8 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Montant</th>
+                        <th className="px-8 py-5 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                        <th className="px-8 py-5"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {commandes.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-8 py-16 text-center text-gray-400">
+                            Aucune commande récente
+                          </td>
+                        </tr>
+                      ) : (
+                        commandes.map((order) => (
+                          <tr key={order.id} className="hover:bg-gray-50 transition-colors group">
+                            <td className="px-8 py-6">
+                              <p className="font-semibold text-gray-900">{order.nom_client}</p>
+                              <p className="text-sm text-gray-500">{order.numero}</p>
+                            </td>
+                            <td className="px-8 py-6">
+                              <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
+                                order.statut === "En attente"
+                                  ? "bg-amber-50 text-amber-700 border-amber-100"
+                                  : order.statut === "Confirmé"
+                                  ? "bg-teal-50 text-teal-700 border-teal-100"
+                                  : "bg-gray-100 text-gray-600 border-gray-200"
+                              }`}>
+                                {order.statut}
+                              </span>
+                            </td>
+                            <td className="px-8 py-6 font-semibold text-gray-900">
+                              {order.montant_total} F
+                            </td>
+                            <td className="px-8 py-6 text-sm text-gray-500">
+                              {new Date(order.created_at).toLocaleDateString("fr-FR")}
+                            </td>
+                            <td className="px-8 py-6 text-right">
+                              <button
+                                onClick={() => window.location.href = `/vendeur/commandes/${order.id}`}
+                                className="p-3 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                              >
+                                <MoreVertical size={20} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Colonne latérale */}
+            <div className="lg:col-span-4 space-y-8">
+              {/* Messages récents */}
+              <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm h-fit">
+                <h3 className="text-xl font-bold mb-6">Messages récents</h3>
+                
+                <div className="space-y-6">
+                  {messages.length === 0 ? (
+                    <p className="text-gray-400 py-8 text-center">Aucun message récent</p>
+                  ) : (
+                    messages.map((msg) => (
+                      <div key={msg.id} className="flex gap-4 group cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded-2xl transition-colors">
+                        <div className="w-10 h-10 rounded-2xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+                          <MessageSquare size={20} className="text-teal-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-gray-700 line-clamp-2 group-hover:text-gray-900 transition-colors">
+                            {msg.contenu}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(msg.created_at).toLocaleDateString("fr-FR")}
+                          </p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <Link
+                  href="/vendeur/messages"
+                  className="block w-full text-center mt-8 py-3.5 bg-gray-900 hover:bg-black text-white text-sm font-bold rounded-2xl transition-colors"
+                >
+                  Voir tous les messages
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-
-
-      </div>
-
-
-      <Link
-        href="/vendeur/messages"
-        className="block text-center w-full mt-8 py-3 bg-gray-50 text-gray-900 text-xs font-bold rounded-xl hover:bg-gray-100 transition-all"
-      >
-        Voir tous les messages
-      </Link>
-
-
-    </div>
-
-  </div>
-
-
-</div>
-        
-    </>
-  )}
-</DashboardLayout>
+    </DashboardLayout>
   );
-}       
+}

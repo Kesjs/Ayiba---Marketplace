@@ -2,19 +2,23 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { 
   Home, Search, User, Heart, LayoutDashboard, 
   Package, MessageSquare, Truck, MapPin, ClipboardList, 
-  PlusSquare, Briefcase, X, Store, Bike, History
+  PlusSquare, Briefcase, X, Store, Bike, History,
+  ShoppingBag, Wallet, Settings, LogOut, Menu as MenuIcon, Plus
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
+import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { profile } = useUser();
   const [isPartnerOpen, setIsPartnerOpen] = useState(false);
+  const [isVendeurMenuOpen, setIsVendeurMenuOpen] = useState(false);
   const [visible, setVisible] = useState(true);
   const lastScrollY = useRef(0);
 
@@ -42,7 +46,13 @@ export function BottomNav() {
     }
   };
 
-  // '/admin' retiré : le BottomNav reste actif dans tous les dashboards, avec ses items adaptés par rôle
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    setIsVendeurMenuOpen(false);
+    router.push("/");
+  };
+
   const hideOnPaths = [
     '/auth', '/cgu', '/privacy', '/compte-suspendu', 
     '/devenir-vendeur', '/devenir-livreur', '/accueil', 
@@ -58,7 +68,16 @@ export function BottomNav() {
     dashboard: 2,
     missions: 5,
     favoris: 0,
+    commandes: 4,
   };
+
+  // Items secondaires vendeur, accessibles via la feuille "Menu"
+  const vendeurMenuItems = [
+    { label: "Boutique", icon: Store, href: "/vendeur/boutique" },
+    { label: "Paiements", icon: Wallet, href: "/vendeur/paiements" },
+    { label: "Messages", icon: MessageSquare, href: "/vendeur/messages", badge: mockBadges.messages },
+    { label: "Paramètres", icon: Settings, href: "/vendeur/parametres" },
+  ];
 
   const navItems = {
     guest: [
@@ -73,12 +92,6 @@ export function BottomNav() {
       { label: "Explorer", icon: MapPin, href: "/boutiques" },
       { label: "Profil", icon: User, href: "/profil" },
     ],
-    vendeur: [
-      { label: "Articles", icon: Package, href: "/vendeur/articles" },
-      { label: "Dashboard", icon: LayoutDashboard, href: "/vendeur/dashboard", badge: mockBadges.dashboard },
-      { label: "Publier", icon: PlusSquare, href: "/vendeur/articles/nouveau" },
-      { label: "Messages", icon: MessageSquare, href: "/vendeur/messages", badge: mockBadges.messages },
-    ],
     livreur: [
       { label: "Missions", icon: Truck, href: "/livreur/missions", badge: mockBadges.missions },
       { label: "Historique", icon: History, href: "/livreur/historique" },
@@ -92,6 +105,133 @@ export function BottomNav() {
     ]
   };
 
+  // ============================================
+  // RENDU SPÉCIFIQUE VENDEUR — 5 slots avec FAB central + menu
+  // ============================================
+  if (role === "vendeur") {
+    return (
+      <>
+        {/* Feuille "Menu" — items secondaires */}
+        <AnimatePresence>
+          {isVendeurMenuOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setIsVendeurMenuOpen(false)}
+                className="fixed inset-0 bg-gray-900/40 z-[60] backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+                transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] p-6 shadow-2xl"
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold">Menu</h3>
+                  <button onClick={() => setIsVendeurMenuOpen(false)}><X size={20} /></button>
+                </div>
+                <div className="flex flex-col gap-2">
+                  {vendeurMenuItems.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(false); }}
+                      className="flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center">
+                          <item.icon size={20} />
+                        </div>
+                        <span className="font-bold text-sm text-gray-900">{item.label}</span>
+                      </div>
+                      {!!item.badge && item.badge > 0 && (
+                        <span className="min-w-[20px] h-5 px-1.5 bg-coral-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {item.badge > 9 ? "9+" : item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  ))}
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-3 p-4 rounded-2xl hover:bg-red-50 transition-colors text-left mt-2 border-t border-gray-50 pt-6"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+                      <LogOut size={20} />
+                    </div>
+                    <span className="font-bold text-sm text-red-600">Déconnexion</span>
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          animate={{ y: visible ? 0 : 120, opacity: visible ? 1 : 0 }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+          className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none"
+        >
+          <nav className="relative bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-lg flex items-center justify-around p-2 pointer-events-auto">
+            {/* Dashboard */}
+            <VendeurNavLink
+              href="/vendeur/dashboard"
+              icon={LayoutDashboard}
+              label="Dashboard"
+              badge={mockBadges.dashboard}
+              pathname={pathname}
+              onClick={triggerHaptic}
+            />
+
+            {/* Articles */}
+            <VendeurNavLink
+              href="/vendeur/articles"
+              icon={Package}
+              label="Articles"
+              pathname={pathname}
+              onClick={triggerHaptic}
+            />
+
+            {/* FAB central — Nouvel article */}
+            <Link
+              href="/vendeur/articles/nouveau"
+              onClick={triggerHaptic}
+              className="relative flex flex-col items-center justify-center -mt-6"
+            >
+              <motion.div
+                whileTap={{ scale: 0.9 }}
+                className="w-14 h-14 rounded-2xl bg-coral-500 flex items-center justify-center shadow-lg shadow-coral-500/30 border-4 border-white"
+              >
+                <Plus size={26} className="text-white" strokeWidth={2.5} />
+              </motion.div>
+            </Link>
+
+            {/* Commandes */}
+            <VendeurNavLink
+              href="/vendeur/commandes"
+              icon={ShoppingBag}
+              label="Commandes"
+              badge={mockBadges.commandes}
+              pathname={pathname}
+              onClick={triggerHaptic}
+            />
+
+            {/* Menu — ouvre la feuille */}
+            <button
+              onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(true); }}
+              className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl min-w-[64px]"
+            >
+              <MenuIcon size={22} className="text-gray-400" />
+              <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Menu</span>
+            </button>
+          </nav>
+        </motion.div>
+      </>
+    );
+  }
+
+  // ============================================
+  // RENDU STANDARD — guest, client, livreur, admin (inchangé)
+  // ============================================
   const currentItems: any[] = navItems[role as keyof typeof navItems] || navItems.guest;
 
   return (
@@ -189,5 +329,42 @@ export function BottomNav() {
         </nav>
       </motion.div>
     </>
+  );
+}
+
+// Sous-composant pour les 2 items latéraux de la nav vendeur (Dashboard, Articles, Commandes)
+function VendeurNavLink({
+  href, icon: Icon, label, badge, pathname, onClick,
+}: {
+  href: string; icon: any; label: string; badge?: number; pathname: string; onClick: () => void;
+}) {
+  const isActive = pathname === href || pathname.startsWith(`${href}/`);
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl min-w-[56px]"
+    >
+      {isActive && (
+        <motion.div
+          layoutId="vendeurNavActiveIndicator"
+          className="absolute inset-0 bg-coral-50 rounded-2xl -z-10"
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        />
+      )}
+      <div className="relative">
+        <motion.div whileTap={{ scale: 0.9 }}>
+          <Icon size={22} strokeWidth={isActive ? 2.5 : 2} className={isActive ? "text-coral-500" : "text-gray-400"} />
+        </motion.div>
+        {!!badge && badge > 0 && (
+          <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
+            {badge > 9 ? "9+" : badge}
+          </span>
+        )}
+      </div>
+      <span className={`text-[10px] font-bold uppercase tracking-wide ${isActive ? "text-gray-900" : "text-gray-400"}`}>
+        {label}
+      </span>
+    </Link>
   );
 }

@@ -33,6 +33,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const [mode, setMode] = useState<Mode>("connexion");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -75,6 +76,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const switchMode = (m: Mode) => {
     setMode(m);
     setError(null);
+    setConfirmPassword("");
   };
 
   const handleSubmit = async () => {
@@ -95,6 +97,10 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
 
     if (!validateEmail(email)) return setError("Adresse email invalide");
     if (password.length < 6) return setError("Le mot de passe doit contenir au moins 6 caractères");
+
+    if (mode === "inscription" && password !== confirmPassword) {
+      return setError("Les deux mots de passe ne correspondent pas");
+    }
 
     setLoading(true);
 
@@ -172,6 +178,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const handleEditEmail = () => {
     setPendingConfirmationEmail(null);
     setPassword("");
+    setConfirmPassword("");
     setError(null);
     setResendCooldown(0);
   };
@@ -197,6 +204,12 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
 
   const mailProviderConfirmation = pendingConfirmationEmail ? getMailProviderLink(pendingConfirmationEmail) : null;
   const mailProviderReset = pendingResetEmail ? getMailProviderLink(pendingResetEmail) : null;
+
+  const isSubmitDisabled =
+    loading ||
+    !email ||
+    (mode !== "mot-de-passe-oublie" && !password) ||
+    (mode === "inscription" && !confirmPassword);
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
@@ -389,11 +402,35 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             )}
 
             {passwordStrength && (
-              <div className="mb-2 mt-1.5">
+              <div className="mb-3 mt-1.5">
                 <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
                   <div className={`h-full ${passwordStrength.color} transition-all duration-300`} style={{ width: passwordStrength.width }} />
                 </div>
                 <span className="text-[11px] text-gray-400 mt-1 block">{passwordStrength.label}</span>
+              </div>
+            )}
+
+            {mode === "inscription" && (
+              <div className="mb-1">
+                <div className={`flex items-center border rounded-lg px-3 transition-colors ${
+                  confirmPassword.length > 0
+                    ? password === confirmPassword
+                      ? "border-teal-300"
+                      : "border-red-300"
+                    : "border-gray-200 focus-within:border-coral-400"
+                }`}>
+                  <Lock size={16} className="text-gray-400 shrink-0" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Confirmer le mot de passe"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="flex-1 h-11 text-sm px-2 focus:outline-none"
+                  />
+                  {confirmPassword.length > 0 && password === confirmPassword && (
+                    <Check size={16} className="text-teal-500 shrink-0" />
+                  )}
+                </div>
               </div>
             )}
 
@@ -412,7 +449,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            <button onClick={handleSubmit} disabled={loading || !email || (mode !== "mot-de-passe-oublie" && !password)}
+            <button onClick={handleSubmit} disabled={isSubmitDisabled}
               className="w-full bg-coral-400 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed mt-3">
               {loading ? "Chargement..." :
                 mode === "connexion" ? "Se connecter" :
@@ -422,7 +459,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
 
             {mode !== "mot-de-passe-oublie" && (
               <p className="text-[11px] text-gray-400 mt-3 text-center leading-relaxed">
-                En continuant, tu acceptes nos{" "}
+                En continuant, vous acceptee nos{" "}
                 <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">conditions d'utilisation</a>{" "}
                 et notre{" "}
                 <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">politique de confidentialité</a>.

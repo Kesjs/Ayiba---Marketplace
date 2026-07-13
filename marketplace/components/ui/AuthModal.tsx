@@ -241,9 +241,27 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         setLoading(false);
         if (signInError) return setError(translateError(signInError));
 
-        onClose();
-        router.push(intendedRole ? `/${intendedRole}/dashboard` : "/catalogue");
-        router.refresh();
+        const { data: { user } } = await supabase.auth.getUser();
+
+const { data: userData } = await supabase
+  .from("users")
+  .select("role")
+  .eq("id", user?.id)
+  .single();
+
+onClose();
+
+if (userData?.role === "vendeur") {
+  router.push("/vendeur/dashboard");
+} else if (userData?.role === "livreur") {
+  router.push("/livreur/missions");
+} else if (userData?.role === "admin") {
+  router.push("/admin/dashboard");
+} else {
+  router.push("/catalogue");
+}
+
+router.refresh();
       }
     } catch (err) {
       setLoading(false);

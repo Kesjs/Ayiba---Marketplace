@@ -132,6 +132,21 @@ export default function Home() {
   const illustrationY = useTransform(heroScrollProgress, [0, 1], [0, 100]);
   const illustrationOpacity = useTransform(heroScrollProgress, [0, 1], [1, 0.4]);
 
+  // Redirige automatiquement vendeur/livreur/admin vers leur dashboard —
+  // la home publique ne sert qu'aux visiteurs (guest) et clients
+  const DASHBOARD_REDIRECTS: Record<string, string> = {
+    vendeur: "/vendeur/dashboard",
+    livreur: "/livreur/missions",
+    admin: "/admin/dashboard",
+  };
+  const shouldRedirectToDashboard = !userLoading && profile?.role && DASHBOARD_REDIRECTS[profile.role];
+
+  useEffect(() => {
+    if (shouldRedirectToDashboard) {
+      router.replace(DASHBOARD_REDIRECTS[profile!.role]);
+    }
+  }, [shouldRedirectToDashboard, profile, router]);
+
   useEffect(() => {
     setMounted(true);
     const timer = setTimeout(() => {
@@ -185,7 +200,17 @@ export default function Home() {
     showToast("Favori ajouté", "success");
   };
 
+  // Écran de transition pendant la redirection (évite le flash de la home publique)
+  if (userLoading || shouldRedirectToDashboard) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-10 h-10 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
+
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
 

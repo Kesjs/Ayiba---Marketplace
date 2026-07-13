@@ -1,12 +1,12 @@
 'use server'
 
-import { createClient } from '@/utils/supabase/server'
+import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 
 // Action pour l'inscription
 export async function signUp(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
@@ -30,7 +30,7 @@ export async function signUp(formData: FormData) {
 
 // Action pour la connexion
 export async function signIn(formData: FormData) {
-  const supabase = createClient()
+  const supabase = await createClient()
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
@@ -50,7 +50,7 @@ export async function signIn(formData: FormData) {
 
 // Action pour la déconnexion (très utile pour Ayiba)
 export async function signOut() {
-  const supabase = createClient()
+  const supabase = await createClient()
   await supabase.auth.signOut()
   revalidatePath('/', 'layout')
   redirect('/')

@@ -2,7 +2,9 @@
 
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 
+// Action pour l'inscription
 export async function signUp(formData: FormData) {
   const supabase = createClient()
   const email = formData.get('email') as string
@@ -11,20 +13,45 @@ export async function signUp(formData: FormData) {
   const { error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` }
+    options: { 
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` 
+    }
   })
 
-  if (error) throw error
-  return { message: "Veuillez vérifier votre email pour confirmer l'inscription." }
+  if (error) {
+    return { error: error.message }
+  }
+
+  return { 
+    success: true, 
+    message: "Veuillez vérifier votre email pour confirmer l'inscription." 
+  }
 }
 
+// Action pour la connexion
 export async function signIn(formData: FormData) {
   const supabase = createClient()
   const email = formData.get('email') as string
   const password = formData.get('password') as string
 
-  const { error } = await supabase.auth.signInWithPassword({ email, password })
-  if (error) throw error
-  
-  redirect('/') // Redirige après connexion
+  const { error } = await supabase.auth.signInWithPassword({ 
+    email, 
+    password 
+  })
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  // On revalide la page d'accueil pour mettre à jour l'état de session
+  revalidatePath('/', 'layout')
+  redirect('/') 
+}
+
+// Action pour la déconnexion (très utile pour Ayiba)
+export async function signOut() {
+  const supabase = createClient()
+  await supabase.auth.signOut()
+  revalidatePath('/', 'layout')
+  redirect('/')
 }

@@ -31,6 +31,7 @@ export async function middleware(req: NextRequest) {
 
   const path = req.nextUrl.pathname;
 
+  // Liste des routes accessibles sans connexion
   const publicRoutes = [
     "/", "/catalogue", "/devenir-vendeur", "/devenir-livreur",
     "/cgu", "/privacy", "/compte-suspendu", "/auth",
@@ -46,8 +47,9 @@ export async function middleware(req: NextRequest) {
     .some((route) => path.startsWith(route));
 
   if (isProtectedRoute) {
+    // Redirection vers l'accueil si non connecté au lieu de /auth/inscription
     if (!user) {
-      return NextResponse.redirect(new URL("/auth/inscription", req.url));
+      return NextResponse.redirect(new URL("/", req.url));
     }
 
     const { data: userData } = await supabase

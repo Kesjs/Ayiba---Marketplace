@@ -19,6 +19,7 @@ import {
   Wallet
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useUser } from "@/lib/hooks/useUser";
 
 interface SidebarProps {
   role: "admin" | "vendeur" | "livreur";
@@ -30,6 +31,7 @@ interface SidebarProps {
 export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const { exitDemoMode } = useUser();
 
   const menuItems = {
     admin: [
@@ -60,8 +62,13 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
   const items = menuItems[role];
 
   const handleLogout = async () => {
+    // Nettoie le mode démo (localStorage) s'il était actif
+    exitDemoMode();
+
+    // Déconnecte la vraie session Supabase si elle existe
     const supabase = createClient();
     await supabase.auth.signOut();
+
     router.push("/");
   };
 

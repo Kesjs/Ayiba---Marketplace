@@ -63,6 +63,28 @@ const translateError = (err: any): string => {
   return message || "Une erreur est survenue. Veuillez réessayer.";
 };
 
+// 🔧 TEMPORAIRE — extrait le message brut pour affichage debug sur mobile. À SUPPRIMER avant prod.
+const extractRawError = (err: any): string => {
+  try {
+    if (!err) return "null/undefined";
+    if (typeof err === "string") return err;
+    return JSON.stringify(
+      {
+        message: err.message,
+        status: err.status,
+        code: err.code,
+        name: err.name,
+        details: err.details,
+        hint: err.hint,
+      },
+      null,
+      2
+    );
+  } catch {
+    return String(err);
+  }
+};
+
 // Règles de robustesse du mot de passe à l'inscription
 const validatePasswordStrength = (value: string): { valid: boolean; message: string | null } => {
   if (value.length < 8) return { valid: false, message: "Le mot de passe doit contenir au moins 8 caractères." };
@@ -124,6 +146,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugError, setDebugError] = useState<string | null>(null); // 🔧 TEMPORAIRE — À SUPPRIMER avant prod
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
@@ -163,12 +186,14 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const switchMode = (m: Mode) => {
     setMode(m);
     setError(null);
+    setDebugError(null); // 🔧 TEMPORAIRE
     setPassword("");
     setConfirmPassword("");
   };
 
   const handleSubmit = async () => {
     setError(null);
+    setDebugError(null); // 🔧 TEMPORAIRE
 
     try {
       if (mode === "mot-de-passe-oublie") {
@@ -178,7 +203,11 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           redirectTo: `${window.location.origin}/auth/callback`,
         });
         setLoading(false);
-        if (resetError) return setError(translateError(resetError));
+        if (resetError) {
+          setError(translateError(resetError));
+          setDebugError(extractRawError(resetError)); // 🔧 TEMPORAIRE
+          return;
+        }
 
         setPendingResetEmail(email);
         setResetCooldown(RESEND_COOLDOWN);
@@ -214,6 +243,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         if (signUpError) {
           console.error("❌ Erreur SignUp:", signUpError);
           setError(translateError(signUpError));
+          setDebugError(extractRawError(signUpError)); // 🔧 TEMPORAIRE
           return;
         }
 
@@ -237,6 +267,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         setLoading(false);
         if (signInError) {
           setError(translateError(signInError));
+          setDebugError(extractRawError(signInError)); // 🔧 TEMPORAIRE
           return;
         }
 
@@ -248,6 +279,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       console.error("❌ Erreur catch:", err);
       setLoading(false);
       setError(translateError(err));
+      setDebugError(extractRawError(err)); // 🔧 TEMPORAIRE
     }
   };
 
@@ -255,6 +287,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     if (!pendingConfirmationEmail || resendCooldown > 0) return;
     setResending(true);
     setError(null);
+    setDebugError(null); // 🔧 TEMPORAIRE
     try {
       const { error: resendError } = await supabase.auth.resend({
         type: "signup",
@@ -263,11 +296,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       });
       if (resendError) {
         setError(translateError(resendError));
+        setDebugError(extractRawError(resendError)); // 🔧 TEMPORAIRE
         return;
       }
       setResendCooldown(RESEND_COOLDOWN);
     } catch (err) {
       setError(translateError(err));
+      setDebugError(extractRawError(err)); // 🔧 TEMPORAIRE
     } finally {
       setResending(false);
     }
@@ -277,17 +312,20 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     if (!pendingResetEmail || resetCooldown > 0) return;
     setResettingResend(true);
     setError(null);
+    setDebugError(null); // 🔧 TEMPORAIRE
     try {
       const { error: resendError } = await supabase.auth.resetPasswordForEmail(pendingResetEmail, {
         redirectTo: `${window.location.origin}/auth/callback`,
       });
       if (resendError) {
         setError(translateError(resendError));
+        setDebugError(extractRawError(resendError)); // 🔧 TEMPORAIRE
         return;
       }
       setResetCooldown(RESEND_COOLDOWN);
     } catch (err) {
       setError(translateError(err));
+      setDebugError(extractRawError(err)); // 🔧 TEMPORAIRE
     } finally {
       setResettingResend(false);
     }
@@ -298,26 +336,33 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     setPassword("");
     setConfirmPassword("");
     setError(null);
+    setDebugError(null); // 🔧 TEMPORAIRE
     setResendCooldown(0);
   };
 
   const handleEditResetEmail = () => {
     setPendingResetEmail(null);
     setError(null);
+    setDebugError(null); // 🔧 TEMPORAIRE
     setResetCooldown(0);
   };
 
   const handleGoogleAuth = async () => {
     setError(null);
+    setDebugError(null); // 🔧 TEMPORAIRE
     setGoogleLoading(true);
     try {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
-      if (oauthError) setError(translateError(oauthError));
+      if (oauthError) {
+        setError(translateError(oauthError));
+        setDebugError(extractRawError(oauthError)); // 🔧 TEMPORAIRE
+      }
     } catch (err) {
       setError(translateError(err));
+      setDebugError(extractRawError(err)); // 🔧 TEMPORAIRE
       setGoogleLoading(false);
     }
   };
@@ -328,6 +373,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     setPassword("");
     setConfirmPassword("");
     setError(null);
+    setDebugError(null); // 🔧 TEMPORAIRE
     setPendingConfirmationEmail(null);
     setPendingResetEmail(null);
     setResendCooldown(0);
@@ -377,6 +423,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
+            {/* 🔧 TEMPORAIRE — À SUPPRIMER avant prod */}
+            {debugError && (
+              <div className="bg-yellow-50 border border-yellow-300 rounded-lg px-3 py-2 mb-3 text-left">
+                <p className="text-[10px] font-mono text-yellow-800 whitespace-pre-wrap break-all">🔧 DEBUG: {debugError}</p>
+              </div>
+            )}
+
             <button onClick={handleResendConfirmation} disabled={resendCooldown > 0 || resending}
               className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4">
               <RefreshCw size={14} className={resending ? "animate-spin" : ""} />
@@ -408,6 +461,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mb-3 text-left">
                 <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
                 <p className="text-[12.5px] text-red-700 leading-relaxed">{error}</p>
+              </div>
+            )}
+
+            {/* 🔧 TEMPORAIRE — À SUPPRIMER avant prod */}
+            {debugError && (
+              <div className="bg-yellow-50 border border-yellow-300 rounded-lg px-3 py-2 mb-3 text-left">
+                <p className="text-[10px] font-mono text-yellow-800 whitespace-pre-wrap break-all">🔧 DEBUG: {debugError}</p>
               </div>
             )}
 
@@ -545,6 +605,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mt-2 mb-2">
                 <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
                 <p className="text-[12.5px] text-red-700 leading-relaxed">{error}</p>
+              </div>
+            )}
+
+            {/* 🔧 TEMPORAIRE — À SUPPRIMER avant prod */}
+            {debugError && (
+              <div className="bg-yellow-50 border border-yellow-300 rounded-lg px-3 py-2 mt-1 mb-2">
+                <p className="text-[10px] font-mono text-yellow-800 whitespace-pre-wrap break-all">🔧 DEBUG: {debugError}</p>
               </div>
             )}
 

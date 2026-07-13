@@ -9,7 +9,7 @@ import { Check } from "lucide-react";
 const RESEAUX = [
   { value: "mtn", label: "MTN Mobile Money" },
   { value: "moov", label: "Moov Money" },
-  { value: "celtiis", label: "Celtiis Cash" },
+  { value: "celtiis", label: "Celtis Cash" },
 ];
 
 export default function VendeurBoutiquePage() {

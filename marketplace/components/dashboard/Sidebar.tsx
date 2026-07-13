@@ -21,7 +21,7 @@ import {
   Wallet
 } from "lucide-react";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 
 interface SidebarProps {
   role: "admin" | "vendeur" | "livreur";
@@ -68,6 +68,7 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
   };
 
   const handleLogout = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
   };

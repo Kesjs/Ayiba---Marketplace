@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useVendeurBoutique } from "@/hooks/useVendeurBoutique";
+import { useVendeurBoutique } from "../../hooks/useVendeurBoutique";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { Check } from "lucide-react";

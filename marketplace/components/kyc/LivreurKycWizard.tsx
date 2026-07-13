@@ -6,6 +6,7 @@ import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
 import { ChevronLeft, ChevronRight, CheckCircle2, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const STEP_LABELS = ["Identité", "Véhicule", "Localisation", "Paiement"];
 
@@ -49,6 +50,7 @@ export function LivreurKycWizard() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<LivreurFormData>(INITIAL_DATA);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const totalSteps = 4;
 
   const update = <K extends keyof LivreurFormData>(key: K, value: LivreurFormData[K]) => {
@@ -113,15 +115,70 @@ export function LivreurKycWizard() {
 
   const handleSubmit = async () => {
     setSubmitting(true);
+    setError(null);
 
-    // SIMULATION — à remplacer par un vrai insert Supabase (table `livreurs`)
-    // + upload des fichiers vers Supabase Storage
-    console.log("Soumission livreur (simulation) :", data);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    setTimeout(() => {
+    if (!user) {
+      setError("Ta session a expiré, reconnecte-toi.");
       setSubmitting(false);
+      return;
+    }
+
+    try {
+      let photoProfilUrl: string | null = null;
+      let photoCniPath: string | null = null;
+      let photoVehiculeUrl: string | null = null;
+
+      if (data.photoProfil) {
+        const path = `${user.id}/profil-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, data.photoProfil, { upsert: true });
+        if (upErr) throw upErr;
+        photoProfilUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      }
+
+      if (data.photoCni) {
+        const path = `${user.id}/cni-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("kyc-documents")
+          .upload(path, data.photoCni, { upsert: true });
+        if (upErr) throw upErr;
+        photoCniPath = path;
+      }
+
+      if (data.photoVehicule) {
+        const path = `${user.id}/vehicule-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, data.photoVehicule, { upsert: true });
+        if (upErr) throw upErr;
+        photoVehiculeUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      }
+
+      const { error: insertError } = await supabase.from("livreurs").upsert({
+        id: user.id,
+        nom_complet: data.nomComplet,
+        photo_profil_url: photoProfilUrl,
+        photo_cni_path: photoCniPath,
+        type_vehicule: data.typeVehicule,
+        photo_vehicule_url: photoVehiculeUrl,
+        plaque_immatriculation: data.plaqueImmatriculation || null,
+        quartier: data.quartier,
+        commune: data.commune,
+        mobile_money_network: data.mobileMoneyNetwork,
+        mobile_money_number: data.mobileMoneyNumber,
+      });
+      if (insertError) throw insertError;
+
       router.push("/livreur/missions");
-    }, 1200);
+    } catch (err: any) {
+      setError(err.message || "Une erreur est survenue, réessaie.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const isRecap = step === totalSteps + 1;
@@ -342,6 +399,8 @@ export function LivreurKycWizard() {
                   </span>
                 </div>
               </div>
+
+              {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
               <button
                 onClick={handleSubmit}

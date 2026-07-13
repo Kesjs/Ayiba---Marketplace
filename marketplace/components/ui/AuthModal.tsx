@@ -76,6 +76,14 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       setLoading(false);
       if (signUpError) return setError(signUpError.message);
 
+      // Supabase renvoie un "faux succès" (sans erreur, sans email envoyé)
+      // quand l'email existe déjà et est confirmé. Le seul signal fiable
+      // est un tableau d'identités vide.
+      if (data.user && data.user.identities && data.user.identities.length === 0) {
+        setError("Un compte existe déjà avec cet email. Connecte-toi plutôt, ou réinitialise ton mot de passe si tu l'as oublié.");
+        return;
+      }
+
       if (!data.session) {
         setMessage("Vérifie ta boîte mail pour confirmer ton compte et continuer.");
         return;

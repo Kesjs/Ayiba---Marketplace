@@ -15,6 +15,7 @@ export const CATEGORIES = [
   { id: "events", label: "Événementiel", icon: PartyPopper, color: "bg-rose-50 text-rose-600" },
 ];
 
+// statut : "actif" (visible et en vente) | "rupture" (stock à 0, visible mais non commandable) | "desactive" (masqué par le vendeur)
 export const MOCK_PRODUCTS = [
   // MODE
   {
@@ -28,6 +29,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v1",
     rating: 4.8,
     reviewCount: 24,
+    stock: 12,
+    statut: "actif",
   },
   {
     id: "m2",
@@ -40,6 +43,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v1",
     rating: 4.7,
     reviewCount: 15,
+    stock: 5,
+    statut: "actif",
   },
   {
     id: "m3",
@@ -52,6 +57,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v6",
     rating: 4.5,
     reviewCount: 8,
+    stock: 0,
+    statut: "rupture",
   },
   {
     id: "m4",
@@ -64,6 +71,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v6",
     rating: 4.9,
     reviewCount: 42,
+    stock: 20,
+    statut: "actif",
   },
 
   // TECH
@@ -78,6 +87,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v2",
     rating: 4.9,
     reviewCount: 12,
+    stock: 3,
+    statut: "actif",
   },
   {
     id: "t2",
@@ -90,6 +101,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v2",
     rating: 4.8,
     reviewCount: 35,
+    stock: 15,
+    statut: "actif",
   },
   {
     id: "t3",
@@ -102,6 +115,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v7",
     rating: 4.7,
     reviewCount: 19,
+    stock: 0,
+    statut: "rupture",
   },
   {
     id: "t4",
@@ -114,6 +129,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v7",
     rating: 4.6,
     reviewCount: 22,
+    stock: 8,
+    statut: "actif",
   },
 
   // ALIMENTATION
@@ -128,6 +145,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v3",
     rating: 4.7,
     reviewCount: 56,
+    stock: 25,
+    statut: "actif",
   },
   {
     id: "a2",
@@ -140,6 +159,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v8",
     rating: 4.9,
     reviewCount: 104,
+    stock: 10,
+    statut: "actif",
   },
   {
     id: "a3",
@@ -152,6 +173,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v3",
     rating: 4.8,
     reviewCount: 89,
+    stock: 6,
+    statut: "actif",
   },
   {
     id: "a4",
@@ -164,6 +187,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v8",
     rating: 4.6,
     reviewCount: 33,
+    stock: 18,
+    statut: "actif",
   },
 
   // MAISON
@@ -178,6 +203,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v4",
     rating: 4.6,
     reviewCount: 18,
+    stock: 4,
+    statut: "actif",
   },
   {
     id: "h2",
@@ -190,6 +217,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v4",
     rating: 4.5,
     reviewCount: 27,
+    stock: 30,
+    statut: "actif",
   },
 
   // BEAUTÉ
@@ -204,6 +233,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v5",
     rating: 4.9,
     reviewCount: 61,
+    stock: 22,
+    statut: "actif",
   },
   {
     id: "b2",
@@ -216,6 +247,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v5",
     rating: 4.7,
     reviewCount: 38,
+    stock: 0,
+    statut: "desactive",
   },
 
   // SERVICES
@@ -230,6 +263,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v9",
     rating: 4.4,
     reviewCount: 11,
+    stock: 99,
+    statut: "actif",
   },
   {
     id: "s2",
@@ -242,6 +277,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v9",
     rating: 4.8,
     reviewCount: 20,
+    stock: 99,
+    statut: "actif",
   },
 
   // BÉBÉ & ENFANT
@@ -256,6 +293,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v10",
     rating: 4.7,
     reviewCount: 14,
+    stock: 7,
+    statut: "actif",
   },
   {
     id: "e2",
@@ -268,6 +307,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v10",
     rating: 4.6,
     reviewCount: 9,
+    stock: 14,
+    statut: "actif",
   },
 
   // SPORT & LOISIRS
@@ -282,6 +323,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v11",
     rating: 4.7,
     reviewCount: 16,
+    stock: 5,
+    statut: "actif",
   },
   {
     id: "sp2",
@@ -294,6 +337,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v11",
     rating: 4.5,
     reviewCount: 12,
+    stock: 40,
+    statut: "actif",
   },
 
   // AUTO & MOTO
@@ -308,6 +353,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v12",
     rating: 4.3,
     reviewCount: 7,
+    stock: 12,
+    statut: "actif",
   },
   {
     id: "au2",
@@ -320,6 +367,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v12",
     rating: 4.6,
     reviewCount: 21,
+    stock: 9,
+    statut: "actif",
   },
 
   // IMMOBILIER
@@ -334,6 +383,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v13",
     rating: 4.5,
     reviewCount: 6,
+    stock: 1,
+    statut: "actif",
   },
   {
     id: "im2",
@@ -346,6 +397,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v13",
     rating: 4.4,
     reviewCount: 4,
+    stock: 1,
+    statut: "actif",
   },
 
   // EMPLOI
@@ -360,6 +413,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v14",
     rating: 4.2,
     reviewCount: 3,
+    stock: 99,
+    statut: "actif",
   },
   {
     id: "jo2",
@@ -372,6 +427,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v14",
     rating: 4.3,
     reviewCount: 5,
+    stock: 99,
+    statut: "actif",
   },
 
   // ÉVÉNEMENTIEL
@@ -386,6 +443,8 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v15",
     rating: 4.6,
     reviewCount: 10,
+    stock: 99,
+    statut: "actif",
   },
   {
     id: "ev2",
@@ -398,143 +457,25 @@ export const MOCK_PRODUCTS = [
     vendeur_id: "v15",
     rating: 4.7,
     reviewCount: 17,
+    stock: 6,
+    statut: "actif",
   },
 ];
 
 export const MOCK_STORES = [
-  {
-    id: "v1",
-    nom: "Warda Mode",
-    logo: "https://images.unsplash.com/photo-1541101767792-f9b2b1c4f127?w=200&h=200&fit=crop",
-    categories: ["Mode", "Accessoires"],
-    rating: 4.9,
-    isVerified: true,
-    productCount: 42
-  },
-  {
-    id: "v2",
-    nom: "Tech Ben",
-    logo: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&h=200&fit=crop",
-    categories: ["Électronique", "Tech"],
-    rating: 4.8,
-    isVerified: true,
-    productCount: 128
-  },
-  {
-    id: "v3",
-    nom: "Saveurs du Pays",
-    logo: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=200&fit=crop",
-    categories: ["Alimentation", "Repas"],
-    rating: 4.7,
-    isVerified: false,
-    productCount: 15
-  },
-  {
-    id: "v4",
-    nom: "Maison & Co",
-    logo: "https://images.unsplash.com/photo-1513519247388-4e2a60580627?w=200&h=200&fit=crop",
-    categories: ["Déco", "Meubles"],
-    rating: 4.6,
-    isVerified: true,
-    productCount: 64
-  },
-  {
-    id: "v5",
-    nom: "Beauté Bio",
-    logo: "https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?w=200&h=200&fit=crop",
-    categories: ["Beauté", "Soins"],
-    rating: 4.9,
-    isVerified: true,
-    productCount: 31
-  },
-  {
-    id: "v6",
-    nom: "Le Comptoir Chic",
-    logo: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=200&h=200&fit=crop",
-    categories: ["Mode", "Artisanat"],
-    rating: 4.7,
-    isVerified: true,
-    productCount: 26
-  },
-  {
-    id: "v7",
-    nom: "Digital Store BJ",
-    logo: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&h=200&fit=crop",
-    categories: ["Électronique", "Informatique"],
-    rating: 4.6,
-    isVerified: true,
-    productCount: 53
-  },
-  {
-    id: "v8",
-    nom: "Marché Frais",
-    logo: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop",
-    categories: ["Alimentation", "Produits frais"],
-    rating: 4.8,
-    isVerified: false,
-    productCount: 37
-  },
-  {
-    id: "v9",
-    nom: "Artisans Pro",
-    logo: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=200&h=200&fit=crop",
-    categories: ["Services", "Réparation"],
-    rating: 4.5,
-    isVerified: true,
-    productCount: 19
-  },
-  {
-    id: "v10",
-    nom: "Bébé Chéri",
-    logo: "https://images.unsplash.com/photo-1522771930-78848d9293e8?w=200&h=200&fit=crop",
-    categories: ["Bébé & Enfant"],
-    rating: 4.7,
-    isVerified: true,
-    productCount: 22
-  },
-  {
-    id: "v11",
-    nom: "Sport Passion",
-    logo: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&h=200&fit=crop",
-    categories: ["Sport & Loisirs"],
-    rating: 4.6,
-    isVerified: true,
-    productCount: 34
-  },
-  {
-    id: "v12",
-    nom: "Auto Plus Bénin",
-    logo: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=200&fit=crop",
-    categories: ["Auto & Moto"],
-    rating: 4.4,
-    isVerified: true,
-    productCount: 41
-  },
-  {
-    id: "v13",
-    nom: "ImmoBénin",
-    logo: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&h=200&fit=crop",
-    categories: ["Immobilier"],
-    rating: 4.5,
-    isVerified: true,
-    productCount: 12
-  },
-  {
-    id: "v14",
-    nom: "JobBénin",
-    logo: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=200&h=200&fit=crop",
-    categories: ["Emploi"],
-    rating: 4.3,
-    isVerified: false,
-    productCount: 8
-  },
-  {
-    id: "v15",
-    nom: "Events Cotonou",
-    logo: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=200&h=200&fit=crop",
-    categories: ["Événementiel"],
-    rating: 4.6,
-    isVerified: true,
-    productCount: 15
-  },
+  { id: "v1", nom: "Warda Mode", logo: "https://images.unsplash.com/photo-1541101767792-f9b2b1c4f127?w=200&h=200&fit=crop", categories: ["Mode", "Accessoires"], rating: 4.9, isVerified: true, productCount: 42 },
+  { id: "v2", nom: "Tech Ben", logo: "https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=200&h=200&fit=crop", categories: ["Électronique", "Tech"], rating: 4.8, isVerified: true, productCount: 128 },
+  { id: "v3", nom: "Saveurs du Pays", logo: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=200&h=200&fit=crop", categories: ["Alimentation", "Repas"], rating: 4.7, isVerified: false, productCount: 15 },
+  { id: "v4", nom: "Maison & Co", logo: "https://images.unsplash.com/photo-1513519247388-4e2a60580627?w=200&h=200&fit=crop", categories: ["Déco", "Meubles"], rating: 4.6, isVerified: true, productCount: 64 },
+  { id: "v5", nom: "Beauté Bio", logo: "https://images.unsplash.com/photo-1596462502278-27bfdc4033c8?w=200&h=200&fit=crop", categories: ["Beauté", "Soins"], rating: 4.9, isVerified: true, productCount: 31 },
+  { id: "v6", nom: "Le Comptoir Chic", logo: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=200&h=200&fit=crop", categories: ["Mode", "Artisanat"], rating: 4.7, isVerified: true, productCount: 26 },
+  { id: "v7", nom: "Digital Store BJ", logo: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&h=200&fit=crop", categories: ["Électronique", "Informatique"], rating: 4.6, isVerified: true, productCount: 53 },
+  { id: "v8", nom: "Marché Frais", logo: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&h=200&fit=crop", categories: ["Alimentation", "Produits frais"], rating: 4.8, isVerified: false, productCount: 37 },
+  { id: "v9", nom: "Artisans Pro", logo: "https://images.unsplash.com/photo-1581094794329-c8112a89af12?w=200&h=200&fit=crop", categories: ["Services", "Réparation"], rating: 4.5, isVerified: true, productCount: 19 },
+  { id: "v10", nom: "Bébé Chéri", logo: "https://images.unsplash.com/photo-1522771930-78848d9293e8?w=200&h=200&fit=crop", categories: ["Bébé & Enfant"], rating: 4.7, isVerified: true, productCount: 22 },
+  { id: "v11", nom: "Sport Passion", logo: "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=200&h=200&fit=crop", categories: ["Sport & Loisirs"], rating: 4.6, isVerified: true, productCount: 34 },
+  { id: "v12", nom: "Auto Plus Bénin", logo: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=200&h=200&fit=crop", categories: ["Auto & Moto"], rating: 4.4, isVerified: true, productCount: 41 },
+  { id: "v13", nom: "ImmoBénin", logo: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=200&h=200&fit=crop", categories: ["Immobilier"], rating: 4.5, isVerified: true, productCount: 12 },
+  { id: "v14", nom: "JobBénin", logo: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=200&h=200&fit=crop", categories: ["Emploi"], rating: 4.3, isVerified: false, productCount: 8 },
+  { id: "v15", nom: "Events Cotonou", logo: "https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=200&h=200&fit=crop", categories: ["Événementiel"], rating: 4.6, isVerified: true, productCount: 15 },
 ];

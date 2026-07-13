@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -41,15 +41,28 @@ const translateError = (err: any): string => {
   if (lowerMsg.includes("invalid email")) {
     return "Adresse email invalide.";
   }
+  if (lowerMsg.includes("fetch") || lowerMsg.includes("network") || lowerMsg.includes("failed to fetch")) {
+    return "Problème de connexion. Vérifie ta connexion internet et réessaie.";
+  }
 
   return message || "Une erreur est survenue. Veuillez réessayer.";
+};
+
+// Règles de robustesse du mot de passe à l'inscription
+const validatePasswordStrength = (value: string): { valid: boolean; message: string | null } => {
+  if (value.length < 8) return { valid: false, message: "Le mot de passe doit contenir au moins 8 caractères." };
+  if (!/[A-Z]/.test(value)) return { valid: false, message: "Le mot de passe doit contenir au moins une majuscule." };
+  if (!/[0-9]/.test(value)) return { valid: false, message: "Le mot de passe doit contenir au moins un chiffre." };
+  return { valid: true, message: null };
 };
 
 const RESEND_COOLDOWN = 45;
 
 export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const router = useRouter();
-  const supabase = createClient();
+  // Client Supabase mémoïsé : une seule instance tant que le composant vit,
+  // au lieu d'en recréer une à chaque re-render.
+  const supabase = useMemo(() => createClient(), []);
 
   const [mode, setMode] = useState<Mode>("connexion");
   const [email, setEmail] = useState("");
@@ -85,9 +98,8 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
 
   const getPasswordStrength = (value: string) => {
     if (value.length === 0) return null;
-    if (value.length < 6) return { label: "Trop court", color: "bg-red-400", width: "25%" };
-    if (value.length < 8) return { label: "Faible", color: "bg-amber-400", width: "50%" };
-    if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) return { label: "Correct", color: "bg-amber-400", width: "70%" };
+    if (value.length < 8) return { label: "Trop court", color: "bg-red-400", width: "25%" };
+    if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) return { label: "Ajoute une majuscule et un chiffre", color: "bg-amber-400", width: "60%" };
     return { label: "Solide", color: "bg-teal-500", width: "100%" };
   };
 
@@ -96,75 +108,92 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const switchMode = (m: Mode) => {
     setMode(m);
     setError(null);
+    // On efface les mots de passe en changeant de contexte, pour éviter
+    // toute confusion (ex: taper un mdp en inscription puis basculer en connexion).
+    setPassword("");
     setConfirmPassword("");
   };
 
   const handleSubmit = async () => {
     setError(null);
 
-    if (mode === "mot-de-passe-oublie") {
+    try {
+      if (mode === "mot-de-passe-oublie") {
+        if (!validateEmail(email)) return setError("Adresse email invalide");
+        setLoading(true);
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        });
+        setLoading(false);
+        if (resetError) return setError(translateError(resetError));
+
+        setPendingResetEmail(email);
+        setResetCooldown(RESEND_COOLDOWN);
+        return;
+      }
+
       if (!validateEmail(email)) return setError("Adresse email invalide");
+
+      if (mode === "inscription") {
+        const { valid, message } = validatePasswordStrength(password);
+        if (!valid) return setError(message!);
+        if (password !== confirmPassword) return setError("Les deux mots de passe ne correspondent pas");
+      } else {
+        if (password.length < 6) return setError("Le mot de passe doit contenir au moins 6 caractères");
+      }
+
       setLoading(true);
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      });
+
+      if (mode === "inscription") {
+        const { data, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            // Le rôle choisi ici est repris par le trigger Postgres
+            // on_auth_user_created pour créer la ligne correspondante
+            // dans public.users (client / vendeur / livreur).
+            data: { role: intendedRole ?? "client" },
+          },
+        });
+        setLoading(false);
+
+        if (signUpError) {
+          setError(translateError(signUpError));
+          return;
+        }
+
+        // Supabase renvoie un "faux succès" (sans erreur, sans email envoyé)
+        // quand l'email existe déjà et est confirmé. Le seul signal fiable
+        // est un tableau d'identités vide.
+        if (data.user && data.user.identities && data.user.identities.length === 0) {
+          setError("Un compte existe déjà avec cet email. Connecte-toi plutôt.");
+          return;
+        }
+
+        if (!data.session) {
+          setPendingConfirmationEmail(email);
+          setResendCooldown(RESEND_COOLDOWN);
+          return;
+        }
+
+        onClose();
+        router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue");
+      } else {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        setLoading(false);
+        if (signInError) {
+          setError(translateError(signInError));
+          return;
+        }
+
+        onClose();
+        router.push(intendedRole ? `/${intendedRole}/dashboard` : "/catalogue");
+        router.refresh();
+      }
+    } catch (err) {
       setLoading(false);
-      if (resetError) return setError(translateError(resetError));
-
-      setPendingResetEmail(email);
-      setResetCooldown(RESEND_COOLDOWN);
-      return;
-    }
-
-    if (!validateEmail(email)) return setError("Adresse email invalide");
-    if (password.length < 6) return setError("Le mot de passe doit contenir au moins 6 caractères");
-
-    if (mode === "inscription" && password !== confirmPassword) {
-      return setError("Les deux mots de passe ne correspondent pas");
-    }
-
-    setLoading(true);
-
-    if (mode === "inscription") {
-      const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: { role: intendedRole ?? "client" },
-        },
-      });
-      setLoading(false);
-
-      if (signUpError) {
-        setError(translateError(signUpError));
-        return;
-      }
-
-      if (data.user && data.user.identities && data.user.identities.length === 0) {
-        setError("Un compte existe déjà avec cet email. Connecte-toi plutôt.");
-        return;
-      }
-
-      if (!data.session) {
-        setPendingConfirmationEmail(email);
-        setResendCooldown(RESEND_COOLDOWN);
-        return;
-      }
-
-      onClose();
-      router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue");
-    } else {
-      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      setLoading(false);
-      if (signInError) {
-        setError(translateError(signInError));
-        return;
-      }
-
-      onClose();
-      router.push(intendedRole ? `/${intendedRole}/dashboard` : "/catalogue");
-      router.refresh();
+      setError(translateError(err));
     }
   };
 
@@ -172,32 +201,42 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     if (!pendingConfirmationEmail || resendCooldown > 0) return;
     setResending(true);
     setError(null);
-    const { error: resendError } = await supabase.auth.resend({
-      type: "signup",
-      email: pendingConfirmationEmail,
-      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-    });
-    setResending(false);
-    if (resendError) {
-      setError(translateError(resendError));
-      return;
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: pendingConfirmationEmail,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (resendError) {
+        setError(translateError(resendError));
+        return;
+      }
+      setResendCooldown(RESEND_COOLDOWN);
+    } catch (err) {
+      setError(translateError(err));
+    } finally {
+      setResending(false);
     }
-    setResendCooldown(RESEND_COOLDOWN);
   };
 
   const handleResendReset = async () => {
     if (!pendingResetEmail || resetCooldown > 0) return;
     setResettingResend(true);
     setError(null);
-    const { error: resendError } = await supabase.auth.resetPasswordForEmail(pendingResetEmail, {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    });
-    setResettingResend(false);
-    if (resendError) {
-      setError(translateError(resendError));
-      return;
+    try {
+      const { error: resendError } = await supabase.auth.resetPasswordForEmail(pendingResetEmail, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      });
+      if (resendError) {
+        setError(translateError(resendError));
+        return;
+      }
+      setResetCooldown(RESEND_COOLDOWN);
+    } catch (err) {
+      setError(translateError(err));
+    } finally {
+      setResettingResend(false);
     }
-    setResetCooldown(RESEND_COOLDOWN);
   };
 
   const handleEditEmail = () => {
@@ -217,12 +256,33 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const handleGoogleAuth = async () => {
     setError(null);
     setGoogleLoading(true);
-    const { error: oauthError } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
-    });
-    setGoogleLoading(false);
-    if (oauthError) setError(translateError(oauthError));
+    try {
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (oauthError) setError(translateError(oauthError));
+      // Pas de setGoogleLoading(false) ici en cas de succès : la page va
+      // rediriger vers Google, donc le state du composant n'a plus d'importance.
+    } catch (err) {
+      setError(translateError(err));
+      setGoogleLoading(false);
+    }
+  };
+
+  // Réinitialise complètement le modal à la fermeture, pour qu'une réouverture
+  // reparte toujours d'un état propre (pas d'ancien email/erreur qui traîne).
+  const handleClose = () => {
+    setMode("connexion");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setError(null);
+    setPendingConfirmationEmail(null);
+    setPendingResetEmail(null);
+    setResendCooldown(0);
+    setResetCooldown(0);
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -237,9 +297,9 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     (mode === "inscription" && !confirmPassword);
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={handleClose}>
       <div className="bg-white rounded-lg p-6 max-w-sm w-full relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+        <button onClick={handleClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
           <X size={18} />
         </button>
 
@@ -320,7 +380,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
                   <ArrowLeft size={14} /> Retour
                 </button>
                 <h2 className="text-[18px] font-medium text-gray-900 mb-1">Mot de passe oublié</h2>
-                <p className="text-[14px] text-gray-600 mb-4">On t’envoie un lien pour le réinitialiser.</p>
+                <p className="text-[14px] text-gray-600 mb-4">On t'envoie un lien pour le réinitialiser.</p>
               </>
             ) : (
               <>

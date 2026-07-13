@@ -10,6 +10,16 @@ interface AuthModalProps {
   intendedRole?: "vendeur" | "livreur" | null;
 }
 
+const DEMO_ROLE_KEY = "ayiba-demo-role";
+const DEMO_NAME_KEY = "ayiba-demo-name";
+
+const DEMO_NAMES: Record<string, string> = {
+  admin: "Admin Ayiba",
+  vendeur: "Aminata",
+  livreur: "Ken Erlich",
+  client: "Client Démo",
+};
+
 export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const router = useRouter();
   const [mode, setMode] = useState<"connexion" | "inscription">("connexion");
@@ -77,6 +87,12 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     setError(null);
     setLoading(true);
 
+    // Mode démo — stocke le rôle localement pour que useUser() le lise
+    if (typeof window !== "undefined") {
+      localStorage.setItem(DEMO_ROLE_KEY, role);
+      localStorage.setItem(DEMO_NAME_KEY, DEMO_NAMES[role] || "Utilisateur Démo");
+    }
+
     setTimeout(() => {
       onClose();
       const redirectPaths: Record<string, string> = {
@@ -86,8 +102,9 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         client: "/catalogue",
       };
       router.push(redirectPaths[role]);
-      setLoading(false);
-    }, 1000);
+      // On force un refresh léger pour que useUser() relise le localStorage au montage
+      setTimeout(() => window.location.reload(), 50);
+    }, 600);
   };
 
   if (!isOpen) return null;
@@ -238,16 +255,15 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         </button>
 
         <p className="text-[11px] text-gray-400 mt-3 text-center leading-relaxed">
-  En continuant, tu acceptes nos{" "}
-  <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">
-    conditions d'utilisation
-  </a>{" "}
-  et notre{" "}
-  <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">
-    politique de confidentialité
-  </a>.
-</p>
-
+          En continuant, tu acceptes nos{" "}
+          <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">
+            conditions d'utilisation
+          </a>{" "}
+          et notre{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">
+            politique de confidentialité
+          </a>.
+        </p>
 
         {/* Section Démo */}
         <div className="mt-8 pt-6 border-t border-gray-100">

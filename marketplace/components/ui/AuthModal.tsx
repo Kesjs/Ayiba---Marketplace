@@ -13,8 +13,14 @@ interface AuthModalProps {
 
 type Mode = "connexion" | "inscription" | "mot-de-passe-oublie";
 
-// Traduction des erreurs Supabase en français
-const translateError = (message: string): string => {
+// Traduction robuste des erreurs Supabase
+const translateError = (err: any): string => {
+  if (!err) return "Une erreur est survenue. Veuillez réessayer.";
+
+  const message = typeof err === "string" 
+    ? err 
+    : err.message || JSON.stringify(err);
+
   const lowerMsg = message.toLowerCase();
 
   if (lowerMsg.includes("user already registered") || lowerMsg.includes("already exists")) {
@@ -26,10 +32,8 @@ const translateError = (message: string): string => {
   if (lowerMsg.includes("email not confirmed")) {
     return "Tu dois confirmer ton adresse email avant de te connecter.";
   }
-  if (lowerMsg.includes("password")) {
-    if (lowerMsg.includes("too short") || lowerMsg.includes("6 characters")) {
-      return "Le mot de passe doit contenir au moins 6 caractères.";
-    }
+  if (lowerMsg.includes("password") && (lowerMsg.includes("too short") || lowerMsg.includes("6"))) {
+    return "Le mot de passe doit contenir au moins 6 caractères.";
   }
   if (lowerMsg.includes("rate limit") || lowerMsg.includes("too many requests")) {
     return "Trop de tentatives. Veuillez réessayer dans quelques instants.";
@@ -38,10 +42,7 @@ const translateError = (message: string): string => {
     return "Adresse email invalide.";
   }
 
-  // Retour du message original si non reconnu
-  return message
-    .replace("User already registered", "Un compte existe déjà avec cet email")
-    .replace("Invalid email", "Adresse email invalide");
+  return message || "Une erreur est survenue. Veuillez réessayer.";
 };
 
 const RESEND_COOLDOWN = 45;
@@ -108,7 +109,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         redirectTo: `${window.location.origin}/auth/callback`,
       });
       setLoading(false);
-      if (resetError) return setError(translateError(resetError.message));
+      if (resetError) return setError(translateError(resetError));
 
       setPendingResetEmail(email);
       setResetCooldown(RESEND_COOLDOWN);
@@ -136,7 +137,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       setLoading(false);
 
       if (signUpError) {
-        setError(translateError(signUpError.message));
+        setError(translateError(signUpError));
         return;
       }
 
@@ -157,7 +158,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       setLoading(false);
       if (signInError) {
-        setError(translateError(signInError.message));
+        setError(translateError(signInError));
         return;
       }
 
@@ -178,7 +179,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     });
     setResending(false);
     if (resendError) {
-      setError(translateError(resendError.message));
+      setError(translateError(resendError));
       return;
     }
     setResendCooldown(RESEND_COOLDOWN);
@@ -193,7 +194,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     });
     setResettingResend(false);
     if (resendError) {
-      setError(translateError(resendError.message));
+      setError(translateError(resendError));
       return;
     }
     setResetCooldown(RESEND_COOLDOWN);
@@ -221,7 +222,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
     setGoogleLoading(false);
-    if (oauthError) setError(translateError(oauthError.message));
+    if (oauthError) setError(translateError(oauthError));
   };
 
   if (!isOpen) return null;
@@ -243,18 +244,14 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         </button>
 
         {pendingConfirmationEmail ? (
-          // ÉCRAN VÉRIFICATION EMAIL (INSCRIPTION)
+          // Vérifie ta boîte mail - Inscription
           <div className="text-center pt-4">
             <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-5">
               <Mail size={28} className="text-teal-600" />
             </div>
             <h2 className="text-[18px] font-bold text-gray-900 mb-2">Vérifie ta boîte mail</h2>
-            <p className="text-[14px] text-gray-600 leading-relaxed mb-1">
-              Nous avons envoyé un lien de confirmation à
-            </p>
-            <p className="text-[14px] font-bold text-gray-900 mb-6 break-all">
-              {pendingConfirmationEmail}
-            </p>
+            <p className="text-[14px] text-gray-600 leading-relaxed mb-1">Nous avons envoyé un lien de confirmation à</p>
+            <p className="text-[14px] font-bold text-gray-900 mb-6 break-all">{pendingConfirmationEmail}</p>
 
             {mailProviderConfirmation && (
               <a href={mailProviderConfirmation.url} target="_blank" rel="noopener noreferrer"
@@ -281,18 +278,14 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             </button>
           </div>
         ) : pendingResetEmail ? (
-          // ÉCRAN MOT DE PASSE OUBLIÉ
+          // Vérifie ta boîte mail - Réinitialisation
           <div className="text-center pt-4">
             <div className="w-16 h-16 bg-coral-50 rounded-full flex items-center justify-center mx-auto mb-5">
               <KeyRound size={28} className="text-coral-500" />
             </div>
             <h2 className="text-[18px] font-bold text-gray-900 mb-2">Vérifie ta boîte mail</h2>
-            <p className="text-[14px] text-gray-600 leading-relaxed mb-1">
-              Nous avons envoyé un lien de réinitialisation à
-            </p>
-            <p className="text-[14px] font-bold text-gray-900 mb-6 break-all">
-              {pendingResetEmail}
-            </p>
+            <p className="text-[14px] text-gray-600 leading-relaxed mb-1">Nous avons envoyé un lien de réinitialisation à</p>
+            <p className="text-[14px] font-bold text-gray-900 mb-6 break-all">{pendingResetEmail}</p>
 
             {mailProviderReset && (
               <a href={mailProviderReset.url} target="_blank" rel="noopener noreferrer"
@@ -319,7 +312,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             </button>
           </div>
         ) : (
-          // FORMULAIRE PRINCIPAL
+          // Formulaire principal
           <>
             {mode === "mot-de-passe-oublie" ? (
               <>
@@ -364,16 +357,17 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </>
             )}
 
-            {/* Champs du formulaire */}
+            {/* Email */}
             <div className="mb-3">
               <div className={`flex items-center border rounded-lg px-3 transition-colors ${isEmailValid ? "border-teal-300" : "border-gray-200 focus-within:border-coral-400"}`}>
                 <Mail size={16} className="text-gray-400 shrink-0" />
-                <input type="email" placeholder="Adresse email" value={email} onChange={(e) => setEmail(e.target.value)}
-                  className="flex-1 h-11 text-sm px-2 focus:outline-none" />
+                <input type="email" placeholder="Adresse email" value={email}
+                  onChange={(e) => setEmail(e.target.value)} className="flex-1 h-11 text-sm px-2 focus:outline-none" />
                 {isEmailValid && <Check size={16} className="text-teal-500 shrink-0" />}
               </div>
             </div>
 
+            {/* Mot de passe */}
             {mode !== "mot-de-passe-oublie" && (
               <div className="mb-1">
                 <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
@@ -390,12 +384,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             {passwordStrength && (
               <div className="mb-3 mt-1.5">
                 <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full ${passwordStrength.color} transition-all duration-300`} style={{ width: passwordStrength.width }} />
+                  <div className={`h-full ${passwordStrength.color}`} style={{ width: passwordStrength.width }} />
                 </div>
                 <span className="text-[11px] text-gray-400 mt-1 block">{passwordStrength.label}</span>
               </div>
             )}
 
+            {/* Confirmation mot de passe */}
             {mode === "inscription" && (
               <div className="mb-1">
                 <div className={`flex items-center border rounded-lg px-3 transition-colors ${
@@ -418,6 +413,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
+            {/* Affichage des erreurs */}
             {error && (
               <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mt-2 mb-2">
                 <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
@@ -447,7 +443,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   );
 }
 
-// Fonction manquante dans le code original (ajoutée)
+// Fonction utilitaire pour les liens mail
 function getMailProviderLink(email: string): { name: string; url: string } | null {
   const domain = email.split("@")[1]?.toLowerCase();
   if (!domain) return null;

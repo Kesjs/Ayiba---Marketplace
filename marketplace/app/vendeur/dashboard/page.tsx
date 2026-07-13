@@ -15,6 +15,17 @@ import {
 import Link from "next/link";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 
+// Calcule un % de variation propre entre deux périodes.
+// Retourne null si pas assez de données pour que le % ait un sens.
+function calculerVariation(actuel: number, precedent: number): string | null {
+  if (precedent === 0) {
+    return actuel > 0 ? "Nouveau" : null;
+  }
+  const pct = ((actuel - precedent) / precedent) * 100;
+  const signe = pct >= 0 ? "+" : "";
+  return `${signe}${Math.round(pct)}%`;
+}
+
 export default function VendeurDashboardPage() {
   const router = useRouter();
 
@@ -24,16 +35,33 @@ export default function VendeurDashboardPage() {
     vendeur,
     stats,
     chiffreAffaires,
+    evolution,
     commandes,
     messages,
     refresh
   } = useVendeurDashboard();
 
+  const caChange = evolution
+    ? calculerVariation(Number(evolution.ca_periode_actuelle), Number(evolution.ca_periode_precedente))
+    : null;
+
+  const commandesChange = evolution
+    ? calculerVariation(Number(evolution.commandes_periode_actuelle), Number(evolution.commandes_periode_precedente))
+    : null;
+
+  const articlesChange = evolution
+    ? calculerVariation(Number(evolution.articles_actifs_actuel), Number(evolution.articles_actifs_precedent))
+    : null;
+
+  const articlesVendusChange = evolution
+    ? calculerVariation(Number(evolution.articles_vendus_periode_actuelle), Number(evolution.articles_vendus_periode_precedente))
+    : null;
+
   const statsCards = [
     {
       label: "Chiffre d'affaires",
       value: `${chiffreAffaires?.montant_total ?? 0} F`,
-      change: "+12%",
+      change: caChange,
       icon: TrendingUp,
       color: "text-teal-600",
       bg: "bg-teal-50"
@@ -41,7 +69,7 @@ export default function VendeurDashboardPage() {
     {
       label: "Commandes",
       value: stats?.nombre_commandes ?? 0,
-      change: "+8%",
+      change: commandesChange,
       icon: ShoppingBag,
       color: "text-coral-500",
       bg: "bg-coral-50"
@@ -49,7 +77,7 @@ export default function VendeurDashboardPage() {
     {
       label: "Articles actifs",
       value: stats?.nombre_articles ?? 0,
-      change: "-3%",
+      change: articlesChange,
       icon: Package,
       color: "text-amber-600",
       bg: "bg-amber-50"
@@ -57,7 +85,7 @@ export default function VendeurDashboardPage() {
     {
       label: "Articles vendus",
       value: stats?.articles_vendus ?? 0,
-      change: "+24%",
+      change: articlesVendusChange,
       icon: Star,
       color: "text-blue-600",
       bg: "bg-blue-50"
@@ -97,13 +125,15 @@ export default function VendeurDashboardPage() {
                   <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
                     <stat.icon size={24} />
                   </div>
-                  <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                    stat.change.startsWith('+') 
-                      ? 'bg-teal-50 text-teal-600' 
-                      : 'bg-red-50 text-red-600'
-                  }`}>
-                    {stat.change}
-                  </span>
+                  {stat.change && (
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      stat.change.startsWith('+') || stat.change === "Nouveau"
+                        ? 'bg-teal-50 text-teal-600' 
+                        : 'bg-red-50 text-red-600'
+                    }`}>
+                      {stat.change}
+                    </span>
+                  )}
                 </div>
 
                 <p className="text-sm font-medium text-gray-500 mb-1">{stat.label}</p>

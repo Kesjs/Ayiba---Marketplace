@@ -13,12 +13,35 @@ interface UserProfile {
   created_at: string
 }
 
+const DEMO_ROLE_KEY = 'ayiba-demo-role'
+const DEMO_NAME_KEY = 'ayiba-demo-name'
+
 export function useUser() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Mode démo — uniquement en développement, ignoré en production
+    if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
+      const demoRole = localStorage.getItem(DEMO_ROLE_KEY)
+      if (demoRole) {
+        const demoName = localStorage.getItem(DEMO_NAME_KEY) || 'Utilisateur Démo'
+        setProfile({
+          id: 'demo-user',
+          phone: '',
+          full_name: demoName,
+          avatar_url: null,
+          role: demoRole,
+          note_moyenne: 4.8,
+          nb_avis: 0,
+          created_at: new Date().toISOString(),
+        })
+        setLoading(false)
+        return
+      }
+    }
+
     const supabase = createClient()
 
     // Get initial session
@@ -63,5 +86,14 @@ export function useUser() {
     setLoading(false)
   }
 
-  return { user, profile, loading }
+  const exitDemoMode = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(DEMO_ROLE_KEY)
+      localStorage.removeItem(DEMO_NAME_KEY)
+    }
+    setProfile(null)
+    setUser(null)
+  }
+
+  return { user, profile, loading, exitDemoMode }
 }

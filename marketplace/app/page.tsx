@@ -139,11 +139,11 @@ export default function Home() {
     livreur: "/livreur/missions",
     admin: "/admin/dashboard",
   };
-  const shouldRedirectToDashboard = !userLoading && profile?.role && DASHBOARD_REDIRECTS[profile.role];
+  const shouldRedirectToDashboard = !userLoading && !!profile?.role && !!DASHBOARD_REDIRECTS[profile.role];
 
   useEffect(() => {
-    if (shouldRedirectToDashboard) {
-      router.replace(DASHBOARD_REDIRECTS[profile!.role]);
+    if (shouldRedirectToDashboard && profile) {
+      router.replace(DASHBOARD_REDIRECTS[profile.role]);
     }
   }, [shouldRedirectToDashboard, profile, router]);
 
@@ -210,7 +210,6 @@ export default function Home() {
   }
 
   return (
-
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
 

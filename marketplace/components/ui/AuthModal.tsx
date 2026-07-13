@@ -20,7 +20,6 @@ type Mode =
 
 const RESEND_COOLDOWN = 45;
 
-// Traduction des erreurs Supabase en messages utilisateur
 const translateError = (err: any): string => {
   if (!err) return "Une erreur est survenue. Veuillez réessayer.";
 
@@ -65,7 +64,6 @@ const validatePasswordStrength = (value: string): { valid: boolean; message: str
   return { valid: true, message: null };
 };
 
-// Le rôle ne pilote QUE le style — jamais l'affichage de fonctionnalités
 const getRoleConfig = (role: "vendeur" | "livreur" | null | undefined) => {
   if (role === "vendeur") {
     return {
@@ -125,20 +123,18 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null); // email en attente de vérif (inscription ou reset)
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
 
   const roleConfig = getRoleConfig(intendedRole);
 
-  // Cooldown du renvoi d'email
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = setInterval(() => setResendCooldown((s) => s - 1), 1000);
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
-  // Fermeture au Escape
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
@@ -146,10 +142,8 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
-  // Focus auto sur le premier champ utile à l'ouverture / au changement de mode
   useEffect(() => {
     if (!isOpen) return;
     const isVerificationStep = mode === "verification-inscription" || mode === "verification-reset";
@@ -337,15 +331,19 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       aria-modal="true"
     >
       <div
-        className="bg-white rounded-lg p-6 max-w-sm w-full relative max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl p-6 max-w-sm w-full relative max-h-[90vh] overflow-y-auto shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={handleClose}
           aria-label="Fermer"
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          className="absolute top-5 right-5 w-11 h-11 flex items-center justify-center 
+                     rounded-3xl text-gray-400 hover:text-gray-600 
+                     hover:bg-gray-100 active:bg-gray-200 
+                     transition-all duration-200 focus:outline-none 
+                     focus-visible:ring-2 focus-visible:ring-coral-500 focus-visible:ring-offset-2"
         >
-          <X size={18} />
+          <X size={21} strokeWidth={2.5} />
         </button>
 
         {isVerificationStep ? (
@@ -403,7 +401,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           </div>
         ) : (
           <>
-            {/* Header — toujours visible. Le rôle ne change que le style/texte, jamais les fonctionnalités visibles plus bas */}
             {roleConfig.roleTitle && intendedRole ? (
               <div
                 className={`flex items-center gap-4 p-4 rounded-lg mb-5 ${roleConfig.bgColor} border ${roleConfig.bgBorder}`}
@@ -438,7 +435,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </>
             )}
 
-            {/* Tabs + Google — toujours disponibles, peu importe le rôle */}
             {mode !== "mot-de-passe-oublie" && (
               <>
                 <div className="flex bg-gray-50 rounded-lg p-1 mb-5">
@@ -482,7 +478,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </>
             )}
 
-            {/* Email */}
             <div className="mb-3">
               <div
                 className={`flex items-center border rounded-lg px-3 transition-colors ${
@@ -503,7 +498,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             </div>
 
-            {/* Mot de passe */}
             {mode !== "mot-de-passe-oublie" && (
               <div className="mb-1">
                 <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
@@ -537,7 +531,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            {/* Confirmation mot de passe */}
             {mode === "inscription" && (
               <div className="mb-1">
                 <div
@@ -565,7 +558,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            {/* Mot de passe oublié — toujours accessible en mode connexion, peu importe le rôle */}
             {mode === "connexion" && (
               <div className="flex justify-end mt-2 mb-2">
                 <button onClick={() => switchMode("mot-de-passe-oublie")} className="text-[12px] text-coral-500">

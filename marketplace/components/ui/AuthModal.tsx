@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthModalProps {
@@ -71,12 +71,51 @@ const validatePasswordStrength = (value: string): { valid: boolean; message: str
   return { valid: true, message: null };
 };
 
+// Configuration du design selon le rôle
+const getRoleConfig = (role: "vendeur" | "livreur" | null) => {
+  if (role === "vendeur") {
+    return {
+      icon: Store,
+      iconColor: "text-coral-500",
+      bgColor: "bg-coral-50",
+      bgBorder: "border-coral-100",
+      title: "Bienvenue sur Ayiba",
+      subtitle: "Commencez à vendre en quelques minutes",
+      buttonColor: "bg-coral-400 hover:bg-coral-600",
+      buttonColorAfter: "bg-coral-500 hover:bg-coral-600",
+      accentColor: "text-coral-500",
+    };
+  } else if (role === "livreur") {
+    return {
+      icon: Bike,
+      iconColor: "text-teal-600",
+      bgColor: "bg-teal-50",
+      bgBorder: "border-teal-100",
+      title: "Rejoins notre équipe",
+      subtitle: "Gagnez de l'argent en livrant",
+      buttonColor: "bg-teal-500 hover:bg-teal-600",
+      buttonColorAfter: "bg-teal-600 hover:bg-teal-700",
+      accentColor: "text-teal-600",
+    };
+  }
+  // Default (connexion/inscription sans rôle)
+  return {
+    icon: null,
+    iconColor: "",
+    bgColor: "bg-gray-50",
+    bgBorder: "border-gray-100",
+    title: "Bienvenue sur Ayiba",
+    subtitle: "Heureux de te revoir !",
+    buttonColor: "bg-coral-400 hover:bg-coral-600",
+    buttonColorAfter: "bg-coral-400 hover:bg-coral-600",
+    accentColor: "text-coral-500",
+  };
+};
+
 const RESEND_COOLDOWN = 45;
 
 export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const router = useRouter();
-  // Client Supabase mémoïsé : une seule instance tant que le composant vit,
-  // au lieu d'en recréer une à chaque re-render.
   const supabase = useMemo(() => createClient(), []);
 
   const [mode, setMode] = useState<Mode>("connexion");
@@ -119,12 +158,11 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   };
 
   const passwordStrength = mode === "inscription" ? getPasswordStrength(password) : null;
+  const roleConfig = getRoleConfig(intendedRole || null);
 
   const switchMode = (m: Mode) => {
     setMode(m);
     setError(null);
-    // On efface les mots de passe en changeant de contexte, pour éviter
-    // toute confusion (ex: taper un mdp en inscription puis basculer en connexion).
     setPassword("");
     setConfirmPassword("");
   };
@@ -166,9 +204,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
-            // Le rôle choisi ici est repris par le trigger Postgres
-            // on_auth_user_created pour créer la ligne correspondante
-            // dans public.users (client / vendeur / livreur).
             data: { role: intendedRole ?? "client" },
           },
         });
@@ -182,9 +217,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           return;
         }
 
-        // Supabase renvoie un "faux succès" (sans erreur, sans email envoyé)
-        // quand l'email existe déjà et est confirmé. Le seul signal fiable
-        // est un tableau d'identités vide.
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           setError("Un compte existe déjà avec cet email. Connecte-toi plutôt.");
           return;
@@ -284,16 +316,12 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         options: { redirectTo: `${window.location.origin}/auth/callback` },
       });
       if (oauthError) setError(translateError(oauthError));
-      // Pas de setGoogleLoading(false) ici en cas de succès : la page va
-      // rediriger vers Google, donc le state du composant n'a plus d'importance.
     } catch (err) {
       setError(translateError(err));
       setGoogleLoading(false);
     }
   };
 
-  // Réinitialise complètement le modal à la fermeture, pour qu'une réouverture
-  // reparte toujours d'un état propre (pas d'ancien email/erreur qui traîne).
   const handleClose = () => {
     setMode("connexion");
     setEmail("");
@@ -396,6 +424,19 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         ) : (
           // Formulaire principal
           <>
+            {/* En-tête personnalisé selon le rôle */}
+            {intendedRole && mode === "inscription" && (
+              <div className={`flex items-center gap-4 p-4 rounded-lg mb-5 ${roleConfig.bgColor} border ${roleConfig.bgBorder}`}>
+                <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${roleConfig.bgColor}`}>
+                  {roleConfig.icon && <roleConfig.icon size={24} className={roleConfig.iconColor} />}
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-sm font-bold text-gray-900">{roleConfig.title}</h2>
+                  <p className="text-xs text-gray-600">{roleConfig.subtitle}</p>
+                </div>
+              </div>
+            )}
+
             {mode === "mot-de-passe-oublie" ? (
               <>
                 <button onClick={() => switchMode("connexion")} className="flex items-center gap-1 text-sm text-gray-500 mb-3">
@@ -406,36 +447,40 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </>
             ) : (
               <>
-                <h2 className="text-[18px] font-medium text-gray-900 mb-1">Bienvenue sur Ayiba</h2>
-                <p className="text-[14px] text-gray-600 mb-4">
-                  {mode === "connexion" ? "Heureux de te revoir !" : "Rejoins-nous en quelques secondes"}
-                </p>
+                {!intendedRole && (
+                  <>
+                    <h2 className="text-[18px] font-medium text-gray-900 mb-1">Bienvenue sur Ayiba</h2>
+                    <p className="text-[14px] text-gray-600 mb-4">
+                      {mode === "connexion" ? "Heureux de te revoir !" : "Rejoins-nous en quelques secondes"}
+                    </p>
 
-                <div className="flex bg-gray-50 rounded-lg p-1 mb-5">
-                  <button onClick={() => switchMode("connexion")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
-                    Se connecter
-                  </button>
-                  <button onClick={() => switchMode("inscription")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
-                    S'inscrire
-                  </button>
-                </div>
+                    <div className="flex bg-gray-50 rounded-lg p-1 mb-5">
+                      <button onClick={() => switchMode("connexion")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
+                        Se connecter
+                      </button>
+                      <button onClick={() => switchMode("inscription")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
+                        S'inscrire
+                      </button>
+                    </div>
 
-                <button onClick={handleGoogleAuth} disabled={googleLoading}
-                  className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors">
-                  <svg width="18" height="18" viewBox="0 0 18 18">
-                    <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"/>
-                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
-                    <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/>
-                    <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
-                  </svg>
-                  {googleLoading ? "Connexion..." : "Continuer avec Google"}
-                </button>
+                    <button onClick={handleGoogleAuth} disabled={googleLoading}
+                      className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors">
+                      <svg width="18" height="18" viewBox="0 0 18 18">
+                        <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"/>
+                        <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
+                        <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/>
+                        <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
+                      </svg>
+                      {googleLoading ? "Connexion..." : "Continuer avec Google"}
+                    </button>
 
-                <div className="flex items-center gap-3 my-4">
-                  <div className="flex-1 h-px bg-gray-100" />
-                  <span className="text-[11px] text-gray-400 uppercase tracking-wide">ou</span>
-                  <div className="flex-1 h-px bg-gray-100" />
-                </div>
+                    <div className="flex items-center gap-3 my-4">
+                      <div className="flex-1 h-px bg-gray-100" />
+                      <span className="text-[11px] text-gray-400 uppercase tracking-wide">ou</span>
+                      <div className="flex-1 h-px bg-gray-100" />
+                    </div>
+                  </>
+                )}
               </>
             )}
 
@@ -487,7 +532,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            {mode === "connexion" && (
+            {mode === "connexion" && !intendedRole && (
               <div className="flex justify-end mt-2 mb-2">
                 <button onClick={() => switchMode("mot-de-passe-oublie")} className="text-[12px] text-coral-500">
                   Mot de passe oublié ?
@@ -504,13 +549,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             )}
 
             <button onClick={handleSubmit} disabled={isSubmitDisabled}
-              className="w-full bg-coral-400 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed mt-3">
+              className={`w-full text-white rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-3 transition-colors ${roleConfig.buttonColor}`}>
               {loading ? "Chargement..." :
                 mode === "connexion" ? "Se connecter" :
                 mode === "inscription" ? "Créer mon compte" : "Envoyer le lien"}
             </button>
 
-            {mode !== "mot-de-passe-oublie" && (
+            {mode !== "mot-de-passe-oublie" && !intendedRole && (
               <p className="text-[11px] text-gray-400 mt-3 text-center leading-relaxed">
                 En continuant, vous acceptez nos{" "}
                 <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">conditions d'utilisation</a>{" "}

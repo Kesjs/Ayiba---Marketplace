@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useVendeurPaiements } from "@/hooks/useVendeurPaiements";
+import { useVendeurPaiements } from "../../hooks/useVendeurPaiements";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { Wallet, X, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";

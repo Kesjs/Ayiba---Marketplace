@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -11,28 +11,23 @@ interface AuthModalProps {
   intendedRole?: "vendeur" | "livreur" | null;
 }
 
-type Mode = "connexion" | "inscription" | "mot-de-passe-oublie";
+type Mode =
+  | "connexion"
+  | "inscription"
+  | "mot-de-passe-oublie"
+  | "verification-inscription"
+  | "verification-reset";
 
-// Traduction robuste des erreurs Supabase
+const RESEND_COOLDOWN = 45;
+
+// Traduction des erreurs Supabase en messages utilisateur
 const translateError = (err: any): string => {
-  // Log détaillé pour debugging
-  console.error("❌ Erreur brute reçue:", err);
-  console.error("Type:", typeof err);
-  if (typeof err === "object") {
-    console.error("Clés de l'objet:", Object.keys(err));
-    console.error("JSON stringify:", JSON.stringify(err, null, 2));
-  }
-
   if (!err) return "Une erreur est survenue. Veuillez réessayer.";
 
-  const message = typeof err === "string" 
-    ? err 
-    : err.message || err.msg || err.error_description || JSON.stringify(err);
+  const message =
+    typeof err === "string" ? err : err.message || err.msg || err.error_description || "";
 
-  console.log("📝 Message extrait:", message);
-
-  // Si le message n'est qu'un JSON vide, invalide ou une chaîne vide
-  if (!message || message === "{}" || message.trim() === "" || message === "null") {
+  if (!message || message.trim() === "") {
     return "Une erreur est survenue. Veuillez réessayer.";
   }
 
@@ -60,32 +55,9 @@ const translateError = (err: any): string => {
     return "Problème de connexion. Vérifie ta connexion internet et réessaie.";
   }
 
-  return message || "Une erreur est survenue. Veuillez réessayer.";
+  return "Une erreur est survenue. Veuillez réessayer.";
 };
 
-// 🔧 TEMPORAIRE — extrait le message brut pour affichage debug sur mobile. À SUPPRIMER avant prod.
-const extractRawError = (err: any): string => {
-  try {
-    if (!err) return "null/undefined";
-    if (typeof err === "string") return err;
-    return JSON.stringify(
-      {
-        message: err.message,
-        status: err.status,
-        code: err.code,
-        name: err.name,
-        details: err.details,
-        hint: err.hint,
-      },
-      null,
-      2
-    );
-  } catch {
-    return String(err);
-  }
-};
-
-// Règles de robustesse du mot de passe à l'inscription
 const validatePasswordStrength = (value: string): { valid: boolean; message: string | null } => {
   if (value.length < 8) return { valid: false, message: "Le mot de passe doit contenir au moins 8 caractères." };
   if (!/[A-Z]/.test(value)) return { valid: false, message: "Le mot de passe doit contenir au moins une majuscule." };
@@ -93,52 +65,56 @@ const validatePasswordStrength = (value: string): { valid: boolean; message: str
   return { valid: true, message: null };
 };
 
-// Configuration du design selon le rôle
-const getRoleConfig = (role: "vendeur" | "livreur" | null) => {
+// Le rôle ne pilote QUE le style — jamais l'affichage de fonctionnalités
+const getRoleConfig = (role: "vendeur" | "livreur" | null | undefined) => {
   if (role === "vendeur") {
     return {
       icon: Store,
       iconColor: "text-coral-500",
       bgColor: "bg-coral-50",
       bgBorder: "border-coral-100",
-      title: "Bienvenue sur Ayiba",
-      subtitle: "Commencez à vendre en quelques minutes",
+      roleTitle: "Bienvenue sur Ayiba",
+      roleSubtitle: "Commencez à vendre en quelques minutes",
       buttonColor: "bg-coral-400 hover:bg-coral-600",
-      buttonColorAfter: "bg-coral-500 hover:bg-coral-600",
-      accentColor: "text-coral-500",
     };
-  } else if (role === "livreur") {
+  }
+  if (role === "livreur") {
     return {
       icon: Bike,
       iconColor: "text-teal-600",
       bgColor: "bg-teal-50",
       bgBorder: "border-teal-100",
-      title: "Rejoins notre équipe",
-      subtitle: "Gagnez de l'argent en livrant",
+      roleTitle: "Rejoins notre équipe",
+      roleSubtitle: "Gagnez de l'argent en livrant",
       buttonColor: "bg-teal-500 hover:bg-teal-600",
-      buttonColorAfter: "bg-teal-600 hover:bg-teal-700",
-      accentColor: "text-teal-600",
     };
   }
-  // Default (connexion/inscription sans rôle)
   return {
     icon: null,
     iconColor: "",
     bgColor: "bg-gray-50",
     bgBorder: "border-gray-100",
-    title: "Bienvenue sur Ayiba",
-    subtitle: "Heureux de te revoir !",
+    roleTitle: null,
+    roleSubtitle: null,
     buttonColor: "bg-coral-400 hover:bg-coral-600",
-    buttonColorAfter: "bg-coral-400 hover:bg-coral-600",
-    accentColor: "text-coral-500",
   };
 };
 
-const RESEND_COOLDOWN = 45;
+function getMailProviderLink(email: string): { name: string; url: string } | null {
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain) return null;
+  if (domain.includes("gmail")) return { name: "Gmail", url: "https://mail.google.com" };
+  if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live")) {
+    return { name: "Outlook", url: "https://outlook.live.com/mail" };
+  }
+  if (domain.includes("yahoo")) return { name: "Yahoo Mail", url: "https://mail.yahoo.com" };
+  return null;
+}
 
 export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   const [mode, setMode] = useState<Mode>("connexion");
   const [email, setEmail] = useState("");
@@ -146,29 +122,42 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [debugError, setDebugError] = useState<string | null>(null); // 🔧 TEMPORAIRE — À SUPPRIMER avant prod
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
 
-  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState<string | null>(null);
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null); // email en attente de vérif (inscription ou reset)
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
 
-  const [pendingResetEmail, setPendingResetEmail] = useState<string | null>(null);
-  const [resetCooldown, setResetCooldown] = useState(0);
-  const [resettingResend, setResettingResend] = useState(false);
+  const roleConfig = getRoleConfig(intendedRole);
 
+  // Cooldown du renvoi d'email
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const timer = setInterval(() => setResendCooldown((s) => s - 1), 1000);
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  // Fermeture au Escape
   useEffect(() => {
-    if (resetCooldown <= 0) return;
-    const timer = setInterval(() => setResetCooldown((s) => s - 1), 1000);
-    return () => clearInterval(timer);
-  }, [resetCooldown]);
+    if (!isOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  // Focus auto sur le premier champ utile à l'ouverture / au changement de mode
+  useEffect(() => {
+    if (!isOpen) return;
+    const isVerificationStep = mode === "verification-inscription" || mode === "verification-reset";
+    if (!isVerificationStep) {
+      const t = setTimeout(() => emailInputRef.current?.focus(), 50);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen, mode]);
 
   const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   const isEmailValid = email.length > 0 && validateEmail(email);
@@ -176,24 +165,26 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const getPasswordStrength = (value: string) => {
     if (value.length === 0) return null;
     if (value.length < 8) return { label: "Trop court", color: "bg-red-400", width: "25%" };
-    if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) return { label: "Ajoute une majuscule et un chiffre", color: "bg-amber-400", width: "60%" };
+    if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) {
+      return { label: "Ajoute une majuscule et un chiffre", color: "bg-amber-400", width: "60%" };
+    }
     return { label: "Solide", color: "bg-teal-500", width: "100%" };
   };
-
   const passwordStrength = mode === "inscription" ? getPasswordStrength(password) : null;
-  const roleConfig = getRoleConfig(intendedRole || null);
 
-  const switchMode = (m: Mode) => {
-    setMode(m);
+  const resetFormFields = () => {
     setError(null);
-    setDebugError(null); // 🔧 TEMPORAIRE
     setPassword("");
     setConfirmPassword("");
   };
 
+  const switchMode = (m: Mode) => {
+    setMode(m);
+    resetFormFields();
+  };
+
   const handleSubmit = async () => {
     setError(null);
-    setDebugError(null); // 🔧 TEMPORAIRE
 
     try {
       if (mode === "mot-de-passe-oublie") {
@@ -203,14 +194,11 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           redirectTo: `${window.location.origin}/auth/callback`,
         });
         setLoading(false);
-        if (resetError) {
-          setError(translateError(resetError));
-          setDebugError(extractRawError(resetError)); // 🔧 TEMPORAIRE
-          return;
-        }
+        if (resetError) return setError(translateError(resetError));
 
-        setPendingResetEmail(email);
-        setResetCooldown(RESEND_COOLDOWN);
+        setVerifiedEmail(email);
+        setMode("verification-reset");
+        setResendCooldown(RESEND_COOLDOWN);
         return;
       }
 
@@ -227,7 +215,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       setLoading(true);
 
       if (mode === "inscription") {
-        console.log("📤 Envoi de la demande d'inscription pour:", email);
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -236,16 +223,10 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             data: { role: intendedRole ?? "client" },
           },
         });
-        
-        console.log("📥 Réponse signUp:", { data, error: signUpError });
+
         setLoading(false);
 
-        if (signUpError) {
-          console.error("❌ Erreur SignUp:", signUpError);
-          setError(translateError(signUpError));
-          setDebugError(extractRawError(signUpError)); // 🔧 TEMPORAIRE
-          return;
-        }
+        if (signUpError) return setError(translateError(signUpError));
 
         if (data.user && data.user.identities && data.user.identities.length === 0) {
           setError("Un compte existe déjà avec cet email. Connecte-toi plutôt.");
@@ -253,103 +234,63 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         }
 
         if (!data.session) {
-          console.log("✅ Email de confirmation envoyé");
-          setPendingConfirmationEmail(email);
+          setVerifiedEmail(email);
+          setMode("verification-inscription");
           setResendCooldown(RESEND_COOLDOWN);
           return;
         }
 
-        console.log("✅ Inscription réussie, redirection...");
         onClose();
         router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue");
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(false);
-        if (signInError) {
-          setError(translateError(signInError));
-          setDebugError(extractRawError(signInError)); // 🔧 TEMPORAIRE
-          return;
-        }
+        if (signInError) return setError(translateError(signInError));
 
         onClose();
         router.push(intendedRole ? `/${intendedRole}/dashboard` : "/catalogue");
         router.refresh();
       }
     } catch (err) {
-      console.error("❌ Erreur catch:", err);
       setLoading(false);
       setError(translateError(err));
-      setDebugError(extractRawError(err)); // 🔧 TEMPORAIRE
     }
   };
 
-  const handleResendConfirmation = async () => {
-    if (!pendingConfirmationEmail || resendCooldown > 0) return;
+  const handleResend = async () => {
+    if (!verifiedEmail || resendCooldown > 0) return;
     setResending(true);
     setError(null);
-    setDebugError(null); // 🔧 TEMPORAIRE
     try {
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email: pendingConfirmationEmail,
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (resendError) {
-        setError(translateError(resendError));
-        setDebugError(extractRawError(resendError)); // 🔧 TEMPORAIRE
-        return;
-      }
+      const { error: resendError } =
+        mode === "verification-inscription"
+          ? await supabase.auth.resend({
+              type: "signup",
+              email: verifiedEmail,
+              options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+            })
+          : await supabase.auth.resetPasswordForEmail(verifiedEmail, {
+              redirectTo: `${window.location.origin}/auth/callback`,
+            });
+
+      if (resendError) return setError(translateError(resendError));
       setResendCooldown(RESEND_COOLDOWN);
     } catch (err) {
       setError(translateError(err));
-      setDebugError(extractRawError(err)); // 🔧 TEMPORAIRE
     } finally {
       setResending(false);
     }
   };
 
-  const handleResendReset = async () => {
-    if (!pendingResetEmail || resetCooldown > 0) return;
-    setResettingResend(true);
-    setError(null);
-    setDebugError(null); // 🔧 TEMPORAIRE
-    try {
-      const { error: resendError } = await supabase.auth.resetPasswordForEmail(pendingResetEmail, {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      });
-      if (resendError) {
-        setError(translateError(resendError));
-        setDebugError(extractRawError(resendError)); // 🔧 TEMPORAIRE
-        return;
-      }
-      setResetCooldown(RESEND_COOLDOWN);
-    } catch (err) {
-      setError(translateError(err));
-      setDebugError(extractRawError(err)); // 🔧 TEMPORAIRE
-    } finally {
-      setResettingResend(false);
-    }
-  };
-
   const handleEditEmail = () => {
-    setPendingConfirmationEmail(null);
-    setPassword("");
-    setConfirmPassword("");
-    setError(null);
-    setDebugError(null); // 🔧 TEMPORAIRE
+    setVerifiedEmail(null);
+    setMode(mode === "verification-inscription" ? "inscription" : "mot-de-passe-oublie");
+    resetFormFields();
     setResendCooldown(0);
-  };
-
-  const handleEditResetEmail = () => {
-    setPendingResetEmail(null);
-    setError(null);
-    setDebugError(null); // 🔧 TEMPORAIRE
-    setResetCooldown(0);
   };
 
   const handleGoogleAuth = async () => {
     setError(null);
-    setDebugError(null); // 🔧 TEMPORAIRE
     setGoogleLoading(true);
     try {
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
@@ -358,11 +299,10 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       });
       if (oauthError) {
         setError(translateError(oauthError));
-        setDebugError(extractRawError(oauthError)); // 🔧 TEMPORAIRE
+        setGoogleLoading(false);
       }
     } catch (err) {
       setError(translateError(err));
-      setDebugError(extractRawError(err)); // 🔧 TEMPORAIRE
       setGoogleLoading(false);
     }
   };
@@ -373,18 +313,15 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     setPassword("");
     setConfirmPassword("");
     setError(null);
-    setDebugError(null); // 🔧 TEMPORAIRE
-    setPendingConfirmationEmail(null);
-    setPendingResetEmail(null);
+    setVerifiedEmail(null);
     setResendCooldown(0);
-    setResetCooldown(0);
     onClose();
   };
 
   if (!isOpen) return null;
 
-  const mailProviderConfirmation = pendingConfirmationEmail ? getMailProviderLink(pendingConfirmationEmail) : null;
-  const mailProviderReset = pendingResetEmail ? getMailProviderLink(pendingResetEmail) : null;
+  const isVerificationStep = mode === "verification-inscription" || mode === "verification-reset";
+  const mailProvider = verifiedEmail ? getMailProviderLink(verifiedEmail) : null;
 
   const isSubmitDisabled =
     loading ||
@@ -393,26 +330,51 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     (mode === "inscription" && !confirmPassword);
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={handleClose}>
-      <div className="bg-white rounded-lg p-6 max-w-sm w-full relative max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-        <button onClick={handleClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+    <div
+      className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+      onClick={handleClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="bg-white rounded-lg p-6 max-w-sm w-full relative max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={handleClose}
+          aria-label="Fermer"
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+        >
           <X size={18} />
         </button>
 
-        {pendingConfirmationEmail ? (
-          // Vérifie ta boîte mail - Inscription
+        {isVerificationStep ? (
           <div className="text-center pt-4">
-            <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-5">
-              <Mail size={28} className="text-teal-600" />
+            <div
+              className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
+                mode === "verification-inscription" ? "bg-teal-50" : "bg-coral-50"
+              }`}
+            >
+              {mode === "verification-inscription" ? (
+                <Mail size={28} className="text-teal-600" />
+              ) : (
+                <KeyRound size={28} className="text-coral-500" />
+              )}
             </div>
             <h2 className="text-[18px] font-bold text-gray-900 mb-2">Vérifie ta boîte mail</h2>
-            <p className="text-[14px] text-gray-600 leading-relaxed mb-1">Nous avons envoyé un lien de confirmation à</p>
-            <p className="text-[14px] font-bold text-gray-900 mb-6 break-all">{pendingConfirmationEmail}</p>
+            <p className="text-[14px] text-gray-600 leading-relaxed mb-1">
+              Nous avons envoyé un lien de {mode === "verification-inscription" ? "confirmation" : "réinitialisation"} à
+            </p>
+            <p className="text-[14px] font-bold text-gray-900 mb-6 break-all">{verifiedEmail}</p>
 
-            {mailProviderConfirmation && (
-              <a href={mailProviderConfirmation.url} target="_blank" rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 mb-3">
-                Ouvrir {mailProviderConfirmation.name} <ExternalLink size={14} />
+            {mailProvider && (
+              <a
+                href={mailProvider.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 mb-3"
+              >
+                Ouvrir {mailProvider.name} <ExternalLink size={14} />
               </a>
             )}
 
@@ -423,133 +385,120 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            {/* 🔧 TEMPORAIRE — À SUPPRIMER avant prod */}
-            {debugError && (
-              <div className="bg-yellow-50 border border-yellow-300 rounded-lg px-3 py-2 mb-3 text-left">
-                <p className="text-[10px] font-mono text-yellow-800 whitespace-pre-wrap break-all">🔧 DEBUG: {debugError}</p>
-              </div>
-            )}
-
-            <button onClick={handleResendConfirmation} disabled={resendCooldown > 0 || resending}
-              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4">
+            <button
+              onClick={handleResend}
+              disabled={resendCooldown > 0 || resending}
+              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4"
+            >
               <RefreshCw size={14} className={resending ? "animate-spin" : ""} />
-              {resendCooldown > 0 ? `Renvoyer l'email (${resendCooldown}s)` : resending ? "Envoi..." : "Renvoyer l'email"}
+              {resendCooldown > 0 ? `Renvoyer (${resendCooldown}s)` : resending ? "Envoi..." : "Renvoyer l'email"}
             </button>
 
-            <button onClick={handleEditEmail} className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500">
-              <Pencil size={12} /> Mauvaise adresse ? Modifier
-            </button>
-          </div>
-        ) : pendingResetEmail ? (
-          // Vérifie ta boîte mail - Réinitialisation
-          <div className="text-center pt-4">
-            <div className="w-16 h-16 bg-coral-50 rounded-full flex items-center justify-center mx-auto mb-5">
-              <KeyRound size={28} className="text-coral-500" />
-            </div>
-            <h2 className="text-[18px] font-bold text-gray-900 mb-2">Vérifie ta boîte mail</h2>
-            <p className="text-[14px] text-gray-600 leading-relaxed mb-1">Nous avons envoyé un lien de réinitialisation à</p>
-            <p className="text-[14px] font-bold text-gray-900 mb-6 break-all">{pendingResetEmail}</p>
-
-            {mailProviderReset && (
-              <a href={mailProviderReset.url} target="_blank" rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 mb-3">
-                Ouvrir {mailProviderReset.name} <ExternalLink size={14} />
-              </a>
-            )}
-
-            {error && (
-              <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mb-3 text-left">
-                <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
-                <p className="text-[12.5px] text-red-700 leading-relaxed">{error}</p>
-              </div>
-            )}
-
-            {/* 🔧 TEMPORAIRE — À SUPPRIMER avant prod */}
-            {debugError && (
-              <div className="bg-yellow-50 border border-yellow-300 rounded-lg px-3 py-2 mb-3 text-left">
-                <p className="text-[10px] font-mono text-yellow-800 whitespace-pre-wrap break-all">🔧 DEBUG: {debugError}</p>
-              </div>
-            )}
-
-            <button onClick={handleResendReset} disabled={resetCooldown > 0 || resettingResend}
-              className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4">
-              <RefreshCw size={14} className={resettingResend ? "animate-spin" : ""} />
-              {resetCooldown > 0 ? `Renvoyer le lien (${resetCooldown}s)` : resettingResend ? "Envoi..." : "Renvoyer le lien"}
-            </button>
-
-            <button onClick={handleEditResetEmail} className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500">
+            <button
+              onClick={handleEditEmail}
+              className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500"
+            >
               <Pencil size={12} /> Mauvaise adresse ? Modifier
             </button>
           </div>
         ) : (
-          // Formulaire principal
           <>
-            {/* En-tête personnalisé selon le rôle */}
-            {intendedRole && mode === "inscription" && (
-              <div className={`flex items-center gap-4 p-4 rounded-lg mb-5 ${roleConfig.bgColor} border ${roleConfig.bgBorder}`}>
-                <div className={`w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 ${roleConfig.bgColor}`}>
+            {/* Header — toujours visible. Le rôle ne change que le style/texte, jamais les fonctionnalités visibles plus bas */}
+            {roleConfig.roleTitle && intendedRole ? (
+              <div
+                className={`flex items-center gap-4 p-4 rounded-lg mb-5 ${roleConfig.bgColor} border ${roleConfig.bgBorder}`}
+              >
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-white">
                   {roleConfig.icon && <roleConfig.icon size={24} className={roleConfig.iconColor} />}
                 </div>
                 <div className="flex-1">
-                  <h2 className="text-sm font-bold text-gray-900">{roleConfig.title}</h2>
-                  <p className="text-xs text-gray-600">{roleConfig.subtitle}</p>
+                  <h2 className="text-sm font-bold text-gray-900">{roleConfig.roleTitle}</h2>
+                  <p className="text-xs text-gray-600">{roleConfig.roleSubtitle}</p>
                 </div>
               </div>
-            )}
-
-            {mode === "mot-de-passe-oublie" ? (
+            ) : mode !== "mot-de-passe-oublie" ? (
               <>
-                <button onClick={() => switchMode("connexion")} className="flex items-center gap-1 text-sm text-gray-500 mb-3">
+                <h2 className="text-[18px] font-medium text-gray-900 mb-1">Bienvenue sur Ayiba</h2>
+                <p className="text-[14px] text-gray-600 mb-4">
+                  {mode === "connexion" ? "Heureux de te revoir !" : "Rejoins-nous en quelques secondes"}
+                </p>
+              </>
+            ) : null}
+
+            {mode === "mot-de-passe-oublie" && (
+              <>
+                <button
+                  onClick={() => switchMode("connexion")}
+                  className="flex items-center gap-1 text-sm text-gray-500 mb-3"
+                >
                   <ArrowLeft size={14} /> Retour
                 </button>
                 <h2 className="text-[18px] font-medium text-gray-900 mb-1">Mot de passe oublié</h2>
                 <p className="text-[14px] text-gray-600 mb-4">On t'envoie un lien pour le réinitialiser.</p>
               </>
-            ) : (
+            )}
+
+            {/* Tabs + Google — toujours disponibles, peu importe le rôle */}
+            {mode !== "mot-de-passe-oublie" && (
               <>
-                {!intendedRole && (
-                  <>
-                    <h2 className="text-[18px] font-medium text-gray-900 mb-1">Bienvenue sur Ayiba</h2>
-                    <p className="text-[14px] text-gray-600 mb-4">
-                      {mode === "connexion" ? "Heureux de te revoir !" : "Rejoins-nous en quelques secondes"}
-                    </p>
+                <div className="flex bg-gray-50 rounded-lg p-1 mb-5">
+                  <button
+                    onClick={() => switchMode("connexion")}
+                    className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
+                      mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    Se connecter
+                  </button>
+                  <button
+                    onClick={() => switchMode("inscription")}
+                    className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${
+                      mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    S'inscrire
+                  </button>
+                </div>
 
-                    <div className="flex bg-gray-50 rounded-lg p-1 mb-5">
-                      <button onClick={() => switchMode("connexion")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "connexion" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
-                        Se connecter
-                      </button>
-                      <button onClick={() => switchMode("inscription")} className={`flex-1 text-sm font-medium py-2 rounded-md transition-colors ${mode === "inscription" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-900"}`}>
-                        S'inscrire
-                      </button>
-                    </div>
+                <button
+                  onClick={handleGoogleAuth}
+                  disabled={googleLoading}
+                  className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+                >
+                  <svg width="18" height="18" viewBox="0 0 18 18">
+                    <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z" />
+                    <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z" />
+                    <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z" />
+                    <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z" />
+                  </svg>
+                  {googleLoading ? "Connexion..." : "Continuer avec Google"}
+                </button>
 
-                    <button onClick={handleGoogleAuth} disabled={googleLoading}
-                      className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors">
-                      <svg width="18" height="18" viewBox="0 0 18 18">
-                        <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.56 2.7-3.87 2.7-6.62z"/>
-                        <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
-                        <path fill="#FBBC05" d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/>
-                        <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
-                      </svg>
-                      {googleLoading ? "Connexion..." : "Continuer avec Google"}
-                    </button>
-
-                    <div className="flex items-center gap-3 my-4">
-                      <div className="flex-1 h-px bg-gray-100" />
-                      <span className="text-[11px] text-gray-400 uppercase tracking-wide">ou</span>
-                      <div className="flex-1 h-px bg-gray-100" />
-                    </div>
-                  </>
-                )}
+                <div className="flex items-center gap-3 my-4">
+                  <div className="flex-1 h-px bg-gray-100" />
+                  <span className="text-[11px] text-gray-400 uppercase tracking-wide">ou</span>
+                  <div className="flex-1 h-px bg-gray-100" />
+                </div>
               </>
             )}
 
             {/* Email */}
             <div className="mb-3">
-              <div className={`flex items-center border rounded-lg px-3 transition-colors ${isEmailValid ? "border-teal-300" : "border-gray-200 focus-within:border-coral-400"}`}>
+              <div
+                className={`flex items-center border rounded-lg px-3 transition-colors ${
+                  isEmailValid ? "border-teal-300" : "border-gray-200 focus-within:border-coral-400"
+                }`}
+              >
                 <Mail size={16} className="text-gray-400 shrink-0" />
-                <input type="email" placeholder="Adresse email" value={email}
-                  onChange={(e) => setEmail(e.target.value)} className="flex-1 h-11 text-sm px-2 focus:outline-none" />
+                <input
+                  ref={emailInputRef}
+                  type="email"
+                  placeholder="Adresse email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="flex-1 h-11 text-sm px-2 focus:outline-none"
+                  autoComplete="email"
+                />
                 {isEmailValid && <Check size={16} className="text-teal-500 shrink-0" />}
               </div>
             </div>
@@ -559,9 +508,20 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               <div className="mb-1">
                 <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
                   <Lock size={16} className="text-gray-400 shrink-0" />
-                  <input type={showPassword ? "text" : "password"} placeholder="Mot de passe" value={password}
-                    onChange={(e) => setPassword(e.target.value)} className="flex-1 h-11 text-sm px-2 focus:outline-none" />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-gray-400 shrink-0">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Mot de passe"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="flex-1 h-11 text-sm px-2 focus:outline-none"
+                    autoComplete={mode === "inscription" ? "new-password" : "current-password"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    className="text-gray-400 shrink-0"
+                  >
                     {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
@@ -580,19 +540,33 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             {/* Confirmation mot de passe */}
             {mode === "inscription" && (
               <div className="mb-1">
-                <div className={`flex items-center border rounded-lg px-3 transition-colors ${
-                  confirmPassword.length > 0 ? (password === confirmPassword ? "border-teal-300" : "border-red-300") : "border-gray-200 focus-within:border-coral-400"
-                }`}>
+                <div
+                  className={`flex items-center border rounded-lg px-3 transition-colors ${
+                    confirmPassword.length > 0
+                      ? password === confirmPassword
+                        ? "border-teal-300"
+                        : "border-red-300"
+                      : "border-gray-200 focus-within:border-coral-400"
+                  }`}
+                >
                   <Lock size={16} className="text-gray-400 shrink-0" />
-                  <input type={showPassword ? "text" : "password"} placeholder="Confirmer le mot de passe"
-                    value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="flex-1 h-11 text-sm px-2 focus:outline-none" />
-                  {confirmPassword.length > 0 && password === confirmPassword && <Check size={16} className="text-teal-500 shrink-0" />}
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Confirmer le mot de passe"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    className="flex-1 h-11 text-sm px-2 focus:outline-none"
+                    autoComplete="new-password"
+                  />
+                  {confirmPassword.length > 0 && password === confirmPassword && (
+                    <Check size={16} className="text-teal-500 shrink-0" />
+                  )}
                 </div>
               </div>
             )}
 
-            {mode === "connexion" && !intendedRole && (
+            {/* Mot de passe oublié — toujours accessible en mode connexion, peu importe le rôle */}
+            {mode === "connexion" && (
               <div className="flex justify-end mt-2 mb-2">
                 <button onClick={() => switchMode("mot-de-passe-oublie")} className="text-[12px] text-coral-500">
                   Mot de passe oublié ?
@@ -600,7 +574,6 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            {/* Affichage des erreurs */}
             {error && (
               <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mt-2 mb-2">
                 <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
@@ -608,26 +581,31 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
               </div>
             )}
 
-            {/* 🔧 TEMPORAIRE — À SUPPRIMER avant prod */}
-            {debugError && (
-              <div className="bg-yellow-50 border border-yellow-300 rounded-lg px-3 py-2 mt-1 mb-2">
-                <p className="text-[10px] font-mono text-yellow-800 whitespace-pre-wrap break-all">🔧 DEBUG: {debugError}</p>
-              </div>
-            )}
-
-            <button onClick={handleSubmit} disabled={isSubmitDisabled}
-              className={`w-full text-white rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-3 transition-colors ${roleConfig.buttonColor}`}>
-              {loading ? "Chargement..." :
-                mode === "connexion" ? "Se connecter" :
-                mode === "inscription" ? "Créer mon compte" : "Envoyer le lien"}
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitDisabled}
+              className={`w-full text-white rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed mt-3 transition-colors ${roleConfig.buttonColor}`}
+            >
+              {loading
+                ? "Chargement..."
+                : mode === "connexion"
+                ? "Se connecter"
+                : mode === "inscription"
+                ? "Créer mon compte"
+                : "Envoyer le lien"}
             </button>
 
-            {mode !== "mot-de-passe-oublie" && !intendedRole && (
+            {mode !== "mot-de-passe-oublie" && (
               <p className="text-[11px] text-gray-400 mt-3 text-center leading-relaxed">
                 En continuant, vous acceptez nos{" "}
-                <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">conditions d'utilisation</a>{" "}
+                <a href="/cgu" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">
+                  conditions d'utilisation
+                </a>{" "}
                 et notre{" "}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">politique de confidentialité</a>.
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-600 underline hover:text-coral-500">
+                  politique de confidentialité
+                </a>
+                .
               </p>
             )}
           </>
@@ -635,16 +613,4 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       </div>
     </div>
   );
-}
-
-// Fonction utilitaire pour les liens mail
-function getMailProviderLink(email: string): { name: string; url: string } | null {
-  const domain = email.split("@")[1]?.toLowerCase();
-  if (!domain) return null;
-  if (domain.includes("gmail")) return { name: "Gmail", url: "https://mail.google.com" };
-  if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live")) {
-    return { name: "Outlook", url: "https://outlook.live.com/mail" };
-  }
-  if (domain.includes("yahoo")) return { name: "Yahoo Mail", url: "https://mail.yahoo.com" };
-  return null;
 }

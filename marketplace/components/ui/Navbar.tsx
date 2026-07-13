@@ -22,6 +22,7 @@ export function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [partnerMenuOpen, setPartnerMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [intendedRole, setIntendedRole] = useState<"vendeur" | "livreur" | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
@@ -32,7 +33,6 @@ export function Navbar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
@@ -62,7 +62,6 @@ export function Navbar() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [showSearchOverlay, searchQuery]);
 
-  // Scroll effect
   useEffect(() => {
     function handleScroll() {
       setScrolled(window.scrollY > 24);
@@ -71,7 +70,6 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Body overflow
   useEffect(() => {
     if (typeof document !== 'undefined') {
       document.body.style.overflow = mobileOpen ? "hidden" : "";
@@ -83,7 +81,6 @@ export function Navbar() {
     };
   }, [mobileOpen]);
 
-  // Auth logic
   useEffect(() => {
     async function fetchUser() {
       const { data: { session } } = await supabase.auth.getSession();
@@ -150,12 +147,10 @@ export function Navbar() {
         }`}
       >
         <div className="flex items-center justify-between h-full px-4 md:px-8 lg:px-12 max-w-7xl mx-auto w-full gap-4 md:gap-8">
-          {/* Logo */}
           <a href="/" className="flex items-center shrink-0 opacity-100 hover:opacity-80 transition-opacity duration-200">
             <LogoAyiba className="h-8 w-auto md:h-10" />
           </a>
 
-          {/* Search Bar - Desktop */}
           <form 
             onSubmit={handleSearch} 
             className={`hidden md:flex relative group items-center transition-all duration-300 ease-in-out ${
@@ -197,7 +192,6 @@ export function Navbar() {
             </div>
           </form>
 
-          {/* Actions Desktop */}
           <div className="hidden md:flex items-center gap-4 shrink-0">
             {!user && (
               <div 
@@ -215,24 +209,24 @@ export function Navbar() {
                 <div className={`absolute left-0 top-full pt-2 w-56 origin-top-left transition-all duration-300 ${partnerMenuOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}>
                   <div className="bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden">
                     <div className="p-2 flex flex-col gap-1">
-                      <a href="/devenir-vendeur" className="flex items-center gap-3 px-4 py-3 hover:bg-coral-50 rounded-xl text-gray-700 hover:text-coral-500 transition-all group/item">
+                      <button onClick={() => { setIntendedRole("vendeur"); setPartnerMenuOpen(false); setAuthModalOpen(true); }} className="flex items-center gap-3 w-full px-4 py-3 hover:bg-coral-50 rounded-xl text-gray-700 hover:text-coral-500 transition-all group/item">
                         <div className="w-8 h-8 rounded-lg bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs">
                           <Store size={18} />
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col text-left">
                           <span className="text-sm font-bold">Ouvrir ma boutique</span>
                           <span className="text-[10px] text-gray-400 font-medium">Vendez vos produits en ligne</span>
                         </div>
-                      </a>
-                      <a href="/devenir-livreur" className="flex items-center gap-3 px-4 py-3 hover:bg-teal-50 rounded-xl text-gray-700 hover:text-teal-600 transition-all group/item">
+                      </button>
+                      <button onClick={() => { setIntendedRole("livreur"); setPartnerMenuOpen(false); setAuthModalOpen(true); }} className="flex items-center gap-3 w-full px-4 py-3 hover:bg-teal-50 rounded-xl text-gray-700 hover:text-teal-600 transition-all group/item">
                         <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs">
                           <Bike size={18} />
                         </div>
-                        <div className="flex flex-col">
+                        <div className="flex flex-col text-left">
                           <span className="text-sm font-bold">Devenir livreur</span>
                           <span className="text-[10px] text-gray-400 font-medium">Gagnez de l'argent en livrant</span>
                         </div>
-                      </a>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -249,7 +243,7 @@ export function Navbar() {
             </button>
 
             {!user && (
-              <button onClick={() => setAuthModalOpen(true)} className="bg-coral-400 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-coral-500 transition-all duration-300 active:scale-[0.97] shadow-lg shadow-coral-400/20">
+              <button onClick={() => { setIntendedRole(null); setAuthModalOpen(true); }} className="bg-coral-400 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-coral-500 transition-all duration-300 active:scale-[0.97] shadow-lg shadow-coral-400/20">
                 Connexion
               </button>
             )}
@@ -293,7 +287,6 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile Actions */}
           <div className="flex md:hidden items-center gap-1 shrink-0">
             <button
               onClick={() => {
@@ -301,26 +294,24 @@ export function Navbar() {
                 setTimeout(() => mobileSearchInputRef.current?.focus(), 80);
               }}
               className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50"
-              aria-label="Rechercher"
             >
               <Search size={20} className="text-gray-600" />
             </button>
 
-            <button onClick={openCart} className="relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50" aria-label="Voir le panier">
+            <button onClick={openCart} className="relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50">
               <ShoppingCart size={20} className="text-gray-600" />
               {itemCount > 0 && (
                 <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-coral-400 border border-white rounded-full" />
               )}
             </button>
 
-            <button onClick={() => setMobileOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50" aria-label="Menu">
+            <button onClick={() => setMobileOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50">
               <Menu size={22} className="text-gray-900" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Search Overlay Mobile */}
       {showSearchOverlay && (
         <div className="fixed inset-0 z-[70] md:hidden bg-white flex flex-col">
           <div className="h-14 border-b flex items-center px-4 bg-white">
@@ -355,26 +346,14 @@ export function Navbar() {
                     </button>
                   ))}
                 </div>
-
-                <p className="text-xs uppercase tracking-widest text-gray-400 mt-8 mb-3">Tendances</p>
-                <div className="flex flex-wrap gap-2">
-                  {["Téléphone", "Vélo électrique", "Huile de palme", "Sac à main", "Tissu pagne"].map((tag) => (
-                    <button key={tag} onClick={() => handleSuggestionClick(tag)} className="bg-gray-100 hover:bg-coral-50 px-5 py-2.5 rounded-full text-sm transition-all">
-                      {tag}
-                    </button>
-                  ))}
-                </div>
               </>
             ) : (
-              <div className="py-12 text-center text-gray-500">
-                Recherche pour <span className="font-medium text-gray-700">"{searchQuery}"</span>...
-              </div>
+              <div className="py-12 text-center text-gray-500">Recherche...</div>
             )}
           </div>
         </div>
       )}
 
-      {/* Drawer Mobile (inchangé sauf suppression du search redondant) */}
       <div className={`fixed inset-0 z-[60] md:hidden transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
         <div className={`absolute top-0 right-0 h-full w-[85%] max-w-xs bg-white shadow-xl transition-transform duration-300 ease-out flex flex-col ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
@@ -393,41 +372,24 @@ export function Navbar() {
                     <Search size={20} className="text-gray-400" />
                     <span>Catalogue</span>
                   </a>
-
                   <div className="h-px bg-gray-100 my-2 mx-4" />
-
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-4 mt-2 mb-1">Opportunités</p>
-                  <a href="/devenir-vendeur" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  <button onClick={() => { setIntendedRole("vendeur"); setMobileOpen(false); setAuthModalOpen(true); }} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                     <Store size={20} className="text-gray-400" />
                     <span>Devenir vendeur</span>
-                  </a>
-                  <a href="/devenir-livreur" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  </button>
+                  <button onClick={() => { setIntendedRole("livreur"); setMobileOpen(false); setAuthModalOpen(true); }} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                     <Bike size={20} className="text-gray-400" />
                     <span>Devenir livreur</span>
-                  </a>
-
-                  <div className="h-px bg-gray-100 my-2 mx-4" />
-
-                  <button onClick={() => { openCart(); setMobileOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <ShoppingCart size={20} className="text-gray-400" />
-                    <span>Panier ({itemCount})</span>
                   </button>
                 </>
               ) : (
                 <>
-                  <button onClick={() => { openCart(); setMobileOpen(false); }} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <ShoppingCart size={20} className="text-gray-400" />
-                    <span>Mon Panier ({itemCount})</span>
-                  </button>
                   <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                     <LayoutDashboard size={20} className="text-gray-400" />
                     <span>Mon dashboard</span>
                   </a>
-                  <a href="/profil" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <Settings size={20} className="text-gray-400" />
-                    <span>Mon profil</span>
-                  </a>
-                  <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left">
+                  <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left">
                     <LogOut size={20} />
                     <span>Déconnexion</span>
                   </button>
@@ -436,11 +398,11 @@ export function Navbar() {
             </div>
           </div>
 
-          {/* Bouton Connexion en bas */}
           <div className="p-4 border-t border-gray-100 bg-gray-50">
             {!user ? (
               <button
                 onClick={() => { 
+                  setIntendedRole(null);
                   setMobileOpen(false); 
                   setAuthModalOpen(true); 
                 }}
@@ -449,21 +411,13 @@ export function Navbar() {
                 Connexion / Inscription
               </button>
             ) : (
-              <div className="flex items-center gap-3 px-2">
-                <div className="w-10 h-10 bg-coral-100 rounded-full flex items-center justify-center text-coral-500 font-semibold">
-                  {user?.user_metadata?.nom?.[0]?.toUpperCase() || "U"}
-                </div>
-                <div className="overflow-hidden">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{user?.user_metadata?.nom || "Mon compte"}</p>
-                  <p className="text-xs text-gray-400 truncate">{user?.phone || ""}</p>
-                </div>
-              </div>
+              <p className="text-sm font-semibold text-gray-900 px-2">{user?.user_metadata?.nom || "Mon compte"}</p>
             )}
           </div>
         </div>
       </div>
 
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      <AuthModal isOpen={authModalOpen} onClose={() => { setAuthModalOpen(false); setIntendedRole(null); }} intendedRole={intendedRole} />
       <CartDrawer />
     </>
   );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, CheckCircle2, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthModalProps {
@@ -206,8 +206,19 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           </div>
         )}
 
-        {error && <p className="text-[12px] text-red-400 mt-1 mb-2">{error}</p>}
-        {message && <p className="text-[12px] text-teal-600 mt-1 mb-2">{message}</p>}
+        {error && (
+          <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mt-2 mb-2">
+            <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+            <p className="text-[12.5px] text-red-700 leading-relaxed">{error}</p>
+          </div>
+        )}
+
+        {message && (
+          <div className="flex items-start gap-2 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2.5 mt-2 mb-2">
+            <CheckCircle2 size={16} className="text-teal-600 shrink-0 mt-0.5" />
+            <p className="text-[12.5px] text-teal-800 leading-relaxed">{message}</p>
+          </div>
+        )}
 
         <button onClick={handleSubmit} disabled={loading || !email || (mode !== "mot-de-passe-oublie" && !password)}
           className="w-full bg-coral-400 text-white rounded-lg px-4 py-2.5 text-sm font-medium hover:bg-coral-600 disabled:opacity-50 disabled:cursor-not-allowed mt-3">

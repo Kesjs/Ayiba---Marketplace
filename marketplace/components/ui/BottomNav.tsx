@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile } = useUser();
+  const { profile, exitDemoMode } = useUser();
   const [isPartnerOpen, setIsPartnerOpen] = useState(false);
   const [isVendeurMenuOpen, setIsVendeurMenuOpen] = useState(false);
   const [visible, setVisible] = useState(true);
@@ -47,8 +47,13 @@ export function BottomNav() {
   };
 
   const handleLogout = async () => {
+    // Nettoie le mode démo (localStorage) s'il était actif
+    exitDemoMode();
+
+    // Déconnecte la vraie session Supabase si elle existe
     const supabase = createClient();
     await supabase.auth.signOut();
+
     setIsVendeurMenuOpen(false);
     router.push("/");
   };

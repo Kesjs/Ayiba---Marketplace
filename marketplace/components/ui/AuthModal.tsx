@@ -15,11 +15,21 @@ type Mode = "connexion" | "inscription" | "mot-de-passe-oublie";
 
 // Traduction robuste des erreurs Supabase
 const translateError = (err: any): string => {
+  // Log détaillé pour debugging
+  console.error("❌ Erreur brute reçue:", err);
+  console.error("Type:", typeof err);
+  if (typeof err === "object") {
+    console.error("Clés de l'objet:", Object.keys(err));
+    console.error("JSON stringify:", JSON.stringify(err, null, 2));
+  }
+
   if (!err) return "Une erreur est survenue. Veuillez réessayer.";
 
   const message = typeof err === "string" 
     ? err 
     : err.message || err.msg || err.error_description || JSON.stringify(err);
+
+  console.log("📝 Message extrait:", message);
 
   // Si le message n'est qu'un JSON vide, invalide ou une chaîne vide
   if (!message || message === "{}" || message.trim() === "" || message === "null") {
@@ -150,6 +160,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
       setLoading(true);
 
       if (mode === "inscription") {
+        console.log("📤 Envoi de la demande d'inscription pour:", email);
         const { data, error: signUpError } = await supabase.auth.signUp({
           email,
           password,
@@ -161,9 +172,12 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
             data: { role: intendedRole ?? "client" },
           },
         });
+        
+        console.log("📥 Réponse signUp:", { data, error: signUpError });
         setLoading(false);
 
         if (signUpError) {
+          console.error("❌ Erreur SignUp:", signUpError);
           setError(translateError(signUpError));
           return;
         }
@@ -177,11 +191,13 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         }
 
         if (!data.session) {
+          console.log("✅ Email de confirmation envoyé");
           setPendingConfirmationEmail(email);
           setResendCooldown(RESEND_COOLDOWN);
           return;
         }
 
+        console.log("✅ Inscription réussie, redirection...");
         onClose();
         router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue");
       } else {
@@ -197,6 +213,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         router.refresh();
       }
     } catch (err) {
+      console.error("❌ Erreur catch:", err);
       setLoading(false);
       setError(translateError(err));
     }

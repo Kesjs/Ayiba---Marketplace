@@ -6,6 +6,7 @@ import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
 import { ChevronLeft, ChevronRight, CheckCircle2, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 const STEP_LABELS = ["Identité", "Boutique", "Localisation", "Paiement"];
 
@@ -38,6 +39,7 @@ export function VendeurKycWizard() {
   const [step, setStep] = useState(1);
   const [data, setData] = useState<VendeurFormData>(INITIAL_DATA);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const totalSteps = 4;
 
   const update = <K extends keyof VendeurFormData>(key: K, value: VendeurFormData[K]) => {
@@ -96,15 +98,59 @@ export function VendeurKycWizard() {
 
   const handleSubmit = async () => {
     setSubmitting(true);
+    setError(null);
 
-    // SIMULATION — à remplacer par un vrai insert Supabase (table `vendeurs`)
-    // + upload des fichiers photoProfil / photoCni vers Supabase Storage
-    console.log("Soumission vendeur (simulation) :", data);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    setTimeout(() => {
+    if (!user) {
+      setError("Ta session a expiré, reconnecte-toi.");
       setSubmitting(false);
+      return;
+    }
+
+    try {
+      let photoProfilUrl: string | null = null;
+      let photoCniPath: string | null = null;
+
+      if (data.photoProfil) {
+        const path = `${user.id}/profil-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, data.photoProfil, { upsert: true });
+        if (upErr) throw upErr;
+        photoProfilUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      }
+
+      if (data.photoCni) {
+        const path = `${user.id}/cni-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("kyc-documents")
+          .upload(path, data.photoCni, { upsert: true });
+        if (upErr) throw upErr;
+        photoCniPath = path;
+      }
+
+      const { error: insertError } = await supabase.from("vendeurs").upsert({
+        id: user.id,
+        nom_complet: data.nomComplet,
+        photo_profil_url: photoProfilUrl,
+        photo_cni_path: photoCniPath,
+        nom_boutique: data.nomBoutique,
+        description: data.description,
+        quartier: data.quartier,
+        commune: data.commune,
+        mobile_money_network: data.mobileMoneyNetwork,
+        mobile_money_number: data.mobileMoneyNumber,
+      });
+      if (insertError) throw insertError;
+
       router.push("/vendeur/dashboard");
-    }, 1200);
+    } catch (err: any) {
+      setError(err.message || "Une erreur est survenue, réessaie.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const isRecap = step === totalSteps + 1;
@@ -297,6 +343,8 @@ export function VendeurKycWizard() {
                   </span>
                 </div>
               </div>
+
+              {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
               <button
                 onClick={handleSubmit}

@@ -6,23 +6,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, CheckCircle2, X, ShieldCheck, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const STEP_LABELS = ["Identité", "Boutique", "Localisation", "Paiement"];
 const STORAGE_KEY = "ayiba-vendeur-kyc-draft";
 
-// --- Badges de statut, cohérents avec /vendeur/paiements ---
-const STATUT_STYLE: Record<string, string> = {
-  en_attente: "bg-amber-50 text-amber-700 border-amber-100",
-  valide: "bg-teal-50 text-teal-700 border-teal-100",
-  refuse: "bg-red-50 text-red-700 border-red-100",
-};
-
-const STATUT_LABEL: Record<string, string> = {
-  en_attente: "En attente",
-  valide: "Vérifié",
-  refuse: "Refusé",
+// --- Statut : indicateur sobre (point + texte), pas un gros badge coloré ---
+const STATUT_CONFIG: Record<string, { dot: string; label: string }> = {
+  en_attente: { dot: "bg-amber-500", label: "En attente" },
+  valide: { dot: "bg-teal-500", label: "Vérifié" },
+  refuse: { dot: "bg-red-500", label: "Refusé" },
 };
 
 interface VendeurFormData {
@@ -53,10 +47,73 @@ const INITIAL_DATA: VendeurFormData = {
 };
 
 const slideVariants = {
-  enter: (dir: number) => ({ opacity: 0, x: dir > 0 ? 24 : -24 }),
-  center: { opacity: 1, x: 0 },
-  exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -24 : 24 }),
+  enter: (dir: number) => ({ opacity: 0, x: dir > 0 ? 24 : -24, scale: 0.99 }),
+  center: { opacity: 1, x: 0, scale: 1 },
+  exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -24 : 24, scale: 0.99 }),
 };
+
+function StatutIndicator({ statut }: { statut: string }) {
+  const config = STATUT_CONFIG[statut];
+  if (!config) return null;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 shrink-0">
+      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+      <span className="hidden xs:inline">{config.label}</span>
+    </span>
+  );
+}
+
+function ConfirmModal({
+  open,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-4"
+          onClick={onCancel}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full sm:max-w-sm bg-white rounded-3xl p-6 shadow-xl"
+          >
+            <h3 className="text-base font-bold text-gray-900 mb-1.5">Quitter l'inscription ?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Tes informations non enregistrées seront perdues.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onCancel}
+                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Continuer
+              </button>
+              <button
+                onClick={onConfirm}
+                className="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors"
+              >
+                Quitter
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
 
 export function VendeurKycWizard() {
   const router = useRouter();
@@ -66,6 +123,7 @@ export function VendeurKycWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const totalSteps = 4;
 
   // Photos déjà en base (vendeur existant, ex: après un refus) — on ne force pas
@@ -171,12 +229,16 @@ export function VendeurKycWizard() {
 
   const handleCancel = () => {
     if (hasProgress()) {
-      const confirmed = window.confirm(
-        "Tu as des informations non enregistrées. Veux-tu vraiment quitter ?"
-      );
-      if (!confirmed) return;
+      setShowCancelModal(true);
+      return;
     }
     clearDraft();
+    router.push("/");
+  };
+
+  const confirmCancel = () => {
+    clearDraft();
+    setShowCancelModal(false);
     router.push("/");
   };
 
@@ -291,8 +353,15 @@ export function VendeurKycWizard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
-        <div className="max-w-2xl mx-auto flex items-center gap-4">
+      <ConfirmModal
+        open={showCancelModal}
+        onConfirm={confirmCancel}
+        onCancel={() => setShowCancelModal(false)}
+      />
+
+      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-4 md:px-8">
+
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
             onClick={handleCancel}
             className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
@@ -300,7 +369,7 @@ export function VendeurKycWizard() {
           >
             <X size={20} />
           </button>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {!isRecap && (
               <StepIndicator currentStep={step} totalSteps={totalSteps} stepLabels={STEP_LABELS} />
             )}
@@ -312,36 +381,31 @@ export function VendeurKycWizard() {
               </div>
             )}
           </div>
-          {vendeurStatut && (
-            <span
-              className={`shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border ${
-                STATUT_STYLE[vendeurStatut] || "bg-gray-100 text-gray-600 border-gray-200"
-              }`}
-            >
-              {STATUT_LABEL[vendeurStatut] || vendeurStatut}
-            </span>
-          )}
+          {vendeurStatut && <StatutIndicator statut={vendeurStatut} />}
         </div>
       </div>
 
-      <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8">
+      <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8 pb-28 md:pb-8">
         <div className="w-full max-w-2xl flex flex-col gap-4">
-          {vendeurStatut === "refuse" && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-3xl p-4"
-            >
-              <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-bold text-red-700">Vérification refusée</p>
-                <p className="text-sm text-red-600 mt-0.5">
-                  {raisonRejet || "Aucune raison précisée."} Corrige les informations ci-dessous puis
-                  soumets à nouveau ta demande.
-                </p>
-              </div>
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {vendeurStatut === "refuse" && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-3xl p-4"
+              >
+                <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-red-700">Vérification refusée</p>
+                  <p className="text-sm text-red-600 mt-0.5">
+                    {raisonRejet || "Aucune raison précisée."} Corrige les informations ci-dessous puis
+                    soumets à nouveau ta demande.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="bg-white rounded-[32px] border border-gray-100 p-6 md:p-8 shadow-sm overflow-hidden">
             <AnimatePresence mode="wait" custom={direction}>
@@ -352,7 +416,7 @@ export function VendeurKycWizard() {
                 initial="enter"
                 animate="center"
                 exit="exit"
-                transition={{ duration: 0.25, ease: "easeOut" }}
+                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
               >
                 {step === 1 && !isRecap && (
                   <div className="flex flex-col gap-5">
@@ -371,15 +435,16 @@ export function VendeurKycWizard() {
                     )}
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="nomComplet" className="block text-sm font-medium text-gray-700 mb-2">
                         Nom complet
                       </label>
                       <input
+                        id="nomComplet"
                         type="text"
                         value={data.nomComplet}
                         onChange={(e) => update("nomComplet", e.target.value)}
                         placeholder="Ex: Ken Erlich Babatounde"
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
                       />
                     </div>
 
@@ -419,28 +484,30 @@ export function VendeurKycWizard() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="nomBoutique" className="block text-sm font-medium text-gray-700 mb-2">
                         Nom de la boutique
                       </label>
                       <input
+                        id="nomBoutique"
                         type="text"
                         value={data.nomBoutique}
                         onChange={(e) => update("nomBoutique", e.target.value)}
                         placeholder="Ex: Chez Ken Fashion"
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                         Description courte
                       </label>
                       <textarea
+                        id="description"
                         value={data.description}
                         onChange={(e) => update("description", e.target.value)}
                         placeholder="En 2-3 lignes, décris ce que tu vends"
                         rows={4}
-                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 resize-none"
+                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 resize-none transition-shadow"
                       />
                     </div>
                   </div>
@@ -456,24 +523,30 @@ export function VendeurKycWizard() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Commune</label>
+                      <label htmlFor="commune" className="block text-sm font-medium text-gray-700 mb-2">
+                        Commune
+                      </label>
                       <input
+                        id="commune"
                         type="text"
                         value={data.commune}
                         onChange={(e) => update("commune", e.target.value)}
                         placeholder="Ex: Calavi"
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Quartier</label>
+                      <label htmlFor="quartier" className="block text-sm font-medium text-gray-700 mb-2">
+                        Quartier
+                      </label>
                       <input
+                        id="quartier"
                         type="text"
                         value={data.quartier}
                         onChange={(e) => update("quartier", e.target.value)}
                         placeholder="Ex: Godomey"
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
                       />
                     </div>
                   </div>
@@ -525,23 +598,23 @@ export function VendeurKycWizard() {
                     )}
 
                     <div className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-3 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Nom</span>
-                        <span className="font-medium text-gray-900">{data.nomComplet}</span>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-gray-500 shrink-0">Nom</span>
+                        <span className="font-medium text-gray-900 text-right">{data.nomComplet}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Boutique</span>
-                        <span className="font-medium text-gray-900">{data.nomBoutique}</span>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-gray-500 shrink-0">Boutique</span>
+                        <span className="font-medium text-gray-900 text-right">{data.nomBoutique}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Localisation</span>
-                        <span className="font-medium text-gray-900">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-gray-500 shrink-0">Localisation</span>
+                        <span className="font-medium text-gray-900 text-right">
                           {data.quartier}, {data.commune}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Paiement</span>
-                        <span className="font-medium text-gray-900">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-gray-500 shrink-0">Paiement</span>
+                        <span className="font-medium text-gray-900 text-right">
                           {data.mobileMoneyNetwork?.toUpperCase()} • {data.mobileMoneyNumber}
                         </span>
                       </div>
@@ -549,7 +622,8 @@ export function VendeurKycWizard() {
 
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
-                    <div className="flex items-center gap-3">
+                    {/* Boutons du récap : statiques, cachés sur mobile (remplacés par la barre sticky) */}
+                    <div className="hidden md:flex items-center gap-3">
                       <button
                         onClick={() => goToStep(totalSteps)}
                         className="flex items-center gap-1 h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
@@ -571,8 +645,9 @@ export function VendeurKycWizard() {
               </motion.div>
             </AnimatePresence>
 
+            {/* Navigation étapes : statique sur desktop */}
             {!isRecap && (
-              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+              <div className="hidden md:flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
                 {step === 1 ? (
                   <button
                     onClick={handleCancel}
@@ -589,18 +664,72 @@ export function VendeurKycWizard() {
                     Précédent
                   </button>
                 )}
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
                   onClick={handleNext}
                   disabled={!isStepValid()}
                   className="flex items-center gap-1 h-11 px-6 rounded-lg bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   {step === totalSteps ? "Voir le récap" : "Suivant"}
                   <ChevronRight size={16} />
-                </button>
+                </motion.button>
               </div>
             )}
           </div>
         </div>
+      </div>
+
+      {/* Barre d'action sticky : visible uniquement sur mobile, remplace la nav statique */}
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-100 px-4 pt-3"
+        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
+      >
+        {!isRecap ? (
+          <div className="flex items-center gap-3">
+            {step === 1 ? (
+              <button
+                onClick={handleCancel}
+                className="h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+              >
+                Annuler
+              </button>
+            ) : (
+              <button
+                onClick={handleBack}
+                className="flex items-center gap-1 h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+              >
+                <ChevronLeft size={16} />
+                Retour
+              </button>
+            )}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleNext}
+              disabled={!isStepValid()}
+              className="flex-1 flex items-center justify-center gap-1 h-12 rounded-xl bg-coral-500 active:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {step === totalSteps ? "Voir le récap" : "Suivant"}
+              <ChevronRight size={16} />
+            </motion.button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => goToStep(totalSteps)}
+              className="h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
+            >
+              Modifier
+            </button>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={handleSubmit}
+              disabled={submitting || (!data.photoProfil && !existingPhotoProfilUrl)}
+              className="flex-1 h-12 rounded-xl bg-coral-500 active:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
+            >
+              {submitting ? "Envoi en cours..." : "Soumettre"}
+            </motion.button>
+          </div>
+        )}
       </div>
     </div>
   );

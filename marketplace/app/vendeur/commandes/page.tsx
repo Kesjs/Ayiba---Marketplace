@@ -2,41 +2,24 @@
 
 import { useMemo, useState } from "react";
 import { useVendeurCommandes, StatutCommande } from "@/lib/hooks/useVendeurCommandes";
+import {
+  STATUTS_COMMANDE,
+  LABELS_STATUT_COMMANDE,
+  STATUT_STYLE,
+  PROCHAINS_STATUTS,
+} from "@/lib/constants/commandes";
 
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { ChevronDown, Phone, MapPin } from "lucide-react";
 
-const STATUTS: { value: StatutCommande | "tous"; label: string }[] = [
+const FILTRES: { value: StatutCommande | "tous"; label: string }[] = [
   { value: "tous", label: "Toutes" },
-  { value: "en_attente", label: "En attente" },
-  { value: "confirmee", label: "Confirmée" },
-  { value: "preparee", label: "Préparée" },
-  { value: "expediee", label: "Expédiée" },
-  { value: "livree", label: "Livrée" },
-  { value: "annulee", label: "Annulée" },
-  { value: "remboursee", label: "Remboursée" },
+  ...Object.values(STATUTS_COMMANDE).map((value) => ({
+    value,
+    label: LABELS_STATUT_COMMANDE[value],
+  })),
 ];
-
-const STATUT_STYLE: Record<string, string> = {
-  en_attente: "bg-amber-50 text-amber-700 border-amber-100",
-  confirmee: "bg-teal-50 text-teal-700 border-teal-100",
-  preparee: "bg-blue-50 text-blue-700 border-blue-100",
-  expediee: "bg-indigo-50 text-indigo-700 border-indigo-100",
-  livree: "bg-green-50 text-green-700 border-green-100",
-  annulee: "bg-red-50 text-red-700 border-red-100",
-  remboursee: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
-const PROCHAINS_STATUTS: Record<string, StatutCommande[]> = {
-  en_attente: ["confirmee", "annulee"],
-  confirmee: ["preparee", "annulee"],
-  preparee: ["expediee", "annulee"],
-  expediee: ["livree"],
-  livree: [],
-  annulee: [],
-  remboursee: [],
-};
 
 export default function VendeurCommandesPage() {
   const { loading, error, commandes, updatingId, updateStatut, refresh } = useVendeurCommandes();
@@ -66,9 +49,8 @@ export default function VendeurCommandesPage() {
         <DashboardSkeleton />
       ) : (
         <div className="space-y-6">
-          {/* Filtres */}
           <div className="flex gap-2 overflow-x-auto pb-2">
-            {STATUTS.map((s) => (
+            {FILTRES.map((s) => (
               <button
                 key={s.value}
                 onClick={() => setFiltre(s.value)}
@@ -83,7 +65,6 @@ export default function VendeurCommandesPage() {
             ))}
           </div>
 
-          {/* Liste */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
             {commandesFiltrees.length === 0 ? (
               <div className="px-8 py-16 text-center text-gray-400">Aucune commande dans cette catégorie</div>
@@ -91,7 +72,7 @@ export default function VendeurCommandesPage() {
               <div className="divide-y divide-gray-100">
                 {commandesFiltrees.map((order) => {
                   const isExpanded = expandedId === order.id;
-                  const prochains = PROCHAINS_STATUTS[order.statut] || [];
+                  const prochains = PROCHAINS_STATUTS[order.statut as StatutCommande] || [];
 
                   return (
                     <div key={order.id}>
@@ -110,10 +91,10 @@ export default function VendeurCommandesPage() {
                           </span>
                           <span
                             className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
-                              STATUT_STYLE[order.statut] || "bg-gray-100 text-gray-600 border-gray-200"
+                              STATUT_STYLE[order.statut as StatutCommande] || "bg-gray-100 text-gray-600 border-gray-200"
                             }`}
                           >
-                            {STATUTS.find((s) => s.value === order.statut)?.label || order.statut}
+                            {LABELS_STATUT_COMMANDE[order.statut as StatutCommande] || order.statut}
                           </span>
                           <ChevronDown
                             size={18}
@@ -155,14 +136,12 @@ export default function VendeurCommandesPage() {
                                     disabled={updatingId === order.id}
                                     onClick={() => updateStatut(order.id, next)}
                                     className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 ${
-                                      next === "annulee"
+                                      next === STATUTS_COMMANDE.ANNULEE
                                         ? "bg-red-50 text-red-600 hover:bg-red-100"
                                         : "bg-coral-500 text-white hover:bg-coral-600"
                                     }`}
                                   >
-                                    {updatingId === order.id
-                                      ? "..."
-                                      : `Marquer ${STATUTS.find((s) => s.value === next)?.label}`}
+                                    {updatingId === order.id ? "..." : `Marquer ${LABELS_STATUT_COMMANDE[next]}`}
                                   </button>
                                 ))}
                               </div>

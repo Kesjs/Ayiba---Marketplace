@@ -3,12 +3,15 @@ import { createClient } from "@/lib/supabase/client";
 
 export interface VendeurInfo {
   nom_complet: string | null;
+  statut: string | null;
 }
 
 export interface VendeurStats {
   nombre_commandes: number;
   nombre_articles: number;
   articles_vendus: number;
+  commandes_en_attente: number;
+  messages_non_lus: number;
 }
 
 export interface ChiffreAffaires {
@@ -32,6 +35,7 @@ export interface DashboardCommande {
   nom_client: string | null;
   montant_total: number;
   statut: string;
+  statut_brut: string;
   created_at: string;
 }
 
@@ -39,6 +43,7 @@ export interface DashboardMessage {
   id: string;
   contenu: string;
   created_at: string;
+  lu: boolean | null;
 }
 
 interface ArticleRow {
@@ -108,7 +113,7 @@ export function useVendeurDashboard() {
         { data: paiementsData },
         { data: messagesData },
       ] = await Promise.all([
-        supabase.from("vendeurs").select("nom_complet").eq("id", user.id).single(),
+        supabase.from("vendeurs").select("nom_complet, statut").eq("id", user.id).single(),
         supabase.from("articles").select("id, actif, created_at").eq("vendeur_id", user.id),
         supabase
           .from("commandes")
@@ -121,17 +126,17 @@ export function useVendeurDashboard() {
           .eq("vendeur_id", user.id),
         supabase
           .from("messages")
-          .select("id, contenu, created_at")
+          .select("id, contenu, created_at, lu")
           .eq("destinataire_id", user.id)
           .order("created_at", { ascending: false })
           .limit(5),
       ]);
 
-      const commandesList = (commandesData || []) as DashboardCommande[];
+      const commandesList = (commandesData || []) as (DashboardCommande & { statut: string })[];
       const articlesList = (articlesData || []) as ArticleRow[];
       const paiementsList = (paiementsData || []) as PaiementRow[];
       const messagesList = (messagesData || []) as DashboardMessage[];
-      const commandeIds = commandesList.map((c: DashboardCommande) => c.id);
+      const commandeIds = commandesList.map((c) => c.id);
 
       let articlesVendusTotal = 0;
       let articlesVendusActuel = 0;
@@ -146,7 +151,7 @@ export function useVendeurDashboard() {
         const lignesList = (lignesData || []) as LigneRow[];
 
         const commandeDateMap = new Map<string, Date>(
-          commandesList.map((c: DashboardCommande) => [c.id, new Date(c.created_at)])
+          commandesList.map((c) => [c.id, new Date(c.created_at)])
         );
 
         lignesList.forEach((ligne: LigneRow) => {
@@ -160,43 +165,36 @@ export function useVendeurDashboard() {
         });
       }
 
-      const caPaye = paiementsList.filter((p: PaiementRow) => p.statut === "paye");
-      const montantTotal = caPaye.reduce(
-        (sum: number, p: PaiementRow) => sum + Number(p.montant_net || 0),
-        0
-      );
+      const caPaye = paiementsList.filter((p) => p.statut === "paye");
+      const montantTotal = caPaye.reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
       const caActuel = caPaye
-        .filter((p: PaiementRow) => new Date(p.created_at) >= debutActuel)
-        .reduce((sum: number, p: PaiementRow) => sum + Number(p.montant_net || 0), 0);
+        .filter((p) => new Date(p.created_at) >= debutActuel)
+        .reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
       const caPrecedent = caPaye
-        .filter(
-          (p: PaiementRow) =>
-            new Date(p.created_at) >= debutPrecedent && new Date(p.created_at) < debutActuel
-        )
-        .reduce((sum: number, p: PaiementRow) => sum + Number(p.montant_net || 0), 0);
+        .filter((p) => new Date(p.created_at) >= debutPrecedent && new Date(p.created_at) < debutActuel)
+        .reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
 
-      const commandesActuel = commandesList.filter(
-        (c: DashboardCommande) => new Date(c.created_at) >= debutActuel
-      ).length;
+      const commandesActuel = commandesList.filter((c) => new Date(c.created_at) >= debutActuel).length;
       const commandesPrecedent = commandesList.filter(
-        (c: DashboardCommande) =>
-          new Date(c.created_at) >= debutPrecedent && new Date(c.created_at) < debutActuel
+        (c) => new Date(c.created_at) >= debutPrecedent && new Date(c.created_at) < debutActuel
       ).length;
 
-      const articlesActifs = articlesList.filter((a: ArticleRow) => a.actif);
-      const articlesActifsActuel = articlesActifs.filter(
-        (a: ArticleRow) => new Date(a.created_at) >= debutActuel
-      ).length;
+      const articlesActifs = articlesList.filter((a) => a.actif);
+      const articlesActifsActuel = articlesActifs.filter((a) => new Date(a.created_at) >= debutActuel).length;
       const articlesActifsPrecedent = articlesActifs.filter(
-        (a: ArticleRow) =>
-          new Date(a.created_at) >= debutPrecedent && new Date(a.created_at) < debutActuel
+        (a) => new Date(a.created_at) >= debutPrecedent && new Date(a.created_at) < debutActuel
       ).length;
+
+      const commandesEnAttente = commandesList.filter((c) => c.statut === "en_attente").length;
+      const messagesNonLus = messagesList.filter((m) => m.lu === false).length;
 
       setVendeur(vendeurData as VendeurInfo | null);
       setStats({
         nombre_commandes: commandesList.length,
         nombre_articles: articlesActifs.length,
         articles_vendus: articlesVendusTotal,
+        commandes_en_attente: commandesEnAttente,
+        messages_non_lus: messagesNonLus,
       });
       setChiffreAffaires({ montant_total: montantTotal });
       setEvolution({
@@ -210,8 +208,9 @@ export function useVendeurDashboard() {
         articles_vendus_periode_precedente: articlesVendusPrecedent,
       });
       setCommandes(
-        commandesList.slice(0, 5).map((c: DashboardCommande) => ({
+        commandesList.slice(0, 5).map((c) => ({
           ...c,
+          statut_brut: c.statut,
           statut: STATUT_LABELS[c.statut] || c.statut,
         }))
       );

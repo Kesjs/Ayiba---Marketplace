@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useVendeurCommandes, StatutCommande } from "../../hooks/useVendeurCommandes";
+import { useVendeurCommandes, StatutCommande } from "@/lib/hooks/useVendeurCommandes";
+
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { ChevronDown, Phone, MapPin } from "lucide-react";

@@ -6,6 +6,12 @@ export interface MessagePartner {
   avatar_url: string | null;
 }
 
+interface PartnerRow {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 export interface ConversationMessage {
   id: string;
   expediteur_id: string;
@@ -78,8 +84,10 @@ export function useVendeurMessages() {
         .select("id, full_name, avatar_url")
         .in("id", partnerIds);
 
+      const partnersList = (partnersData || []) as PartnerRow[];
+
       partnersById = new Map(
-        (partnersData || []).map((p) => [
+        partnersList.map((p: PartnerRow) => [
           p.id,
           { full_name: p.full_name, avatar_url: p.avatar_url },
         ])

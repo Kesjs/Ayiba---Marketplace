@@ -1,6 +1,7 @@
 "use client";
 
-import { useVendeurDashboard } from "../../hooks/useVendeurDashboard";
+import { useVendeurDashboard } from "@/lib/hooks/useVendeurDashboard";
+
 import { useRouter } from "next/navigation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { 

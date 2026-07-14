@@ -19,6 +19,11 @@ const emptyBadges: BadgeCounts = {
   commandes: 0,
 };
 
+// ⚠️ À confirmer : valeur exacte du statut "à traiter" dans `commandes`.
+// Ajuste cette constante dès que tu as vérifié en base (probablement
+// 'en_attente', mais peut aussi être 'nouvelle' ou 'pending').
+const STATUT_COMMANDE_A_TRAITER = "en_attente";
+
 export function useBadgeCounts(userId: string | undefined, role: string) {
   const [badges, setBadges] = useState<BadgeCounts>(emptyBadges);
 
@@ -38,7 +43,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
             .from("commandes")
             .select("*", { count: "exact", head: true })
             .eq("vendeur_id", userId)
-            .eq("statut", "en_attente"),
+            .eq("statut", STATUT_COMMANDE_A_TRAITER),
           supabase
             .from("messages")
             .select("*", { count: "exact", head: true })
@@ -51,20 +56,17 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
             ...prev,
             commandes: commandesCount ?? 0,
             messages: messagesCount ?? 0,
-            dashboard: 0, // le dashboard n'est pas une file d'attente, pas de badge par défaut
+            dashboard: 0, // pas de badge sur le dashboard : ce n'est pas une file d'attente
           }));
         }
       }
 
       if (role === "livreur") {
-        const { count: missionsCount } = await supabase
-          .from("missions")
-          .select("*", { count: "exact", head: true })
-          .eq("livreur_id", userId)
-          .eq("statut", "disponible");
-
+        // Pas de table de missions pour l'instant côté data.
+        // On laisse à 0 tant que le système d'attribution de livraisons
+        // n'est pas développé (pas de requête inutile en attendant).
         if (isMounted) {
-          setBadges((prev) => ({ ...prev, missions: missionsCount ?? 0 }));
+          setBadges((prev) => ({ ...prev, missions: 0 }));
         }
       }
 
@@ -72,7 +74,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
         const { count: favorisCount } = await supabase
           .from("favoris")
           .select("*", { count: "exact", head: true })
-          .eq("user_id", userId);
+          .eq("client_id", userId); // corrigé : client_id, pas user_id
 
         if (isMounted) {
           setBadges((prev) => ({ ...prev, favoris: favorisCount ?? 0 }));
@@ -82,7 +84,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
 
     fetchCounts();
 
-    // Abonnement temps réel : recalcule sur tout INSERT/UPDATE/DELETE pertinent
+    // Abonnement temps réel — uniquement sur les tables réellement utilisées
     const channel = supabase
       .channel(`badge-counts-${userId}`)
       .on(
@@ -97,12 +99,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
       )
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "missions", filter: `livreur_id=eq.${userId}` },
-        fetchCounts
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "favoris", filter: `user_id=eq.${userId}` },
+        { event: "*", schema: "public", table: "favoris", filter: `client_id=eq.${userId}` },
         fetchCounts
       )
       .subscribe();

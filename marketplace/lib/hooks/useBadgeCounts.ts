@@ -13,6 +13,13 @@ type BadgeCounts = {
   notifications: number;
 };
 
+type NotificationItem = {
+  id: string;
+  titre: string;
+  createdAt: string;
+  couleur?: "coral" | "teal" | "amber" | "gray";
+};
+
 const emptyBadges: BadgeCounts = {
   messages: 0,
   dashboard: 0,
@@ -22,8 +29,36 @@ const emptyBadges: BadgeCounts = {
   notifications: 0,
 };
 
+// Adapte ce mapping si les valeurs de "type" en base sont différentes
+function couleurPourType(type: string | null): NotificationItem["couleur"] {
+  switch (type) {
+    case "commande":
+      return "coral";
+    case "paiement":
+      return "teal";
+    case "message":
+      return "amber";
+    default:
+      return "gray";
+  }
+}
+
+function formatRelatif(dateIso: string): string {
+  const diffMs = Date.now() - new Date(dateIso).getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "À l'instant";
+  if (diffMin < 60) return `Il y a ${diffMin} min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `Il y a ${diffH} h`;
+  const diffJ = Math.floor(diffH / 24);
+  if (diffJ === 1) return "Hier";
+  if (diffJ < 7) return `Il y a ${diffJ} j`;
+  return new Date(dateIso).toLocaleDateString("fr-FR");
+}
+
 export function useBadgeCounts(userId: string | undefined, role: string) {
   const [badges, setBadges] = useState<BadgeCounts>(emptyBadges);
+  const [notificationsList, setNotificationsList] = useState<NotificationItem[]>([]);
   // Identifiant unique par instance du hook, stable entre les re-renders,
   // pour éviter que deux composants (BottomNav + DashboardLayout) créent
   // un channel Supabase avec le même nom.
@@ -32,6 +67,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
   useEffect(() => {
     if (!userId) {
       setBadges(emptyBadges);
+      setNotificationsList([]);
       return;
     }
 
@@ -39,14 +75,30 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
     let isMounted = true;
 
     async function fetchCounts() {
-      const { count: notificationsCount } = await supabase
-        .from("vue_notifications_dashboard")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("lu", false);
+      const [{ count: notificationsCount }, { data: notifRows }] = await Promise.all([
+        supabase
+          .from("vue_notifications_dashboard")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("lu", false),
+        supabase
+          .from("vue_notifications_dashboard")
+          .select("id, titre, type, created_at")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(5),
+      ]);
 
       if (isMounted) {
         setBadges((prev) => ({ ...prev, notifications: notificationsCount ?? 0 }));
+        setNotificationsList(
+          (notifRows ?? []).map((n) => ({
+            id: n.id,
+            titre: n.titre,
+            createdAt: formatRelatif(n.created_at),
+            couleur: couleurPourType(n.type),
+          }))
+        );
       }
 
       if (role === "vendeur") {
@@ -123,5 +175,5 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
     };
   }, [userId, role, instanceId]);
 
-  return badges;
+  return { ...badges, notificationsList };
 }

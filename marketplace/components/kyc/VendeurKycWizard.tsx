@@ -2,14 +2,28 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, CheckCircle2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, X, ShieldCheck, AlertTriangle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const STEP_LABELS = ["Identité", "Boutique", "Localisation", "Paiement"];
 const STORAGE_KEY = "ayiba-vendeur-kyc-draft";
+
+// --- Badges de statut, cohérents avec /vendeur/paiements ---
+const STATUT_STYLE: Record<string, string> = {
+  en_attente: "bg-amber-50 text-amber-700 border-amber-100",
+  valide: "bg-teal-50 text-teal-700 border-teal-100",
+  refuse: "bg-red-50 text-red-700 border-red-100",
+};
+
+const STATUT_LABEL: Record<string, string> = {
+  en_attente: "En attente",
+  valide: "Vérifié",
+  refuse: "Refusé",
+};
 
 interface VendeurFormData {
   nomComplet: string;
@@ -38,30 +52,91 @@ const INITIAL_DATA: VendeurFormData = {
   mobileMoneyNumber: "",
 };
 
+const slideVariants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir > 0 ? 24 : -24 }),
+  center: { opacity: 1, x: 0 },
+  exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -24 : 24 }),
+};
+
 export function VendeurKycWizard() {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(1);
   const [data, setData] = useState<VendeurFormData>(INITIAL_DATA);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const totalSteps = 4;
 
-  // Restaure le brouillon au montage (étape + champs texte, pas les photos)
+  // Photos déjà en base (vendeur existant, ex: après un refus) — on ne force pas
+  // un nouvel upload si l'utilisateur ne touche pas au champ.
+  const [existingPhotoProfilUrl, setExistingPhotoProfilUrl] = useState<string | null>(null);
+  const [existingPhotoCniPath, setExistingPhotoCniPath] = useState<string | null>(null);
+  const [vendeurStatut, setVendeurStatut] = useState<string | null>(null);
+  const [raisonRejet, setRaisonRejet] = useState<string | null>(null);
+
+  // Hydratation : la base fait foi, le brouillon localStorage ne sert que de
+  // secours (nouveau vendeur sans ligne en base, ou perte réseau).
   useEffect(() => {
     if (typeof window === "undefined") return;
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved) as { step: number; fields: PersistedFields };
-        setData((prev) => ({ ...prev, ...parsed.fields }));
-        setStep(parsed.step || 1);
+
+    let cancelled = false;
+
+    const hydrate = async () => {
+      let draft: { step: number; fields: PersistedFields } | null = null;
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) draft = JSON.parse(saved);
+      } catch {
+        // brouillon corrompu, on l'ignore silencieusement
       }
-    } catch {
-      // brouillon corrompu, on l'ignore silencieusement
-    } finally {
-      setHydrated(true);
-    }
+
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: vendeur } = await supabase
+            .from("vendeurs")
+            .select("*")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (vendeur && !cancelled) {
+            setData((prev) => ({
+              ...prev,
+              nomComplet: vendeur.nom_complet ?? prev.nomComplet,
+              nomBoutique: vendeur.nom_boutique ?? prev.nomBoutique,
+              description: vendeur.description ?? prev.description,
+              quartier: vendeur.quartier ?? prev.quartier,
+              commune: vendeur.commune ?? prev.commune,
+              mobileMoneyNetwork: vendeur.mobile_money_network ?? prev.mobileMoneyNetwork,
+              mobileMoneyNumber: vendeur.mobile_money_number ?? prev.mobileMoneyNumber,
+            }));
+            setExistingPhotoProfilUrl(vendeur.photo_profil_url ?? null);
+            setExistingPhotoCniPath(vendeur.photo_cni_path ?? null);
+            setVendeurStatut(vendeur.statut ?? null);
+            setRaisonRejet(vendeur.raison_rejet ?? null);
+            setHydrated(true);
+            return;
+          }
+        }
+      } catch {
+        // pas de session / erreur réseau → on retombe sur le brouillon local
+      }
+
+      // Pas de ligne en base : fallback sur le brouillon localStorage
+      if (!cancelled && draft) {
+        setData((prev) => ({ ...prev, ...draft!.fields }));
+        setStep(draft.step || 1);
+      }
+      if (!cancelled) setHydrated(true);
+    };
+
+    hydrate();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Sauvegarde à chaque changement (étape ou champs texte), une fois l'hydratation initiale faite
@@ -108,7 +183,10 @@ export function VendeurKycWizard() {
   const isStepValid = () => {
     switch (step) {
       case 1:
-        return data.nomComplet.trim().length > 2 && data.photoProfil !== null;
+        return (
+          data.nomComplet.trim().length > 2 &&
+          (data.photoProfil !== null || existingPhotoProfilUrl !== null)
+        );
       case 2:
         return data.nomBoutique.trim().length > 2 && data.description.trim().length > 5;
       case 3:
@@ -120,16 +198,21 @@ export function VendeurKycWizard() {
     }
   };
 
+  const goToStep = (target: number) => {
+    setDirection(target > step ? 1 : -1);
+    setStep(target);
+  };
+
   const handleNext = () => {
     if (step < totalSteps) {
-      setStep(step + 1);
+      goToStep(step + 1);
     } else {
-      setStep(totalSteps + 1);
+      goToStep(totalSteps + 1);
     }
   };
 
   const handleBack = () => {
-    if (step > 1) setStep(step - 1);
+    if (step > 1) goToStep(step - 1);
   };
 
   const handleSubmit = async () => {
@@ -146,8 +229,8 @@ export function VendeurKycWizard() {
     }
 
     try {
-      let photoProfilUrl: string | null = null;
-      let photoCniPath: string | null = null;
+      let photoProfilUrl: string | null = existingPhotoProfilUrl;
+      let photoCniPath: string | null = existingPhotoCniPath;
 
       if (data.photoProfil) {
         const path = `${user.id}/profil-${Date.now()}.jpg`;
@@ -167,6 +250,10 @@ export function VendeurKycWizard() {
         photoCniPath = path;
       }
 
+      // Important : on force explicitement le statut à chaque soumission (y compris
+      // en resoumission après refus), sinon un vendeur "refuse" resterait bloqué.
+      // raison_rejet / reviewed_at / reviewed_by ne sont volontairement PAS touchés
+      // ici : ils restent visibles jusqu'à ce qu'un admin retraite la demande.
       const { error: insertError } = await supabase.from("vendeurs").upsert({
         id: user.id,
         nom_complet: data.nomComplet,
@@ -178,6 +265,7 @@ export function VendeurKycWizard() {
         commune: data.commune,
         mobile_money_network: data.mobileMoneyNetwork,
         mobile_money_number: data.mobileMoneyNumber,
+        statut: "en_attente",
       });
       if (insertError) throw insertError;
 
@@ -192,7 +280,7 @@ export function VendeurKycWizard() {
 
   const isRecap = step === totalSteps + 1;
 
-  // Évite un flash de l'étape 1 pendant la lecture du localStorage
+  // Évite un flash de l'étape 1 pendant la lecture de la base / du localStorage
   if (!hydrated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -224,236 +312,294 @@ export function VendeurKycWizard() {
               </div>
             )}
           </div>
+          {vendeurStatut && (
+            <span
+              className={`shrink-0 text-[11px] font-bold px-3 py-1.5 rounded-full border ${
+                STATUT_STYLE[vendeurStatut] || "bg-gray-100 text-gray-600 border-gray-200"
+              }`}
+            >
+              {STATUT_LABEL[vendeurStatut] || vendeurStatut}
+            </span>
+          )}
         </div>
       </div>
 
       <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8">
-        <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-100 p-6 md:p-8 shadow-sm">
-          {step === 1 && (
-            <div className="flex flex-col gap-5">
+        <div className="w-full max-w-2xl flex flex-col gap-4">
+          {vendeurStatut === "refuse" && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-3xl p-4"
+            >
+              <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
               <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Qui es-tu ?</h2>
-                <p className="text-sm text-gray-500">
-                  On a besoin de vérifier ton identité pour protéger la communauté Ayiba.
+                <p className="text-sm font-bold text-red-700">Vérification refusée</p>
+                <p className="text-sm text-red-600 mt-0.5">
+                  {raisonRejet || "Aucune raison précisée."} Corrige les informations ci-dessous puis
+                  soumets à nouveau ta demande.
                 </p>
               </div>
-
-              {data.photoProfil === null && step === 1 && (
-                <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                  Après un rechargement de page, tes textes sont conservés mais tu devras réajouter tes photos.
-                </p>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom complet
-                </label>
-                <input
-                  type="text"
-                  value={data.nomComplet}
-                  onChange={(e) => update("nomComplet", e.target.value)}
-                  placeholder="Ex: Ken Erlich Babatounde"
-                  className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
-                />
-              </div>
-
-              <PhotoUpload
-                label="Photo de profil"
-                helperText="Une photo claire de ton visage"
-                value={data.photoProfil}
-                onChange={(file) => update("photoProfil", file)}
-                aspect="square"
-              />
-
-              <PhotoUpload
-                label="Photo de la CNI (optionnel pour l'instant)"
-                helperText="Recto uniquement, bien lisible"
-                value={data.photoCni}
-                onChange={(file) => update("photoCni", file)}
-                aspect="square"
-              />
-            </div>
+            </motion.div>
           )}
 
-          {step === 2 && (
-            <div className="flex flex-col gap-5">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Ta boutique</h2>
-                <p className="text-sm text-gray-500">
-                  Tu ajouteras tes articles après validation, dans ton dashboard.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom de la boutique
-                </label>
-                <input
-                  type="text"
-                  value={data.nomBoutique}
-                  onChange={(e) => update("nomBoutique", e.target.value)}
-                  placeholder="Ex: Chez Ken Fashion"
-                  className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description courte
-                </label>
-                <textarea
-                  value={data.description}
-                  onChange={(e) => update("description", e.target.value)}
-                  placeholder="En 2-3 lignes, décris ce que tu vends"
-                  rows={4}
-                  className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 resize-none"
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 3 && (
-            <div className="flex flex-col gap-5">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Où es-tu situé ?</h2>
-                <p className="text-sm text-gray-500">
-                  Ça aide les clients proches de toi à te trouver plus facilement.
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Commune</label>
-                <input
-                  type="text"
-                  value={data.commune}
-                  onChange={(e) => update("commune", e.target.value)}
-                  placeholder="Ex: Calavi"
-                  className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Quartier</label>
-                <input
-                  type="text"
-                  value={data.quartier}
-                  onChange={(e) => update("quartier", e.target.value)}
-                  placeholder="Ex: Godomey"
-                  className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
-                />
-              </div>
-            </div>
-          )}
-
-          {step === 4 && (
-            <div className="flex flex-col gap-5">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Comment être payé ?</h2>
-                <p className="text-sm text-gray-500">
-                  Tes gains seront versés sur ce numéro après chaque vente validée.
-                </p>
-              </div>
-
-              <MobileMoneySelector
-                selected={data.mobileMoneyNetwork}
-                onSelect={(network) => update("mobileMoneyNetwork", network)}
-                phoneNumber={data.mobileMoneyNumber}
-                onPhoneChange={(value) => update("mobileMoneyNumber", value)}
-              />
-            </div>
-          )}
-
-          {isRecap && (
-            <div className="flex flex-col gap-5">
-              <div className="text-center mb-2">
-                <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-teal-50 flex items-center justify-center">
-                  <CheckCircle2 size={28} className="text-teal-500" />
-                </div>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Vérifie tes informations</h2>
-                <p className="text-sm text-gray-500">
-                  Ton compte sera validé sous 24h après soumission.
-                </p>
-              </div>
-
-              {!data.photoProfil && (
-                <button
-                  onClick={() => setStep(1)}
-                  className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 text-center hover:bg-amber-100 transition-colors"
-                >
-                  Ta photo de profil a été perdue lors d'un rechargement. Touche ici pour la réajouter.
-                </button>
-              )}
-
-              <div className="bg-gray-50 rounded-xl p-4 flex flex-col gap-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Nom</span>
-                  <span className="font-medium text-gray-900">{data.nomComplet}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Boutique</span>
-                  <span className="font-medium text-gray-900">{data.nomBoutique}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Localisation</span>
-                  <span className="font-medium text-gray-900">{data.quartier}, {data.commune}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-500">Paiement</span>
-                  <span className="font-medium text-gray-900">
-                    {data.mobileMoneyNetwork?.toUpperCase()} • {data.mobileMoneyNumber}
-                  </span>
-                </div>
-              </div>
-
-              {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setStep(totalSteps)}
-                  className="flex items-center gap-1 h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
-                >
-                  <ChevronLeft size={16} />
-                  Modifier
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  disabled={submitting || !data.photoProfil}
-                  className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
-                >
-                  {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {!isRecap && (
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-              {step === 1 ? (
-                <button
-                  onClick={handleCancel}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  Annuler
-                </button>
-              ) : (
-                <button
-                  onClick={handleBack}
-                  className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  <ChevronLeft size={16} />
-                  Précédent
-                </button>
-              )}
-              <button
-                onClick={handleNext}
-                disabled={!isStepValid()}
-                className="flex items-center gap-1 h-11 px-6 rounded-lg bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          <div className="bg-white rounded-[32px] border border-gray-100 p-6 md:p-8 shadow-sm overflow-hidden">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={isRecap ? "recap" : step}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.25, ease: "easeOut" }}
               >
-                {step === totalSteps ? "Voir le récap" : "Suivant"}
-                <ChevronRight size={16} />
-              </button>
-            </div>
-          )}
+                {step === 1 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Qui es-tu ?</h2>
+                      <p className="text-sm text-gray-500">
+                        On a besoin de vérifier ton identité pour protéger la communauté Ayiba.
+                      </p>
+                    </div>
+
+                    {data.photoProfil === null && existingPhotoProfilUrl === null && (
+                      <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2">
+                        Après un rechargement de page, tes textes sont conservés mais tu devras
+                        réajouter tes photos.
+                      </p>
+                    )}
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nom complet
+                      </label>
+                      <input
+                        type="text"
+                        value={data.nomComplet}
+                        onChange={(e) => update("nomComplet", e.target.value)}
+                        placeholder="Ex: Ken Erlich Babatounde"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
+                      />
+                    </div>
+
+                    <PhotoUpload
+                      label="Photo de profil"
+                      helperText={
+                        existingPhotoProfilUrl
+                          ? "Une photo est déjà enregistrée — touche pour la remplacer"
+                          : "Une photo claire de ton visage"
+                      }
+                      value={data.photoProfil}
+                      onChange={(file) => update("photoProfil", file)}
+                      aspect="square"
+                    />
+
+                    <PhotoUpload
+                      label="Photo de la CNI (optionnel pour l'instant)"
+                      helperText={
+                        existingPhotoCniPath
+                          ? "Un document est déjà enregistré — touche pour le remplacer"
+                          : "Recto uniquement, bien lisible"
+                      }
+                      value={data.photoCni}
+                      onChange={(file) => update("photoCni", file)}
+                      aspect="square"
+                    />
+                  </div>
+                )}
+
+                {step === 2 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Ta boutique</h2>
+                      <p className="text-sm text-gray-500">
+                        Tu ajouteras tes articles après validation, dans ton dashboard.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Nom de la boutique
+                      </label>
+                      <input
+                        type="text"
+                        value={data.nomBoutique}
+                        onChange={(e) => update("nomBoutique", e.target.value)}
+                        placeholder="Ex: Chez Ken Fashion"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Description courte
+                      </label>
+                      <textarea
+                        value={data.description}
+                        onChange={(e) => update("description", e.target.value)}
+                        placeholder="En 2-3 lignes, décris ce que tu vends"
+                        rows={4}
+                        className="w-full px-3 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 resize-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {step === 3 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Où es-tu situé ?</h2>
+                      <p className="text-sm text-gray-500">
+                        Ça aide les clients proches de toi à te trouver plus facilement.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Commune</label>
+                      <input
+                        type="text"
+                        value={data.commune}
+                        onChange={(e) => update("commune", e.target.value)}
+                        placeholder="Ex: Calavi"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Quartier</label>
+                      <input
+                        type="text"
+                        value={data.quartier}
+                        onChange={(e) => update("quartier", e.target.value)}
+                        placeholder="Ex: Godomey"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {step === 4 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Comment être payé ?</h2>
+                      <p className="text-sm text-gray-500">
+                        Tes gains seront versés sur ce numéro après chaque vente validée.
+                      </p>
+                    </div>
+
+                    <MobileMoneySelector
+                      selected={data.mobileMoneyNetwork}
+                      onSelect={(network) => update("mobileMoneyNetwork", network)}
+                      phoneNumber={data.mobileMoneyNumber}
+                      onPhoneChange={(value) => update("mobileMoneyNumber", value)}
+                    />
+                  </div>
+                )}
+
+                {isRecap && (
+                  <div className="flex flex-col gap-5">
+                    {/* Hero façon page Paiements : gradient coral + résumé */}
+                    <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[28px] p-6 text-white shadow-xl shadow-coral-500/20">
+                      <div className="absolute -top-16 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute -bottom-16 -left-8 w-32 h-32 bg-black/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-3">
+                          <ShieldCheck size={22} />
+                        </div>
+                        <h2 className="text-lg font-bold mb-1">Vérifie tes informations</h2>
+                        <p className="text-sm text-white/80">
+                          Ton compte sera validé sous 24-48h après soumission.
+                        </p>
+                      </div>
+                    </div>
+
+                    {!data.photoProfil && !existingPhotoProfilUrl && (
+                      <button
+                        onClick={() => goToStep(1)}
+                        className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2 text-center hover:bg-amber-100 transition-colors"
+                      >
+                        Ta photo de profil a été perdue lors d'un rechargement. Touche ici pour la
+                        réajouter.
+                      </button>
+                    )}
+
+                    <div className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-3 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Nom</span>
+                        <span className="font-medium text-gray-900">{data.nomComplet}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Boutique</span>
+                        <span className="font-medium text-gray-900">{data.nomBoutique}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Localisation</span>
+                        <span className="font-medium text-gray-900">
+                          {data.quartier}, {data.commune}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Paiement</span>
+                        <span className="font-medium text-gray-900">
+                          {data.mobileMoneyNetwork?.toUpperCase()} • {data.mobileMoneyNumber}
+                        </span>
+                      </div>
+                    </div>
+
+                    {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => goToStep(totalSteps)}
+                        className="flex items-center gap-1 h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
+                      >
+                        <ChevronLeft size={16} />
+                        Modifier
+                      </button>
+                      <motion.button
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handleSubmit}
+                        disabled={submitting || (!data.photoProfil && !existingPhotoProfilUrl)}
+                        className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
+                      >
+                        {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}
+                      </motion.button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {!isRecap && (
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+                {step === 1 ? (
+                  <button
+                    onClick={handleCancel}
+                    className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    Annuler
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleBack}
+                    className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <ChevronLeft size={16} />
+                    Précédent
+                  </button>
+                )}
+                <button
+                  onClick={handleNext}
+                  disabled={!isStepValid()}
+                  className="flex items-center gap-1 h-11 px-6 rounded-lg bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {step === totalSteps ? "Voir le récap" : "Suivant"}
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

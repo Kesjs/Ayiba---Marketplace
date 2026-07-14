@@ -123,7 +123,10 @@ export function VentesChart({ paiements, objectifMensuel = 500000 }: VentesChart
               tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
             />
             <Tooltip
-              formatter={(value: number) => [`${value.toLocaleString("fr-FR")} F`, "CA"]}
+              formatter={(value) => [
+                `${Number(value ?? 0).toLocaleString("fr-FR")} F`,
+                "CA",
+              ]}
               contentStyle={{ borderRadius: 12, border: "1px solid #F1EFE8", fontSize: 12 }}
             />
             {periode === "30j" && (

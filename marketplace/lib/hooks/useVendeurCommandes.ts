@@ -1,14 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import type { StatutCommande } from "@/lib/constants/commandes";
 
-export type StatutCommande =
-  | "en_attente"
-  | "confirmee"
-  | "preparee"
-  | "expediee"
-  | "livree"
-  | "annulee"
-  | "remboursee";
+export type { StatutCommande }; // ré-exporté pour ne rien casser côté imports existants
 
 export interface VendeurCommande {
   id: string;

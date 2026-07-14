@@ -35,9 +35,11 @@ export function useVendeurPaiements() {
 
       if (vendeurError) throw vendeurError;
 
+      // On joint la commande liée pour connaître son statut de livraison —
+      // c'est ce qui détermine si l'argent est en escrow ou disponible.
       const { data: paiementsData, error: paiementsError } = await supabase
         .from("paiements")
-        .select("*")
+        .select("*, commande:commande_id(numero, statut)")
         .eq("vendeur_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -66,8 +68,20 @@ export function useVendeurPaiements() {
     loadData();
   }, [loadData]);
 
-  const totalRecu = paiements
-    .filter((p) => p.statut === "paye")
+  // Un paiement "paye" ne veut pas dire "disponible" — il faut aussi
+  // que la commande liée soit livrée (escrow libéré).
+  const totalRecuLivre = paiements
+    .filter((p) => p.statut === "paye" && p.commande?.statut === "livree")
+    .reduce((sum, p) => sum + Number(p.montant_net ?? p.montant ?? 0), 0);
+
+  // Argent payé par le client mais bloqué en escrow (livraison pas encore confirmée)
+  const totalEnAttenteLivraison = paiements
+    .filter(
+      (p) =>
+        p.statut === "paye" &&
+        p.commande?.statut &&
+        !["livree", "annulee", "remboursee"].includes(p.commande.statut)
+    )
     .reduce((sum, p) => sum + Number(p.montant_net ?? p.montant ?? 0), 0);
 
   const totalRetire = retraits
@@ -78,7 +92,8 @@ export function useVendeurPaiements() {
     .filter((r) => r.statut === "en_attente")
     .reduce((sum, r) => sum + Number(r.montant || 0), 0);
 
-  const soldeDisponible = Math.max(0, totalRecu - totalRetire - totalEnAttenteRetrait);
+  const soldeDisponible = Math.max(0, totalRecuLivre - totalRetire - totalEnAttenteRetrait);
+  const soldeEnAttenteLivraison = totalEnAttenteLivraison;
 
   const demanderRetrait = useCallback(
     async (montant: number) => {
@@ -123,6 +138,7 @@ export function useVendeurPaiements() {
     paiements,
     retraits,
     soldeDisponible,
+    soldeEnAttenteLivraison,
     requesting,
     demanderRetrait,
     refresh: loadData,

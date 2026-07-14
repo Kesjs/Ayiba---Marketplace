@@ -56,6 +56,7 @@ export function DashboardLayout({
           avatarUrl={profile?.avatar_url}
           fullName={displayName}
           notificationsCount={badges.notifications}
+          notifications={badges.notificationsList}
         />
 
         <div className="p-4 md:p-8 lg:p-10 pb-28 lg:pb-10 max-w-7xl mx-auto">
@@ -67,4 +68,3 @@ export function DashboardLayout({
     </div>
   );
 }
-

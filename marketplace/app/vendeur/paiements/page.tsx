@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useVendeurPaiements } from "../../hooks/useVendeurPaiements";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
-import { Wallet, X, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
+import { Wallet, Clock, X, ArrowDownToLine, ArrowUpFromLine } from "lucide-react";
 
 const STATUT_STYLE: Record<string, string> = {
   en_attente: "bg-amber-50 text-amber-700 border-amber-100",
@@ -24,6 +24,17 @@ const STATUT_LABEL: Record<string, string> = {
   rembourse: "Remboursé",
 };
 
+// Statut de livraison lisible pour un paiement, dérivé de la commande liée.
+function statutLivraisonLabel(commandeStatut?: string): { label: string; style: string } {
+  if (commandeStatut === "livree") {
+    return { label: "Livrée · disponible", style: "bg-teal-50 text-teal-700 border-teal-100" };
+  }
+  if (commandeStatut === "annulee" || commandeStatut === "remboursee") {
+    return { label: "Annulée", style: "bg-gray-100 text-gray-600 border-gray-200" };
+  }
+  return { label: "En cours de livraison", style: "bg-amber-50 text-amber-700 border-amber-100" };
+}
+
 export default function VendeurPaiementsPage() {
   const {
     loading,
@@ -31,6 +42,7 @@ export default function VendeurPaiementsPage() {
     paiements,
     retraits,
     soldeDisponible,
+    soldeEnAttenteLivraison,
     requesting,
     demanderRetrait,
     refresh,
@@ -68,26 +80,44 @@ export default function VendeurPaiementsPage() {
         <DashboardSkeleton />
       ) : (
         <div className="space-y-8">
-          {/* Solde */}
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-3xl text-white">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-                  <Wallet size={16} />
-                  Solde disponible
-                </div>
-                <p className="text-4xl font-bold tracking-tight">{soldeDisponible.toLocaleString("fr-FR")} F</p>
+          {/* Solde disponible + escrow */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 sm:p-8 rounded-3xl text-white">
+              <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
+                <Wallet size={16} />
+                Solde disponible
               </div>
+              <p className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
+                {soldeDisponible.toLocaleString("fr-FR")} F
+              </p>
               <button
                 onClick={() => {
                   setFeedback(null);
                   setModalOpen(true);
                 }}
                 disabled={soldeDisponible <= 0}
-                className="px-5 py-3 bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold rounded-2xl transition-colors disabled:opacity-40 flex-shrink-0"
+                className="w-full sm:w-auto px-5 py-3 bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold rounded-2xl transition-colors disabled:opacity-40"
               >
                 Retirer
               </button>
+              {soldeDisponible <= 0 && (
+                <p className="text-xs text-gray-400 mt-2">
+                  Rien à retirer pour l'instant — reviens une fois tes livraisons confirmées.
+                </p>
+              )}
+            </div>
+
+            <div className="bg-amber-50 border border-amber-100 p-6 sm:p-8 rounded-3xl">
+              <div className="flex items-center gap-2 text-amber-700 text-sm mb-2">
+                <Clock size={16} />
+                En attente de livraison
+              </div>
+              <p className="text-3xl sm:text-4xl font-bold tracking-tight text-amber-900 mb-2">
+                {soldeEnAttenteLivraison.toLocaleString("fr-FR")} F
+              </p>
+              <p className="text-xs text-amber-700">
+                Payé par tes clients, débloqué automatiquement dès la livraison confirmée.
+              </p>
             </div>
           </div>
 
@@ -104,25 +134,40 @@ export default function VendeurPaiementsPage() {
                 {paiements.length === 0 ? (
                   <p className="text-gray-400 text-center py-12 text-sm">Aucun paiement pour l'instant</p>
                 ) : (
-                  paiements.map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-4">
-                      <div>
-                        <p className="font-semibold text-gray-900 text-sm">
-                          {Number(p.montant_net ?? p.montant).toLocaleString("fr-FR")} F
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          {new Date(p.created_at).toLocaleDateString("fr-FR")}
-                        </p>
+                  paiements.map((p) => {
+                    const livraison = statutLivraisonLabel(p.commande?.statut);
+                    return (
+                      <div key={p.id} className="p-4">
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="font-semibold text-gray-900 text-sm">
+                            {Number(p.montant_net ?? p.montant).toLocaleString("fr-FR")} F
+                          </p>
+                          <span
+                            className={`text-xs font-bold px-3 py-1 rounded-full border ${
+                              STATUT_STYLE[p.statut] || "bg-gray-100 text-gray-600 border-gray-200"
+                            }`}
+                          >
+                            {STATUT_LABEL[p.statut] || p.statut}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs text-gray-400">
+                            {p.commande?.numero ? `Commande ${p.commande.numero}` : "—"} ·{" "}
+                            {new Date(p.created_at).toLocaleDateString("fr-FR")}
+                          </p>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${livraison.style}`}>
+                            {livraison.label}
+                          </span>
+                        </div>
+                        {p.commission > 0 && (
+                          <p className="text-[11px] text-gray-400 mt-1">
+                            Vente {Number(p.montant).toLocaleString("fr-FR")} F − Commission{" "}
+                            {Number(p.commission).toLocaleString("fr-FR")} F
+                          </p>
+                        )}
                       </div>
-                      <span
-                        className={`text-xs font-bold px-3 py-1 rounded-full border ${
-                          STATUT_STYLE[p.statut] || "bg-gray-100 text-gray-600 border-gray-200"
-                        }`}
-                      >
-                        {STATUT_LABEL[p.statut] || p.statut}
-                      </span>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -165,13 +210,14 @@ export default function VendeurPaiementsPage() {
         </div>
       )}
 
-      {/* Modal de demande de retrait */}
+      {/* Modal de demande de retrait — reste en dialog centré pour l'instant, */}
+      {/* on le convertit en bottom sheet à la Phase 4 */}
       {modalOpen && (
         <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[70] flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold">Demander un retrait</h3>
-              <button onClick={() => setModalOpen(false)}>
+              <button onClick={() => setModalOpen(false)} aria-label="Fermer">
                 <X size={20} className="text-gray-400" />
               </button>
             </div>

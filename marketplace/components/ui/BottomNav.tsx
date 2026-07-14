@@ -10,6 +10,7 @@ import {
   ShoppingBag, Wallet, Settings, LogOut, Menu as MenuIcon, Plus
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
+import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -23,6 +24,7 @@ export function BottomNav() {
   const lastScrollY = useRef(0);
 
   const role = profile?.role || "guest";
+  const badges = useBadgeCounts(profile?.id, role);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -47,13 +49,9 @@ export function BottomNav() {
   };
 
   const handleLogout = async () => {
-    // Nettoie le mode démo (localStorage) s'il était actif
     exitDemoMode();
-
-    // Déconnecte la vraie session Supabase si elle existe
     const supabase = createClient();
     await supabase.auth.signOut();
-
     setIsVendeurMenuOpen(false);
     router.push("/");
   };
@@ -68,24 +66,12 @@ export function BottomNav() {
   const shouldHide = hideOnPaths.some(path => pathname.startsWith(path));
   if (shouldHide) return null;
 
-  // ⬇️ CORRECTIF : tant que le profil charge, on n'affiche rien
-  // plutôt que de fallback sur "guest" (ce qui causait le flash "Catalogue"
-  // pour les vendeurs juste après connexion).
   if (loading) return null;
 
-  const mockBadges = {
-    messages: 3,
-    dashboard: 2,
-    missions: 5,
-    favoris: 0,
-    commandes: 4,
-  };
-
-  // Items secondaires vendeur, accessibles via la feuille "Menu"
   const vendeurMenuItems = [
     { label: "Boutique", icon: Store, href: "/vendeur/boutique" },
     { label: "Paiements", icon: Wallet, href: "/vendeur/paiements" },
-    { label: "Messages", icon: MessageSquare, href: "/vendeur/messages", badge: mockBadges.messages },
+    { label: "Messages", icon: MessageSquare, href: "/vendeur/messages", badge: badges.messages },
     { label: "Paramètres", icon: Settings, href: "/vendeur/parametres" },
   ];
 
@@ -98,12 +84,12 @@ export function BottomNav() {
     ],
     client: [
       { label: "Accueil", icon: Home, href: "/" },
-      { label: "Favoris", icon: Heart, href: "/favoris", badge: mockBadges.favoris },
+      { label: "Favoris", icon: Heart, href: "/favoris", badge: badges.favoris },
       { label: "Explorer", icon: MapPin, href: "/boutiques" },
       { label: "Profil", icon: User, href: "/profil" },
     ],
     livreur: [
-      { label: "Missions", icon: Truck, href: "/livreur/missions", badge: mockBadges.missions },
+      { label: "Missions", icon: Truck, href: "/livreur/missions", badge: badges.missions },
       { label: "Historique", icon: History, href: "/livreur/historique" },
       { label: "Carte", icon: MapPin, href: "/livreur/carte" },
       { label: "Profil", icon: User, href: "/livreur/profil" },
@@ -115,13 +101,9 @@ export function BottomNav() {
     ]
   };
 
-  // ============================================
-  // RENDU SPÉCIFIQUE VENDEUR — 5 slots avec FAB central + menu
-  // ============================================
   if (role === "vendeur") {
     return (
       <>
-        {/* Feuille "Menu" — items secondaires */}
         <AnimatePresence>
           {isVendeurMenuOpen && (
             <>
@@ -182,17 +164,15 @@ export function BottomNav() {
           className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none"
         >
           <nav className="relative bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-lg flex items-center justify-around p-2 pointer-events-auto">
-            {/* Dashboard */}
             <VendeurNavLink
               href="/vendeur/dashboard"
               icon={LayoutDashboard}
               label="Dashboard"
-              badge={mockBadges.dashboard}
+              badge={badges.dashboard}
               pathname={pathname}
               onClick={triggerHaptic}
             />
 
-            {/* Articles */}
             <VendeurNavLink
               href="/vendeur/articles"
               icon={Package}
@@ -201,7 +181,6 @@ export function BottomNav() {
               onClick={triggerHaptic}
             />
 
-            {/* FAB central — Nouvel article */}
             <Link
               href="/vendeur/articles/nouveau"
               onClick={triggerHaptic}
@@ -215,17 +194,15 @@ export function BottomNav() {
               </motion.div>
             </Link>
 
-            {/* Commandes */}
             <VendeurNavLink
               href="/vendeur/commandes"
               icon={ShoppingBag}
               label="Commandes"
-              badge={mockBadges.commandes}
+              badge={badges.commandes}
               pathname={pathname}
               onClick={triggerHaptic}
             />
 
-            {/* Menu — ouvre la feuille */}
             <button
               onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(true); }}
               className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl min-w-[64px]"
@@ -239,9 +216,6 @@ export function BottomNav() {
     );
   }
 
-  // ============================================
-  // RENDU STANDARD — guest, client, livreur, admin (inchangé)
-  // ============================================
   const currentItems: any[] = navItems[role as keyof typeof navItems] || navItems.guest;
 
   return (
@@ -342,7 +316,6 @@ export function BottomNav() {
   );
 }
 
-// Sous-composant pour les 2 items latéraux de la nav vendeur (Dashboard, Articles, Commandes)
 function VendeurNavLink({
   href, icon: Icon, label, badge, pathname, onClick,
 }: {

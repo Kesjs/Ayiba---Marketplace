@@ -110,6 +110,7 @@ export default function VendeurDashboardPage() {
       role="vendeur"
       userName={vendeur?.nom_complet || "Vendeur"}
       title="Tableau de bord Vendeur"
+      personalized
     >
       {error && (
         <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 flex items-center justify-between">

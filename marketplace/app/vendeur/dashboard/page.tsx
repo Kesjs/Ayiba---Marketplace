@@ -5,6 +5,7 @@ import { useVendeurDashboard } from "@/lib/hooks/useVendeurDashboard";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { VentesChart } from "@/components/dashboard/VentesChart";
 import {
   TrendingUp,
   Package,
@@ -55,6 +56,7 @@ export default function VendeurDashboardPage() {
     evolution,
     commandes,
     messages,
+    paiements,
     refresh,
   } = useVendeurDashboard();
 
@@ -154,6 +156,9 @@ export default function VendeurDashboardPage() {
               )}
             </div>
           </div>
+
+          {/* --- Graphique CA avec sélecteur de période + ligne d'objectif --- */}
+          <VentesChart paiements={paiements} objectifMensuel={500000} />
 
           {/* --- Tuiles stats secondaires --- */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">

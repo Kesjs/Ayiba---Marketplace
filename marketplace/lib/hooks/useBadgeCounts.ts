@@ -21,6 +21,14 @@ type NotificationItem = {
   lien?: string | null;
 };
 
+type NotifRow = {
+  id: string;
+  titre: string;
+  type: string | null;
+  created_at: string;
+  lien: string | null;
+};
+
 const emptyBadges: BadgeCounts = {
   messages: 0,
   dashboard: 0,
@@ -93,7 +101,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
       if (isMounted) {
         setBadges((prev) => ({ ...prev, notifications: notificationsCount ?? 0 }));
         setNotificationsList(
-          (notifRows ?? []).map((n) => ({
+          ((notifRows ?? []) as NotifRow[]).map((n) => ({
             id: n.id,
             titre: n.titre,
             createdAt: formatRelatif(n.created_at),

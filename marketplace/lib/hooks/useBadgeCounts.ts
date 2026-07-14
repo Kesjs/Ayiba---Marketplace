@@ -18,6 +18,7 @@ type NotificationItem = {
   titre: string;
   createdAt: string;
   couleur?: "coral" | "teal" | "amber" | "gray";
+  lien?: string | null;
 };
 
 const emptyBadges: BadgeCounts = {
@@ -83,7 +84,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
           .eq("lu", false),
         supabase
           .from("vue_notifications_dashboard")
-          .select("id, titre, type, created_at")
+          .select("id, titre, type, created_at, lien")
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
           .limit(5),
@@ -97,6 +98,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
             titre: n.titre,
             createdAt: formatRelatif(n.created_at),
             couleur: couleurPourType(n.type),
+            lien: n.lien,
           }))
         );
       }

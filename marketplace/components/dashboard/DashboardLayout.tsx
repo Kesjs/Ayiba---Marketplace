@@ -13,14 +13,30 @@ interface DashboardLayoutProps {
   userName?: string;
   title?: string;
   boutiqueName?: string;
+  personalized?: boolean; // active "Bonjour {prénom} 👋"
 }
 
-export function DashboardLayout({ children, role, userName, title, boutiqueName }: DashboardLayoutProps) {
+function saluerSelonHeure(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "Bonjour";
+  if (h < 18) return "Bon après-midi";
+  return "Bonsoir";
+}
+
+export function DashboardLayout({
+  children,
+  role,
+  userName,
+  title,
+  boutiqueName,
+  personalized = false,
+}: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const { profile } = useUser();
   const badges = useBadgeCounts(profile?.id, role);
 
   const displayName = userName || profile?.full_name || "Utilisateur";
+  const prenom = displayName.split(" ")[0];
 
   return (
     <div className="flex min-h-screen bg-gray-50/50">
@@ -35,6 +51,8 @@ export function DashboardLayout({ children, role, userName, title, boutiqueName 
         <DashboardHeader
           boutiqueName={boutiqueName}
           title={title || "Tableau de bord"}
+          greeting={personalized ? `${saluerSelonHeure()} ${prenom} 👋` : undefined}
+          subtitle={personalized ? "Bon retour sur Ayiba" : undefined}
           avatarUrl={profile?.avatar_url}
           fullName={displayName}
           notificationsCount={badges.notifications}
@@ -49,3 +67,4 @@ export function DashboardLayout({ children, role, userName, title, boutiqueName 
     </div>
   );
 }
+

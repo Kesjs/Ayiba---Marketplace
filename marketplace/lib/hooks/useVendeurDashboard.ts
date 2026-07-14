@@ -47,7 +47,7 @@ interface ArticleRow {
   created_at: string;
 }
 
-interface PaiementRow {
+export interface PaiementRow {
   montant_net: number | null;
   statut: string | null;
   created_at: string;
@@ -79,6 +79,7 @@ export function useVendeurDashboard() {
   const [evolution, setEvolution] = useState<Evolution | null>(null);
   const [commandes, setCommandes] = useState<DashboardCommande[]>([]);
   const [messages, setMessages] = useState<DashboardMessage[]>([]);
+  const [paiements, setPaiements] = useState<PaiementRow[]>([]);
 
   const fetchDashboard = useCallback(async () => {
     setLoading(true);
@@ -215,6 +216,7 @@ export function useVendeurDashboard() {
         }))
       );
       setMessages(messagesList);
+      setPaiements(paiementsList);
     } catch (err) {
       console.error("Erreur lors du chargement du tableau de bord:", err);
       setError("Impossible de charger le tableau de bord");
@@ -236,6 +238,7 @@ export function useVendeurDashboard() {
     evolution,
     commandes,
     messages,
+    paiements,
     refresh: fetchDashboard,
   };
 }

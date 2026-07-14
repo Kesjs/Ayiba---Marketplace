@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { STATUTS_COMMANDE } from "@/lib/constants/commandes";
 
@@ -24,6 +24,10 @@ const emptyBadges: BadgeCounts = {
 
 export function useBadgeCounts(userId: string | undefined, role: string) {
   const [badges, setBadges] = useState<BadgeCounts>(emptyBadges);
+  // Identifiant unique par instance du hook, stable entre les re-renders,
+  // pour éviter que deux composants (BottomNav + DashboardLayout) créent
+  // un channel Supabase avec le même nom.
+  const instanceId = useRef(Math.random().toString(36).slice(2)).current;
 
   useEffect(() => {
     if (!userId) {
@@ -90,7 +94,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
     fetchCounts();
 
     const channel = supabase
-      .channel(`badge-counts-${userId}`)
+      .channel(`badge-counts-${userId}-${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
@@ -117,7 +121,7 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
       isMounted = false;
       supabase.removeChannel(channel);
     };
-  }, [userId, role]);
+  }, [userId, role, instanceId]);
 
   return badges;
 }

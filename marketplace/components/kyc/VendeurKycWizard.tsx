@@ -360,7 +360,6 @@ export function VendeurKycWizard() {
       />
 
       <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-4 md:px-8">
-
         <div className="max-w-2xl mx-auto flex items-center gap-3">
           <button
             onClick={handleCancel}
@@ -385,7 +384,8 @@ export function VendeurKycWizard() {
         </div>
       </div>
 
-      <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8 pb-28 md:pb-8">
+      {/* Plus de padding-bottom réservé à une barre fixe : la nav vit dans le bloc */}
+      <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8">
         <div className="w-full max-w-2xl flex flex-col gap-4">
           <AnimatePresence>
             {vendeurStatut === "refuse" && (
@@ -448,29 +448,32 @@ export function VendeurKycWizard() {
                       />
                     </div>
 
-                    <PhotoUpload
-                      label="Photo de profil"
-                      helperText={
-                        existingPhotoProfilUrl
-                          ? "Une photo est déjà enregistrée — touche pour la remplacer"
-                          : "Une photo claire de ton visage"
-                      }
-                      value={data.photoProfil}
-                      onChange={(file) => update("photoProfil", file)}
-                      aspect="square"
-                    />
+                    {/* Les deux photos côte à côte : moins de scroll vertical */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <PhotoUpload
+                        label="Photo de profil"
+                        helperText={
+                          existingPhotoProfilUrl
+                            ? "Déjà enregistrée — touche pour remplacer"
+                            : "Une photo claire de ton visage"
+                        }
+                        value={data.photoProfil}
+                        onChange={(file) => update("photoProfil", file)}
+                        aspect="square"
+                      />
 
-                    <PhotoUpload
-                      label="Photo de la CNI (optionnel pour l'instant)"
-                      helperText={
-                        existingPhotoCniPath
-                          ? "Un document est déjà enregistré — touche pour le remplacer"
-                          : "Recto uniquement, bien lisible"
-                      }
-                      value={data.photoCni}
-                      onChange={(file) => update("photoCni", file)}
-                      aspect="square"
-                    />
+                      <PhotoUpload
+                        label="CNI (optionnel)"
+                        helperText={
+                          existingPhotoCniPath
+                            ? "Déjà enregistré — touche pour remplacer"
+                            : "Recto uniquement, bien lisible"
+                        }
+                        value={data.photoCni}
+                        onChange={(file) => update("photoCni", file)}
+                        aspect="square"
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -621,115 +624,63 @@ export function VendeurKycWizard() {
                     </div>
 
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-
-                    {/* Boutons du récap : statiques, cachés sur mobile (remplacés par la barre sticky) */}
-                    <div className="hidden md:flex items-center gap-3">
-                      <button
-                        onClick={() => goToStep(totalSteps)}
-                        className="flex items-center gap-1 h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
-                      >
-                        <ChevronLeft size={16} />
-                        Modifier
-                      </button>
-                      <motion.button
-                        whileTap={{ scale: 0.97 }}
-                        onClick={handleSubmit}
-                        disabled={submitting || (!data.photoProfil && !existingPhotoProfilUrl)}
-                        className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
-                      >
-                        {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}
-                      </motion.button>
-                    </div>
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation étapes : statique sur desktop */}
-            {!isRecap && (
-              <div className="hidden md:flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-                {step === 1 ? (
-                  <button
-                    onClick={handleCancel}
-                    className="text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+            {/* Navigation : toujours dans le bloc, mobile et desktop confondus */}
+            <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100">
+              {!isRecap ? (
+                <>
+                  {step === 1 ? (
+                    <button
+                      onClick={handleCancel}
+                      className="h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+                    >
+                      Annuler
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleBack}
+                      className="flex items-center gap-1 h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+                    >
+                      <ChevronLeft size={16} />
+                      Retour
+                    </button>
+                  )}
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleNext}
+                    disabled={!isStepValid()}
+                    className="flex-1 flex items-center justify-center gap-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 active:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
-                    Annuler
-                  </button>
-                ) : (
+                    {step === totalSteps ? "Voir le récap" : "Suivant"}
+                    <ChevronRight size={16} />
+                  </motion.button>
+                </>
+              ) : (
+                <>
                   <button
-                    onClick={handleBack}
-                    className="flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+                    onClick={() => goToStep(totalSteps)}
+                    className="flex items-center gap-1 h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
                   >
                     <ChevronLeft size={16} />
-                    Précédent
+                    Modifier
                   </button>
-                )}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={handleNext}
-                  disabled={!isStepValid()}
-                  className="flex items-center gap-1 h-11 px-6 rounded-lg bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  {step === totalSteps ? "Voir le récap" : "Suivant"}
-                  <ChevronRight size={16} />
-                </motion.button>
-              </div>
-            )}
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleSubmit}
+                    disabled={submitting || (!data.photoProfil && !existingPhotoProfilUrl)}
+                    className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 active:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
+                  >
+                    {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}
+                  </motion.button>
+                </>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-
-      {/* Barre d'action sticky : visible uniquement sur mobile, remplace la nav statique */}
-      <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-gray-100 px-4 pt-3"
-        style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}
-      >
-        {!isRecap ? (
-          <div className="flex items-center gap-3">
-            {step === 1 ? (
-              <button
-                onClick={handleCancel}
-                className="h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
-              >
-                Annuler
-              </button>
-            ) : (
-              <button
-                onClick={handleBack}
-                className="flex items-center gap-1 h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
-              >
-                <ChevronLeft size={16} />
-                Retour
-              </button>
-            )}
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={handleNext}
-              disabled={!isStepValid()}
-              className="flex-1 flex items-center justify-center gap-1 h-12 rounded-xl bg-coral-500 active:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            >
-              {step === totalSteps ? "Voir le récap" : "Suivant"}
-              <ChevronRight size={16} />
-            </motion.button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => goToStep(totalSteps)}
-              className="h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
-            >
-              Modifier
-            </button>
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={handleSubmit}
-              disabled={submitting || (!data.photoProfil && !existingPhotoProfilUrl)}
-              className="flex-1 h-12 rounded-xl bg-coral-500 active:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
-            >
-              {submitting ? "Envoi en cours..." : "Soumettre"}
-            </motion.button>
-          </div>
-        )}
       </div>
     </div>
   );

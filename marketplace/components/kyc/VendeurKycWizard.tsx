@@ -5,14 +5,14 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
+import { DocumentUpload } from "./DocumentUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
 import { ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
-const STEP_LABELS = ["Identité", "Boutique", "Localisation", "Paiement"];
+const STEP_LABELS = ["Identité", "Document", "Boutique", "Localisation", "Paiement"];
 const STORAGE_KEY = "ayiba-vendeur-kyc-draft";
 
-// --- Statut : indicateur sobre (point + texte), pas un gros badge coloré ---
 const STATUT_CONFIG: Record<string, { dot: string; label: string }> = {
   en_attente: { dot: "bg-amber-500", label: "En attente" },
   valide: { dot: "bg-teal-500", label: "Vérifié" },
@@ -31,7 +31,6 @@ interface VendeurFormData {
   mobileMoneyNumber: string;
 }
 
-// Les fichiers (File) ne sont pas sérialisables en JSON — on ne persiste que les champs texte
 type PersistedFields = Omit<VendeurFormData, "photoProfil" | "photoCni">;
 
 const INITIAL_DATA: VendeurFormData = {
@@ -124,17 +123,13 @@ export function VendeurKycWizard() {
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const totalSteps = 4;
+  const totalSteps = 5;
 
-  // Photos déjà en base (vendeur existant, ex: après un refus) — on ne force pas
-  // un nouvel upload si l'utilisateur ne touche pas au champ.
   const [existingPhotoProfilUrl, setExistingPhotoProfilUrl] = useState<string | null>(null);
   const [existingPhotoCniPath, setExistingPhotoCniPath] = useState<string | null>(null);
   const [vendeurStatut, setVendeurStatut] = useState<string | null>(null);
   const [raisonRejet, setRaisonRejet] = useState<string | null>(null);
 
-  // Hydratation : la base fait foi, le brouillon localStorage ne sert que de
-  // secours (nouveau vendeur sans ligne en base, ou perte réseau).
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -183,7 +178,6 @@ export function VendeurKycWizard() {
         // pas de session / erreur réseau → on retombe sur le brouillon local
       }
 
-      // Pas de ligne en base : fallback sur le brouillon localStorage
       if (!cancelled && draft) {
         setData((prev) => ({ ...prev, ...draft!.fields }));
         setStep(draft.step || 1);
@@ -197,7 +191,6 @@ export function VendeurKycWizard() {
     };
   }, []);
 
-  // Sauvegarde à chaque changement (étape ou champs texte), une fois l'hydratation initiale faite
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
     const { photoProfil, photoCni, ...fields } = data;
@@ -250,10 +243,12 @@ export function VendeurKycWizard() {
           (data.photoProfil !== null || existingPhotoProfilUrl !== null)
         );
       case 2:
-        return data.nomBoutique.trim().length > 2 && data.description.trim().length > 5;
+        return data.photoCni !== null || existingPhotoCniPath !== null;
       case 3:
-        return data.quartier.trim().length > 1 && data.commune.trim().length > 1;
+        return data.nomBoutique.trim().length > 2 && data.description.trim().length > 5;
       case 4:
+        return data.quartier.trim().length > 1 && data.commune.trim().length > 1;
+      case 5:
         return data.mobileMoneyNetwork !== null && data.mobileMoneyNumber.length === 8;
       default:
         return true;
@@ -312,10 +307,6 @@ export function VendeurKycWizard() {
         photoCniPath = path;
       }
 
-      // Important : on force explicitement le statut à chaque soumission (y compris
-      // en resoumission après refus), sinon un vendeur "refuse" resterait bloqué.
-      // raison_rejet / reviewed_at / reviewed_by ne sont volontairement PAS touchés
-      // ici : ils restent visibles jusqu'à ce qu'un admin retraite la demande.
       const { error: insertError } = await supabase.from("vendeurs").upsert({
         id: user.id,
         nom_complet: data.nomComplet,
@@ -342,7 +333,6 @@ export function VendeurKycWizard() {
 
   const isRecap = step === totalSteps + 1;
 
-  // Évite un flash de l'étape 1 pendant la lecture de la base / du localStorage
   if (!hydrated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -384,7 +374,6 @@ export function VendeurKycWizard() {
         </div>
       </div>
 
-      {/* Plus de padding-bottom réservé à une barre fixe : la nav vit dans le bloc */}
       <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8">
         <div className="w-full max-w-2xl flex flex-col gap-4">
           <AnimatePresence>
@@ -418,6 +407,7 @@ export function VendeurKycWizard() {
                 exit="exit"
                 transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
               >
+                {/* Étape 1 : Identité — allégée, une seule photo, ça respire */}
                 {step === 1 && !isRecap && (
                   <div className="flex flex-col gap-5">
                     <div>
@@ -426,13 +416,6 @@ export function VendeurKycWizard() {
                         On a besoin de vérifier ton identité pour protéger la communauté Ayiba.
                       </p>
                     </div>
-
-                    {data.photoProfil === null && existingPhotoProfilUrl === null && (
-                      <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2">
-                        Après un rechargement de page, tes textes sont conservés mais tu devras
-                        réajouter tes photos.
-                      </p>
-                    )}
 
                     <div>
                       <label htmlFor="nomComplet" className="block text-sm font-medium text-gray-700 mb-2">
@@ -448,36 +431,48 @@ export function VendeurKycWizard() {
                       />
                     </div>
 
-                    {/* Les deux photos côte à côte : moins de scroll vertical */}
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="flex justify-center">
                       <PhotoUpload
                         label="Photo de profil"
                         helperText={
                           existingPhotoProfilUrl
-                            ? "Déjà enregistrée — touche pour remplacer"
+                            ? "Une photo est déjà enregistrée — touche pour la remplacer"
                             : "Une photo claire de ton visage"
                         }
                         value={data.photoProfil}
                         onChange={(file) => update("photoProfil", file)}
                         aspect="square"
                       />
-
-                      <PhotoUpload
-                        label="CNI (optionnel)"
-                        helperText={
-                          existingPhotoCniPath
-                            ? "Déjà enregistré — touche pour remplacer"
-                            : "Recto uniquement, bien lisible"
-                        }
-                        value={data.photoCni}
-                        onChange={(file) => update("photoCni", file)}
-                        aspect="square"
-                      />
                     </div>
                   </div>
                 )}
 
+                {/* Étape 2 : Document CNI — sa propre page, upload animé */}
                 {step === 2 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Vérifie ton identité</h2>
+                      <p className="text-sm text-gray-500">
+                        Une photo recto de ta pièce d'identité, bien lisible.
+                      </p>
+                    </div>
+
+                    <DocumentUpload
+                      label="Ajouter la CNI (recto)"
+                      value={data.photoCni}
+                      onChange={(file) => update("photoCni", file)}
+                      existingFileLabel={existingPhotoCniPath ? "Document déjà enregistré" : null}
+                    />
+
+                    <p className="text-xs text-gray-400 text-center px-2">
+                      Ce document sert uniquement à vérifier ton identité et protéger les
+                      vendeurs et acheteurs Ayiba contre la fraude.
+                    </p>
+                  </div>
+                )}
+
+                {/* Étape 3 : Boutique */}
+                {step === 3 && !isRecap && (
                   <div className="flex flex-col gap-5">
                     <div>
                       <h2 className="text-lg font-bold text-gray-900 mb-1">Ta boutique</h2>
@@ -516,7 +511,8 @@ export function VendeurKycWizard() {
                   </div>
                 )}
 
-                {step === 3 && !isRecap && (
+                {/* Étape 4 : Localisation */}
+                {step === 4 && !isRecap && (
                   <div className="flex flex-col gap-5">
                     <div>
                       <h2 className="text-lg font-bold text-gray-900 mb-1">Où es-tu situé ?</h2>
@@ -555,7 +551,8 @@ export function VendeurKycWizard() {
                   </div>
                 )}
 
-                {step === 4 && !isRecap && (
+                {/* Étape 5 : Paiement */}
+                {step === 5 && !isRecap && (
                   <div className="flex flex-col gap-5">
                     <div>
                       <h2 className="text-lg font-bold text-gray-900 mb-1">Comment être payé ?</h2>
@@ -575,7 +572,6 @@ export function VendeurKycWizard() {
 
                 {isRecap && (
                   <div className="flex flex-col gap-5">
-                    {/* Hero façon page Paiements : gradient coral + résumé */}
                     <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[28px] p-6 text-white shadow-xl shadow-coral-500/20">
                       <div className="absolute -top-16 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
                       <div className="absolute -bottom-16 -left-8 w-32 h-32 bg-black/10 rounded-full blur-3xl pointer-events-none" />
@@ -597,6 +593,16 @@ export function VendeurKycWizard() {
                       >
                         Ta photo de profil a été perdue lors d'un rechargement. Touche ici pour la
                         réajouter.
+                      </button>
+                    )}
+
+                    {!data.photoCni && !existingPhotoCniPath && (
+                      <button
+                        onClick={() => goToStep(2)}
+                        className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2 text-center hover:bg-amber-100 transition-colors"
+                      >
+                        Ton document d'identité a été perdu lors d'un rechargement. Touche ici pour
+                        le réajouter.
                       </button>
                     )}
 
@@ -629,7 +635,6 @@ export function VendeurKycWizard() {
               </motion.div>
             </AnimatePresence>
 
-            {/* Navigation : toujours dans le bloc, mobile et desktop confondus */}
             <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100">
               {!isRecap ? (
                 <>

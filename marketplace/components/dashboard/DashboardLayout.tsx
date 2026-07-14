@@ -40,7 +40,7 @@ export function DashboardLayout({ children, role, userName, title, boutiqueName 
           notificationsCount={badges.notifications}
         />
 
-        <div className="p-4 md:p-8 lg:p-10 pb-24 md:pb-8 lg:pb-10 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 lg:p-10 pb-28 lg:pb-8 lg:pb-10 max-w-7xl mx-auto">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {children}
           </div>

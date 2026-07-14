@@ -3,16 +3,17 @@
 import { useVendeurDashboard } from "@/lib/hooks/useVendeurDashboard";
 
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { 
-  TrendingUp, 
-  Package, 
-  ShoppingBag, 
-  Star, 
-  Plus, 
+import {
+  TrendingUp,
+  Package,
+  ShoppingBag,
+  Star,
+  Plus,
   MessageSquare,
   MoreVertical,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -28,13 +29,15 @@ function calculerVariation(actuel: number, precedent: number): string | null {
 
 function StatutBadge({ statut }: { statut: string }) {
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
-      statut === "En attente"
-        ? "bg-amber-50 text-amber-700 border-amber-100"
-        : statut === "Confirmé"
-        ? "bg-teal-50 text-teal-700 border-teal-100"
-        : "bg-gray-100 text-gray-600 border-gray-200"
-    }`}>
+    <span
+      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
+        statut === "En attente"
+          ? "bg-amber-50 text-amber-700 border-amber-100"
+          : statut === "Confirmé"
+          ? "bg-teal-50 text-teal-700 border-teal-100"
+          : "bg-gray-100 text-gray-600 border-gray-200"
+      }`}
+    >
       {statut}
     </span>
   );
@@ -52,7 +55,7 @@ export default function VendeurDashboardPage() {
     evolution,
     commandes,
     messages,
-    refresh
+    refresh,
   } = useVendeurDashboard();
 
   const caChange = evolution
@@ -68,25 +71,21 @@ export default function VendeurDashboardPage() {
     : null;
 
   const articlesVendusChange = evolution
-    ? calculerVariation(Number(evolution.articles_vendus_periode_actuelle), Number(evolution.articles_vendus_periode_precedente))
+    ? calculerVariation(
+        Number(evolution.articles_vendus_periode_actuelle),
+        Number(evolution.articles_vendus_periode_precedente)
+      )
     : null;
 
-  const statsCards = [
-    {
-      label: "Chiffre d'affaires",
-      value: `${chiffreAffaires?.montant_total ?? 0} F`,
-      change: caChange,
-      icon: TrendingUp,
-      color: "text-teal-600",
-      bg: "bg-teal-50"
-    },
+  // Les 3 stats "secondaires", affichées en tuiles sous le hero CA
+  const secondaryStats = [
     {
       label: "Commandes",
       value: stats?.nombre_commandes ?? 0,
       change: commandesChange,
       icon: ShoppingBag,
       color: "text-coral-500",
-      bg: "bg-coral-50"
+      bg: "bg-coral-50",
     },
     {
       label: "Articles actifs",
@@ -94,7 +93,7 @@ export default function VendeurDashboardPage() {
       change: articlesChange,
       icon: Package,
       color: "text-amber-600",
-      bg: "bg-amber-50"
+      bg: "bg-amber-50",
     },
     {
       label: "Articles vendus",
@@ -102,13 +101,13 @@ export default function VendeurDashboardPage() {
       change: articlesVendusChange,
       icon: Star,
       color: "text-blue-600",
-      bg: "bg-blue-50"
+      bg: "bg-blue-50",
     },
   ];
 
   return (
-    <DashboardLayout 
-      role="vendeur" 
+    <DashboardLayout
+      role="vendeur"
       userName={vendeur?.nom_complet || "Vendeur"}
       title="Tableau de bord Vendeur"
     >
@@ -127,12 +126,42 @@ export default function VendeurDashboardPage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="space-y-8">
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {statsCards.map((stat, i) => (
-              <div 
-                key={i} 
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease: "easeOut" }}
+          className="space-y-8"
+        >
+          {/* --- Hero CA, façon page Paiements --- */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[32px] p-6 sm:p-8 text-white shadow-xl shadow-coral-500/20">
+            <div className="absolute -top-20 -right-16 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-10 w-48 h-48 bg-black/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp size={16} className="text-white/80" />
+                <span className="text-white/80 text-sm">Chiffre d'affaires</span>
+              </div>
+              <p className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
+                {chiffreAffaires?.montant_total ?? 0} F
+              </p>
+
+              {caChange && (
+                <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
+                  <span className="text-xs font-semibold">{caChange} vs période précédente</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* --- Tuiles stats secondaires --- */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            {secondaryStats.map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 * i, duration: 0.3 }}
                 className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300"
               >
                 <div className="flex items-center justify-between mb-4">
@@ -140,11 +169,13 @@ export default function VendeurDashboardPage() {
                     <stat.icon size={24} />
                   </div>
                   {stat.change && (
-                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                      stat.change.startsWith('+') || stat.change === "Nouveau"
-                        ? 'bg-teal-50 text-teal-600' 
-                        : 'bg-red-50 text-red-600'
-                    }`}>
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        stat.change.startsWith("+") || stat.change === "Nouveau"
+                          ? "bg-teal-50 text-teal-600"
+                          : "bg-red-50 text-red-600"
+                      }`}
+                    >
                       {stat.change}
                     </span>
                   )}
@@ -152,7 +183,7 @@ export default function VendeurDashboardPage() {
 
                 <p className="text-sm font-medium text-gray-500 mb-1">{stat.label}</p>
                 <p className="text-3xl font-bold text-gray-900 tracking-tight">{stat.value}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
 
@@ -303,7 +334,7 @@ export default function VendeurDashboardPage() {
               {/* Messages récents */}
               <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm h-fit">
                 <h3 className="text-lg md:text-xl font-bold mb-6">Messages récents</h3>
-                
+
                 <div className="space-y-6">
                   {messages.length === 0 ? (
                     <p className="text-gray-400 py-8 text-center">Aucun message récent</p>
@@ -335,7 +366,7 @@ export default function VendeurDashboardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
     </DashboardLayout>
   );

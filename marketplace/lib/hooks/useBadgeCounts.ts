@@ -10,6 +10,7 @@ type BadgeCounts = {
   missions: number;
   favoris: number;
   commandes: number;
+  notifications: number;
 };
 
 const emptyBadges: BadgeCounts = {
@@ -18,6 +19,7 @@ const emptyBadges: BadgeCounts = {
   missions: 0,
   favoris: 0,
   commandes: 0,
+  notifications: 0,
 };
 
 export function useBadgeCounts(userId: string | undefined, role: string) {
@@ -33,6 +35,16 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
     let isMounted = true;
 
     async function fetchCounts() {
+      const { count: notificationsCount } = await supabase
+        .from("vue_notifications_dashboard")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("lu", false);
+
+      if (isMounted) {
+        setBadges((prev) => ({ ...prev, notifications: notificationsCount ?? 0 }));
+      }
+
       if (role === "vendeur") {
         const [{ count: commandesCount }, { count: messagesCount }] = await Promise.all([
           supabase
@@ -58,7 +70,6 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
       }
 
       if (role === "livreur") {
-        // Pas de table de missions pour l'instant côté data.
         if (isMounted) {
           setBadges((prev) => ({ ...prev, missions: 0 }));
         }
@@ -80,6 +91,11 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
 
     const channel = supabase
       .channel(`badge-counts-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${userId}` },
+        fetchCounts
+      )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "commandes", filter: `vendeur_id=eq.${userId}` },

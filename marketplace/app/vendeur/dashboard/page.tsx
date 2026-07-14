@@ -79,7 +79,6 @@ export default function VendeurDashboardPage() {
       )
     : null;
 
-  // Les 3 stats "secondaires", affichées en tuiles sous le hero CA
   const secondaryStats = [
     {
       label: "Commandes",
@@ -106,6 +105,33 @@ export default function VendeurDashboardPage() {
       bg: "bg-blue-50",
     },
   ];
+
+  // --- Centre d'attention : actions concrètes qui attendent le vendeur ---
+  const attentionItems: { label: string; href: string; couleur: string }[] = [];
+
+  if (stats && stats.commandes_en_attente > 0) {
+    attentionItems.push({
+      label: `${stats.commandes_en_attente} commande${stats.commandes_en_attente > 1 ? "s" : ""} à confirmer`,
+      href: "/vendeur/commandes",
+      couleur: "bg-red-500",
+    });
+  }
+
+  if (stats && stats.messages_non_lus > 0) {
+    attentionItems.push({
+      label: `${stats.messages_non_lus} message${stats.messages_non_lus > 1 ? "s" : ""} sans réponse`,
+      href: "/vendeur/messages",
+      couleur: "bg-amber-500",
+    });
+  }
+
+  if (vendeur && vendeur.statut && vendeur.statut !== "valide") {
+    attentionItems.push({
+      label: "Vérification KYC à terminer",
+      href: "/vendeur/kyc",
+      couleur: "bg-orange-500",
+    });
+  }
 
   return (
     <DashboardLayout
@@ -135,7 +161,31 @@ export default function VendeurDashboardPage() {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="space-y-8"
         >
-          {/* --- Hero CA, façon page Paiements --- */}
+          {/* --- Centre d'attention --- */}
+          {attentionItems.length > 0 && (
+            <div className="bg-white rounded-3xl border border-gray-100 border-l-4 border-l-coral-500 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100">
+                <h3 className="text-sm font-bold text-gray-900">À faire aujourd'hui</h3>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {attentionItems.map((item) => (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="flex items-center justify-between gap-3 px-6 py-4 hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${item.couleur}`} />
+                      <span className="text-sm font-semibold text-gray-800 truncate">{item.label}</span>
+                    </div>
+                    <ChevronRight size={18} className="text-gray-300 shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* --- Hero CA --- */}
           <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[32px] p-6 sm:p-8 text-white shadow-xl shadow-coral-500/20">
             <div className="absolute -top-20 -right-16 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -left-10 w-48 h-48 bg-black/10 rounded-full blur-3xl pointer-events-none" />
@@ -157,18 +207,18 @@ export default function VendeurDashboardPage() {
             </div>
           </div>
 
-          {/* --- Graphique CA avec sélecteur de période + ligne d'objectif --- */}
+          {/* --- Graphique CA --- */}
           <VentesChart paiements={paiements} objectifMensuel={500000} />
 
           {/* --- Tuiles stats secondaires --- */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
             {secondaryStats.map((stat, i) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 * i, duration: 0.3 }}
-                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300"
+                className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300"
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
@@ -209,7 +259,7 @@ export default function VendeurDashboardPage() {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                   <Link href="/vendeur/articles/nouveau" className="group">
                     <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow-md active:scale-[0.98] transition-all">
                       <div className="w-14 h-14 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -258,8 +308,19 @@ export default function VendeurDashboardPage() {
                 </div>
 
                 {commandes.length === 0 ? (
-                  <div className="px-6 md:px-8 py-16 text-center text-gray-400">
-                    Aucune commande récente
+                  <div className="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+                    <div className="w-16 h-16 rounded-full bg-coral-50 flex items-center justify-center text-3xl">
+                      📦
+                    </div>
+                    <p className="font-semibold text-gray-700">Aucune commande pour le moment</p>
+                    <p className="text-sm text-gray-400">Ajoutez un nouvel article pour commencer à vendre.</p>
+                    <Link
+                      href="/vendeur/articles/nouveau"
+                      className="mt-2 inline-flex items-center gap-2 bg-coral-600 hover:bg-coral-700 text-white px-5 py-2.5 rounded-2xl text-sm font-bold transition-all active:scale-95"
+                    >
+                      <Plus size={18} />
+                      Nouvel article
+                    </Link>
                   </div>
                 ) : (
                   <>
@@ -346,9 +407,15 @@ export default function VendeurDashboardPage() {
                     <p className="text-gray-400 py-8 text-center">Aucun message récent</p>
                   ) : (
                     messages.map((msg) => (
-                      <div key={msg.id} className="flex gap-4 group cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded-2xl transition-colors">
-                        <div className="w-10 h-10 rounded-2xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+                      <div
+                        key={msg.id}
+                        className="flex gap-4 group cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded-2xl transition-colors"
+                      >
+                        <div className="relative w-10 h-10 rounded-2xl bg-teal-100 flex items-center justify-center flex-shrink-0">
                           <MessageSquare size={20} className="text-teal-600" />
+                          {msg.lu === false && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-coral-500 rounded-full border-2 border-white" />
+                          )}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-sm text-gray-700 line-clamp-2 group-hover:text-gray-900 transition-colors">

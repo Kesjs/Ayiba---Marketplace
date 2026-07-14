@@ -8,7 +8,10 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { data: { user }, error } = await supabase.auth.exchangeCodeForSession(code);
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error && user) {
       if (type === "recovery") {
@@ -22,8 +25,23 @@ export async function GET(request: Request) {
         .single();
 
       if (userData?.role === "vendeur" || userData?.role === "livreur") {
+        const table = userData.role === "vendeur" ? "vendeurs" : "livreurs";
+        const statutField = userData.role === "vendeur" ? "statut" : "statut_verification";
+
+        const { data: profil } = await supabase
+          .from(table)
+          .select(statutField)
+          .eq("id", user.id)
+          .single();
+
+        const estValide = profil && (profil as Record<string, string>)[statutField] === "valide";
+
+        if (estValide) {
+          return NextResponse.redirect(`${origin}/${userData.role}/dashboard`);
+        }
         return NextResponse.redirect(`${origin}/${userData.role}/kyc`);
       }
+
       return NextResponse.redirect(`${origin}/catalogue`);
     }
   }

@@ -41,6 +41,23 @@ export interface DashboardMessage {
   created_at: string;
 }
 
+interface ArticleRow {
+  id: string;
+  actif: boolean | null;
+  created_at: string;
+}
+
+interface PaiementRow {
+  montant_net: number | null;
+  statut: string | null;
+  created_at: string;
+}
+
+interface LigneRow {
+  quantite: number;
+  commande_id: string;
+}
+
 const STATUT_LABELS: Record<string, string> = {
   en_attente: "En attente",
   confirmee: "Confirmé",
@@ -109,8 +126,11 @@ export function useVendeurDashboard() {
           .limit(5),
       ]);
 
-      const commandesList = commandesData || [];
-      const commandeIds = commandesList.map((c) => c.id);
+      const commandesList = (commandesData || []) as DashboardCommande[];
+      const articlesList = (articlesData || []) as ArticleRow[];
+      const paiementsList = (paiementsData || []) as PaiementRow[];
+      const messagesList = (messagesData || []) as DashboardMessage[];
+      const commandeIds = commandesList.map((c: DashboardCommande) => c.id);
 
       let articlesVendusTotal = 0;
       let articlesVendusActuel = 0;
@@ -122,11 +142,13 @@ export function useVendeurDashboard() {
           .select("quantite, commande_id")
           .in("commande_id", commandeIds);
 
-        const commandeDateMap = new Map(
-          commandesList.map((c) => [c.id, new Date(c.created_at)])
+        const lignesList = (lignesData || []) as LigneRow[];
+
+        const commandeDateMap = new Map<string, Date>(
+          commandesList.map((c: DashboardCommande) => [c.id, new Date(c.created_at)])
         );
 
-        (lignesData || []).forEach((ligne) => {
+        lignesList.forEach((ligne: LigneRow) => {
           articlesVendusTotal += ligne.quantite;
           const date = commandeDateMap.get(ligne.commande_id);
           if (date && date >= debutActuel) {
@@ -137,33 +159,39 @@ export function useVendeurDashboard() {
         });
       }
 
-      const caPaye = (paiementsData || []).filter((p) => p.statut === "paye");
-      const montantTotal = caPaye.reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
+      const caPaye = paiementsList.filter((p: PaiementRow) => p.statut === "paye");
+      const montantTotal = caPaye.reduce(
+        (sum: number, p: PaiementRow) => sum + Number(p.montant_net || 0),
+        0
+      );
       const caActuel = caPaye
-        .filter((p) => new Date(p.created_at) >= debutActuel)
-        .reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
+        .filter((p: PaiementRow) => new Date(p.created_at) >= debutActuel)
+        .reduce((sum: number, p: PaiementRow) => sum + Number(p.montant_net || 0), 0);
       const caPrecedent = caPaye
         .filter(
-          (p) => new Date(p.created_at) >= debutPrecedent && new Date(p.created_at) < debutActuel
+          (p: PaiementRow) =>
+            new Date(p.created_at) >= debutPrecedent && new Date(p.created_at) < debutActuel
         )
-        .reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
+        .reduce((sum: number, p: PaiementRow) => sum + Number(p.montant_net || 0), 0);
 
       const commandesActuel = commandesList.filter(
-        (c) => new Date(c.created_at) >= debutActuel
+        (c: DashboardCommande) => new Date(c.created_at) >= debutActuel
       ).length;
       const commandesPrecedent = commandesList.filter(
-        (c) => new Date(c.created_at) >= debutPrecedent && new Date(c.created_at) < debutActuel
+        (c: DashboardCommande) =>
+          new Date(c.created_at) >= debutPrecedent && new Date(c.created_at) < debutActuel
       ).length;
 
-      const articlesActifs = (articlesData || []).filter((a) => a.actif);
+      const articlesActifs = articlesList.filter((a: ArticleRow) => a.actif);
       const articlesActifsActuel = articlesActifs.filter(
-        (a) => new Date(a.created_at) >= debutActuel
+        (a: ArticleRow) => new Date(a.created_at) >= debutActuel
       ).length;
       const articlesActifsPrecedent = articlesActifs.filter(
-        (a) => new Date(a.created_at) >= debutPrecedent && new Date(a.created_at) < debutActuel
+        (a: ArticleRow) =>
+          new Date(a.created_at) >= debutPrecedent && new Date(a.created_at) < debutActuel
       ).length;
 
-      setVendeur(vendeurData);
+      setVendeur(vendeurData as VendeurInfo | null);
       setStats({
         nombre_commandes: commandesList.length,
         nombre_articles: articlesActifs.length,
@@ -181,12 +209,12 @@ export function useVendeurDashboard() {
         articles_vendus_periode_precedente: articlesVendusPrecedent,
       });
       setCommandes(
-        commandesList.slice(0, 5).map((c) => ({
+        commandesList.slice(0, 5).map((c: DashboardCommande) => ({
           ...c,
           statut: STATUT_LABELS[c.statut] || c.statut,
         }))
       );
-      setMessages(messagesData || []);
+      setMessages(messagesList);
     } catch (err) {
       console.error("Erreur lors du chargement du tableau de bord:", err);
       setError("Impossible de charger le tableau de bord");

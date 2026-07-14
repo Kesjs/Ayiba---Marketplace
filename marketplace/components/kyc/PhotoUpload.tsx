@@ -1,14 +1,14 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Camera, X, ImageIcon } from "lucide-react";
+import { Camera, X, Check } from "lucide-react";
 
 interface PhotoUploadProps {
   label: string;
   helperText?: string;
   value: File | null;
   onChange: (file: File | null) => void;
-  aspect?: "square" | "wide"; // square pour profil/CNI, wide pour véhicule
+  aspect?: "square" | "wide";
   maxSizeMb?: number;
 }
 
@@ -59,9 +59,7 @@ export function PhotoUpload({
   return (
     <div className="w-full">
       <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-      {helperText && (
-        <p className="text-xs text-gray-400 mb-3">{helperText}</p>
-      )}
+      {helperText && <p className="text-xs text-gray-400 mb-3">{helperText}</p>}
 
       <input
         ref={inputRef}
@@ -73,26 +71,48 @@ export function PhotoUpload({
       />
 
       {preview ? (
-        <div className={`relative ${aspectClass} mx-auto rounded-xl overflow-hidden border border-gray-200`}>
+        <div className={`relative ${aspectClass} mx-auto rounded-2xl overflow-hidden border border-teal-200 shadow-sm group`}>
           <img src={preview} alt={label} className="w-full h-full object-cover" />
+
+          {/* Badge de confirmation, cohérent avec l'état "done" de DocumentUpload */}
+          <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1">
+            <Check size={11} className="text-teal-600" />
+            <span className="text-[10px] font-semibold text-teal-700">Ajoutée</span>
+          </div>
+
           <button
             type="button"
             onClick={handleRemove}
             className="absolute top-2 right-2 w-7 h-7 bg-black/60 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/80 transition-colors"
+            aria-label="Retirer la photo"
           >
             <X size={14} />
+          </button>
+
+          {/* Overlay "remplacer" au survol/tap, pour ne pas avoir à passer par le bouton retirer */}
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/30 opacity-0 group-hover:opacity-100 transition-all"
+          >
+            <span className="text-xs font-semibold text-white bg-black/50 rounded-full px-3 py-1.5">
+              Remplacer
+            </span>
           </button>
         </div>
       ) : (
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className={`${aspectClass} mx-auto flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-coral-300 transition-colors`}
+          className={`${aspectClass} mx-auto flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 hover:bg-gray-100 hover:border-coral-300 transition-colors`}
         >
-          <div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center">
-            <Camera size={18} className="text-gray-400" />
+          <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center">
+            <Camera size={20} className="text-gray-400" />
           </div>
-          <span className="text-xs font-medium text-gray-500">Ajouter une photo</span>
+          <div className="text-center px-2">
+            <p className="text-sm font-semibold text-gray-700">Ajouter une photo</p>
+            <p className="text-xs text-gray-400 mt-0.5">JPG, PNG jusqu'à {maxSizeMb} Mo</p>
+          </div>
         </button>
       )}
 

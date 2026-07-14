@@ -5,6 +5,8 @@ import { Bell } from "lucide-react";
 interface DashboardHeaderProps {
   boutiqueName?: string;
   title: string;
+  greeting?: string;      // ex: "Bonjour Ken 👋"
+  subtitle?: string;      // ex: "Bon retour sur Ayiba"
   avatarUrl?: string | null;
   fullName?: string;
   notificationsCount?: number;
@@ -16,6 +18,8 @@ interface DashboardHeaderProps {
 export function DashboardHeader({
   boutiqueName,
   title,
+  greeting,
+  subtitle,
   avatarUrl,
   fullName,
   notificationsCount = 0,
@@ -29,11 +33,16 @@ export function DashboardHeader({
 
   return (
     <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-100">
-      {/* --- Version mobile (< md) : titre + cloche uniquement --- */}
+      {/* --- Version mobile (< md) --- */}
       <div className="flex md:hidden items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
-        <h1 className="text-base font-bold text-gray-900 truncate">
-          {title}
-        </h1>
+        {greeting ? (
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-gray-900 truncate leading-tight">{greeting}</p>
+            {subtitle && <p className="text-[11px] text-gray-500 truncate leading-tight">{subtitle}</p>}
+          </div>
+        ) : (
+          <h1 className="text-base font-bold text-gray-900 truncate">{title}</h1>
+        )}
 
         <button
           onClick={onBellClick}
@@ -49,7 +58,7 @@ export function DashboardHeader({
         </button>
       </div>
 
-      {/* --- Version desktop (>= md) : boutique + titre centré + cloche + avatar --- */}
+      {/* --- Version desktop (>= md) --- */}
       <div className="hidden md:flex relative items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
         <button
           onClick={onBoutiqueClick}
@@ -58,9 +67,16 @@ export function DashboardHeader({
           {boutiqueName || "Ma boutique"}
         </button>
 
-        <h1 className="text-sm font-semibold text-gray-500 truncate absolute left-1/2 -translate-x-1/2">
-          {title}
-        </h1>
+        {greeting ? (
+          <div className="absolute left-1/2 -translate-x-1/2 text-center">
+            <p className="text-sm font-bold text-gray-900 leading-tight">{greeting}</p>
+            {subtitle && <p className="text-[11px] text-gray-500 leading-tight">{subtitle}</p>}
+          </div>
+        ) : (
+          <h1 className="text-sm font-semibold text-gray-500 truncate absolute left-1/2 -translate-x-1/2">
+            {title}
+          </h1>
+        )}
 
         <div className="flex items-center gap-2 shrink-0">
           <button

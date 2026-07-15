@@ -3,7 +3,8 @@
 import { useState, useRef } from "react";
 import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { StepIndicator } from "@/components/vendeur/StepIndicator";
+import { StepIndicator } from "@/components/kyc/StepIndicator";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/lib/mock-data";

@@ -31,6 +31,16 @@ export const STATUT_STYLE: Record<StatutCommande, string> = {
   [STATUTS_COMMANDE.ANNULEE]: "bg-red-50 text-red-700 border-red-100",
   [STATUTS_COMMANDE.REMBOURSEE]: "bg-gray-100 text-gray-600 border-gray-200",
 };
+// À ajouter dans ton fichier existant, à côté de STATUT_STYLE
+export const STATUT_SPINE_COLOR: Record<StatutCommande, string> = {
+  en_attente: "#D89B3C",
+  confirmee: "#2F8F82",
+  preparee: "#5B5FC7",
+  expediee: "#3B7DD8",
+  livree: "#3E9B5C",
+  annulee: "#C1443C",
+};
+
 
 // Transitions valides depuis chaque statut — logique métier du workflow commande
 export const PROCHAINS_STATUTS: Record<StatutCommande, StatutCommande[]> = {

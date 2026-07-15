@@ -13,7 +13,7 @@ interface DashboardLayoutProps {
   userName?: string;
   title?: string;
   boutiqueName?: string;
-  personalized?: boolean; // active "Bonjour {prénom} 👋"
+  personalized?: boolean; // active "Bonjour {prénom} "
 }
 
 function saluerSelonHeure(): string {
@@ -51,7 +51,7 @@ export function DashboardLayout({
         <DashboardHeader
           boutiqueName={boutiqueName}
           title={title || "Tableau de bord"}
-          greeting={personalized ? `${saluerSelonHeure()} ${prenom} 👋` : undefined}
+          greeting={personalized ? `${saluerSelonHeure()} ${prenom} ` : undefined}
           subtitle={personalized ? "Bon retour sur Ayiba" : undefined}
           avatarUrl={profile?.avatar_url}
           fullName={displayName}
@@ -59,7 +59,7 @@ export function DashboardLayout({
           notifications={badges.notificationsList}
         />
 
-        <div className="p-4 md:p-8 lg:p-10 pb-28 lg:pb-10 max-w-7xl mx-auto">
+        <div className="p-4 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {children}
           </div>

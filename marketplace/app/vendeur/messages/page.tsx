@@ -1,11 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useVendeurMessages } from "@/lib/hooks/useVendeurMessages";
+import { useVendeurMessages, ConversationMessage } from "@/lib/hooks/useVendeurMessages";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
-import { Send, User, ArrowLeft, Phone } from "lucide-react";
+import { Send, User, ArrowLeft, Phone, RotateCcw } from "lucide-react";
+
+const GROUP_WINDOW_MS = 2 * 60 * 1000; // messages du même expéditeur à moins de 2 min = groupés visuellement
 
 function VendeurMessagesContent() {
   const {
@@ -13,8 +15,11 @@ function VendeurMessagesContent() {
     error,
     conversations,
     sending,
+    loadingOlder,
     marquerCommeLu,
     envoyerMessage,
+    retryMessage,
+    loadOlderMessages,
     openConversationWith,
     refresh,
   } = useVendeurMessages();
@@ -25,8 +30,9 @@ function VendeurMessagesContent() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [texte, setTexte] = useState("");
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
-  // Arrivée depuis une commande : ouvre (ou crée) la conversation correspondante
   useEffect(() => {
     if (clientParam) {
       openConversationWith(clientParam, commandeParam);
@@ -41,6 +47,22 @@ function VendeurMessagesContent() {
     if (selectedId && conversation?.nonLus) marquerCommeLu(selectedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, conversation?.nonLus]);
+
+  // Scroll auto vers le bas — seulement quand un message est AJOUTÉ À LA FIN
+  // (nouvel envoi, réception temps réel, ouverture d'un fil), jamais quand on
+  // charge l'historique (ça insère au DÉBUT, pas à la fin).
+  useEffect(() => {
+    if (!conversation || conversation.messages.length === 0) return;
+    const lastMsg = conversation.messages[conversation.messages.length - 1];
+    if (lastMsg.id !== lastMessageIdRef.current) {
+      lastMessageIdRef.current = lastMsg.id;
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [conversation]);
+
+  useEffect(() => {
+    lastMessageIdRef.current = null; // reset au changement de conversation pour forcer le scroll initial
+  }, [selectedId]);
 
   const handleSend = async () => {
     if (!selectedId || !texte.trim()) return;
@@ -66,7 +88,7 @@ function VendeurMessagesContent() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-[70vh] flex">
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-[calc(100dvh-220px)] min-h-[400px] flex">
           {/* Liste des conversations */}
           <div
             className={`w-full sm:w-80 flex-shrink-0 border-r border-gray-100 overflow-y-auto ${
@@ -74,7 +96,15 @@ function VendeurMessagesContent() {
             }`}
           >
             {conversations.length === 0 ? (
-              <p className="text-gray-400 text-center py-16 px-4">Aucun message pour l'instant</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
+                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+                  <Send size={22} className="text-gray-300" />
+                </div>
+                <p className="font-semibold text-gray-800 mb-1">Aucune conversation pour l'instant</p>
+                <p className="text-sm text-gray-400">
+                  Les échanges avec tes clients apparaîtront ici, notamment quand tu réponds depuis une commande.
+                </p>
+              </div>
             ) : (
               conversations.map((conv) => (
                 <button
@@ -138,7 +168,19 @@ function VendeurMessagesContent() {
                   )}
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div className="flex-1 overflow-y-auto p-4 space-y-1">
+                  {!conversation.noMoreOlder && conversation.messages.length > 0 && (
+                    <div className="flex justify-center pb-3">
+                      <button
+                        onClick={() => loadOlderMessages(conversation.partnerId)}
+                        disabled={loadingOlder[conversation.partnerId]}
+                        className="text-xs font-semibold text-gray-400 hover:text-gray-600 disabled:opacity-50"
+                      >
+                        {loadingOlder[conversation.partnerId] ? "Chargement…" : "Charger les messages précédents"}
+                      </button>
+                    </div>
+                  )}
+
                   {conversation.messages.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-center px-6">
                       <p className="text-sm text-gray-400">
@@ -146,19 +188,59 @@ function VendeurMessagesContent() {
                       </p>
                     </div>
                   ) : (
-                    conversation.messages.map((m) => {
+                    conversation.messages.map((m, i) => {
                       const isMine = m.expediteur_id !== conversation.partnerId;
+                      const prev = conversation.messages[i - 1];
+                      const next = conversation.messages[i + 1];
+
+                      const groupedWithPrev =
+                        !!prev &&
+                        prev.expediteur_id === m.expediteur_id &&
+                        new Date(m.created_at).getTime() - new Date(prev.created_at).getTime() < GROUP_WINDOW_MS;
+                      const groupedWithNext =
+                        !!next &&
+                        next.expediteur_id === m.expediteur_id &&
+                        new Date(next.created_at).getTime() - new Date(m.created_at).getTime() < GROUP_WINDOW_MS;
+
                       return (
-                        <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                        <div
+                          key={m.id}
+                          className={`flex ${isMine ? "justify-end" : "justify-start"} ${
+                            groupedWithPrev ? "mt-0.5" : "mt-3"
+                          }`}
+                        >
                           <div
-                            className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
-                              isMine ? "bg-coral-500 text-white rounded-br-md" : "bg-gray-100 text-gray-900 rounded-bl-md"
+                            onClick={() => m._failed && retryMessage(conversation.partnerId, m)}
+                            className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 text-sm rounded-2xl ${
+                              m._failed
+                                ? "bg-red-50 text-red-700 border border-red-200 cursor-pointer"
+                                : isMine
+                                ? "bg-coral-500 text-white"
+                                : "bg-gray-100 text-gray-900"
+                            } ${m._pending ? "opacity-60" : ""} ${
+                              isMine
+                                ? `${groupedWithPrev ? "rounded-tr-md" : ""} ${groupedWithNext ? "rounded-br-md" : ""}`
+                                : `${groupedWithPrev ? "rounded-tl-md" : ""} ${groupedWithNext ? "rounded-bl-md" : ""}`
                             }`}
                           >
                             {m.contenu}
-                            {isMine && (
-                              <span className="block text-[10px] mt-1 text-white/70">
-                                {m.lu ? "Vu" : "Envoyé"}
+                            {isMine && !groupedWithNext && (
+                              <span
+                                className={`flex items-center gap-1 text-[10px] mt-1 ${
+                                  m._failed ? "text-red-600 font-semibold" : "text-white/70"
+                                }`}
+                              >
+                                {m._failed ? (
+                                  <>
+                                    <RotateCcw size={10} /> Échec — toucher pour réessayer
+                                  </>
+                                ) : m._pending ? (
+                                  "Envoi…"
+                                ) : m.lu ? (
+                                  "Vu"
+                                ) : (
+                                  "Envoyé"
+                                )}
                               </span>
                             )}
                           </div>
@@ -166,6 +248,7 @@ function VendeurMessagesContent() {
                       );
                     })
                   )}
+                  <div ref={bottomRef} />
                 </div>
 
                 <div className="p-4 border-t border-gray-100 flex items-center gap-2">
@@ -194,7 +277,6 @@ function VendeurMessagesContent() {
 }
 
 export default function VendeurMessagesPage() {
-  // useSearchParams exige un Suspense boundary en App Router
   return (
     <Suspense fallback={<DashboardSkeleton />}>
       <VendeurMessagesContent />

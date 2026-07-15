@@ -173,15 +173,14 @@ export function useVendeurMessages() {
         const next = [...prev];
         const conv = next[idx];
         if (conv.messages.some((m) => m.id === msg.id)) return prev; // déjà présent (évite le doublon avec l'ajout optimiste local)
-        next[idx] = {
+        const updated: Conversation = {
           ...conv,
           messages: [...conv.messages, msg],
           dernierMessage: msg,
           nonLus: conv.nonLus + (msg.destinataire_id === userId && !msg.lu ? 1 : 0),
         };
-        // remonte la conversation en haut de liste
         next.splice(idx, 1);
-        return [next[idx] ?? { ...conv, messages: [...conv.messages, msg], dernierMessage: msg }, ...next];
+        return [updated, ...next];
       });
     };
 
@@ -192,8 +191,9 @@ export function useVendeurMessages() {
             ? {
                 ...c,
                 messages: c.messages.map((m) => (m.id === msg.id ? { ...m, lu: msg.lu } : m)),
-                nonLus: c.messages.filter((m) => m.destinataire_id === userId && !m.lu && m.id !== msg.id)
-                  .length + (msg.destinataire_id === userId && !msg.lu ? 1 : 0),
+                nonLus:
+                  c.messages.filter((m) => m.destinataire_id === userId && !m.lu && m.id !== msg.id).length +
+                  (msg.destinataire_id === userId && !msg.lu ? 1 : 0),
               }
             : c
         )
@@ -205,17 +205,17 @@ export function useVendeurMessages() {
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `destinataire_id=eq.${userId}` },
-        (payload) => upsertIncoming(payload.new as ConversationMessage)
+        (payload: { new: ConversationMessage }) => upsertIncoming(payload.new)
       )
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages", filter: `expediteur_id=eq.${userId}` },
-        (payload) => upsertIncoming(payload.new as ConversationMessage)
+        (payload: { new: ConversationMessage }) => upsertIncoming(payload.new)
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages", filter: `expediteur_id=eq.${userId}` },
-        (payload) => applyReadUpdate(payload.new as ConversationMessage) // le client a lu mon message → statut "vu"
+        (payload: { new: ConversationMessage }) => applyReadUpdate(payload.new) // le client a lu mon message → statut "vu"
       )
       .subscribe();
 

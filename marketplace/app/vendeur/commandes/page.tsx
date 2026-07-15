@@ -27,10 +27,15 @@ function formatMontant(v: number) {
   return new Intl.NumberFormat("fr-FR").format(v) + " F";
 }
 
-function toWhatsAppNumber(raw: string | null) {
-  if (!raw) return null;
-  const digits = raw.replace(/[^\d]/g, "");
-  return raw.trim().startsWith("+") ? digits : `225${digits}`; // adapte l'indicatif si besoin
+function initiales(nom: string | null) {
+  if (!nom) return "?";
+  return nom
+    .split(" ")
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 }
 
 export default function VendeurCommandesPage() {
@@ -74,7 +79,7 @@ export default function VendeurCommandesPage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-x-hidden">
           {/* Filtres avec compteurs + fondu de scroll sur mobile */}
           <div className="relative">
             <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -120,7 +125,6 @@ export default function VendeurCommandesPage() {
                   const isExpanded = expandedId === order.id;
                   const prochains = PROCHAINS_STATUTS[order.statut as StatutCommande] || [];
                   const isConfirmingCancel = confirmingCancelId === order.id;
-                  const waNumber = toWhatsAppNumber(order.telephone_client);
 
                   return (
                     <div key={order.id} className="flex">
@@ -129,65 +133,48 @@ export default function VendeurCommandesPage() {
                         style={{ backgroundColor: STATUT_SPINE_COLOR[order.statut as StatutCommande] || "#D1D5DB" }}
                       />
                       <div className="flex-1 min-w-0">
-                        {/* Ligne principale : div cliquable (pas de bouton imbriqué à cause des actions rapides) */}
+                        {/* Ligne principale : avatar / nom / montant+statut / icône message / chevron */}
                         <div
                           role="button"
                           tabIndex={0}
                           onClick={() => setExpandedId(isExpanded ? null : order.id)}
                           onKeyDown={(e) => e.key === "Enter" && setExpandedId(isExpanded ? null : order.id)}
-                          className="w-full flex items-center gap-3 px-6 sm:px-8 py-5 hover:bg-gray-50 transition-colors cursor-pointer"
+                          className="w-full flex items-center gap-2.5 px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
                         >
+                          <div className="w-10 h-10 rounded-full bg-coral-50 text-coral-600 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            {initiales(order.nom_client)}
+                          </div>
+
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-gray-900 truncate">{order.nom_client}</p>
-                            <p className="text-sm text-gray-500">{order.numero}</p>
+                            <p className="font-semibold text-gray-900 truncate text-sm">{order.nom_client}</p>
+                            <p className="text-xs text-gray-500 truncate">{order.numero}</p>
                           </div>
 
-                          {/* Actions rapides : contact direct, toujours visibles même repliées */}
-                          <div className="flex items-center gap-1.5 flex-shrink-0">
-                            {order.telephone_client && (
-                              <a
-                                href={`tel:${order.telephone_client}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 hidden sm:flex"
-                                aria-label="Appeler le client"
-                              >
-                                <Phone size={15} />
-                              </a>
-                            )}
-                            {waNumber && (
-                              <a
-                                href={`https://wa.me/${waNumber}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                className="w-9 h-9 rounded-full bg-green-50 flex items-center justify-center text-green-600 hover:bg-green-100 hidden sm:flex"
-                                aria-label="Contacter sur WhatsApp"
-                              >
-                                <MessageCircle size={15} />
-                              </a>
-                            )}
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openMessagerie(order.client_id, order.id);
-                              }}
-                              className="w-9 h-9 rounded-full bg-coral-50 flex items-center justify-center text-coral-600 hover:bg-coral-100"
-                              aria-label="Ouvrir la conversation"
+                          <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                            <span className="font-bold text-gray-900 text-sm whitespace-nowrap">
+                              {formatMontant(order.montant_total)}
+                            </span>
+                            <span
+                              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${
+                                STATUT_STYLE[order.statut as StatutCommande] || "bg-gray-100 text-gray-600 border-gray-200"
+                              }`}
                             >
-                              <MessageCircle size={15} />
-                            </button>
+                              {LABELS_STATUT_COMMANDE[order.statut as StatutCommande] || order.statut}
+                            </span>
                           </div>
 
-                          <span className="font-semibold text-gray-900 hidden md:block flex-shrink-0">
-                            {formatMontant(order.montant_total)}
-                          </span>
-                          <span
-                            className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border flex-shrink-0 ${
-                              STATUT_STYLE[order.statut as StatutCommande] || "bg-gray-100 text-gray-600 border-gray-200"
-                            }`}
+                          {/* Icône unique : ouvre directement la conversation dans Messages */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openMessagerie(order.client_id, order.id);
+                            }}
+                            className="w-8 h-8 rounded-full bg-coral-50 flex items-center justify-center text-coral-600 hover:bg-coral-100 flex-shrink-0"
+                            aria-label="Ouvrir la conversation"
                           >
-                            {LABELS_STATUT_COMMANDE[order.statut as StatutCommande] || order.statut}
-                          </span>
+                            <MessageCircle size={14} />
+                          </button>
+
                           <ChevronDown
                             size={18}
                             className={`text-gray-400 transition-transform flex-shrink-0 ${isExpanded ? "rotate-180" : ""}`}
@@ -195,31 +182,31 @@ export default function VendeurCommandesPage() {
                         </div>
 
                         {isExpanded && (
-                          <div className="px-6 sm:px-8 pb-6 bg-gray-50/50">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 pt-2">
+                          <div className="px-4 sm:px-6 pb-5 bg-gray-50/50">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3 pt-1">
                               <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <Phone size={16} className="text-gray-400" />
-                                {order.telephone_client || "Non renseigné"}
+                                <Phone size={16} className="text-gray-400 flex-shrink-0" />
+                                <span className="truncate">{order.telephone_client || "Non renseigné"}</span>
                               </div>
-                              <div className="flex items-center gap-2 text-sm text-gray-600">
-                                <MapPin size={16} className="text-gray-400" />
-                                {order.adresse_livraison || order.commune || "Non renseignée"}
+                              <div className="flex items-start gap-2 text-sm text-gray-600">
+                                <MapPin size={16} className="text-gray-400 flex-shrink-0 mt-0.5" />
+                                <span>{order.adresse_livraison || order.commune || "Non renseignée"}</span>
                               </div>
                             </div>
 
                             {order.note_client && (
-                              <p className="text-sm text-gray-600 bg-white p-4 rounded-2xl border border-gray-100 mb-4">
+                              <p className="text-sm text-gray-600 bg-white p-3.5 rounded-2xl border border-gray-100 mb-4">
                                 « {order.note_client} »
                               </p>
                             )}
 
-                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                            <div className="flex flex-col gap-3">
                               <p className="text-sm text-gray-500">
                                 Montant : <span className="font-bold text-gray-900">{formatMontant(order.montant_total)}</span>
                               </p>
 
                               {prochains.length > 0 && !isConfirmingCancel && (
-                                <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                                <div className="flex flex-col sm:flex-row gap-2 w-full">
                                   {prochains.map((next) => {
                                     const isCancel = next === STATUTS_COMMANDE.ANNULEE;
                                     return (

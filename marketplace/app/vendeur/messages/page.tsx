@@ -1,13 +1,13 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { useVendeurMessages, ConversationMessage } from "@/lib/hooks/useVendeurMessages";
+import { useVendeurMessages } from "@/lib/hooks/useVendeurMessages";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { Send, User, ArrowLeft, Phone, RotateCcw } from "lucide-react";
 
-const GROUP_WINDOW_MS = 2 * 60 * 1000; // messages du même expéditeur à moins de 2 min = groupés visuellement
+const GROUP_WINDOW_MS = 2 * 60 * 1000;
 
 function VendeurMessagesContent() {
   const {
@@ -30,6 +30,7 @@ function VendeurMessagesContent() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [texte, setTexte] = useState("");
+  const [filtreListe, setFiltreListe] = useState<"toutes" | "non_lus">("toutes");
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
 
@@ -43,14 +44,21 @@ function VendeurMessagesContent() {
 
   const conversation = conversations.find((c) => c.partnerId === selectedId) || null;
 
+  const nombreNonLus = useMemo(
+    () => conversations.filter((c) => c.nonLus > 0).length,
+    [conversations]
+  );
+
+  const conversationsAffichees = useMemo(
+    () => (filtreListe === "non_lus" ? conversations.filter((c) => c.nonLus > 0) : conversations),
+    [conversations, filtreListe]
+  );
+
   useEffect(() => {
     if (selectedId && conversation?.nonLus) marquerCommeLu(selectedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId, conversation?.nonLus]);
 
-  // Scroll auto vers le bas — seulement quand un message est AJOUTÉ À LA FIN
-  // (nouvel envoi, réception temps réel, ouverture d'un fil), jamais quand on
-  // charge l'historique (ça insère au DÉBUT, pas à la fin).
   useEffect(() => {
     if (!conversation || conversation.messages.length === 0) return;
     const lastMsg = conversation.messages[conversation.messages.length - 1];
@@ -61,7 +69,7 @@ function VendeurMessagesContent() {
   }, [conversation]);
 
   useEffect(() => {
-    lastMessageIdRef.current = null; // reset au changement de conversation pour forcer le scroll initial
+    lastMessageIdRef.current = null;
   }, [selectedId]);
 
   const handleSend = async () => {
@@ -91,55 +99,97 @@ function VendeurMessagesContent() {
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-[calc(100dvh-220px)] min-h-[400px] flex">
           {/* Liste des conversations */}
           <div
-            className={`w-full sm:w-80 flex-shrink-0 border-r border-gray-100 overflow-y-auto ${
-              selectedId ? "hidden sm:block" : "block"
+            className={`w-full sm:w-80 flex-shrink-0 border-r border-gray-100 flex flex-col ${
+              selectedId ? "hidden sm:flex" : "flex"
             }`}
           >
-            {conversations.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center px-6 py-16">
-                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
-                  <Send size={22} className="text-gray-300" />
+            {/* Filtre Toutes / Non lus */}
+            <div className="flex gap-2 p-3 border-b border-gray-50 flex-shrink-0">
+              <button
+                onClick={() => setFiltreListe("toutes")}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  filtreListe === "toutes" ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-500"
+                }`}
+              >
+                Toutes
+              </button>
+              <button
+                onClick={() => setFiltreListe("non_lus")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  filtreListe === "non_lus" ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-500"
+                }`}
+              >
+                Non lus
+                {nombreNonLus > 0 && (
+                  <span
+                    className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                      filtreListe === "non_lus" ? "bg-white/20 text-white" : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {nombreNonLus}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              {conversationsAffichees.length === 0 ? (
+                <div className="flex flex-col items-center justify-center text-center px-6 py-16">
+                  <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+                    <Send size={22} className="text-gray-300" />
+                  </div>
+                  <p className="font-semibold text-gray-800 mb-1">
+                    {filtreListe === "non_lus" ? "Rien de non lu" : "Aucune conversation pour l'instant"}
+                  </p>
+                  <p className="text-sm text-gray-400">
+                    {filtreListe === "non_lus"
+                      ? "Tu es à jour sur tous tes messages."
+                      : "Les échanges avec tes clients apparaîtront ici, notamment quand tu réponds depuis une commande."}
+                  </p>
                 </div>
-                <p className="font-semibold text-gray-800 mb-1">Aucune conversation pour l'instant</p>
-                <p className="text-sm text-gray-400">
-                  Les échanges avec tes clients apparaîtront ici, notamment quand tu réponds depuis une commande.
-                </p>
-              </div>
-            ) : (
-              conversations.map((conv) => (
-                <button
-                  key={conv.partnerId}
-                  onClick={() => setSelectedId(conv.partnerId)}
-                  className={`w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 ${
-                    selectedId === conv.partnerId ? "bg-coral-50/50" : ""
-                  }`}
-                >
-                  <div className="w-11 h-11 rounded-2xl bg-teal-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {conv.partner?.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={conv.partner.avatar_url} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User size={20} className="text-teal-600" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-semibold text-gray-900 truncate text-sm">
-                        {conv.partner?.full_name || "Utilisateur"}
-                      </p>
-                      {conv.nonLus > 0 && (
-                        <span className="min-w-[18px] h-[18px] px-1 bg-coral-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
-                          {conv.nonLus}
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 truncate">
-                      {conv.dernierMessage ? conv.dernierMessage.contenu : "Nouvelle conversation"}
-                    </p>
-                  </div>
-                </button>
-              ))
-            )}
+              ) : (
+                conversationsAffichees.map((conv) => {
+                  const nonLu = conv.nonLus > 0;
+                  return (
+                    <button
+                      key={conv.partnerId}
+                      onClick={() => setSelectedId(conv.partnerId)}
+                      className={`w-full flex items-center gap-3 p-4 text-left hover:bg-gray-50 transition-colors border-b border-gray-50 ${
+                        selectedId === conv.partnerId ? "bg-coral-50/50" : ""
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-2xl bg-teal-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {conv.partner?.avatar_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={conv.partner.avatar_url} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <User size={20} className="text-teal-600" />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p
+                            className={`truncate text-sm ${
+                              nonLu ? "font-bold text-gray-900" : "font-medium text-gray-600"
+                            }`}
+                          >
+                            {conv.partner?.full_name || "Utilisateur"}
+                          </p>
+                          {nonLu && (
+                            <span className="min-w-[18px] h-[18px] px-1 bg-coral-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                              {conv.nonLus}
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-xs truncate ${nonLu ? "text-gray-700 font-medium" : "text-gray-400"}`}>
+                          {conv.dernierMessage ? conv.dernierMessage.contenu : "Nouvelle conversation"}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           {/* Thread */}

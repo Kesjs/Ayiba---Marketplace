@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "pravatar.cc",
       },
+      {
+        protocol: "https",
+        hostname: "zgwqnqlprwekmilullsf.supabase.co",
+      },
     ],
   },
 };

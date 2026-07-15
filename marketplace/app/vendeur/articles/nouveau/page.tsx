@@ -100,7 +100,7 @@ export default function NouveauArticlePage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl mx-auto px-4 md:px-0">
       {/* Header — même logique que le wizard KYC : croix/retour + StepIndicator */}
       <div className="flex items-center gap-3 mb-8">
         <Link href="/vendeur/articles">

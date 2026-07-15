@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { 
@@ -20,27 +20,9 @@ export function BottomNav() {
   const { profile, loading, exitDemoMode } = useUser();
   const [isPartnerOpen, setIsPartnerOpen] = useState(false);
   const [isVendeurMenuOpen, setIsVendeurMenuOpen] = useState(false);
-  const [visible, setVisible] = useState(true);
-  const lastScrollY = useRef(0);
 
   const role = profile?.role || "guest";
   const badges = useBadgeCounts(profile?.id, role);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < 60) {
-        setVisible(true);
-      } else if (currentScrollY > lastScrollY.current + 5) {
-        setVisible(false);
-      } else if (currentScrollY < lastScrollY.current - 5) {
-        setVisible(true);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   const triggerHaptic = () => {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -158,11 +140,8 @@ export function BottomNav() {
           )}
         </AnimatePresence>
 
-        <motion.div
-          animate={{ y: visible ? 0 : 120, opacity: visible ? 1 : 0 }}
-          transition={{ duration: 0.25, ease: "easeInOut" }}
-          className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none"
-        >
+        {/* Nav fixe — plus de show/hide au scroll */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none">
           <nav className="relative bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-lg flex items-center justify-around p-2 pointer-events-auto">
             <VendeurNavLink
               href="/vendeur/dashboard"
@@ -211,7 +190,7 @@ export function BottomNav() {
               <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Menu</span>
             </button>
           </nav>
-        </motion.div>
+        </div>
       </>
     );
   }
@@ -249,11 +228,8 @@ export function BottomNav() {
         )}
       </AnimatePresence>
 
-      <motion.div
-        animate={{ y: visible ? 0 : 120, opacity: visible ? 1 : 0 }}
-        transition={{ duration: 0.25, ease: "easeInOut" }}
-        className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none"
-      >
+      {/* Nav fixe — plus de show/hide au scroll */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none">
         <nav className="relative bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-lg flex items-center justify-around p-2 pointer-events-auto">
           {currentItems.map((item) => {
             const isActive = item.href
@@ -311,7 +287,7 @@ export function BottomNav() {
             );
           })}
         </nav>
-      </motion.div>
+      </div>
     </>
   );
 }

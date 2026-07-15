@@ -31,35 +31,28 @@ export const STATUT_STYLE: Record<StatutCommande, string> = {
   [STATUTS_COMMANDE.ANNULEE]: "bg-red-50 text-red-700 border-red-100",
   [STATUTS_COMMANDE.REMBOURSEE]: "bg-gray-100 text-gray-600 border-gray-200",
 };
+
+// Couleur du repère visuel ("spine") sur les cartes de commande — dashboard vendeur
 export const STATUT_SPINE_COLOR: Record<StatutCommande, string> = {
-  en_attente: "#D89B3C",
-  confirmee: "#2F8F82",
-  preparee: "#5B5FC7",
-  expediee: "#3B7DD8",
-  livree: "#3E9B5C",
-  annulee: "#C1443C",
-  remboursee: "#8B5CF6", // violet, distinct du reste — remboursement ≠ simple annulation
+  [STATUTS_COMMANDE.EN_ATTENTE]: "#D89B3C",
+  [STATUTS_COMMANDE.CONFIRMEE]: "#2F8F82",
+  [STATUTS_COMMANDE.PREPAREE]: "#5B5FC7",
+  [STATUTS_COMMANDE.EXPEDIEE]: "#3B7DD8",
+  [STATUTS_COMMANDE.LIVREE]: "#3E9B5C",
+  [STATUTS_COMMANDE.ANNULEE]: "#C1443C",
+  [STATUTS_COMMANDE.REMBOURSEE]: "#8B5CF6",
 };
 
-
-// À ajouter dans ton fichier existant, à côté de STATUT_STYLE
-export const STATUT_SPINE_COLOR: Record<StatutCommande, string> = {
-  en_attente: "#D89B3C",
-  confirmee: "#2F8F82",
-  preparee: "#5B5FC7",
-  expediee: "#3B7DD8",
-  livree: "#3E9B5C",
-  annulee: "#C1443C",
-};
-
-
-// Transitions valides depuis chaque statut — logique métier du workflow commande
+// Transitions valides depuis chaque statut — logique métier du workflow commande.
+// Le remboursement n'est proposé que depuis les statuts où un paiement a pu être
+// encaissé (livrée : retour après réception : annulée : paiement déjà pris avant
+// l'annulation). À ajuster si ta logique de paiement diffère.
 export const PROCHAINS_STATUTS: Record<StatutCommande, StatutCommande[]> = {
   [STATUTS_COMMANDE.EN_ATTENTE]: [STATUTS_COMMANDE.CONFIRMEE, STATUTS_COMMANDE.ANNULEE],
   [STATUTS_COMMANDE.CONFIRMEE]: [STATUTS_COMMANDE.PREPAREE, STATUTS_COMMANDE.ANNULEE],
   [STATUTS_COMMANDE.PREPAREE]: [STATUTS_COMMANDE.EXPEDIEE, STATUTS_COMMANDE.ANNULEE],
   [STATUTS_COMMANDE.EXPEDIEE]: [STATUTS_COMMANDE.LIVREE],
-  [STATUTS_COMMANDE.LIVREE]: [],
-  [STATUTS_COMMANDE.ANNULEE]: [],
+  [STATUTS_COMMANDE.LIVREE]: [STATUTS_COMMANDE.REMBOURSEE],
+  [STATUTS_COMMANDE.ANNULEE]: [STATUTS_COMMANDE.REMBOURSEE],
   [STATUTS_COMMANDE.REMBOURSEE]: [],
 };

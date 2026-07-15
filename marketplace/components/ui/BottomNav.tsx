@@ -140,9 +140,9 @@ export function BottomNav() {
           )}
         </AnimatePresence>
 
-        {/* Nav fixe — plus de show/hide au scroll */}
-        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none">
-          <nav className="relative bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-lg flex items-center justify-around p-2 pointer-events-auto">
+        {/* Nav pleine largeur, collée au bord, fond opaque — plus d'effet flottant */}
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden">
+          <nav className="bg-white border-t border-gray-100 shadow-[0_-2px_16px_rgba(0,0,0,0.06)] flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
             <VendeurNavLink
               href="/vendeur/dashboard"
               icon={LayoutDashboard}
@@ -228,9 +228,9 @@ export function BottomNav() {
         )}
       </AnimatePresence>
 
-      {/* Nav fixe — plus de show/hide au scroll */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden px-4 pb-4 pointer-events-none">
-        <nav className="relative bg-white/80 backdrop-blur-xl border border-gray-100 rounded-[24px] shadow-lg flex items-center justify-around p-2 pointer-events-auto">
+      {/* Nav pleine largeur, collée au bord, fond opaque — plus d'effet flottant */}
+      <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden">
+        <nav className="bg-white border-t border-gray-100 shadow-[0_-2px_16px_rgba(0,0,0,0.06)] flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
           {currentItems.map((item) => {
             const isActive = item.href
               ? pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))

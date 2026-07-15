@@ -7,6 +7,7 @@ export type { StatutCommande }; // ré-exporté pour ne rien casser côté impor
 export interface VendeurCommande {
   id: string;
   numero: string;
+  client_id: string; // nécessaire pour relier une commande à une conversation
   nom_client: string | null;
   telephone_client: string | null;
   adresse_livraison: string | null;
@@ -41,7 +42,7 @@ export function useVendeurCommandes() {
     const { data, error: fetchError } = await supabase
       .from("commandes")
       .select(
-        "id, numero, nom_client, telephone_client, adresse_livraison, commune, note_client, montant_total, statut, created_at"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, montant_total, statut, created_at"
       )
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false });

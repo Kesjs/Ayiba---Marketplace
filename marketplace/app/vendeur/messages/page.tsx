@@ -1,24 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useVendeurMessages } from "@/lib/hooks/useVendeurMessages";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
-import { Send, User, ArrowLeft } from "lucide-react";
+import { Send, User, ArrowLeft, Phone } from "lucide-react";
 
-export default function VendeurMessagesPage() {
-  const { loading, error, conversations, sending, marquerCommeLu, envoyerMessage, refresh } =
-    useVendeurMessages();
+function VendeurMessagesContent() {
+  const {
+    loading,
+    error,
+    conversations,
+    sending,
+    marquerCommeLu,
+    envoyerMessage,
+    openConversationWith,
+    refresh,
+  } = useVendeurMessages();
+
+  const searchParams = useSearchParams();
+  const clientParam = searchParams.get("client");
+  const commandeParam = searchParams.get("commande");
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [texte, setTexte] = useState("");
 
+  // Arrivée depuis une commande : ouvre (ou crée) la conversation correspondante
+  useEffect(() => {
+    if (clientParam) {
+      openConversationWith(clientParam, commandeParam);
+      setSelectedId(clientParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clientParam, commandeParam]);
+
   const conversation = conversations.find((c) => c.partnerId === selectedId) || null;
 
   useEffect(() => {
-    if (selectedId) marquerCommeLu(selectedId);
+    if (selectedId && conversation?.nonLus) marquerCommeLu(selectedId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedId, conversations.length]);
+  }, [selectedId, conversation?.nonLus]);
 
   const handleSend = async () => {
     if (!selectedId || !texte.trim()) return;
@@ -81,7 +103,9 @@ export default function VendeurMessagesPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500 truncate">{conv.dernierMessage.contenu}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {conv.dernierMessage ? conv.dernierMessage.contenu : "Nouvelle conversation"}
+                    </p>
                   </div>
                 </button>
               ))
@@ -97,32 +121,51 @@ export default function VendeurMessagesPage() {
             ) : (
               <>
                 <div className="p-4 border-b border-gray-100 flex items-center gap-3">
-                  <button
-                    onClick={() => setSelectedId(null)}
-                    className="sm:hidden p-1 -ml-1 text-gray-400"
-                  >
+                  <button onClick={() => setSelectedId(null)} className="sm:hidden p-1 -ml-1 text-gray-400">
                     <ArrowLeft size={20} />
                   </button>
-                  <p className="font-bold text-gray-900">{conversation.partner?.full_name || "Utilisateur"}</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 truncate">{conversation.partner?.full_name || "Utilisateur"}</p>
+                  </div>
+                  {conversation.partner?.phone && (
+                    <a
+                      href={`tel:${conversation.partner.phone}`}
+                      className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100 flex-shrink-0"
+                      aria-label="Appeler"
+                    >
+                      <Phone size={16} />
+                    </a>
+                  )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                  {conversation.messages.map((m) => {
-                    const isMine = m.expediteur_id !== conversation.partnerId;
-                    return (
-                      <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
-                        <div
-                          className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
-                            isMine
-                              ? "bg-coral-500 text-white rounded-br-md"
-                              : "bg-gray-100 text-gray-900 rounded-bl-md"
-                          }`}
-                        >
-                          {m.contenu}
+                  {conversation.messages.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-center px-6">
+                      <p className="text-sm text-gray-400">
+                        Aucun message échangé pour l'instant. Écris le premier message ci-dessous.
+                      </p>
+                    </div>
+                  ) : (
+                    conversation.messages.map((m) => {
+                      const isMine = m.expediteur_id !== conversation.partnerId;
+                      return (
+                        <div key={m.id} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                          <div
+                            className={`max-w-[85%] sm:max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
+                              isMine ? "bg-coral-500 text-white rounded-br-md" : "bg-gray-100 text-gray-900 rounded-bl-md"
+                            }`}
+                          >
+                            {m.contenu}
+                            {isMine && (
+                              <span className="block text-[10px] mt-1 text-white/70">
+                                {m.lu ? "Vu" : "Envoyé"}
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
 
                 <div className="p-4 border-t border-gray-100 flex items-center gap-2">
@@ -147,5 +190,14 @@ export default function VendeurMessagesPage() {
         </div>
       )}
     </DashboardLayout>
+  );
+}
+
+export default function VendeurMessagesPage() {
+  // useSearchParams exige un Suspense boundary en App Router
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <VendeurMessagesContent />
+    </Suspense>
   );
 }

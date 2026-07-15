@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
+import Image from "next/image";
 import { MOCK_PRODUCTS, CATEGORIES } from "@/lib/mock-data";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/context/ToastContext";
@@ -16,7 +17,7 @@ const CURRENT_VENDEUR_ID = "v1";
 function StatusBadge({ statut, stock }: { statut: string; stock: number }) {
   if (statut === "desactive") {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500">
         <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
         Désactivé
       </span>
@@ -24,17 +25,88 @@ function StatusBadge({ statut, stock }: { statut: string; stock: number }) {
   }
   if (statut === "rupture" || stock === 0) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600">
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600">
         <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
         Rupture
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600">
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600">
       <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
       En ligne
     </span>
+  );
+}
+
+// Même famille visuelle que ProductCardModern (image nue, texte sans carte),
+// mais avec actions vendeur (modifier/supprimer/statut) à la place cœur/panier.
+function VendeurArticleCard({
+  item,
+  onEdit,
+  onDelete,
+}: {
+  item: (typeof MOCK_PRODUCTS)[number];
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const categorieLabel = CATEGORIES.find((c) => c.id === item.categorie)?.label;
+
+  return (
+    <div className="flex flex-col w-full">
+      {/* IMAGE — carrée, aucune bordure, aucune ombre, comme ProductCardModern */}
+      <div className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden mb-2 group/image">
+        <Image
+          src={item.photos[0]}
+          alt={item.nom}
+          fill
+          className={`object-cover transition-transform duration-500 group-hover/image:scale-105 ${
+            item.statut !== "actif" ? "grayscale-[40%] opacity-70" : ""
+          }`}
+        />
+
+        {/* Actions vendeur — même position/style que le cœur favoris */}
+        <div className="absolute top-2 right-2 flex flex-col gap-1.5">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+            aria-label="Modifier"
+          >
+            <Edit3 size={13} className="text-gray-600" />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+            aria-label="Supprimer"
+          >
+            <Trash2 size={13} className="text-red-500" />
+          </button>
+        </div>
+      </div>
+
+      {/* TEXTE — aucune carte, directement sur fond blanc, même structure que ProductCardModern */}
+      <div className="flex flex-col gap-1 px-0.5">
+        <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest truncate">
+          {categorieLabel}
+        </p>
+
+        <p className="text-xs text-gray-600 font-medium truncate">{item.nom}</p>
+
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10px] text-gray-400">{item.stock} en stock</span>
+        </div>
+
+        {/* Ligne prix + statut à droite, à la place prix/panier */}
+        <div className="flex items-center justify-between mt-0.5 gap-2">
+          <p className="text-base font-black text-gray-900 whitespace-nowrap">
+            {item.prix.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
+          </p>
+          <StatusBadge statut={item.statut} stock={item.stock} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -97,7 +169,7 @@ export default function MesArticlesPage() {
 
   return (
     <>
-      {/* Header — barre d'action stylée, cohérente avec le hero du dashboard */}
+      {/* Header — barre d'action stylée */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-8 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
         <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -117,7 +189,6 @@ export default function MesArticlesPage() {
         </Link>
       </div>
 
-      {/* Compteur discret, utile dès que la liste grandit */}
       {articles.length > 0 && (
         <p className="text-xs font-semibold text-gray-400 mb-4 px-1">
           {filteredArticles.length} article{filteredArticles.length > 1 ? "s" : ""}
@@ -148,61 +219,27 @@ export default function MesArticlesPage() {
         </div>
       )}
 
-      {/* Grille articles */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+      {/* Grille articles — même style que la home (ProductCardModern) */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {filteredArticles.map((item, i) => (
           <motion.div
             key={item.id}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: Math.min(i, 8) * 0.03, duration: 0.3 }}
-            className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
           >
-            <div className="relative aspect-square overflow-hidden">
-              <img
-                src={item.photos[0]}
-                alt={item.nom}
-                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
-                  item.statut !== "actif" ? "grayscale-[40%] opacity-70" : ""
-                }`}
-              />
-              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1.5 sm:gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => openEdit(item)}
-                  className="w-7 h-7 sm:w-8 sm:h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-gray-600 hover:text-coral-500 shadow-sm transition-colors"
-                  aria-label="Modifier"
-                >
-                  <Edit3 size={15} />
-                </button>
-                <button
-                  onClick={() => setDeletingArticle(item)}
-                  className="w-7 h-7 sm:w-8 sm:h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 shadow-sm transition-colors"
-                  aria-label="Supprimer"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </div>
-            </div>
-            <div className="p-3 sm:p-5">
-              <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest mb-1 truncate">
-                {CATEGORIES.find((c) => c.id === item.categorie)?.label}
-              </p>
-              <h3 className="font-bold text-sm sm:text-base text-gray-900 truncate mb-1">{item.nom}</h3>
-              <p className="text-xs text-gray-400 font-medium mb-3">{item.stock} en stock</p>
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
-                  {item.prix.toLocaleString("fr-FR")} F
-                </p>
-                <StatusBadge statut={item.statut} stock={item.stock} />
-              </div>
-            </div>
+            <VendeurArticleCard
+              item={item}
+              onEdit={() => openEdit(item)}
+              onDelete={() => setDeletingArticle(item)}
+            />
           </motion.div>
         ))}
 
         {filteredArticles.length > 0 && (
           <Link
             href="/vendeur/articles/nouveau"
-            className="aspect-square rounded-2xl sm:rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 sm:gap-3 hover:bg-gray-50 hover:border-coral-300 transition-all group"
+            className="aspect-square rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 sm:gap-3 hover:bg-gray-50 hover:border-coral-300 transition-all group"
           >
             <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors">
               <Plus size={22} />

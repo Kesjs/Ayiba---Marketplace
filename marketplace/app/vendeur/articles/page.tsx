@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import {
-  Plus, Search, Trash2, Edit3, X, Loader2, PackageX, PauseCircle
+  Plus, Search, Trash2, Edit3, X, Loader2, PackageX
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -16,22 +16,25 @@ const CURRENT_VENDEUR_ID = "v1";
 function StatusBadge({ statut, stock }: { statut: string; stock: number }) {
   if (statut === "desactive") {
     return (
-      <div className="flex items-center gap-1 bg-gray-100 text-gray-500 px-2 py-0.5 rounded-md text-[10px] font-bold">
+      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
         Désactivé
-      </div>
+      </span>
     );
   }
   if (statut === "rupture" || stock === 0) {
     return (
-      <div className="flex items-center gap-1 bg-red-50 text-red-600 px-2 py-0.5 rounded-md text-[10px] font-bold">
+      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-red-600">
+        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
         Rupture
-      </div>
+      </span>
     );
   }
   return (
-    <div className="flex items-center gap-1 bg-teal-50 text-teal-600 px-2 py-0.5 rounded-md text-[10px] font-bold">
+    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600">
+      <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
       En ligne
-    </div>
+    </span>
   );
 }
 
@@ -94,93 +97,121 @@ export default function MesArticlesPage() {
 
   return (
     <>
-      {/* Action Bar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between mb-8 md:mb-10">
-        <div className="relative flex-1 max-w-md">
+      {/* Header — barre d'action stylée, cohérente avec le hero du dashboard */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-8 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
+        <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Rechercher parmi mes articles..."
-            className="w-full h-12 pl-12 pr-4 bg-white border border-gray-100 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-coral-500/10 focus:border-coral-500 transition-all font-medium text-sm"
+            className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 focus:bg-white transition-all text-sm font-medium"
           />
         </div>
-        <Link href="/vendeur/articles/nouveau">
-          <Button className="h-12 px-6 rounded-2xl flex items-center gap-2 w-full md:w-auto justify-center">
+        <Link href="/vendeur/articles/nouveau" className="shrink-0">
+          <Button className="h-12 px-6 rounded-2xl flex items-center gap-2 w-full sm:w-auto justify-center bg-coral-500 hover:bg-coral-600">
             <Plus size={20} />
             Ajouter un article
           </Button>
         </Link>
       </div>
 
-      {/* Empty state réel */}
+      {/* Compteur discret, utile dès que la liste grandit */}
+      {articles.length > 0 && (
+        <p className="text-xs font-semibold text-gray-400 mb-4 px-1">
+          {filteredArticles.length} article{filteredArticles.length > 1 ? "s" : ""}
+          {search && ` pour "${search}"`}
+        </p>
+      )}
+
+      {/* Empty state */}
       {filteredArticles.length === 0 && (
-        <div className="bg-white rounded-[32px] border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-12 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4 text-gray-300">
             <PackageX size={28} />
           </div>
-          <p className="text-gray-500 font-medium">
-            {search ? "Aucun article ne correspond à votre recherche." : "Vous n'avez pas encore d'article."}
+          <p className="text-gray-700 font-semibold mb-1">
+            {search ? "Aucun article ne correspond à ta recherche" : "Tu n'as pas encore d'article"}
           </p>
+          <p className="text-sm text-gray-400 mb-6">
+            {search ? "Essaie un autre mot-clé." : "Ajoute ton premier article pour commencer à vendre."}
+          </p>
+          {!search && (
+            <Link href="/vendeur/articles/nouveau">
+              <Button className="h-12 px-6 rounded-2xl inline-flex items-center gap-2 bg-coral-500 hover:bg-coral-600">
+                <Plus size={18} />
+                Ajouter un article
+              </Button>
+            </Link>
+          )}
         </div>
       )}
 
-      {/* Articles Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-        {filteredArticles.map((item) => (
-          <div
+      {/* Grille articles */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
+        {filteredArticles.map((item, i) => (
+          <motion.div
             key={item.id}
-            className="bg-white rounded-[28px] md:rounded-[32px] border border-gray-50 shadow-sm overflow-hidden group hover:shadow-xl hover:shadow-gray-200/20 transition-all duration-300"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: Math.min(i, 8) * 0.03, duration: 0.3 }}
+            className="bg-white rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300"
           >
             <div className="relative aspect-square overflow-hidden">
               <img
                 src={item.photos[0]}
                 alt={item.nom}
-                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-110 ${
+                className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                   item.statut !== "actif" ? "grayscale-[40%] opacity-70" : ""
                 }`}
               />
-              <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1.5 sm:gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                 <button
                   onClick={() => openEdit(item)}
-                  className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-gray-600 hover:text-coral-500 shadow-sm"
+                  className="w-7 h-7 sm:w-8 sm:h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-gray-600 hover:text-coral-500 shadow-sm transition-colors"
+                  aria-label="Modifier"
                 >
-                  <Edit3 size={16} />
+                  <Edit3 size={15} />
                 </button>
                 <button
                   onClick={() => setDeletingArticle(item)}
-                  className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 shadow-sm"
+                  className="w-7 h-7 sm:w-8 sm:h-8 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center text-red-500 hover:bg-red-50 shadow-sm transition-colors"
+                  aria-label="Supprimer"
                 >
-                  <Trash2 size={16} />
+                  <Trash2 size={15} />
                 </button>
               </div>
             </div>
-            <div className="p-5 md:p-6">
-              <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest mb-1">
+            <div className="p-3 sm:p-5">
+              <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest mb-1 truncate">
                 {CATEGORIES.find((c) => c.id === item.categorie)?.label}
               </p>
-              <h3 className="font-bold text-gray-900 truncate mb-1">{item.nom}</h3>
-              <p className="text-xs text-gray-400 font-medium mb-3">
-                {item.stock} en stock
-              </p>
-              <div className="flex items-center justify-between">
-                <p className="text-lg font-bold text-gray-900">{item.prix.toLocaleString("fr-FR")} F</p>
+              <h3 className="font-bold text-sm sm:text-base text-gray-900 truncate mb-1">{item.nom}</h3>
+              <p className="text-xs text-gray-400 font-medium mb-3">{item.stock} en stock</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-base sm:text-lg font-bold text-gray-900 truncate">
+                  {item.prix.toLocaleString("fr-FR")} F
+                </p>
                 <StatusBadge statut={item.statut} stock={item.stock} />
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
 
-        <Link
-          href="/vendeur/articles/nouveau"
-          className="aspect-square rounded-[28px] md:rounded-[32px] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center gap-3 hover:bg-gray-50 hover:border-coral-200 transition-all group"
-        >
-          <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors">
-            <Plus size={24} />
-          </div>
-          <span className="text-sm font-bold text-gray-400 group-hover:text-coral-500">Nouvel article</span>
-        </Link>
+        {filteredArticles.length > 0 && (
+          <Link
+            href="/vendeur/articles/nouveau"
+            className="aspect-square rounded-2xl sm:rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 sm:gap-3 hover:bg-gray-50 hover:border-coral-300 transition-all group"
+          >
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors">
+              <Plus size={22} />
+            </div>
+            <span className="text-xs sm:text-sm font-bold text-gray-400 group-hover:text-coral-500 text-center px-2">
+              Nouvel article
+            </span>
+          </Link>
+        )}
       </div>
 
       {/* MODALE — Modifier prix/stock */}
@@ -231,7 +262,7 @@ export default function MesArticlesPage() {
                     <p className="text-[11px] text-gray-400 mt-1.5">Mettre à 0 marque l'article comme "Rupture" automatiquement.</p>
                   </div>
 
-                  <Button className="w-full h-12 rounded-xl mt-2" onClick={handleSaveEdit} disabled={isSaving}>
+                  <Button className="w-full h-12 rounded-xl mt-2 bg-coral-500 hover:bg-coral-600" onClick={handleSaveEdit} disabled={isSaving}>
                     {isSaving ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Enregistrer"}
                   </Button>
                 </div>

@@ -130,12 +130,17 @@ export default function VendeurCommandesPage() {
           </div>
 
           {commandesFiltrees.length === 0 ? (
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-8 py-16 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                <Package size={22} className="text-gray-300" />
+            <>
+              <div className="bg-lime-400 text-black font-black text-2xl p-6 rounded-3xl text-center mb-4">
+                TEST VISIBLE 🔥
               </div>
-              <p className="text-gray-500 font-medium">Aucune commande dans cette catégorie</p>
-            </div>
+              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-8 py-16 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                  <Package size={22} className="text-gray-300" />
+                </div>
+                <p className="text-gray-500 font-medium">Aucune commande dans cette catégorie</p>
+              </div>
+            </>
           ) : (
             <div className="space-y-3">
               {commandesFiltrees.map((order) => {
@@ -150,7 +155,6 @@ export default function VendeurCommandesPage() {
                     className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden"
                     style={{ borderLeft: `4px solid ${spineColor}` }}
                   >
-                    {/* Ligne principale : avatar / nom / montant+statut / icône message / chevron */}
                     <div
                       role="button"
                       tabIndex={0}
@@ -180,7 +184,6 @@ export default function VendeurCommandesPage() {
                         </span>
                       </div>
 
-                      {/* Icône unique : ouvre directement la conversation dans Messages */}
                       <button
                         onClick={(e) => {
                           e.stopPropagation();

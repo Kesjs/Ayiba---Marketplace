@@ -520,7 +520,7 @@ export default function MesArticlesPage() {
   };
 
   return (
-    <>
+    <div className="px-5 sm:px-6 md:px-8 lg:px-10 py-6 lg:py-10 max-w-7xl mx-auto">
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
         <div className="relative flex-1 sm:max-w-md">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -900,6 +900,6 @@ export default function MesArticlesPage() {
           </>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }

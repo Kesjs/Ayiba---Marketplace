@@ -8,8 +8,8 @@ import { Check, Camera, ImagePlus, MapPin, Clock, Store, AlertCircle } from "luc
 
 const RESEAUX = [
   { value: "mtn", label: "MTN", logo: "/logos/mtn.png" },
-  { value: "moov", label: "MOOV", logo: "/logos/moov.png" },
-  { value: "celtiis", label: "CELTIIS", logo: "/logos/celtiis.png" },
+  { value: "moov", label: "MOOV", logo: "/logos/moov.jpg" },
+  { value: "celtiis", label: "CELTIIS", logo: "/logos/celtiis.jpg" },
 ];
 
 // Préfixes (2 chiffres après le 01) par opérateur — Bénin, plan à 10 chiffres depuis nov. 2024

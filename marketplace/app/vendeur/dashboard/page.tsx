@@ -245,89 +245,60 @@ export default function VendeurDashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Colonne principale */}
-            <div className="lg:col-span-8 space-y-8">
-              {/* Actions rapides */}
-              <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg md:text-xl font-bold">Actions rapides</h3>
-                  <Link
-                    href="/vendeur/articles/nouveau"
-                    className="hidden sm:flex items-center gap-2 bg-coral-600 hover:bg-coral-700 text-white px-5 py-2.5 rounded-2xl text-sm font-bold transition-all active:scale-95"
-                  >
-                    <Plus size={18} />
-                    Nouvel article
-                  </Link>
-                </div>
+            <div className="lg:col-span-8 space-y-8">{/* Actions rapides - Version minimaliste mobile */}
+<div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
+  <div className="flex items-center justify-between mb-6">
+    <h3 className="text-lg md:text-xl font-bold">Actions rapides</h3>
+    <Link
+      href="/vendeur/articles/nouveau"
+      className="sm:hidden text-coral-600 text-sm font-semibold flex items-center gap-1"
+    >
+      Tout voir <ChevronRight size={16} />
+    </Link>
+  </div>
 
-                {/* Grille 2x2 mobile-first : classes de base = mobile, sm: = écrans plus larges.
-                    4e action ajoutée pour remplir la grille et éviter le vide en bas à droite.
-                    Descriptions masquées sur mobile pour garder des tuiles compactes et alignées. */}
-                <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                  <Link href="/vendeur/articles/nouveau" className="group">
-                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
-                      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Plus className="w-5 h-5 sm:w-7 sm:h-7 text-coral-600" />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
-                          Nouvel Article
-                        </p>
-                        <p className="hidden sm:block text-xs text-gray-500 mt-1">
-                          Ajoutez rapidement un produit
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
+  <div className="grid grid-cols-2 gap-4 sm:gap-6">
+    {/* Nouvel Article */}
+    <Link href="/vendeur/articles/nouveau" className="group">
+      <div className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow transition-all active:scale-[0.97]">
+        <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Plus className="w-8 h-8 text-coral-600" />
+        </div>
+        <p className="font-semibold text-gray-900 text-center">Nouvel article</p>
+      </div>
+    </Link>
 
-                  <Link href="/vendeur/commandes" className="group">
-                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 hover:border-teal-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
-                      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <ShoppingBag className="w-5 h-5 sm:w-7 sm:h-7 text-teal-600" />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
-                          Commandes
-                        </p>
-                        <p className="hidden sm:block text-xs text-gray-500 mt-1">
-                          Gérez vos ventes
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
+    {/* Commandes */}
+    <Link href="/vendeur/commandes" className="group">
+      <div className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 hover:border-teal-200 hover:shadow transition-all active:scale-[0.97]">
+        <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+          <ShoppingBag className="w-8 h-8 text-teal-600" />
+        </div>
+        <p className="font-semibold text-gray-900 text-center">Commandes</p>
+      </div>
+    </Link>
 
-                  <Link href="/vendeur/messages" className="group">
-                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:border-amber-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
-                      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <MessageSquare className="w-5 h-5 sm:w-7 sm:h-7 text-amber-600" />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
-                          Messages
-                        </p>
-                        <p className="hidden sm:block text-xs text-gray-500 mt-1">
-                          Répondez à vos clients
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
+    {/* Messages */}
+    <Link href="/vendeur/messages" className="group">
+      <div className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:border-amber-200 hover:shadow transition-all active:scale-[0.97]">
+        <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+          <MessageSquare className="w-8 h-8 text-amber-600" />
+        </div>
+        <p className="font-semibold text-gray-900 text-center">Messages</p>
+      </div>
+    </Link>
 
-                  <Link href="/vendeur/paiements" className="group">
-                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 hover:border-blue-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
-                      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-blue-600" />
-                      </div>
-                      <div className="text-center">
-                        <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
-                          Paiements
-                        </p>
-                        <p className="hidden sm:block text-xs text-gray-500 mt-1">
-                          Suivez vos revenus
-                        </p>
-                      </div>
-                    </div>
-                  </Link>
-                </div>
-              </div>
+    {/* Paiements */}
+    <Link href="/vendeur/paiements" className="group">
+      <div className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 hover:border-blue-200 hover:shadow transition-all active:scale-[0.97]">
+        <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+          <TrendingUp className="w-8 h-8 text-blue-600" />
+        </div>
+        <p className="font-semibold text-gray-900 text-center">Paiements</p>
+      </div>
+    </Link>
+  </div>
+</div>
 
               {/* Dernières commandes */}
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">

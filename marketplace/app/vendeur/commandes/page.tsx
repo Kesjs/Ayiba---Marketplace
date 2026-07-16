@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import {
   ChevronDown,
   Phone,
@@ -39,6 +40,8 @@ import {
 
 const PAGE_SIZE = 20;
 const SLA_HEURES = 3;
+const SEARCH_LIMIT = 50;
+const SEARCH_DEBOUNCE_MS = 300;
 
 interface Commande {
   id: string;
@@ -144,6 +147,17 @@ function estEnRetardSLA(order: Commande) {
   return order.statut === STATUTS_COMMANDE.EN_ATTENTE && heuresDepuis(order.created_at) >= SLA_HEURES;
 }
 
+// Échappe le HTML injecté dans la facture imprimable pour éviter toute
+// exécution de script via un nom de client/article mal formé.
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function exportCSV(orders: Commande[]) {
   const header = ["Numero", "Client", "Telephone", "Commune", "Montant", "Statut", "Date"];
   const rows = orders.map((o) => [
@@ -168,18 +182,20 @@ function exportCSV(orders: Commande[]) {
 }
 
 function ouvrirFacture(order: Commande, articles: ArticleLigne[]) {
-  const win = window.open("", "_blank");
+  // noopener : la fenêtre de facture ne doit pas garder de référence vers
+  // l'onglet vendeur authentifié (window.opener).
+  const win = window.open("", "_blank", "noopener,noreferrer");
   if (!win) return;
   const lignes = articles
     .map(
       (a) =>
-        `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${a.nom}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${a.quantite}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatMontant(a.prix_unitaire)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatMontant(a.total)}</td></tr>`
+        `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${escapeHtml(a.nom)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${a.quantite}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatMontant(a.prix_unitaire)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatMontant(a.total)}</td></tr>`
     )
     .join("");
   win.document.write(`
     <html>
       <head>
-        <title>Facture ${order.numero}</title>
+        <title>Facture ${escapeHtml(order.numero)}</title>
         <style>
           body { font-family: -apple-system, system-ui, sans-serif; padding: 32px; color: #111; }
           h1 { font-size: 20px; margin-bottom: 4px; }
@@ -189,8 +205,8 @@ function ouvrirFacture(order: Commande, articles: ArticleLigne[]) {
         </style>
       </head>
       <body>
-        <h1>Facture — ${order.numero}</h1>
-        <p>Client : ${order.nom_client ?? "-"}<br/>Date : ${new Date(order.created_at).toLocaleDateString("fr-FR")}</p>
+        <h1>Facture — ${escapeHtml(order.numero)}</h1>
+        <p>Client : ${escapeHtml(order.nom_client ?? "-")}<br/>Date : ${new Date(order.created_at).toLocaleDateString("fr-FR")}</p>
         <table>
           <thead><tr><th>Article</th><th>Qté</th><th>P.U.</th><th>Total</th></tr></thead>
           <tbody>${lignes || "<tr><td colspan=4 style='padding:8px;color:#999;'>Aucun détail d'article</td></tr>"}</tbody>
@@ -234,6 +250,12 @@ export default function VendeurCommandesPage() {
   const [tri, setTri] = useState<TriOption>("recent");
   const [periode, setPeriode] = useState<PeriodeOption>("tout");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  // Résultats de recherche côté serveur (toute l'historique, pas seulement
+  // les commandes déjà chargées en mémoire).
+  const [searchResults, setSearchResults] = useState<Commande[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
 
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -320,6 +342,47 @@ export default function VendeurCommandesPage() {
     offsetRef.current = start + rows.length;
   }, [vendeurId, loadingMore, hasMore, showToast]);
 
+  // Recherche côté serveur, débouncée : porte sur TOUTES les commandes du
+  // vendeur (nom client ou numéro), pas seulement celles déjà en mémoire.
+  useEffect(() => {
+    if (!vendeurId) return;
+    const q = search.trim();
+
+    if (!q) {
+      setSearchResults(null);
+      setSearchError(null);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    setSearchError(null);
+
+    const handle = setTimeout(async () => {
+      const supabase = createClient();
+      // Échappe les caractères spéciaux du filtre .or() ilike (%, ,, *)
+      const safeQ = q.replace(/[%,*]/g, "");
+      const { data, error } = await supabase
+        .from("commandes")
+        .select(
+          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at"
+        )
+        .eq("vendeur_id", vendeurId)
+        .or(`nom_client.ilike.%${safeQ}%,numero.ilike.%${safeQ}%`)
+        .order("created_at", { ascending: false })
+        .limit(SEARCH_LIMIT);
+
+      setSearching(false);
+      if (error) {
+        setSearchError("Impossible de lancer la recherche — réessaie.");
+        return;
+      }
+      setSearchResults((data as Commande[]) ?? []);
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(handle);
+  }, [search, vendeurId]);
+
   // Temps réel : nouvelles commandes et changements de statut
   useEffect(() => {
     if (!vendeurId) return;
@@ -329,7 +392,7 @@ export default function VendeurCommandesPage() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "commandes", filter: `vendeur_id=eq.${vendeurId}` },
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<Commande>) => {
           if (payload.eventType === "INSERT") {
             const nouvelle = payload.new as Commande;
             setCommandes((prev) => (prev.some((c) => c.id === nouvelle.id) ? prev : [nouvelle, ...prev]));
@@ -337,9 +400,13 @@ export default function VendeurCommandesPage() {
           } else if (payload.eventType === "UPDATE") {
             const maj = payload.new as Commande;
             setCommandes((prev) => prev.map((c) => (c.id === maj.id ? { ...c, ...maj } : c)));
+            setSearchResults((prev) =>
+              prev ? prev.map((c) => (c.id === maj.id ? { ...c, ...maj } : c)) : prev
+            );
           } else if (payload.eventType === "DELETE") {
             const suppr = payload.old as Commande;
             setCommandes((prev) => prev.filter((c) => c.id !== suppr.id));
+            setSearchResults((prev) => (prev ? prev.filter((c) => c.id !== suppr.id) : prev));
           }
         }
       )
@@ -350,13 +417,12 @@ export default function VendeurCommandesPage() {
     };
   }, [vendeurId, showToast]);
 
+  // Source des commandes affichées : résultats serveur si une recherche est
+  // active, sinon la liste paginée normale.
   const searchedCommandes = useMemo(() => {
     if (!search.trim()) return commandes;
-    const q = search.toLowerCase();
-    return commandes.filter(
-      (c) => (c.nom_client ?? "").toLowerCase().includes(q) || c.numero.toLowerCase().includes(q)
-    );
-  }, [commandes, search]);
+    return searchResults ?? [];
+  }, [commandes, search, searchResults]);
 
   const periodeFiltered = useMemo(() => {
     if (periode === "tout") return searchedCommandes;
@@ -590,9 +656,21 @@ export default function VendeurCommandesPage() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher un client ou un numéro de commande..."
-              className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 focus:bg-white transition-all text-sm font-medium"
+              className="w-full h-12 pl-12 pr-10 bg-gray-50 border border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 focus:bg-white transition-all text-sm font-medium"
             />
+            {searching && (
+              <Loader2
+                size={16}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
+              />
+            )}
           </div>
+          {searchError && <p className="text-xs text-red-600 mt-2 px-1">{searchError}</p>}
+          {search.trim() && !searching && searchResults && searchResults.length === SEARCH_LIMIT && (
+            <p className="text-xs text-gray-400 mt-2 px-1">
+              Affiche les {SEARCH_LIMIT} résultats les plus récents — affine ta recherche pour plus de précision.
+            </p>
+          )}
         </div>
 
         {commandes.length > 0 && (

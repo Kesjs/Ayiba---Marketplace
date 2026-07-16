@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useVendeurCommandes, StatutCommande } from "@/lib/hooks/useVendeurCommandes";
 import {
@@ -14,31 +14,6 @@ import {
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { ChevronDown, Phone, MapPin, MessageCircle, Package } from "lucide-react";
-
-function DebugInfo() {
-  const [info, setInfo] = useState("");
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const update = () =>
-      setInfo(
-        `innerWidth: ${window.innerWidth} | scrollWidth: ${document.documentElement.scrollWidth} | scrollX: ${window.scrollX}`
-      );
-    update();
-    window.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
-
-  return (
-    <div className="bg-lime-400 text-black font-bold text-sm p-4 rounded-2xl mb-4 break-words">
-      {info || "Chargement..."}
-    </div>
-  );
-}
 
 const FILTRES: { value: StatutCommande | "tous"; label: string }[] = [
   { value: "tous", label: "Toutes" },
@@ -155,15 +130,12 @@ export default function VendeurCommandesPage() {
           </div>
 
           {commandesFiltrees.length === 0 ? (
-            <>
-              <DebugInfo />
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-8 py-16 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-                  <Package size={22} className="text-gray-300" />
-                </div>
-                <p className="text-gray-500 font-medium">Aucune commande dans cette catégorie</p>
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-8 py-16 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                <Package size={22} className="text-gray-300" />
               </div>
-            </>
+              <p className="text-gray-500 font-medium">Aucune commande dans cette catégorie</p>
+            </div>
           ) : (
             <div className="space-y-3">
               {commandesFiltrees.map((order) => {

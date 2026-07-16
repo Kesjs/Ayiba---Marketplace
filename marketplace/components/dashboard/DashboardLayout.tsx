@@ -59,7 +59,7 @@ export function DashboardLayout({
           notifications={badges.notificationsList}
         />
 
-        <div className="p-6 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0">
+<div className="p-5 sm:p-6 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 min-w-0">
             {children}
           </div>

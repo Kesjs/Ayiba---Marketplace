@@ -1,9 +1,9 @@
 "use client";
 
 import { useVendeurDashboard } from "@/lib/hooks/useVendeurDashboard";
-
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { VentesChart } from "@/components/dashboard/VentesChart";
 import {
@@ -44,8 +44,40 @@ function StatutBadge({ statut }: { statut: string }) {
   );
 }
 
+// Composant Action Rapide réutilisable
+function ActionRapide({ 
+  icon: Icon, 
+  label, 
+  href, 
+  color 
+}: { 
+  icon: any; 
+  label: string; 
+  href: string; 
+  color: string;
+}) {
+  const colorMap: Record<string, string> = {
+    coral: "text-coral-600 border-coral-100 from-coral-50",
+    teal:  "text-teal-600 border-teal-100 from-teal-50",
+    amber: "text-amber-600 border-amber-100 from-amber-50",
+    blue:  "text-blue-600 border-blue-100 from-blue-50",
+  };
+
+  return (
+    <Link href={href} className="group">
+      <div className={`flex flex-col items-center gap-2.5 p-4 rounded-3xl bg-gradient-to-br ${colorMap[color]} to-white border hover:shadow-md transition-all active:scale-[0.97]`}>
+        <div className="w-12 h-12 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Icon className="w-6 h-6" />
+        </div>
+        <p className="font-semibold text-gray-900 text-center text-[13px] leading-tight">{label}</p>
+      </div>
+    </Link>
+  );
+}
+
 export default function VendeurDashboardPage() {
   const router = useRouter();
+  const [showMore, setShowMore] = useState(false);
 
   const {
     loading,
@@ -106,7 +138,7 @@ export default function VendeurDashboardPage() {
     },
   ];
 
-  // --- Centre d'attention : actions concrètes qui attendent le vendeur ---
+  // Centre d'attention
   const attentionItems: { label: string; href: string; couleur: string }[] = [];
 
   if (stats && stats.commandes_en_attente > 0) {
@@ -161,7 +193,7 @@ export default function VendeurDashboardPage() {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="space-y-8"
         >
-          {/* --- Centre d'attention --- */}
+          {/* Centre d'attention */}
           {attentionItems.length > 0 && (
             <div className="bg-white rounded-3xl border border-gray-100 border-l-4 border-l-coral-500 shadow-sm overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-100">
@@ -185,7 +217,7 @@ export default function VendeurDashboardPage() {
             </div>
           )}
 
-          {/* --- Hero CA --- */}
+          {/* Hero CA */}
           <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[32px] p-6 sm:p-8 text-white shadow-xl shadow-coral-500/20">
             <div className="absolute -top-20 -right-16 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -left-10 w-48 h-48 bg-black/10 rounded-full blur-3xl pointer-events-none" />
@@ -207,10 +239,10 @@ export default function VendeurDashboardPage() {
             </div>
           </div>
 
-          {/* --- Graphique CA --- */}
+          {/* Graphique CA */}
           <VentesChart paiements={paiements} objectifMensuel={500000} />
 
-          {/* --- Tuiles stats secondaires --- */}
+          {/* Stats secondaires */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
             {secondaryStats.map((stat, i) => (
               <motion.div
@@ -245,60 +277,42 @@ export default function VendeurDashboardPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             {/* Colonne principale */}
-            <div className="lg:col-span-8 space-y-8">{/* Actions rapides - Version minimaliste mobile */}
-<div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
-  <div className="flex items-center justify-between mb-6">
-    <h3 className="text-lg md:text-xl font-bold">Actions rapides</h3>
-    <Link
-      href="/vendeur/articles/nouveau"
-      className="sm:hidden text-coral-600 text-sm font-semibold flex items-center gap-1"
-    >
-      Tout voir <ChevronRight size={16} />
-    </Link>
-  </div>
+            <div className="lg:col-span-8 space-y-8">
+              {/* Actions rapides - Style iOS compact */}
+              <div className="bg-white p-5 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-lg font-bold">Actions rapides</h3>
+                  <button
+                    onClick={() => setShowMore(!showMore)}
+                    className="text-coral-600 text-sm font-semibold flex items-center gap-1 hover:underline active:text-coral-700 transition-colors"
+                  >
+                    {showMore ? "Voir moins" : "Tout voir"}
+                    <ChevronRight 
+                      size={16} 
+                      className={`transition-transform ${showMore ? "rotate-90" : ""}`} 
+                    />
+                  </button>
+                </div>
 
-  <div className="grid grid-cols-2 gap-4 sm:gap-6">
-    {/* Nouvel Article */}
-    <Link href="/vendeur/articles/nouveau" className="group">
-      <div className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow transition-all active:scale-[0.97]">
-        <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-          <Plus className="w-8 h-8 text-coral-600" />
-        </div>
-        <p className="font-semibold text-gray-900 text-center">Nouvel article</p>
-      </div>
-    </Link>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <ActionRapide icon={Plus} label="Nouvel article" href="/vendeur/articles/nouveau" color="coral" />
+                  <ActionRapide icon={ShoppingBag} label="Commandes" href="/vendeur/commandes" color="teal" />
+                  <ActionRapide icon={MessageSquare} label="Messages" href="/vendeur/messages" color="amber" />
+                  <ActionRapide icon={TrendingUp} label="Paiements" href="/vendeur/paiements" color="blue" />
+                </div>
 
-    {/* Commandes */}
-    <Link href="/vendeur/commandes" className="group">
-      <div className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 hover:border-teal-200 hover:shadow transition-all active:scale-[0.97]">
-        <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-          <ShoppingBag className="w-8 h-8 text-teal-600" />
-        </div>
-        <p className="font-semibold text-gray-900 text-center">Commandes</p>
-      </div>
-    </Link>
-
-    {/* Messages */}
-    <Link href="/vendeur/messages" className="group">
-      <div className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:border-amber-200 hover:shadow transition-all active:scale-[0.97]">
-        <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-          <MessageSquare className="w-8 h-8 text-amber-600" />
-        </div>
-        <p className="font-semibold text-gray-900 text-center">Messages</p>
-      </div>
-    </Link>
-
-    {/* Paiements */}
-    <Link href="/vendeur/paiements" className="group">
-      <div className="flex flex-col items-center gap-3 p-5 rounded-3xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 hover:border-blue-200 hover:shadow transition-all active:scale-[0.97]">
-        <div className="w-16 h-16 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-          <TrendingUp className="w-8 h-8 text-blue-600" />
-        </div>
-        <p className="font-semibold text-gray-900 text-center">Paiements</p>
-      </div>
-    </Link>
-  </div>
-</div>
+                {showMore && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    transition={{ duration: 0.3 }}
+                    className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-100"
+                  >
+                    <ActionRapide icon={Package} label="Mes articles" href="/vendeur/articles" color="amber" />
+                    <ActionRapide icon={Star} label="Avis clients" href="/vendeur/avis" color="blue" />
+                  </motion.div>
+                )}
+              </div>
 
               {/* Dernières commandes */}
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
@@ -326,7 +340,6 @@ export default function VendeurDashboardPage() {
                   </div>
                 ) : (
                   <>
-                    {/* --- Vue carte mobile (< md) --- */}
                     <div className="md:hidden divide-y divide-gray-100">
                       {commandes.map((order) => (
                         <button
@@ -352,7 +365,6 @@ export default function VendeurDashboardPage() {
                       ))}
                     </div>
 
-                    {/* --- Vue tableau desktop (>= md) --- */}
                     <div className="hidden md:block overflow-x-auto">
                       <table className="w-full">
                         <thead>
@@ -400,7 +412,6 @@ export default function VendeurDashboardPage() {
 
             {/* Colonne latérale */}
             <div className="lg:col-span-4 space-y-8">
-              {/* Messages récents */}
               <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm h-fit">
                 <h3 className="text-lg md:text-xl font-bold mb-6">Messages récents</h3>
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import 'leaflet/dist/leaflet.css'
 
@@ -10,11 +10,18 @@ import { BottomNav } from "@/components/ui/BottomNav";
 import { Toast } from "@/components/ui/Toast";
 import { PageTransition } from "@/components/ui/PageTransition";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#FF6653",
+};
+
 export const metadata: Metadata = {
   title: "Ayiba - Marketplace de proximité",
   description: "Trouve des produits près de chez toi, livrés en toute sécurité",
   manifest: "/manifest.json",
-  themeColor: "#FF6653",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

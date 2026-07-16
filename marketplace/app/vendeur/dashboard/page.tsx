@@ -259,39 +259,53 @@ export default function VendeurDashboardPage() {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                {/* Grille corrigée : 3 colonnes dès le mobile pour éviter le retour
+                    à la ligne asymétrique (2 + 1) qui laissait un vide à droite. */}
+                <div className="grid grid-cols-3 gap-2 sm:gap-4">
                   <Link href="/vendeur/articles/nouveau" className="group">
-                    <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow-md active:scale-[0.98] transition-all">
-                      <div className="w-14 h-14 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Plus size={28} className="text-coral-600" />
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-3 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
+                      <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Plus size={20} className="text-coral-600 sm:w-7 sm:h-7" />
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-gray-900">Nouvel Article</p>
-                        <p className="text-xs text-gray-500">Ajoutez rapidement un produit</p>
+                        <p className="font-bold text-gray-900 text-xs sm:text-base leading-tight">
+                          Nouvel Article
+                        </p>
+                        <p className="hidden sm:block text-xs text-gray-500 mt-1">
+                          Ajoutez rapidement un produit
+                        </p>
                       </div>
                     </div>
                   </Link>
 
                   <Link href="/vendeur/commandes" className="group">
-                    <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 hover:border-teal-200 hover:shadow-md active:scale-[0.98] transition-all">
-                      <div className="w-14 h-14 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <ShoppingBag size={28} className="text-teal-600" />
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-3 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 hover:border-teal-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
+                      <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <ShoppingBag size={20} className="text-teal-600 sm:w-7 sm:h-7" />
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-gray-900">Commandes</p>
-                        <p className="text-xs text-gray-500">Gérez vos ventes</p>
+                        <p className="font-bold text-gray-900 text-xs sm:text-base leading-tight">
+                          Commandes
+                        </p>
+                        <p className="hidden sm:block text-xs text-gray-500 mt-1">
+                          Gérez vos ventes
+                        </p>
                       </div>
                     </div>
                   </Link>
 
                   <Link href="/vendeur/messages" className="group">
-                    <div className="flex flex-col items-center gap-4 p-6 rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:border-amber-200 hover:shadow-md active:scale-[0.98] transition-all">
-                      <div className="w-14 h-14 rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <MessageSquare size={28} className="text-amber-600" />
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-3 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:border-amber-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
+                      <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <MessageSquare size={20} className="text-amber-600 sm:w-7 sm:h-7" />
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-gray-900">Messages</p>
-                        <p className="text-xs text-gray-500">Répondez à vos clients</p>
+                        <p className="font-bold text-gray-900 text-xs sm:text-base leading-tight">
+                          Messages
+                        </p>
+                        <p className="hidden sm:block text-xs text-gray-500 mt-1">
+                          Répondez à vos clients
+                        </p>
                       </div>
                     </div>
                   </Link>

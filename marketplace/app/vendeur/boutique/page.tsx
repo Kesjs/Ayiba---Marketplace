@@ -4,13 +4,20 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useVendeurBoutique, type Horaires, type Jour } from "../../hooks/useVendeurBoutique";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
-import { Check, Camera, ImagePlus, MapPin, Clock, Store } from "lucide-react";
+import { Check, Camera, ImagePlus, MapPin, Clock, Store, AlertCircle } from "lucide-react";
 
 const RESEAUX = [
-  { value: "mtn", label: "MTN Mobile Money" },
-  { value: "moov", label: "Moov Money" },
-  { value: "celtiis", label: "Celtis Cash" },
+  { value: "mtn", label: "MTN", logo: "/logos/mtn.png" },
+  { value: "moov", label: "MOOV", logo: "/logos/moov.png" },
+  { value: "celtiis", label: "CELTIIS", logo: "/logos/celtiis.png" },
 ];
+
+// Préfixes (2 chiffres après le 01) par opérateur — Bénin, plan à 10 chiffres depuis nov. 2024
+const PREFIXES_RESEAU: Record<string, string[]> = {
+  mtn: ["46", "50", "51", "52", "53", "54", "56", "57", "59", "61", "62", "66", "67", "69", "90", "91", "96", "97"],
+  moov: ["55", "58", "60", "63", "64", "65", "68", "94", "95", "98", "99"],
+  celtiis: ["40", "41", "42", "43", "44", "45", "47", "48", "49"],
+};
 
 const JOURS: { value: Jour; label: string }[] = [
   { value: "lundi", label: "Lundi" },
@@ -33,9 +40,23 @@ function normaliserNumero(numero: string) {
   return numero.replace(/\D/g, "");
 }
 
-function numeroValide(numero: string) {
+function formaterNumero(numero: string) {
+  const chiffres = normaliserNumero(numero).slice(0, 10);
+  return chiffres.match(/.{1,2}/g)?.join(" ") || chiffres;
+}
+
+function validerNumero(numero: string, reseau: string): string | null {
   const chiffres = normaliserNumero(numero);
-  return chiffres.length === 8;
+  if (!chiffres) return null;
+  if (chiffres.length !== 10) return "Le numéro doit contenir 10 chiffres (préfixe 01 inclus).";
+  if (!chiffres.startsWith("01")) return "Le numéro doit commencer par 01 (nouveau format béninois).";
+  if (!reseau) return "Choisis un opérateur d'abord.";
+  const prefixe = chiffres.slice(2, 4);
+  if (!PREFIXES_RESEAU[reseau]?.includes(prefixe)) {
+    const label = RESEAUX.find((r) => r.value === reseau)?.label;
+    return `Ce préfixe (${prefixe}) ne correspond pas à un numéro ${label}.`;
+  }
+  return null;
 }
 
 export default function VendeurBoutiquePage() {
@@ -88,12 +109,8 @@ export default function VendeurBoutiquePage() {
   const errors = useMemo(() => {
     const e: Record<string, string> = {};
     if (!form.nom_boutique.trim()) e.nom_boutique = "Le nom de la boutique est obligatoire.";
-    if (form.mobile_money_number && !numeroValide(form.mobile_money_number)) {
-      e.mobile_money_number = "Le numéro doit contenir 8 chiffres.";
-    }
-    if (form.mobile_money_number && !form.mobile_money_network) {
-      e.mobile_money_network = "Choisis un opérateur.";
-    }
+    const erreurNumero = validerNumero(form.mobile_money_number, form.mobile_money_network);
+    if (erreurNumero) e.mobile_money_number = erreurNumero;
     return e;
   }, [form]);
 
@@ -102,7 +119,7 @@ export default function VendeurBoutiquePage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched({ nom_boutique: true, mobile_money_number: true, mobile_money_network: true });
+    setTouched({ nom_boutique: true, mobile_money_number: true });
     if (Object.keys(errors).length > 0) return;
     updateBoutique(form);
     setInitialForm(form);
@@ -326,31 +343,42 @@ export default function VendeurBoutiquePage() {
             {/* Mobile Money */}
             <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-6">
               <h3 className="text-lg font-bold">Mobile Money</h3>
-              <p className="text-sm text-gray-500 -mt-4">Utilisé pour recevoir tes paiements</p>
+              <div className="-mt-4 space-y-1">
+                <p className="text-sm text-gray-500">
+                  Utilisé pour te reverser tes gains après chaque vente.
+                </p>
+                <p className="flex items-center gap-1.5 text-xs font-medium text-amber-600">
+                  <AlertCircle size={13} />
+                  Vérifie bien ton numéro : les paiements sont automatiques.
+                </p>
+              </div>
 
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
                   Opérateur
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-3">
                   {RESEAUX.map((r) => (
                     <button
                       key={r.value}
                       type="button"
                       onClick={() => handleChange("mobile_money_network", r.value)}
-                      className={`px-3 py-3 rounded-2xl text-xs font-bold border transition-colors ${
+                      className={`relative flex flex-col items-center gap-2 py-4 rounded-2xl border transition-all ${
                         form.mobile_money_network === r.value
-                          ? "bg-coral-500 text-white border-coral-500"
-                          : "bg-gray-50 text-gray-600 border-gray-100 hover:bg-gray-100"
+                          ? "border-coral-500 bg-coral-50"
+                          : "border-gray-100 bg-gray-50 hover:bg-gray-100"
                       }`}
                     >
-                      {r.label}
+                      {form.mobile_money_network === r.value && (
+                        <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-coral-500 flex items-center justify-center">
+                          <Check size={10} className="text-white" />
+                        </span>
+                      )}
+                      <img src={r.logo} alt={r.label} className="h-8 w-auto object-contain" />
+                      <span className="text-xs font-bold text-gray-700">{r.label}</span>
                     </button>
                   ))}
                 </div>
-                {touched.mobile_money_network && errors.mobile_money_network && (
-                  <p className="mt-1.5 text-xs text-red-600">{errors.mobile_money_network}</p>
-                )}
               </div>
 
               <div>
@@ -359,14 +387,15 @@ export default function VendeurBoutiquePage() {
                 </label>
                 <input
                   value={form.mobile_money_number}
-                  onChange={(e) => handleChange("mobile_money_number", e.target.value)}
+                  onChange={(e) => handleChange("mobile_money_number", formaterNumero(e.target.value))}
                   onBlur={() => setTouched((t) => ({ ...t, mobile_money_number: true }))}
+                  inputMode="numeric"
                   className={`w-full px-4 py-3 rounded-2xl bg-gray-50 border text-sm focus:outline-none focus:ring-2 ${
                     touched.mobile_money_number && errors.mobile_money_number
                       ? "border-red-200 focus:ring-red-200"
                       : "border-gray-100 focus:ring-coral-200"
                   }`}
-                  placeholder="Ex: 97 00 00 00"
+                  placeholder="Ex: 01 97 00 00 00"
                 />
                 {touched.mobile_money_number && errors.mobile_money_number && (
                   <p className="mt-1.5 text-xs text-red-600">{errors.mobile_money_number}</p>

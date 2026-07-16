@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import {
-  User, Bell, Shield, Smartphone, ChevronRight, Camera,
+  User, Bell, Store, Smartphone, ChevronRight, Camera,
   X, Mail, Phone, Lock, Trash2, PauseCircle, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -40,7 +41,7 @@ function SettingsModal({
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 40, opacity: 0, scale: 0.98 }}
               transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 shadow-2xl max-h-[85vh] overflow-y-auto"
+              className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-gray-900">{title}</h3>
@@ -63,10 +64,11 @@ function SettingsModal({
 // ============================================
 // TOGGLE — switch animé façon iOS
 // ============================================
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: () => void; label: string }) {
   return (
     <button
       onClick={onChange}
+      aria-label={label}
       className={`relative w-12 h-7 rounded-full transition-colors duration-300 shrink-0 ${
         checked ? "bg-teal-500" : "bg-gray-200"
       }`}
@@ -109,7 +111,7 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full h-12 pl-11 pr-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-coral-200 focus:border-coral-400 transition-all"
+          className="w-full h-12 pl-11 pr-4 rounded-lg border border-gray-200 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-coral-200 focus:border-coral-400 transition-all"
         />
       </div>
     </div>
@@ -135,8 +137,6 @@ export default function VendeurParametresPage() {
     whatsapp: true,
     email: false,
   });
-
-  const [twoFactor, setTwoFactor] = useState(true);
 
   // États des modales
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -194,30 +194,27 @@ export default function VendeurParametresPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 md:space-y-10">
       {/* Profile Header */}
-      <div className="bg-white p-6 md:p-8 rounded-3xl md:rounded-[40px] border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-6 md:gap-8">
+      <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-5 md:gap-6">
         <div className="relative group shrink-0">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gray-100 overflow-hidden border-4 border-white shadow-md">
+          <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-100 overflow-hidden border-4 border-white shadow-md">
             <img src="https://i.pravatar.cc/200?u=Aminata" className="w-full h-full object-cover" alt="" />
           </div>
-          <button className="absolute -bottom-2 -right-2 w-9 h-9 md:w-10 md:h-10 bg-coral-500 text-white rounded-xl flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 active:scale-95 transition-transform">
+          <button className="absolute -bottom-2 -right-2 w-9 h-9 md:w-10 md:h-10 bg-coral-500 text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 active:scale-95 transition-transform">
             <Camera size={16} />
           </button>
         </div>
         <div className="text-center md:text-left flex-1 min-w-0">
           <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 truncate">{profile.name}</h3>
-          <p className="text-gray-500 font-medium text-sm mb-3 md:mb-4">Vendeuse certifiée depuis Mars 2024</p>
+          <p className="text-gray-500 font-medium text-sm mb-3 md:mb-4">Vendeuse sur Ayiba</p>
           <div className="flex flex-wrap justify-center md:justify-start gap-2">
             <span className="px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[10px] font-bold uppercase tracking-widest border border-teal-100">
               Boutique Vérifiée
-            </span>
-            <span className="px-3 py-1 bg-coral-50 text-coral-600 rounded-full text-[10px] font-bold uppercase tracking-widest border border-coral-100">
-              Premium
             </span>
           </div>
         </div>
         <Button
           variant="secondary"
-          className="rounded-2xl h-11 md:h-12 px-6 w-full md:w-auto shrink-0"
+          className="rounded-xl h-11 md:h-12 px-6 w-full md:w-auto shrink-0"
           onClick={() => {
             setEditForm(profile);
             setShowEditProfile(true);
@@ -230,16 +227,16 @@ export default function VendeurParametresPage() {
       {/* Compte */}
       <div className="space-y-4">
         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-4">Compte</h4>
-        <div className="bg-white rounded-3xl md:rounded-[32px] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
+        <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
           <button
             onClick={() => {
               setEditForm(profile);
               setShowEditProfile(true);
             }}
-            className="w-full flex items-center justify-between p-5 md:p-6 hover:bg-gray-50 transition-colors group text-left"
+            className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-gray-50 transition-colors group text-left"
           >
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
                 <User size={20} />
               </div>
               <div className="min-w-0">
@@ -252,10 +249,10 @@ export default function VendeurParametresPage() {
 
           <button
             onClick={() => setShowChangePassword(true)}
-            className="w-full flex items-center justify-between p-5 md:p-6 hover:bg-gray-50 transition-colors group text-left"
+            className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-gray-50 transition-colors group text-left"
           >
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
                 <Lock size={20} />
               </div>
               <div className="min-w-0">
@@ -266,55 +263,56 @@ export default function VendeurParametresPage() {
             <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
           </button>
 
-          <div className="w-full flex items-center justify-between p-5 md:p-6">
+          <Link
+            href="/vendeur/boutique"
+            className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-gray-50 transition-colors group text-left"
+          >
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
-                <Shield size={20} />
+              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
+                <Store size={20} />
               </div>
               <div className="min-w-0">
-                <p className="text-sm font-bold text-gray-900">Validation en 2 étapes</p>
-                <p className="text-xs text-gray-400 font-medium mt-0.5">
-                  {twoFactor ? "Activée" : "Désactivée"}
-                </p>
+                <p className="text-sm font-bold text-gray-900">Ma boutique</p>
+                <p className="text-xs text-gray-400 font-medium mt-0.5">Nom, adresse, horaires</p>
               </div>
             </div>
-            <Toggle checked={twoFactor} onChange={() => setTwoFactor((v) => !v)} />
-          </div>
+            <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
+          </Link>
         </div>
       </div>
 
       {/* Notifications */}
       <div className="space-y-4">
         <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-4">Notifications</h4>
-        <div className="bg-white rounded-3xl md:rounded-[32px] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
-          <div className="w-full flex items-center justify-between p-5 md:p-6">
+        <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
+          <div className="w-full flex items-center justify-between p-4 md:p-5">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
                 <Bell size={20} />
               </div>
               <p className="text-sm font-bold text-gray-900">Notifications push</p>
             </div>
-            <Toggle checked={notifications.push} onChange={() => handleToggleNotif("push")} />
+            <Toggle checked={notifications.push} onChange={() => handleToggleNotif("push")} label="Notifications push" />
           </div>
 
-          <div className="w-full flex items-center justify-between p-5 md:p-6">
+          <div className="w-full flex items-center justify-between p-4 md:p-5">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
                 <Smartphone size={20} />
               </div>
               <p className="text-sm font-bold text-gray-900">Alertes WhatsApp</p>
             </div>
-            <Toggle checked={notifications.whatsapp} onChange={() => handleToggleNotif("whatsapp")} />
+            <Toggle checked={notifications.whatsapp} onChange={() => handleToggleNotif("whatsapp")} label="Alertes WhatsApp" />
           </div>
 
-          <div className="w-full flex items-center justify-between p-5 md:p-6">
+          <div className="w-full flex items-center justify-between p-4 md:p-5">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
                 <Mail size={20} />
               </div>
               <p className="text-sm font-bold text-gray-900">Notifications email</p>
             </div>
-            <Toggle checked={notifications.email} onChange={() => handleToggleNotif("email")} />
+            <Toggle checked={notifications.email} onChange={() => handleToggleNotif("email")} label="Notifications email" />
           </div>
         </div>
       </div>
@@ -325,10 +323,10 @@ export default function VendeurParametresPage() {
 
         <button
           onClick={() => setShowConfirmPause(true)}
-          className="w-full p-5 md:p-6 bg-amber-50 text-amber-700 rounded-3xl border border-amber-100 flex items-center justify-between hover:bg-amber-100 transition-colors group"
+          className="w-full p-4 md:p-5 bg-amber-50 text-amber-700 rounded-2xl border border-amber-100 flex items-center justify-between hover:bg-amber-100 transition-colors group"
         >
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white text-amber-600 flex items-center justify-center shadow-sm shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-white text-amber-600 flex items-center justify-center shadow-sm shrink-0">
               <PauseCircle size={20} />
             </div>
             <p className="font-bold text-sm text-left">Fermer temporairement la boutique</p>
@@ -338,10 +336,10 @@ export default function VendeurParametresPage() {
 
         <button
           onClick={() => setShowConfirmDelete(true)}
-          className="w-full p-5 md:p-6 bg-red-50 text-red-600 rounded-3xl border border-red-100 flex items-center justify-between hover:bg-red-100 transition-colors group"
+          className="w-full p-4 md:p-5 bg-red-50 text-red-600 rounded-2xl border border-red-100 flex items-center justify-between hover:bg-red-100 transition-colors group"
         >
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-xl bg-white text-red-500 flex items-center justify-center shadow-sm shrink-0">
+            <div className="w-10 h-10 rounded-lg bg-white text-red-500 flex items-center justify-center shadow-sm shrink-0">
               <Trash2 size={20} />
             </div>
             <p className="font-bold text-sm text-left">Supprimer mon compte</p>
@@ -358,7 +356,7 @@ export default function VendeurParametresPage() {
           <Field label="Téléphone" icon={Phone} value={editForm.phone} onChange={(v) => setEditForm((f) => ({ ...f, phone: v }))} />
 
           <Button
-            className="w-full h-12 rounded-xl mt-2"
+            className="w-full h-12 rounded-lg mt-2"
             onClick={handleSaveProfile}
             disabled={isSaving}
           >
@@ -394,7 +392,7 @@ export default function VendeurParametresPage() {
           />
 
           <Button
-            className="w-full h-12 rounded-xl mt-2"
+            className="w-full h-12 rounded-lg mt-2"
             onClick={handleChangePassword}
             disabled={isSaving}
           >
@@ -411,15 +409,15 @@ export default function VendeurParametresPage() {
         <div className="flex gap-3">
           <button
             onClick={() => setShowConfirmPause(false)}
-            className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
+            className="flex-1 h-12 rounded-lg border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
           >
             Annuler
           </button>
           <button
             onClick={handleConfirmPause}
-            className="flex-1 h-12 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-colors"
+            className="flex-1 h-12 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-colors"
           >
-            Confirmer
+            Mettre en pause
           </button>
         </div>
       </SettingsModal>
@@ -443,7 +441,7 @@ export default function VendeurParametresPage() {
           type="text"
           value={deleteConfirmText}
           onChange={(e) => setDeleteConfirmText(e.target.value)}
-          className="w-full h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium mb-4 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-all"
+          className="w-full h-12 px-4 rounded-lg border border-gray-200 text-sm font-medium mb-4 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-all"
           placeholder="SUPPRIMER"
         />
         <div className="flex gap-3">
@@ -452,14 +450,14 @@ export default function VendeurParametresPage() {
               setShowConfirmDelete(false);
               setDeleteConfirmText("");
             }}
-            className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
+            className="flex-1 h-12 rounded-lg border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
           >
             Annuler
           </button>
           <button
             onClick={handleConfirmDelete}
             disabled={deleteConfirmText !== "SUPPRIMER"}
-            className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:cursor-not-allowed text-white font-bold text-sm transition-colors"
+            className="flex-1 h-12 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:cursor-not-allowed text-white font-bold text-sm transition-colors"
           >
             Supprimer définitivement
           </button>

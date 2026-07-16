@@ -504,6 +504,7 @@ export default function VendeurCommandesPage() {
           </>
         )}
       </AnimatePresence>
+      </div>
     </DashboardLayout>
   );
 }

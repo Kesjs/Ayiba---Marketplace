@@ -259,16 +259,17 @@ export default function VendeurDashboardPage() {
                   </Link>
                 </div>
 
-                {/* Grille corrigée : 3 colonnes dès le mobile pour éviter le retour
-                    à la ligne asymétrique (2 + 1) qui laissait un vide à droite. */}
-                <div className="grid grid-cols-3 gap-2 sm:gap-4">
+                {/* Grille 2x2 mobile-first : classes de base = mobile, sm: = écrans plus larges.
+                    4e action ajoutée pour remplir la grille et éviter le vide en bas à droite.
+                    Descriptions masquées sur mobile pour garder des tuiles compactes et alignées. */}
+                <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <Link href="/vendeur/articles/nouveau" className="group">
-                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-3 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
-                      <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Plus size={20} className="text-coral-600 sm:w-7 sm:h-7" />
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-coral-50 to-white border border-coral-100 hover:border-coral-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
+                      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Plus className="w-5 h-5 sm:w-7 sm:h-7 text-coral-600" />
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-gray-900 text-xs sm:text-base leading-tight">
+                        <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
                           Nouvel Article
                         </p>
                         <p className="hidden sm:block text-xs text-gray-500 mt-1">
@@ -279,12 +280,12 @@ export default function VendeurDashboardPage() {
                   </Link>
 
                   <Link href="/vendeur/commandes" className="group">
-                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-3 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 hover:border-teal-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
-                      <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <ShoppingBag size={20} className="text-teal-600 sm:w-7 sm:h-7" />
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-teal-50 to-white border border-teal-100 hover:border-teal-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
+                      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <ShoppingBag className="w-5 h-5 sm:w-7 sm:h-7 text-teal-600" />
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-gray-900 text-xs sm:text-base leading-tight">
+                        <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
                           Commandes
                         </p>
                         <p className="hidden sm:block text-xs text-gray-500 mt-1">
@@ -295,16 +296,32 @@ export default function VendeurDashboardPage() {
                   </Link>
 
                   <Link href="/vendeur/messages" className="group">
-                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-3 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:border-amber-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
-                      <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <MessageSquare size={20} className="text-amber-600 sm:w-7 sm:h-7" />
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-amber-50 to-white border border-amber-100 hover:border-amber-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
+                      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <MessageSquare className="w-5 h-5 sm:w-7 sm:h-7 text-amber-600" />
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-gray-900 text-xs sm:text-base leading-tight">
+                        <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
                           Messages
                         </p>
                         <p className="hidden sm:block text-xs text-gray-500 mt-1">
                           Répondez à vos clients
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+
+                  <Link href="/vendeur/paiements" className="group">
+                    <div className="flex flex-col items-center gap-2 sm:gap-4 p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-br from-blue-50 to-white border border-blue-100 hover:border-blue-200 hover:shadow-md active:scale-[0.98] transition-all h-full">
+                      <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-white shadow flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <TrendingUp className="w-5 h-5 sm:w-7 sm:h-7 text-blue-600" />
+                      </div>
+                      <div className="text-center">
+                        <p className="font-bold text-gray-900 text-sm sm:text-base leading-tight">
+                          Paiements
+                        </p>
+                        <p className="hidden sm:block text-xs text-gray-500 mt-1">
+                          Suivez vos revenus
                         </p>
                       </div>
                     </div>

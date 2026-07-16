@@ -519,7 +519,6 @@ export default function MesArticlesPage() {
     }
   };
 
-  return (
 return (
   <div className="w-full min-w-0 px-5 sm:px-6 md:px-8 lg:px-10 py-6 lg:py-10 max-w-7xl mx-auto">
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">

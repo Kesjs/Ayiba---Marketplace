@@ -208,6 +208,7 @@ export default function VendeurCommandesPage() {
 
   return (
     <DashboardLayout role="vendeur" title="Commandes">
+      <div className="w-full min-w-0 overflow-x-hidden">
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -236,7 +237,7 @@ export default function VendeurCommandesPage() {
         </p>
       )}
 
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="w-full min-w-0 flex items-center gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {FILTRES.map((s) => {
           const active = filtre === s.value;
           const count = counts[s.value] || 0;

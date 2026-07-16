@@ -47,7 +47,7 @@ export function DashboardLayout({
         onToggleCollapse={() => setIsCollapsed((c) => !c)}
       />
 
-      <main className={`flex-1 transition-all duration-300 ${isCollapsed ? "lg:pl-20" : "lg:pl-64"}`}>
+      <main className={`flex-1 min-w-0 transition-all duration-300 ${isCollapsed ? "lg:pl-20" : "lg:pl-64"}`}>
         <DashboardHeader
           boutiqueName={boutiqueName}
           title={title || "Tableau de bord"}
@@ -59,8 +59,8 @@ export function DashboardLayout({
           notifications={badges.notificationsList}
         />
 
-        <div className="p-4 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto">
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+        <div className="p-4 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 min-w-0">
             {children}
           </div>
         </div>

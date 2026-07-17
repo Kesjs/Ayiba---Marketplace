@@ -19,6 +19,7 @@ export interface LivreurParametres {
   notifPush: boolean;
   notifWhatsapp: boolean;
   notifEmail: boolean;
+  enPause: boolean;
 }
 
 const EMPTY: LivreurParametres = {
@@ -34,6 +35,7 @@ const EMPTY: LivreurParametres = {
   notifPush: true,
   notifWhatsapp: true,
   notifEmail: false,
+  enPause: false,
 };
 
 export function useLivreurParametres() {
@@ -66,7 +68,7 @@ export function useLivreurParametres() {
           supabase
             .from("livreurs")
             .select(
-              "quartier, commune, type_vehicule, plaque_immatriculation, mobile_money_network, mobile_money_number, photo_profil_url"
+              "quartier, commune, type_vehicule, plaque_immatriculation, mobile_money_network, mobile_money_number, photo_profil_url, en_pause"
             )
             .eq("id", user.id)
             .single(),
@@ -88,6 +90,7 @@ export function useLivreurParametres() {
         notifPush: userRow?.notif_push ?? true,
         notifWhatsapp: userRow?.notif_whatsapp ?? true,
         notifEmail: userRow?.notif_email ?? false,
+        enPause: livreurRow?.en_pause ?? false,
       });
     } catch (err) {
       console.error("[useLivreurParametres] load error:", err);
@@ -204,6 +207,67 @@ export function useLivreurParametres() {
     [supabase]
   );
 
+  const [togglingPause, setTogglingPause] = useState(false);
+  const [pauseError, setPauseError] = useState<string | null>(null);
+
+  const togglePause = useCallback(async () => {
+    setTogglingPause(true);
+    setPauseError(null);
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Utilisateur non authentifié");
+
+      const nextEnPause = !data.enPause;
+      const { error: updateError } = await supabase
+        .from("livreurs")
+        .update({ en_pause: nextEnPause })
+        .eq("id", user.id);
+      if (updateError) throw updateError;
+
+      setData((prev) => ({ ...prev, enPause: nextEnPause }));
+      return nextEnPause;
+    } catch (err) {
+      console.error("[useLivreurParametres] togglePause error:", err);
+      setPauseError(
+        err instanceof Error ? err.message : "Impossible de mettre à jour le statut du compte."
+      );
+      throw err;
+    } finally {
+      setTogglingPause(false);
+    }
+  }, [supabase, data.enPause]);
+
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const requestAccountDeletion = useCallback(async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Utilisateur non authentifié");
+
+      const { error: insertError } = await supabase
+        .from("demandes_suppression")
+        .insert({ user_id: user.id });
+      if (insertError) throw insertError;
+    } catch (err) {
+      console.error("[useLivreurParametres] requestAccountDeletion error:", err);
+      setDeleteError(
+        err instanceof Error ? err.message : "Impossible d'envoyer la demande — réessaie."
+      );
+      throw err;
+    } finally {
+      setDeleting(false);
+    }
+  }, [supabase]);
+
   return {
     loading,
     saving,
@@ -214,5 +278,11 @@ export function useLivreurParametres() {
     save,
     uploadAvatar,
     reload: load,
+    togglingPause,
+    pauseError,
+    togglePause,
+    deleting,
+    deleteError,
+    requestAccountDeletion,
   };
 }

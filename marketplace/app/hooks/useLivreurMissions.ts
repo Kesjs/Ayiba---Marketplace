@@ -121,7 +121,7 @@ export function useLivreurMissions() {
       if (livreesError) throw livreesError;
 
       const gains_jour = (livreesData ?? []).reduce(
-        (sum, c: { frais_livraison: number | null }) => sum + (c.frais_livraison ?? 0),
+        (sum: number, c: { frais_livraison: number | null }) => sum + (c.frais_livraison ?? 0),
         0
       );
       setStats({ gains_jour, livraisons_jour: (livreesData ?? []).length });

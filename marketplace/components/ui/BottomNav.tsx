@@ -5,14 +5,15 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { 
   Home, Search, User, Heart, LayoutDashboard, 
-  Package, MessageSquare, Truck, MapPin, ClipboardList, 
-  PlusSquare, Briefcase, X, Store, Bike, History,
+  Package, MessageSquare, MapPin, 
+  Briefcase, X, Store, Bike,
   ShoppingBag, Wallet, Settings, LogOut, Menu as MenuIcon, Plus
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
+import { LIVREUR_NAV_ITEMS } from "@/lib/constants/livreur-nav";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -70,12 +71,12 @@ export function BottomNav() {
       { label: "Explorer", icon: MapPin, href: "/boutiques" },
       { label: "Profil", icon: User, href: "/profil" },
     ],
-    livreur: [
-      { label: "Missions", icon: Truck, href: "/livreur/missions", badge: badges.missions },
-      { label: "Historique", icon: History, href: "/livreur/historique" },
-      { label: "Carte", icon: MapPin, href: "/livreur/carte" },
-      { label: "Profil", icon: User, href: "/livreur/profil" },
-    ],
+    livreur: LIVREUR_NAV_ITEMS.map((item) => ({
+      label: item.label,
+      icon: item.icon,
+      href: item.href,
+      badge: item.badgeKey ? badges[item.badgeKey] : undefined,
+    })),
     admin: [
       { label: "Admin", icon: LayoutDashboard, href: "/admin/dashboard" },
       { label: "Modération", icon: Search, href: "/admin/moderation" },

@@ -1,143 +1,34 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
-  User, Bell, Store, Smartphone, ChevronRight, Camera,
-  X, Mail, Phone, Lock, Trash2, PauseCircle, PlayCircle, Loader2, AlertCircle, RefreshCw
+  User,
+  Bell,
+  Store,
+  Lock,
+  LogOut,
+  Camera,
+  Check,
+  ChevronRight,
+  PauseCircle,
+  PlayCircle,
+  Trash2,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { useToast } from "@/context/ToastContext";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/context/ToastContext";
 import { validateBeninPhone } from "@/lib/validation";
-
-// ============================================
-// MODALE RÉUTILISABLE — bottom sheet mobile, dialog centré desktop
-// ============================================
-function SettingsModal({
-  isOpen,
-  onClose,
-  title,
-  children,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60]"
-          />
-          <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
-            <motion.div
-              initial={{ y: 40, opacity: 0, scale: 0.98 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: 40, opacity: 0, scale: 0.98 }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl max-h-[85vh] overflow-y-auto"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">{title}</h3>
-                <button
-                  onClick={onClose}
-                  className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-              {children}
-            </motion.div>
-          </div>
-        </>
-      )}
-    </AnimatePresence>
-  );
-}
-
-// ============================================
-// TOGGLE — switch animé façon iOS
-// ============================================
-function Toggle({
-  checked,
-  onChange,
-  label,
-  disabled,
-}: {
-  checked: boolean;
-  onChange: () => void;
-  label: string;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      onClick={onChange}
-      disabled={disabled}
-      aria-label={label}
-      className={`relative w-12 h-7 rounded-full transition-colors duration-300 shrink-0 disabled:opacity-50 ${
-        checked ? "bg-teal-500" : "bg-gray-200"
-      }`}
-      aria-pressed={checked}
-    >
-      <motion.div
-        className="absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md"
-        animate={{ left: checked ? "22px" : "2px" }}
-        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-      />
-    </button>
-  );
-}
-
-// ============================================
-// INPUT FIELD réutilisable pour les modales
-// ============================================
-function Field({
-  label,
-  icon: Icon,
-  type = "text",
-  value,
-  onChange,
-  placeholder,
-  error,
-}: {
-  label: string;
-  icon: any;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  error?: string;
-}) {
-  return (
-    <div>
-      <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">{label}</label>
-      <div className="relative">
-        <Icon size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-        <input
-          type={type}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={`w-full h-12 pl-11 pr-4 rounded-lg border text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 transition-all ${
-            error
-              ? "border-red-300 focus:ring-red-100 focus:border-red-400"
-              : "border-gray-200 focus:ring-coral-200 focus:border-coral-400"
-          }`}
-        />
-      </div>
-      {error && <p className="text-xs text-red-500 mt-1.5">{error}</p>}
-    </div>
-  );
-}
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import {
+  SettingsSection,
+  SettingsField,
+  SettingsToggle,
+  DangerZoneButton,
+  DangerZoneConfirm,
+} from "@/components/settings/SettingsForm";
 
 // ============================================
 // Traduction des erreurs Supabase Auth en français
@@ -184,6 +75,7 @@ export default function VendeurParametresPage() {
   const router = useRouter();
   const { showToast } = useToast();
   const supabase = createClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ---- Chargement des données réelles ----
   const [loading, setLoading] = useState(true);
@@ -192,6 +84,14 @@ export default function VendeurParametresPage() {
   const [authEmail, setAuthEmail] = useState<string>("");
   const [usersRow, setUsersRow] = useState<UsersRow | null>(null);
   const [vendeurRow, setVendeurRow] = useState<VendeurRow | null>(null);
+
+  // ---- Formulaire inline ----
+  const [form, setForm] = useState({ fullName: "", email: "", phone: "" });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const loadAll = useCallback(async () => {
     setLoading(true);
@@ -229,6 +129,11 @@ export default function VendeurParametresPage() {
 
       setUsersRow(usersRes.data as UsersRow);
       setVendeurRow(vendeurRes.data as VendeurRow);
+      setForm({
+        fullName: (usersRes.data as UsersRow)?.full_name?.trim() || (vendeurRes.data as VendeurRow)?.nom_complet || "",
+        email: user.email ?? "",
+        phone: (usersRes.data as UsersRow)?.phone ?? "",
+      });
     } catch (err: any) {
       console.error("Chargement paramètres:", err);
       setLoadError(err?.message || "Impossible de charger tes paramètres — vérifie ta connexion et réessaie.");
@@ -241,85 +146,90 @@ export default function VendeurParametresPage() {
     loadAll();
   }, [loadAll]);
 
-  // Nom affiché : full_name si renseigné, sinon fallback (affichage seul) sur le nom légal du KYC.
-  // Jamais écrit en base tant que le vendeur n'a pas confirmé/modifié dans le formulaire.
-  const displayName = usersRow?.full_name?.trim() || vendeurRow?.nom_complet || "";
+  const handleAvatarClick = () => fileInputRef.current?.click();
 
-  // ---- Modifier le profil ----
-  const [showEditProfile, setShowEditProfile] = useState(false);
-  const [editForm, setEditForm] = useState({ full_name: "", email: "", phone: "" });
-  const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
-  const [editError, setEditError] = useState<string | null>(null);
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId) return;
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${userId}/avatar-${Date.now()}.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
 
-  const openEditProfile = () => {
-    setEditError(null);
-    setEditFieldErrors({});
-    setEditForm({
-      full_name: usersRow?.full_name?.trim() || vendeurRow?.nom_complet || "",
-      email: authEmail,
-      phone: usersRow?.phone ?? "",
-    });
-    setShowEditProfile(true);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("avatars").getPublicUrl(path);
+
+      const { error: updateError } = await supabase.from("users").update({ avatar_url: publicUrl }).eq("id", userId);
+      if (updateError) throw updateError;
+
+      setUsersRow((prev) => (prev ? { ...prev, avatar_url: publicUrl } : prev));
+    } catch (err: any) {
+      console.error("Upload avatar:", err);
+      showToast("Impossible d'envoyer la photo — réessaie.", "error");
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = "";
+    }
   };
 
-  const handleSaveProfile = async () => {
-    if (!userId) return;
-    setEditError(null);
+  // ---- Enregistrer profil (nom, téléphone, email, notifications) ----
+  const handleSave = async () => {
+    if (!userId || !usersRow) return;
+    setSaveError(null);
 
     const errors: Record<string, string> = {};
-    if (editForm.full_name.trim().length < 2) {
-      errors.full_name = "Le nom doit faire au moins 2 caractères.";
-    }
-    const phoneCheck = validateBeninPhone(editForm.phone);
-    if (!phoneCheck.isValid) {
-      errors.phone = phoneCheck.error || "Numéro invalide.";
-    }
-    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.email);
-    if (!emailValid) {
-      errors.email = "Adresse email invalide.";
-    }
-    setEditFieldErrors(errors);
+    if (form.fullName.trim().length < 2) errors.fullName = "Le nom doit faire au moins 2 caractères.";
+    const phoneCheck = validateBeninPhone(form.phone);
+    if (!phoneCheck.isValid) errors.phone = phoneCheck.error || "Numéro invalide.";
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email);
+    if (!emailValid) errors.email = "Adresse email invalide.";
+    setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
-    setIsSavingProfile(true);
+    setSaving(true);
     try {
-      // 1. Nom + téléphone dans public.users
       const { error: updateError } = await supabase
         .from("users")
-        .update({ full_name: editForm.full_name.trim(), phone: phoneCheck.formatted })
+        .update({
+          full_name: form.fullName.trim(),
+          phone: phoneCheck.formatted,
+          notif_push: usersRow.notif_push,
+          notif_whatsapp: usersRow.notif_whatsapp,
+          notif_email: usersRow.notif_email,
+        })
         .eq("id", userId);
       if (updateError) throw updateError;
 
-      setUsersRow((prev) => (prev ? { ...prev, full_name: editForm.full_name.trim(), phone: phoneCheck.formatted } : prev));
-
-      // 2. Email — géré séparément par Supabase Auth (confirmation requise)
       let emailChanged = false;
-      if (editForm.email.trim() !== authEmail) {
-        const { error: emailError } = await supabase.auth.updateUser({ email: editForm.email.trim() });
+      if (form.email.trim() !== authEmail) {
+        const { error: emailError } = await supabase.auth.updateUser({ email: form.email.trim() });
         if (emailError) throw emailError;
         emailChanged = true;
       }
 
-      setShowEditProfile(false);
-      showToast(
-        emailChanged
-          ? "Profil mis à jour. Vérifie ta boîte mail pour confirmer ta nouvelle adresse."
-          : "Profil mis à jour",
-        "success"
-      );
+      setUsersRow((prev) => (prev ? { ...prev, full_name: form.fullName.trim(), phone: phoneCheck.formatted } : prev));
+      setSuccessMessage(emailChanged ? "Enregistré — vérifie ta boîte mail" : "Enregistré");
+      setTimeout(() => setSuccessMessage(null), 2500);
     } catch (err: any) {
       console.error("Save profile:", err);
-      setEditError(translateAuthError(err) !== "Une erreur est survenue. Réessaie." ? translateAuthError(err) : `Échec de l'enregistrement : ${err.message || "réessaie."}`);
+      setSaveError(translateAuthError(err));
     } finally {
-      setIsSavingProfile(false);
+      setSaving(false);
     }
   };
 
-  // ---- Changer le mot de passe ----
-  const [showChangePassword, setShowChangePassword] = useState(false);
+  // ---- Notifications (sauvegardées avec le reste du formulaire, comme chez le livreur) ----
+  const setNotif = (key: "notif_push" | "notif_whatsapp" | "notif_email", value: boolean) => {
+    setUsersRow((prev) => (prev ? { ...prev, [key]: value } : prev));
+  };
+
+  // ---- Mot de passe (action séparée, volontairement pas fusionnée au save principal) ----
   const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   const validatePasswordStrength = (value: string): string | null => {
@@ -331,6 +241,8 @@ export default function VendeurParametresPage() {
 
   const handleChangePassword = async () => {
     setPasswordError(null);
+    if (!passwordForm.next && !passwordForm.confirm) return;
+
     const strengthError = validatePasswordStrength(passwordForm.next);
     if (strengthError) {
       setPasswordError(strengthError);
@@ -346,9 +258,9 @@ export default function VendeurParametresPage() {
       const { error } = await supabase.auth.updateUser({ password: passwordForm.next });
       if (error) throw error;
 
-      setShowChangePassword(false);
       setPasswordForm({ next: "", confirm: "" });
-      showToast("Mot de passe modifié avec succès", "success");
+      setPasswordSuccess(true);
+      setTimeout(() => setPasswordSuccess(false), 2500);
     } catch (err: any) {
       console.error("Change password:", err);
       setPasswordError(translateAuthError(err));
@@ -357,34 +269,12 @@ export default function VendeurParametresPage() {
     }
   };
 
-  // ---- Notifications ----
-  const [savingNotif, setSavingNotif] = useState<string | null>(null);
-
-  const handleToggleNotif = async (key: "notif_push" | "notif_whatsapp" | "notif_email") => {
-    if (!userId || !usersRow) return;
-    const previousValue = usersRow[key];
-    const nextValue = !previousValue;
-
-    setUsersRow((prev) => (prev ? { ...prev, [key]: nextValue } : prev));
-    setSavingNotif(key);
-
-    try {
-      const { error } = await supabase.from("users").update({ [key]: nextValue }).eq("id", userId);
-      if (error) throw error;
-      showToast(
-        `Notifications ${key === "notif_push" ? "push" : key === "notif_whatsapp" ? "WhatsApp" : "email"} ${nextValue ? "activées" : "désactivées"}`,
-        "success"
-      );
-    } catch (err: any) {
-      console.error("Toggle notif:", err);
-      setUsersRow((prev) => (prev ? { ...prev, [key]: previousValue } : prev));
-      showToast("Impossible d'enregistrer cette préférence — réessaie.", "error");
-    } finally {
-      setSavingNotif(null);
-    }
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/");
   };
 
-  // ---- Pause / réactivation boutique ----
+  // ---- Zone sensible : pause / suppression ----
   const [showConfirmPause, setShowConfirmPause] = useState(false);
   const [isSavingPause, setIsSavingPause] = useState(false);
   const [pauseError, setPauseError] = useState<string | null>(null);
@@ -397,10 +287,8 @@ export default function VendeurParametresPage() {
     try {
       const { error } = await supabase.from("vendeurs").update({ en_pause: !isPaused }).eq("id", userId);
       if (error) throw error;
-
       setVendeurRow((prev) => (prev ? { ...prev, en_pause: !isPaused } : prev));
       setShowConfirmPause(false);
-      showToast(!isPaused ? "Votre boutique est maintenant en pause" : "Votre boutique est de nouveau active", "success");
     } catch (err: any) {
       console.error("Toggle pause:", err);
       setPauseError(err?.message ? `Échec : ${err.message}` : "Impossible de mettre à jour le statut de la boutique.");
@@ -409,11 +297,11 @@ export default function VendeurParametresPage() {
     }
   };
 
-  // ---- Suppression de compte ----
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteSent, setDeleteSent] = useState(false);
 
   const handleConfirmDelete = async () => {
     if (deleteConfirmText !== "SUPPRIMER" || !userId) return;
@@ -422,10 +310,8 @@ export default function VendeurParametresPage() {
     try {
       const { error } = await supabase.from("demandes_suppression").insert({ user_id: userId });
       if (error) throw error;
-
-      setShowConfirmDelete(false);
+      setDeleteSent(true);
       setDeleteConfirmText("");
-      showToast("Demande de suppression envoyée — notre équipe te contactera sous 48h.", "success");
     } catch (err: any) {
       console.error("Demande suppression:", err);
       setDeleteError(err?.message ? `Échec de l'envoi : ${err.message}` : "Impossible d'envoyer la demande — réessaie.");
@@ -439,400 +325,276 @@ export default function VendeurParametresPage() {
   // ============================================
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-8 md:space-y-10 animate-pulse">
-        <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-3xl border border-gray-100 h-32" />
-        <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 h-48" />
-        <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 h-48" />
-      </div>
+      <DashboardLayout role="vendeur" title="Paramètres">
+        <DashboardSkeleton />
+      </DashboardLayout>
     );
   }
 
   if (loadError) {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-red-50 border border-red-100 rounded-2xl p-6 flex items-start gap-3">
-          <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <p className="text-sm text-red-700 leading-relaxed mb-3">{loadError}</p>
-            <button
-              onClick={loadAll}
-              className="inline-flex items-center gap-2 text-xs font-bold text-red-700 hover:text-red-800"
-            >
-              <RefreshCw size={13} />
-              Réessayer
-            </button>
-          </div>
+      <DashboardLayout role="vendeur" title="Paramètres">
+        <div className="max-w-2xl bg-red-50 border border-red-100 rounded-2xl p-4 text-sm font-medium text-red-600">
+          {loadError}
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 md:space-y-10">
-      {/* Profile Header */}
-      <div className="bg-white p-5 md:p-6 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center gap-5 md:gap-6">
-        <div className="relative group shrink-0">
-          <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl bg-gray-100 overflow-hidden border-4 border-white shadow-md">
-            {usersRow?.avatar_url ? (
-              <img src={usersRow.avatar_url} className="w-full h-full object-cover" alt="" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-400 bg-gray-100">
-                {(displayName || "U").charAt(0).toUpperCase()}
-              </div>
-            )}
-          </div>
-          <button className="absolute -bottom-2 -right-2 w-9 h-9 md:w-10 md:h-10 bg-coral-500 text-white rounded-lg flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 active:scale-95 transition-transform">
-            <Camera size={16} />
-          </button>
+    <DashboardLayout role="vendeur" title="Paramètres">
+    <div className="max-w-2xl">
+      {saveError && (
+        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-6 text-sm font-medium text-red-600">
+          {saveError}
         </div>
-        <div className="text-center md:text-left flex-1 min-w-0">
-          <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 truncate">
-            {displayName || "Nom non renseigné"}
-          </h3>
-          <p className="text-gray-500 font-medium text-sm mb-3 md:mb-4">Vendeuse sur Ayiba</p>
-          <div className="flex flex-wrap justify-center md:justify-start gap-2">
-            {vendeurRow?.statut === "valide" && (
-              <span className="px-3 py-1 bg-teal-50 text-teal-600 rounded-full text-[10px] font-bold uppercase tracking-widest border border-teal-100">
-                Boutique Vérifiée
-              </span>
-            )}
-            {isPaused && (
-              <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-bold uppercase tracking-widest border border-amber-100">
-                En pause
-              </span>
-            )}
-          </div>
-        </div>
-        <Button
-          variant="secondary"
-          className="rounded-xl h-11 md:h-12 px-6 w-full md:w-auto shrink-0"
-          onClick={openEditProfile}
-        >
-          Modifier le profil
-        </Button>
-      </div>
+      )}
 
-      {/* Compte */}
-      <div className="space-y-4">
-        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-4">Compte</h4>
-        <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
-          <button
-            onClick={openEditProfile}
-            className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-gray-50 transition-colors group text-left"
-          >
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
-                <User size={20} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-gray-900">Informations personnelles</p>
-                <p className="text-xs text-gray-400 font-medium mt-0.5 truncate">{authEmail}</p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
-          </button>
-
-          <button
-            onClick={() => {
-              setPasswordError(null);
-              setPasswordForm({ next: "", confirm: "" });
-              setShowChangePassword(true);
-            }}
-            className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-gray-50 transition-colors group text-left"
-          >
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
-                <Lock size={20} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-gray-900">Mot de passe</p>
-                <p className="text-xs text-gray-400 font-medium mt-0.5">••••••••</p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
-          </button>
-
-          <Link
-            href="/vendeur/boutique"
-            className="w-full flex items-center justify-between p-4 md:p-5 hover:bg-gray-50 transition-colors group text-left"
-          >
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
-                <Store size={20} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-gray-900">Ma boutique</p>
-                <p className="text-xs text-gray-400 font-medium mt-0.5 truncate">
-                  {vendeurRow?.nom_boutique || "Nom, adresse, horaires"}
-                </p>
-              </div>
-            </div>
-            <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Notifications */}
-      <div className="space-y-4">
-        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-4">Notifications</h4>
-        <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
-          <div className="w-full flex items-center justify-between p-4 md:p-5">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
-                <Bell size={20} />
-              </div>
-              <p className="text-sm font-bold text-gray-900">Notifications push</p>
-            </div>
-            {savingNotif === "notif_push" ? (
-              <Loader2 size={18} className="animate-spin text-gray-400" />
-            ) : (
-              <Toggle
-                checked={usersRow?.notif_push ?? false}
-                onChange={() => handleToggleNotif("notif_push")}
-                label="Notifications push"
-              />
-            )}
-          </div>
-
-          <div className="w-full flex items-center justify-between p-4 md:p-5">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
-                <Smartphone size={20} />
-              </div>
-              <p className="text-sm font-bold text-gray-900">Alertes WhatsApp</p>
-            </div>
-            {savingNotif === "notif_whatsapp" ? (
-              <Loader2 size={18} className="animate-spin text-gray-400" />
-            ) : (
-              <Toggle
-                checked={usersRow?.notif_whatsapp ?? false}
-                onChange={() => handleToggleNotif("notif_whatsapp")}
-                label="Alertes WhatsApp"
-              />
-            )}
-          </div>
-
-          <div className="w-full flex items-center justify-between p-4 md:p-5">
-            <div className="flex items-center gap-4 min-w-0">
-              <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
-                <Mail size={20} />
-              </div>
-              <p className="text-sm font-bold text-gray-900">Notifications email</p>
-            </div>
-            {savingNotif === "notif_email" ? (
-              <Loader2 size={18} className="animate-spin text-gray-400" />
-            ) : (
-              <Toggle
-                checked={usersRow?.notif_email ?? false}
-                onChange={() => handleToggleNotif("notif_email")}
-                label="Notifications email"
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Zone dangereuse */}
-      <div className="pt-4 md:pt-6 border-t border-gray-100 space-y-3">
-        <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest ml-4">Zone sensible</h4>
-
+      {/* Avatar + nom */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm mb-6 flex items-center gap-5"
+      >
         <button
-          onClick={() => {
-            setPauseError(null);
-            setShowConfirmPause(true);
-          }}
-          className="w-full p-4 md:p-5 bg-amber-50 text-amber-700 rounded-2xl border border-amber-100 flex items-center justify-between hover:bg-amber-100 transition-colors group"
+          onClick={handleAvatarClick}
+          disabled={uploadingAvatar}
+          className="relative w-20 h-20 rounded-2xl bg-gray-100 overflow-hidden shrink-0 group"
         >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-white text-amber-600 flex items-center justify-center shadow-sm shrink-0">
-              {isPaused ? <PlayCircle size={20} /> : <PauseCircle size={20} />}
+          {usersRow?.avatar_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={usersRow.avatar_url} alt="Photo de profil" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-gray-300">
+              <User size={28} />
             </div>
-            <p className="font-bold text-sm text-left">
-              {isPaused ? "Réactiver la boutique" : "Fermer temporairement la boutique"}
+          )}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <Camera size={18} className="text-white" />
+          </div>
+          {uploadingAvatar && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </button>
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+        <div className="min-w-0">
+          <p className="font-bold text-gray-900 truncate">{form.fullName || "Ton nom"}</p>
+          <p className="text-xs text-gray-400 font-medium mt-0.5">Touche la photo pour la changer</p>
+        </div>
+      </motion.div>
+
+      {/* Profil */}
+      <SettingsSection icon={User} title="Profil" delay={0.05}>
+        <SettingsField label="Nom complet" error={fieldErrors.fullName}>
+          <input
+            type="text"
+            value={form.fullName}
+            onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+            className="settings-input"
+            placeholder="Ton nom complet"
+          />
+        </SettingsField>
+        <SettingsField label="Email" error={fieldErrors.email}>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            className="settings-input"
+            placeholder="toi@exemple.com"
+          />
+        </SettingsField>
+        <SettingsField label="Téléphone" error={fieldErrors.phone}>
+          <input
+            type="tel"
+            value={form.phone}
+            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+            className="settings-input"
+            placeholder="+229 00 00 00 00"
+          />
+        </SettingsField>
+      </SettingsSection>
+
+      {/* Boutique */}
+      <SettingsSection icon={Store} title="Boutique" delay={0.1}>
+        <Link
+          href="/vendeur/boutique"
+          className="w-full flex items-center justify-between py-2 group"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-gray-900">Gérer ma boutique</p>
+            <p className="text-xs text-gray-400 font-medium mt-0.5 truncate">
+              {vendeurRow?.nom_boutique || "Nom, adresse, horaires"}
             </p>
           </div>
-          <ChevronRight size={18} className="shrink-0" />
-        </button>
+          <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
+        </Link>
+      </SettingsSection>
 
-        <button
-          onClick={() => setShowConfirmDelete(true)}
-          className="w-full p-4 md:p-5 bg-red-50 text-red-600 rounded-2xl border border-red-100 flex items-center justify-between hover:bg-red-100 transition-colors group"
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-lg bg-white text-red-500 flex items-center justify-center shadow-sm shrink-0">
-              <Trash2 size={20} />
-            </div>
-            <p className="font-bold text-sm text-left">Supprimer mon compte</p>
-          </div>
-          <ChevronRight size={18} className="shrink-0" />
-        </button>
-      </div>
-
-      {/* MODALE — Modifier le profil */}
-      <SettingsModal isOpen={showEditProfile} onClose={() => !isSavingProfile && setShowEditProfile(false)} title="Modifier mes informations">
-        <div className="space-y-4">
-          <Field
-            label="Nom complet"
-            icon={User}
-            value={editForm.full_name}
-            onChange={(v) => setEditForm((f) => ({ ...f, full_name: v }))}
-            error={editFieldErrors.full_name}
-          />
-          <Field
-            label="Email"
-            icon={Mail}
-            type="email"
-            value={editForm.email}
-            onChange={(v) => setEditForm((f) => ({ ...f, email: v }))}
-            error={editFieldErrors.email}
-          />
-          <Field
-            label="Téléphone"
-            icon={Phone}
-            value={editForm.phone}
-            onChange={(v) => setEditForm((f) => ({ ...f, phone: v }))}
-            error={editFieldErrors.phone}
-          />
-
-          {editError && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg p-3">
-              <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-700 leading-relaxed">{editError}</p>
-            </div>
-          )}
-
-          <Button
-            className="w-full h-12 rounded-lg mt-2"
-            onClick={handleSaveProfile}
-            disabled={isSavingProfile}
-          >
-            {isSavingProfile ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Enregistrer"}
-          </Button>
-        </div>
-      </SettingsModal>
-
-      {/* MODALE — Changer le mot de passe */}
-      <SettingsModal isOpen={showChangePassword} onClose={() => !isSavingPassword && setShowChangePassword(false)} title="Changer le mot de passe">
-        <div className="space-y-4">
-          <Field
-            label="Nouveau mot de passe"
-            icon={Lock}
+      {/* Sécurité */}
+      <SettingsSection icon={Lock} title="Sécurité" delay={0.15}>
+        <SettingsField label="Nouveau mot de passe">
+          <input
             type="password"
             value={passwordForm.next}
-            onChange={(v) => setPasswordForm((f) => ({ ...f, next: v }))}
+            onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
+            className="settings-input"
             placeholder="8 caractères, 1 majuscule, 1 chiffre"
           />
-          <Field
-            label="Confirmer le nouveau mot de passe"
-            icon={Lock}
+        </SettingsField>
+        <SettingsField label="Confirmer le nouveau mot de passe">
+          <input
             type="password"
             value={passwordForm.confirm}
-            onChange={(v) => setPasswordForm((f) => ({ ...f, confirm: v }))}
+            onChange={(e) => setPasswordForm((f) => ({ ...f, confirm: e.target.value }))}
+            className="settings-input"
           />
-
-          {passwordError && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg p-3">
-              <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-700 leading-relaxed">{passwordError}</p>
-            </div>
+        </SettingsField>
+        {passwordError && <p className="text-xs font-semibold text-red-500">{passwordError}</p>}
+        <button
+          onClick={handleChangePassword}
+          disabled={isSavingPassword || (!passwordForm.next && !passwordForm.confirm)}
+          className="h-11 px-5 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+        >
+          {isSavingPassword ? (
+            "Mise à jour..."
+          ) : passwordSuccess ? (
+            <>
+              <Check size={16} /> Mot de passe modifié
+            </>
+          ) : (
+            "Modifier le mot de passe"
           )}
+        </button>
+      </SettingsSection>
 
-          <Button
-            className="w-full h-12 rounded-lg mt-2"
-            onClick={handleChangePassword}
-            disabled={isSavingPassword}
-          >
-            {isSavingPassword ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Mettre à jour"}
-          </Button>
-        </div>
-      </SettingsModal>
-
-      {/* MODALE — Confirmer pause / réactivation boutique */}
-      <SettingsModal isOpen={showConfirmPause} onClose={() => !isSavingPause && setShowConfirmPause(false)} title={isPaused ? "Réactiver la boutique" : "Fermer temporairement"}>
-        <p className="text-sm text-gray-600 leading-relaxed mb-6">
-          {isPaused
-            ? "Votre boutique redeviendra visible dans le catalogue et vos clients pourront de nouveau commander."
-            : "Votre boutique ne sera plus visible dans le catalogue tant qu'elle est en pause. Vous pourrez la réactiver à tout moment depuis cette page."}
-        </p>
-
-        {pauseError && (
-          <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg p-3 mb-4">
-            <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-red-700 leading-relaxed">{pauseError}</p>
-          </div>
-        )}
-
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowConfirmPause(false)}
-            disabled={isSavingPause}
-            className="flex-1 h-12 rounded-lg border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={handleConfirmPause}
-            disabled={isSavingPause}
-            className="flex-1 h-12 rounded-lg bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center"
-          >
-            {isSavingPause ? <Loader2 size={18} className="animate-spin" /> : isPaused ? "Réactiver" : "Mettre en pause"}
-          </button>
-        </div>
-      </SettingsModal>
-
-      {/* MODALE — Confirmer suppression compte */}
-      <SettingsModal
-        isOpen={showConfirmDelete}
-        onClose={() => {
-          if (isDeleting) return;
-          setShowConfirmDelete(false);
-          setDeleteConfirmText("");
-          setDeleteError(null);
-        }}
-        title="Supprimer mon compte"
-      >
-        <p className="text-sm text-gray-600 leading-relaxed mb-4">
-          Cette action envoie une <strong className="text-red-600">demande de suppression définitive</strong>. Notre équipe la traitera sous 48h, après vérification de l'historique de commandes en cours.
-        </p>
-        <p className="text-xs text-gray-500 font-medium mb-2">
-          Tapez <strong className="text-gray-900">SUPPRIMER</strong> pour confirmer :
-        </p>
-        <input
-          type="text"
-          value={deleteConfirmText}
-          onChange={(e) => setDeleteConfirmText(e.target.value)}
-          className="w-full h-12 px-4 rounded-lg border border-gray-200 text-sm font-medium mb-4 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-all"
-          placeholder="SUPPRIMER"
+      {/* Notifications */}
+      <SettingsSection icon={Bell} title="Notifications" delay={0.2}>
+        <SettingsToggle
+          label="Notifications push"
+          checked={usersRow?.notif_push ?? false}
+          onChange={(v) => setNotif("notif_push", v)}
         />
+        <SettingsToggle
+          label="Alertes WhatsApp"
+          checked={usersRow?.notif_whatsapp ?? false}
+          onChange={(v) => setNotif("notif_whatsapp", v)}
+        />
+        <SettingsToggle
+          label="Notifications email"
+          checked={usersRow?.notif_email ?? false}
+          onChange={(v) => setNotif("notif_email", v)}
+        />
+      </SettingsSection>
 
-        {deleteError && (
-          <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg p-3 mb-4">
-            <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-red-700 leading-relaxed">{deleteError}</p>
-          </div>
+      {/* Bouton sauvegarder */}
+      <motion.button
+        whileTap={{ scale: 0.98 }}
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full h-14 bg-gray-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
+      >
+        {saving ? (
+          "Enregistrement..."
+        ) : successMessage ? (
+          <>
+            <Check size={18} /> {successMessage}
+          </>
+        ) : (
+          "Enregistrer les modifications"
         )}
+      </motion.button>
 
-        <div className="flex gap-3">
-          <button
-            onClick={() => {
-              setShowConfirmDelete(false);
-              setDeleteConfirmText("");
-              setDeleteError(null);
-            }}
-            disabled={isDeleting}
-            className="flex-1 h-12 rounded-lg border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
-          >
-            Annuler
-          </button>
-          <button
-            onClick={handleConfirmDelete}
-            disabled={deleteConfirmText !== "SUPPRIMER" || isDeleting}
-            className="flex-1 h-12 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-gray-200 disabled:cursor-not-allowed text-white font-bold text-sm transition-colors flex items-center justify-center"
-          >
-            {isDeleting ? <Loader2 size={18} className="animate-spin" /> : "Envoyer la demande"}
-          </button>
-        </div>
-      </SettingsModal>
+      {/* Déconnexion */}
+      <button
+        onClick={handleLogout}
+        className="w-full h-14 border border-red-100 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 mb-10"
+      >
+        <LogOut size={18} /> Déconnexion
+      </button>
+
+      {/* Zone sensible */}
+      <div className="space-y-3 mb-10">
+        <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest ml-4">Zone sensible</h4>
+
+        <AnimatePresence mode="wait">
+          {!showConfirmPause ? (
+            <DangerZoneButton
+              key="pause-button"
+              icon={isPaused ? PlayCircle : PauseCircle}
+              label={isPaused ? "Réactiver la boutique" : "Fermer temporairement la boutique"}
+              tone="amber"
+              onClick={() => setShowConfirmPause(true)}
+            />
+          ) : (
+            <DangerZoneConfirm
+              key="pause-confirm"
+              tone="amber"
+              description={
+                isPaused
+                  ? "Ta boutique redeviendra visible dans le catalogue et tes clients pourront de nouveau commander."
+                  : "Ta boutique ne sera plus visible dans le catalogue tant qu'elle est en pause. Tu pourras la réactiver à tout moment depuis cette page."
+              }
+              error={pauseError}
+              confirmLabel={isPaused ? "Réactiver" : "Mettre en pause"}
+              loading={isSavingPause}
+              onCancel={() => setShowConfirmPause(false)}
+              onConfirm={handleConfirmPause}
+            />
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence mode="wait">
+          {deleteSent ? (
+            <div
+              key="delete-sent"
+              className="w-full p-4 sm:p-5 rounded-2xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3"
+            >
+              <Check size={18} />
+              Demande envoyée — notre équipe te contactera sous 48h.
+            </div>
+          ) : !showConfirmDelete ? (
+            <DangerZoneButton
+              key="delete-button"
+              icon={Trash2}
+              label="Supprimer mon compte"
+              tone="red"
+              onClick={() => setShowConfirmDelete(true)}
+            />
+          ) : (
+            <DangerZoneConfirm
+              key="delete-confirm"
+              tone="red"
+              description="Cette action envoie une demande de suppression définitive. Notre équipe la traitera sous 48h, après vérification de l'historique de commandes en cours."
+              error={deleteError}
+              confirmLabel="Envoyer la demande"
+              confirmDisabled={deleteConfirmText !== "SUPPRIMER"}
+              loading={isDeleting}
+              onCancel={() => {
+                setShowConfirmDelete(false);
+                setDeleteConfirmText("");
+              }}
+              onConfirm={handleConfirmDelete}
+            >
+              <div>
+                <p className="text-xs text-gray-500 font-medium mb-2">
+                  Tape <strong className="text-gray-900">SUPPRIMER</strong> pour confirmer :
+                </p>
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  className="settings-input"
+                  placeholder="SUPPRIMER"
+                />
+              </div>
+            </DangerZoneConfirm>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
+    </DashboardLayout>
   );
 }

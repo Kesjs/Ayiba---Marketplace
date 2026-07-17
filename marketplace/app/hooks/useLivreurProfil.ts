@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { StatutVerification } from "@/app/hooks/useLivreurDashboard";
+export type StatutVerification =
+
+  | "en_attente"
+
+  | "verifie"
+
+  | "rejete";
+
 
 export interface LivreurAvis {
   id: string;

@@ -19,14 +19,14 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
   {
     id: "moov",
     label: "Moov Money",
-    logoSrc: "/logos/moov.png",
+    logoSrc: "/logos/moov.jpg",
     fallbackColor: "bg-blue-600",
     fallbackTextColor: "text-white",
   },
   {
     id: "celtiis",
     label: "Celtiis Cash",
-    logoSrc: "/logos/celtiis.png",
+    logoSrc: "/logos/celtiis.jpg",
     fallbackColor: "bg-orange-500",
     fallbackTextColor: "text-white",
   },

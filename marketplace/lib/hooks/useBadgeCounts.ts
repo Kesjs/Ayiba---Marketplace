@@ -136,8 +136,26 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
       }
 
       if (role === "livreur") {
+        const [{ count: missionsCount }, { count: messagesCount }] = await Promise.all([
+          supabase
+            .from("commandes")
+            .select("*", { count: "exact", head: true })
+            .eq("livreur_id", userId)
+            .eq("livreur_confirme", false)
+            .not("statut", "in", "(livree,annulee,remboursee)"),
+          supabase
+            .from("messages")
+            .select("*", { count: "exact", head: true })
+            .eq("destinataire_id", userId)
+            .eq("lu", false),
+        ]);
+
         if (isMounted) {
-          setBadges((prev) => ({ ...prev, missions: 0 }));
+          setBadges((prev) => ({
+            ...prev,
+            missions: missionsCount ?? 0,
+            messages: messagesCount ?? 0,
+          }));
         }
       }
 
@@ -165,6 +183,11 @@ export function useBadgeCounts(userId: string | undefined, role: string) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "commandes", filter: `vendeur_id=eq.${userId}` },
+        fetchCounts
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "commandes", filter: `livreur_id=eq.${userId}` },
         fetchCounts
       )
       .on(

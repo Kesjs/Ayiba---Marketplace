@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   Truck,
   MapPin,
-  Clock,
   Wallet,
   Navigation,
   CheckCircle2,
@@ -14,6 +14,11 @@ import {
   ShieldCheck,
   Star,
   AlertCircle,
+  Zap,
+  PackageCheck,
+  Radio,
+  Sparkles,
+  Bike,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -44,6 +49,8 @@ export default function LivreurMissionsPage() {
 
   const [activeTab, setActiveTab] = useState<"a-confirmer" | "en-cours">("a-confirmer");
   const [actionEnCours, setActionEnCours] = useState<string | null>(null);
+  const [enLigne, setEnLigne] = useState(true);
+  const [justDelivered, setJustDelivered] = useState<string | null>(null);
 
   const statCards = [
     {
@@ -52,6 +59,7 @@ export default function LivreurMissionsPage() {
       icon: Wallet,
       color: "text-teal-600",
       bg: "bg-teal-50",
+      trend: stats?.gains_jour ? "+ aujourd'hui" : null,
     },
     {
       label: "Livraisons du jour",
@@ -59,6 +67,7 @@ export default function LivreurMissionsPage() {
       icon: Truck,
       color: "text-coral-500",
       bg: "bg-coral-50",
+      trend: null,
     },
     {
       label: "Note",
@@ -66,6 +75,7 @@ export default function LivreurMissionsPage() {
       icon: Star,
       color: "text-amber-500",
       bg: "bg-amber-50",
+      trend: null,
     },
   ];
 
@@ -84,7 +94,9 @@ export default function LivreurMissionsPage() {
   const handleMarquerLivree = async (id: string) => {
     setActionEnCours(id);
     await marquerLivree(id);
+    setJustDelivered(id);
     setActionEnCours(null);
+    setTimeout(() => setJustDelivered(null), 2200);
   };
 
   return (
@@ -103,93 +115,238 @@ export default function LivreurMissionsPage() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-            {statCards.map((stat, i) => (
-              <div key={i} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
-                    <stat.icon size={24} />
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">{stat.label}</p>
-                    <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-                  </div>
-                </div>
+          {/* Bandeau de bienvenue + toggle en ligne */}
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-teal-50 flex items-center justify-center text-teal-600 shrink-0">
+                <Bike size={20} />
               </div>
-            ))}
-          </div>
-
-          <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit mb-8">
-            {[
-              { id: "a-confirmer", label: "À confirmer", count: aConfirmer.length },
-              { id: "en-cours", label: "En cours", count: enCours.length },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`
-                  px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2
-                  ${activeTab === tab.id ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"}
-                `}
-              >
-                {tab.label}
-                {tab.count > 0 && (
-                  <span
-                    className={`px-1.5 py-0.5 rounded-md text-[10px] ${
-                      activeTab === tab.id ? "bg-coral-500 text-white" : "bg-gray-200 text-gray-500"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            <div className="lg:col-span-2 space-y-6">
-              {activeTab === "a-confirmer" ? (
-                aConfirmer.length === 0 ? (
-                  <EmptyState text="Aucune mission à confirmer pour l'instant" />
-                ) : (
-                  aConfirmer.map((mission) => (
-                    <MissionACConfirmerCard
-                      key={mission.id}
-                      mission={mission}
-                      disabled={actionEnCours === mission.id}
-                      onAccepter={() => handleConfirmer(mission.id)}
-                      onRefuser={() => handleRefuser(mission.id)}
-                    />
-                  ))
-                )
-              ) : enCours.length === 0 ? (
-                <EmptyState text="Aucune mission en cours" />
-              ) : (
-                enCours.map((mission) => (
-                  <MissionEnCoursCard
-                    key={mission.id}
-                    mission={mission}
-                    disabled={actionEnCours === mission.id}
-                    onMarquerLivree={() => handleMarquerLivree(mission.id)}
-                  />
-                ))
-              )}
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {enLigne ? "Prêt à rouler" : "Tu es hors ligne"}
+                </h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {enLigne
+                    ? "Tu reçois les nouvelles missions en temps réel."
+                    : "Repasse en ligne pour recevoir des missions."}
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-8">
-              <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-bold mb-6">Mon Status</h3>
-                <div className="flex items-center justify-between p-4 bg-teal-50 rounded-2xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-teal-500 shadow-xs">
-                      <CheckCircle2 size={20} />
-                    </div>
-                    <span className="text-sm font-bold text-teal-700">En Ligne</span>
+            <button
+              onClick={() => setEnLigne((v) => !v)}
+              className={`relative flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-full border transition-colors shrink-0 self-start sm:self-auto ${
+                enLigne
+                  ? "bg-teal-50 border-teal-200"
+                  : "bg-gray-100 border-gray-200"
+              }`}
+            >
+              <span
+                className={`text-sm font-bold ${enLigne ? "text-teal-700" : "text-gray-500"}`}
+              >
+                {enLigne ? "En ligne" : "Hors ligne"}
+              </span>
+              <span
+                className={`relative w-11 h-7 rounded-full transition-colors duration-300 ${
+                  enLigne ? "bg-teal-500" : "bg-gray-300"
+                }`}
+              >
+                <motion.span
+                  layout
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                  className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm flex items-center justify-center"
+                  style={{ left: enLigne ? "calc(100% - 24px)" : "4px" }}
+                >
+                  {enLigne && (
+                    <span className="w-2 h-2 bg-teal-500 rounded-full animate-pulse" />
+                  )}
+                </motion.span>
+              </span>
+            </button>
+          </motion.div>
+
+          {/* Stat cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+            {statCards.map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: i * 0.06 }}
+                whileHover={{ y: -3 }}
+                className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center shrink-0`}
+                  >
+                    <stat.icon size={24} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                      {stat.label}
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 truncate">{stat.value}</p>
+                    {stat.trend && (
+                      <p className="text-[11px] font-semibold text-teal-500 mt-0.5">{stat.trend}</p>
+                    )}
                   </div>
                 </div>
-              </div>
+              </motion.div>
+            ))}
+          </div>
 
-              <div className="bg-gray-900 p-8 rounded-3xl text-white relative overflow-hidden group">
+          {/* Tabs avec pastille glissante */}
+          <LayoutGroup>
+            <div className="flex gap-2 p-1 bg-gray-100 rounded-2xl w-fit mb-8 max-w-full overflow-x-auto">
+              {[
+                { id: "a-confirmer", label: "À confirmer", count: aConfirmer.length },
+                { id: "en-cours", label: "En cours", count: enCours.length },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className="relative px-4 sm:px-6 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap"
+                >
+                  {activeTab === tab.id && (
+                    <motion.span
+                      layoutId="tab-pill"
+                      className="absolute inset-0 bg-white rounded-xl shadow-sm"
+                      transition={{ type: "spring", stiffness: 450, damping: 35 }}
+                    />
+                  )}
+                  <span
+                    className={`relative z-10 ${
+                      activeTab === tab.id ? "text-gray-900" : "text-gray-500"
+                    }`}
+                  >
+                    {tab.label}
+                  </span>
+                  {tab.count > 0 && (
+                    <span
+                      className={`relative z-10 px-1.5 py-0.5 rounded-md text-[10px] ${
+                        activeTab === tab.id
+                          ? "bg-coral-500 text-white"
+                          : "bg-gray-200 text-gray-500"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </LayoutGroup>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-10">
+            <div className="lg:col-span-2 space-y-6 min-w-0">
+              <AnimatePresence mode="popLayout">
+                {activeTab === "a-confirmer" ? (
+                  aConfirmer.length === 0 ? (
+                    <EmptyState
+                      key="empty-confirmer"
+                      icon={Radio}
+                      title="Aucune mission pour l'instant"
+                      text={
+                        enLigne
+                          ? "Reste en ligne, la prochaine ne devrait pas tarder."
+                          : "Passe en ligne pour commencer à recevoir des missions."
+                      }
+                    />
+                  ) : (
+                    aConfirmer.map((mission) => (
+                      <motion.div
+                        key={mission.id}
+                        layout
+                        initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, x: -24, scale: 0.97 }}
+                        transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+                      >
+                        <MissionACConfirmerCard
+                          mission={mission}
+                          disabled={actionEnCours === mission.id}
+                          onAccepter={() => handleConfirmer(mission.id)}
+                          onRefuser={() => handleRefuser(mission.id)}
+                        />
+                      </motion.div>
+                    ))
+                  )
+                ) : enCours.length === 0 ? (
+                  <EmptyState
+                    key="empty-en-cours"
+                    icon={PackageCheck}
+                    title="Aucune course active"
+                    text="Accepte une mission dans l'onglet « À confirmer » pour démarrer une livraison."
+                  />
+                ) : (
+                  enCours.map((mission) => (
+                    <motion.div
+                      key={mission.id}
+                      layout
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.96 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <MissionEnCoursCard
+                        mission={mission}
+                        disabled={actionEnCours === mission.id}
+                        justDelivered={justDelivered === mission.id}
+                        onMarquerLivree={() => handleMarquerLivree(mission.id)}
+                      />
+                    </motion.div>
+                  ))
+                )}
+              </AnimatePresence>
+            </div>
+
+            <div className="space-y-6 lg:space-y-8 min-w-0">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.15 }}
+                className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm"
+              >
+                <h3 className="text-lg font-bold mb-6">Mon statut</h3>
+                <div
+                  className={`flex items-center justify-between p-4 rounded-2xl transition-colors ${
+                    enLigne ? "bg-teal-50" : "bg-gray-50"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-xs shrink-0">
+                      {enLigne ? (
+                        <CheckCircle2 size={20} className="text-teal-500" />
+                      ) : (
+                        <Radio size={20} className="text-gray-400" />
+                      )}
+                    </div>
+                    <span
+                      className={`text-sm font-bold ${enLigne ? "text-teal-700" : "text-gray-500"}`}
+                    >
+                      {enLigne ? "En Ligne" : "Hors Ligne"}
+                    </span>
+                  </div>
+                  {enLigne && (
+                    <span className="flex items-center gap-1 text-[11px] font-bold text-teal-600 shrink-0">
+                      <Zap size={12} /> Actif
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.22 }}
+                className="bg-gray-900 p-6 sm:p-8 rounded-3xl text-white relative overflow-hidden group"
+              >
                 <div className="absolute top-0 right-0 w-32 h-32 bg-coral-500/20 rounded-full -mr-16 -mt-16 blur-2xl" />
                 <div className="relative z-10">
                   <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center mb-6">
@@ -197,13 +354,13 @@ export default function LivreurMissionsPage() {
                   </div>
                   <h4 className="font-bold text-lg mb-2">Sécurité d'abord</h4>
                   <p className="text-sm text-gray-400 leading-relaxed mb-6 font-medium">
-                    Respectez le code de la route et portez toujours votre casque Ayiba.
+                    Respecte le code de la route et porte toujours ton casque Ayiba.
                   </p>
                   <div className="flex items-center gap-2 text-xs font-bold text-coral-400 group-hover:gap-4 transition-all cursor-pointer">
                     Guide de sécurité <ChevronRight size={14} />
                   </div>
                 </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </>
@@ -212,11 +369,28 @@ export default function LivreurMissionsPage() {
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function EmptyState({
+  icon: Icon,
+  title,
+  text,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  text: string;
+}) {
   return (
-    <div className="py-20 text-center bg-white rounded-3xl border border-dashed border-gray-200">
-      <p className="text-gray-400 font-bold">{text}</p>
-    </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="py-16 text-center bg-white rounded-3xl border border-dashed border-gray-200 px-4"
+    >
+      <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300">
+        <Icon size={26} />
+      </div>
+      <p className="font-bold text-gray-700 mb-1">{title}</p>
+      <p className="text-sm text-gray-400 max-w-xs mx-auto">{text}</p>
+    </motion.div>
   );
 }
 
@@ -237,21 +411,25 @@ function MissionACConfirmerCard({
   const pointLivraison = mission.adresse_livraison || mission.commune || "Non renseignée";
 
   return (
-    <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
-      <div className="flex items-start justify-between mb-8">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400">
+    <div className="bg-white p-5 sm:p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 transition-all group">
+      <div className="flex items-start justify-between gap-3 mb-8">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-coral-50 group-hover:text-coral-500 transition-colors shrink-0">
             <Truck size={20} />
           </div>
-          <div>
-            <p className="text-sm font-bold text-gray-900">Commande {mission.numero}</p>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-gray-900 truncate">Commande {mission.numero}</p>
             <p className="text-xs text-gray-400 font-medium">{mission.nb_articles} article(s) à livrer</p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-coral-500">
+        <div className="text-right shrink-0">
+          <motion.p
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-xl sm:text-2xl font-bold text-coral-500"
+          >
             {(mission.frais_livraison ?? 0).toLocaleString("fr-FR")} F
-          </p>
+          </motion.p>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gain de la course</p>
         </div>
       </div>
@@ -259,21 +437,21 @@ function MissionACConfirmerCard({
       <div className="space-y-6 relative mb-8">
         <div className="absolute left-[11px] top-3 bottom-3 w-0.5 border-l-2 border-dashed border-gray-100" />
         <div className="flex gap-4 relative">
-          <div className="w-6 h-6 rounded-full bg-teal-50 flex items-center justify-center z-10">
+          <div className="w-6 h-6 rounded-full bg-teal-50 flex items-center justify-center z-10 shrink-0">
             <div className="w-2 h-2 bg-teal-500 rounded-full" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[10px] font-bold text-teal-600 uppercase tracking-widest mb-0.5">Point de retrait</p>
-            <p className="text-sm font-bold text-gray-900">{pointRetrait}</p>
+            <p className="text-sm font-bold text-gray-900 break-words">{pointRetrait}</p>
           </div>
         </div>
         <div className="flex gap-4 relative">
-          <div className="w-6 h-6 rounded-full bg-coral-50 flex items-center justify-center z-10">
+          <div className="w-6 h-6 rounded-full bg-coral-50 flex items-center justify-center z-10 shrink-0">
             <MapPin size={12} className="text-coral-500" />
           </div>
-          <div>
+          <div className="min-w-0">
             <p className="text-[10px] font-bold text-coral-600 uppercase tracking-widest mb-0.5">Point de livraison</p>
-            <p className="text-sm font-bold text-gray-900">{pointLivraison}</p>
+            <p className="text-sm font-bold text-gray-900 break-words">{pointLivraison}</p>
           </div>
         </div>
       </div>
@@ -286,13 +464,14 @@ function MissionACConfirmerCard({
         >
           Refuser
         </button>
-        <button
+        <motion.button
+          whileTap={{ scale: 0.97 }}
           disabled={disabled}
           onClick={onAccepter}
           className="flex-[2] h-12 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-black transition-all shadow-lg shadow-gray-900/10 disabled:opacity-50"
         >
           {disabled ? "..." : "Accepter la mission"}
-        </button>
+        </motion.button>
       </div>
     </div>
   );
@@ -301,10 +480,12 @@ function MissionACConfirmerCard({
 function MissionEnCoursCard({
   mission,
   disabled,
+  justDelivered,
   onMarquerLivree,
 }: {
   mission: MissionCommande;
   disabled: boolean;
+  justDelivered: boolean;
   onMarquerLivree: () => void;
 }) {
   const points = [
@@ -315,52 +496,108 @@ function MissionEnCoursCard({
   ].filter(Boolean) as { lat: number; lng: number; label: string; type: "pickup" | "delivery" }[];
 
   return (
-    <div className="bg-white p-8 rounded-3xl border border-teal-100 shadow-xl shadow-teal-500/5 relative overflow-hidden">
+    <div className="bg-white p-5 sm:p-6 md:p-8 rounded-3xl border border-teal-100 shadow-xl shadow-teal-500/5 relative overflow-hidden">
+      <AnimatePresence>
+        {justDelivered && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center gap-3 px-4"
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 18 }}
+              className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center"
+            >
+              <CheckCircle2 size={32} className="text-teal-500" />
+            </motion.div>
+            <p className="font-bold text-gray-900 flex items-center gap-1.5 text-center">
+              Livraison confirmée <Sparkles size={16} className="text-amber-400" />
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="absolute top-0 right-0 p-4">
         <span className="flex h-3 w-3 relative">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-3 w-3 bg-teal-500"></span>
         </span>
       </div>
-      <h3 className="text-xl font-bold mb-6 flex items-center gap-3">
+      <h3 className="text-lg sm:text-xl font-bold mb-6 flex flex-wrap items-center gap-3 pr-6">
         Commande {mission.numero}
         <span className="text-xs font-bold px-2 py-0.5 bg-teal-50 text-teal-600 rounded-md">EN COURS</span>
       </h3>
-      <div className="h-64 mb-8">
+
+      {/* Stepper de progression */}
+      <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center gap-2 flex-1">
+          <div className="w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+            <CheckCircle2 size={14} />
+          </div>
+          <span className="text-xs font-bold text-teal-600 hidden sm:inline">Retrait</span>
+        </div>
+        <div className="flex-1 h-0.5 bg-teal-200" />
+        <div className="flex items-center gap-2 flex-1">
+          <div className="w-7 h-7 rounded-full bg-teal-500 flex items-center justify-center text-white shrink-0 relative">
+            <Navigation size={13} />
+            <span className="absolute inset-0 rounded-full bg-teal-400 animate-ping opacity-60" />
+          </div>
+          <span className="text-xs font-bold text-teal-600 hidden sm:inline">En route</span>
+        </div>
+        <div className="flex-1 h-0.5 bg-gray-200" />
+        <div className="flex items-center gap-2 flex-1 justify-end">
+          <span className="text-xs font-bold text-gray-400 hidden sm:inline">Livraison</span>
+          <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+            <PackageCheck size={14} />
+          </div>
+        </div>
+      </div>
+
+      <div className="h-56 sm:h-64 mb-8 rounded-2xl overflow-hidden">
         <DeliveryMap points={points} />
       </div>
-      <div className="p-6 bg-teal-50/50 rounded-2xl border border-teal-100 mb-8">
+      <div className="p-5 sm:p-6 bg-teal-50/50 rounded-2xl border border-teal-100 mb-8">
         <p className="text-xs font-bold text-teal-600 uppercase tracking-widest mb-2">Instructions</p>
         <p className="text-sm font-medium text-gray-900 leading-relaxed">
-          Récupérer le colis à{" "}
+          Récupère le colis à{" "}
           <span className="font-bold">{mission.vendeur_nom_boutique ?? "la boutique du vendeur"}</span>. Livraison à{" "}
           {mission.adresse_livraison || mission.commune || "l'adresse indiquée"}.
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-4">
-        <button className="flex-1 h-14 bg-teal-500 text-white font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          className="flex-1 h-14 bg-teal-500 text-white font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20"
+        >
           <Navigation size={20} />
           Ouvrir GPS
-        </button>
-        <button className="flex-1 h-14 border border-teal-200 text-teal-700 font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-50 transition-all">
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          className="flex-1 h-14 border border-teal-200 text-teal-700 font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-50 transition-all"
+        >
           <Phone size={20} />
           Appeler Client
-        </button>
+        </motion.button>
       </div>
       <div className="mt-10 pt-8 border-t border-gray-100">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertCircle size={14} className="text-amber-500" />
+        <div className="flex items-start gap-2 mb-4">
+          <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
           <p className="text-xs font-medium text-amber-600">
             Code OTP non vérifié automatiquement pour l'instant — confirmation manuelle
           </p>
         </div>
-        <button
+        <motion.button
+          whileTap={{ scale: 0.97 }}
           disabled={disabled}
           onClick={onMarquerLivree}
           className="w-full h-14 bg-gray-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50"
         >
           {disabled ? "..." : "Confirmer la livraison"}
-        </button>
+        </motion.button>
       </div>
     </div>
   );

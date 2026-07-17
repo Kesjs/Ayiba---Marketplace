@@ -13,13 +13,13 @@ import {
   ShieldCheck,
   Store,
   User,
-  Truck,
   AlertTriangle,
   Users,
   Wallet
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import { LIVREUR_NAV_ITEMS } from "@/lib/constants/livreur-nav";
 
 interface SidebarProps {
   role: "admin" | "vendeur" | "livreur";
@@ -51,12 +51,11 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
       { name: "Messages", icon: MessageSquare, path: "/vendeur/messages" },
       { name: "Paramètres", icon: Settings, path: "/vendeur/parametres" },
     ],
-    livreur: [
-      { name: "Missions", icon: Truck, path: "/livreur/missions" },
-      { name: "Historique", icon: ShoppingBag, path: "/livreur/historique" },
-      { name: "Mon Profil", icon: User, path: "/livreur/profil" },
-      { name: "Paramètres", icon: Settings, path: "/livreur/parametres" },
-    ],
+    livreur: LIVREUR_NAV_ITEMS.map((item) => ({
+      name: item.label,
+      icon: item.icon,
+      path: item.href,
+    })),
   };
 
   const items = menuItems[role];

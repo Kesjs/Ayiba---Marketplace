@@ -2,10 +2,9 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   User,
-  Phone,
   MapPin,
   Bike,
   Wallet,
@@ -13,7 +12,9 @@ import {
   LogOut,
   Camera,
   Check,
-  ChevronRight,
+  PauseCircle,
+  PlayCircle,
+  Trash2,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -23,6 +24,13 @@ import {
   type TypeVehicule,
   type MobileMoneyNetwork,
 } from "@/app/hooks/useLivreurParametres";
+import {
+  SettingsSection,
+  SettingsField,
+  SettingsToggle,
+  DangerZoneButton,
+  DangerZoneConfirm,
+} from "@/components/settings/SettingsForm";
 
 const VEHICULES: { value: TypeVehicule; label: string }[] = [
   { value: "motocyclette", label: "Motocyclette" },
@@ -39,8 +47,22 @@ const RESEAUX: { value: MobileMoneyNetwork; label: string }[] = [
 
 export default function LivreurParametresPage() {
   const router = useRouter();
-  const { loading, saving, uploadingAvatar, error, successMessage, data, save, uploadAvatar } =
-    useLivreurParametres();
+  const {
+    loading,
+    saving,
+    uploadingAvatar,
+    error,
+    successMessage,
+    data,
+    save,
+    uploadAvatar,
+    togglingPause,
+    pauseError,
+    togglePause,
+    deleting,
+    deleteError,
+    requestAccountDeletion,
+  } = useLivreurParametres();
 
   const [form, setForm] = useState(data);
   const [initialized, setInitialized] = useState(false);
@@ -67,6 +89,33 @@ export default function LivreurParametresPage() {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
+  };
+
+  // ---- Zone sensible ----
+  const [showConfirmPause, setShowConfirmPause] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteSent, setDeleteSent] = useState(false);
+
+  const handleConfirmPause = async () => {
+    try {
+      await togglePause();
+      setForm((f) => ({ ...f, enPause: !f.enPause }));
+      setShowConfirmPause(false);
+    } catch {
+      // pauseError est déjà affiché dans le panneau de confirmation
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmText !== "SUPPRIMER") return;
+    try {
+      await requestAccountDeletion();
+      setDeleteSent(true);
+      setDeleteConfirmText("");
+    } catch {
+      // deleteError est déjà affiché dans le panneau de confirmation
+    }
   };
 
   return (
@@ -124,58 +173,58 @@ export default function LivreurParametresPage() {
           </motion.div>
 
           {/* Profil */}
-          <Section icon={User} title="Profil" delay={0.05}>
-            <Field label="Nom complet">
+          <SettingsSection icon={User} title="Profil" delay={0.05}>
+            <SettingsField label="Nom complet">
               <input
                 type="text"
                 value={form.fullName}
                 onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
-                className="input"
+                className="settings-input"
                 placeholder="Ton nom complet"
               />
-            </Field>
-            <Field label="Téléphone" icon={Phone}>
+            </SettingsField>
+            <SettingsField label="Téléphone">
               <input
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-                className="input"
+                className="settings-input"
                 placeholder="+229 00 00 00 00"
               />
-            </Field>
-          </Section>
+            </SettingsField>
+          </SettingsSection>
 
           {/* Localisation */}
-          <Section icon={MapPin} title="Localisation" delay={0.1}>
-            <Field label="Quartier">
+          <SettingsSection icon={MapPin} title="Localisation" delay={0.1}>
+            <SettingsField label="Quartier">
               <input
                 type="text"
                 value={form.quartier}
                 onChange={(e) => setForm((f) => ({ ...f, quartier: e.target.value }))}
-                className="input"
+                className="settings-input"
                 placeholder="Ex: Godomey"
               />
-            </Field>
-            <Field label="Commune">
+            </SettingsField>
+            <SettingsField label="Commune">
               <input
                 type="text"
                 value={form.commune}
                 onChange={(e) => setForm((f) => ({ ...f, commune: e.target.value }))}
-                className="input"
+                className="settings-input"
                 placeholder="Ex: Calavi"
               />
-            </Field>
-          </Section>
+            </SettingsField>
+          </SettingsSection>
 
           {/* Véhicule */}
-          <Section icon={Bike} title="Véhicule" delay={0.15}>
-            <Field label="Type de véhicule">
+          <SettingsSection icon={Bike} title="Véhicule" delay={0.15}>
+            <SettingsField label="Type de véhicule">
               <select
                 value={form.typeVehicule}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, typeVehicule: e.target.value as TypeVehicule }))
                 }
-                className="input"
+                className="settings-input"
               >
                 <option value="">Sélectionner</option>
                 {VEHICULES.map((v) => (
@@ -184,29 +233,29 @@ export default function LivreurParametresPage() {
                   </option>
                 ))}
               </select>
-            </Field>
+            </SettingsField>
             {form.typeVehicule && form.typeVehicule !== "velo" && form.typeVehicule !== "a_pied" && (
-              <Field label="Plaque d'immatriculation">
+              <SettingsField label="Plaque d'immatriculation">
                 <input
                   type="text"
                   value={form.plaqueImmatriculation}
                   onChange={(e) => setForm((f) => ({ ...f, plaqueImmatriculation: e.target.value }))}
-                  className="input"
+                  className="settings-input"
                   placeholder="Ex: AB 1234 RB"
                 />
-              </Field>
+              </SettingsField>
             )}
-          </Section>
+          </SettingsSection>
 
           {/* Mobile money */}
-          <Section icon={Wallet} title="Mobile Money" delay={0.2}>
-            <Field label="Réseau">
+          <SettingsSection icon={Wallet} title="Mobile Money" delay={0.2}>
+            <SettingsField label="Réseau">
               <select
                 value={form.mobileMoneyNetwork}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, mobileMoneyNetwork: e.target.value as MobileMoneyNetwork }))
                 }
-                className="input"
+                className="settings-input"
               >
                 <option value="">Sélectionner</option>
                 {RESEAUX.map((r) => (
@@ -215,36 +264,36 @@ export default function LivreurParametresPage() {
                   </option>
                 ))}
               </select>
-            </Field>
-            <Field label="Numéro Mobile Money">
+            </SettingsField>
+            <SettingsField label="Numéro Mobile Money">
               <input
                 type="tel"
                 value={form.mobileMoneyNumber}
                 onChange={(e) => setForm((f) => ({ ...f, mobileMoneyNumber: e.target.value }))}
-                className="input"
+                className="settings-input"
                 placeholder="+229 00 00 00 00"
               />
-            </Field>
-          </Section>
+            </SettingsField>
+          </SettingsSection>
 
           {/* Notifications */}
-          <Section icon={Bell} title="Notifications" delay={0.25}>
-            <Toggle
+          <SettingsSection icon={Bell} title="Notifications" delay={0.25}>
+            <SettingsToggle
               label="Notifications push"
               checked={form.notifPush}
               onChange={(v) => setForm((f) => ({ ...f, notifPush: v }))}
             />
-            <Toggle
+            <SettingsToggle
               label="Notifications WhatsApp"
               checked={form.notifWhatsapp}
               onChange={(v) => setForm((f) => ({ ...f, notifWhatsapp: v }))}
             />
-            <Toggle
+            <SettingsToggle
               label="Notifications email"
               checked={form.notifEmail}
               onChange={(v) => setForm((f) => ({ ...f, notifEmail: v }))}
             />
-          </Section>
+          </SettingsSection>
 
           {/* Bouton sauvegarder */}
           <motion.button
@@ -272,102 +321,87 @@ export default function LivreurParametresPage() {
             <LogOut size={18} /> Déconnexion
           </button>
 
-          <style jsx global>{`
-            .input {
-              width: 100%;
-              height: 3rem;
-              padding: 0 1rem;
-              border-radius: 0.875rem;
-              border: 1px solid rgb(229 231 235);
-              font-size: 0.875rem;
-              font-weight: 600;
-              color: rgb(17 24 39);
-              background: white;
-            }
-            .input:focus {
-              outline: none;
-              border-color: rgb(20 184 166);
-              box-shadow: 0 0 0 3px rgb(20 184 166 / 0.1);
-            }
-          `}</style>
+          {/* Zone sensible */}
+          <div className="space-y-3 mb-10">
+            <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest ml-4">Zone sensible</h4>
+
+            <AnimatePresence mode="wait">
+              {!showConfirmPause ? (
+                <DangerZoneButton
+                  key="pause-button"
+                  icon={form.enPause ? PlayCircle : PauseCircle}
+                  label={form.enPause ? "Réactiver mon compte" : "Suspendre temporairement mon compte"}
+                  tone="amber"
+                  onClick={() => setShowConfirmPause(true)}
+                />
+              ) : (
+                <DangerZoneConfirm
+                  key="pause-confirm"
+                  tone="amber"
+                  description={
+                    form.enPause
+                      ? "Ton compte redeviendra visible et tu recevras de nouveau des missions."
+                      : "Tu ne recevras plus de nouvelles missions tant que ton compte est en pause. Tu pourras le réactiver à tout moment depuis cette page."
+                  }
+                  error={pauseError}
+                  confirmLabel={form.enPause ? "Réactiver" : "Mettre en pause"}
+                  loading={togglingPause}
+                  onCancel={() => setShowConfirmPause(false)}
+                  onConfirm={handleConfirmPause}
+                />
+              )}
+            </AnimatePresence>
+
+            <AnimatePresence mode="wait">
+              {deleteSent ? (
+                <div
+                  key="delete-sent"
+                  className="w-full p-4 sm:p-5 rounded-2xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3"
+                >
+                  <Check size={18} />
+                  Demande envoyée — notre équipe te contactera sous 48h.
+                </div>
+              ) : !showConfirmDelete ? (
+                <DangerZoneButton
+                  key="delete-button"
+                  icon={Trash2}
+                  label="Supprimer mon compte"
+                  tone="red"
+                  onClick={() => setShowConfirmDelete(true)}
+                />
+              ) : (
+                <DangerZoneConfirm
+                  key="delete-confirm"
+                  tone="red"
+                  description="Cette action envoie une demande de suppression définitive. Notre équipe la traitera sous 48h, après vérification de tes livraisons en cours."
+                  error={deleteError}
+                  confirmLabel="Envoyer la demande"
+                  confirmDisabled={deleteConfirmText !== "SUPPRIMER"}
+                  loading={deleting}
+                  onCancel={() => {
+                    setShowConfirmDelete(false);
+                    setDeleteConfirmText("");
+                  }}
+                  onConfirm={handleConfirmDelete}
+                >
+                  <div>
+                    <p className="text-xs text-gray-500 font-medium mb-2">
+                      Tape <strong className="text-gray-900">SUPPRIMER</strong> pour confirmer :
+                    </p>
+                    <input
+                      type="text"
+                      value={deleteConfirmText}
+                      onChange={(e) => setDeleteConfirmText(e.target.value)}
+                      className="settings-input"
+                      placeholder="SUPPRIMER"
+                    />
+                  </div>
+                </DangerZoneConfirm>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       )}
     </DashboardLayout>
-  );
-}
-
-function Section({
-  icon: Icon,
-  title,
-  delay,
-  children,
-}: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  title: string;
-  delay: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay }}
-      className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm mb-6"
-    >
-      <div className="flex items-center gap-2 mb-6">
-        <Icon size={18} className="text-teal-600" />
-        <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">{title}</h3>
-      </div>
-      <div className="space-y-4">{children}</div>
-    </motion.div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  icon?: React.ComponentType<{ size?: number; className?: string }>;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2 block">
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function Toggle({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <button
-      onClick={() => onChange(!checked)}
-      className="w-full flex items-center justify-between py-2"
-    >
-      <span className="text-sm font-bold text-gray-700">{label}</span>
-      <span
-        className={`relative w-11 h-7 rounded-full transition-colors duration-300 ${
-          checked ? "bg-teal-500" : "bg-gray-300"
-        }`}
-      >
-        <motion.span
-          layout
-          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-          className="absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm"
-          style={{ left: checked ? "calc(100% - 24px)" : "4px" }}
-        />
-      </span>
-    </button>
   );
 }

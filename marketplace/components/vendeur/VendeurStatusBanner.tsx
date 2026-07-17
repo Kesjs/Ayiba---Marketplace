@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Clock, AlertTriangle } from "lucide-react";
+import { Clock, AlertCircle, ArrowRight } from "lucide-react";
 
 interface VendeurStatusBannerProps {
   statut: string;
@@ -12,39 +12,54 @@ interface VendeurStatusBannerProps {
 export function VendeurStatusBanner({ statut, raisonRejet }: VendeurStatusBannerProps) {
   if (statut === "valide") return null;
 
+  const isPending = statut === "en_attente";
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0, height: 0 }}
         animate={{ opacity: 1, height: "auto" }}
-        transition={{ duration: 0.25, ease: "easeOut" }}
-        className="sticky top-0 z-40 w-full"
+        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        className="sticky top-0 z-40 w-full backdrop-blur-md border-b border-black/[0.06]"
+        style={{
+          backgroundColor: isPending
+            ? "rgba(255, 251, 235, 0.85)"
+            : "rgba(254, 242, 242, 0.85)",
+        }}
       >
-        {statut === "en_attente" && (
-          <div className="flex items-center justify-center gap-2 bg-amber-50 border-b border-amber-100 px-4 py-3 text-center">
-            <Clock size={16} className="text-amber-600 shrink-0" />
-            <p className="text-sm font-medium text-amber-700">
-              Ton compte est en cours de vérification (24-48h)
-            </p>
+        <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-2.5">
+          <div
+            className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
+              isPending ? "bg-amber-100" : "bg-red-100"
+            }`}
+          >
+            {isPending ? (
+              <Clock size={14} className="text-amber-600" />
+            ) : (
+              <AlertCircle size={14} className="text-red-600" />
+            )}
           </div>
-        )}
 
-        {statut === "refuse" && (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 bg-red-50 border-b border-red-100 px-4 py-3 text-center">
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className="text-red-600 shrink-0" />
-              <p className="text-sm font-medium text-red-700">
-                Vérification refusée{raisonRejet ? ` — ${raisonRejet}` : ""}
-              </p>
-            </div>
+          <p
+            className={`flex-1 text-[13px] font-medium leading-snug ${
+              isPending ? "text-amber-800" : "text-red-800"
+            }`}
+          >
+            {isPending
+              ? "Vérification de ton compte en cours — activation sous 24-48h."
+              : `Vérification refusée${raisonRejet ? ` — ${raisonRejet}` : "."}`}
+          </p>
+
+          {!isPending && (
             <Link
               href="/vendeur/kyc"
-              className="text-sm font-bold text-red-700 underline underline-offset-2 hover:text-red-800 transition-colors shrink-0"
+              className="flex items-center gap-1 text-[13px] font-semibold text-red-700 hover:text-red-800 transition-colors shrink-0 whitespace-nowrap"
             >
-              Corriger mes informations
+              Corriger
+              <ArrowRight size={13} />
             </Link>
-          </div>
-        )}
+          )}
+        </div>
       </motion.div>
     </AnimatePresence>
   );

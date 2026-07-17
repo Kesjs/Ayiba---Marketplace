@@ -35,13 +35,14 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
 ];
 
 interface MobileMoneySelectorProps {
-  selected: "mtn" | "moov" | "celtiis" | "";
+  selected: "mtn" | "moov" | "celtiis" | "" | null;
   onSelect: (network: "mtn" | "moov" | "celtiis") => void;
   phoneNumber: string;
   onPhoneChange: (value: string) => void;
   error?: string | null;
   touched?: boolean;
 }
+
 
 export function MobileMoneySelector({
   selected,

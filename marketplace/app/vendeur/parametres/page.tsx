@@ -174,6 +174,7 @@ interface UsersRow {
 }
 
 interface VendeurRow {
+  nom_complet: string | null;
   nom_boutique: string | null;
   statut: string;
   en_pause: boolean;
@@ -218,7 +219,7 @@ export default function VendeurParametresPage() {
           .single(),
         supabase
           .from("vendeurs")
-          .select("nom_boutique, statut, en_pause")
+          .select("nom_complet, nom_boutique, statut, en_pause")
           .eq("id", user.id)
           .single(),
       ]);
@@ -240,6 +241,10 @@ export default function VendeurParametresPage() {
     loadAll();
   }, [loadAll]);
 
+  // Nom affiché : full_name si renseigné, sinon fallback (affichage seul) sur le nom légal du KYC.
+  // Jamais écrit en base tant que le vendeur n'a pas confirmé/modifié dans le formulaire.
+  const displayName = usersRow?.full_name?.trim() || vendeurRow?.nom_complet || "";
+
   // ---- Modifier le profil ----
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [editForm, setEditForm] = useState({ full_name: "", email: "", phone: "" });
@@ -251,7 +256,7 @@ export default function VendeurParametresPage() {
     setEditError(null);
     setEditFieldErrors({});
     setEditForm({
-      full_name: usersRow?.full_name ?? "",
+      full_name: usersRow?.full_name?.trim() || vendeurRow?.nom_complet || "",
       email: authEmail,
       phone: usersRow?.phone ?? "",
     });
@@ -472,7 +477,7 @@ export default function VendeurParametresPage() {
               <img src={usersRow.avatar_url} className="w-full h-full object-cover" alt="" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-gray-400 bg-gray-100">
-                {(usersRow?.full_name || "U").charAt(0).toUpperCase()}
+                {(displayName || "U").charAt(0).toUpperCase()}
               </div>
             )}
           </div>
@@ -482,7 +487,7 @@ export default function VendeurParametresPage() {
         </div>
         <div className="text-center md:text-left flex-1 min-w-0">
           <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-1 truncate">
-            {usersRow?.full_name || "Nom non renseigné"}
+            {displayName || "Nom non renseigné"}
           </h3>
           <p className="text-gray-500 font-medium text-sm mb-3 md:mb-4">Vendeuse sur Ayiba</p>
           <div className="flex flex-wrap justify-center md:justify-start gap-2">

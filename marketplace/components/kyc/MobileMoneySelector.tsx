@@ -59,14 +59,12 @@ export function MobileMoneySelector({
               key={option.id}
               type="button"
               onClick={() => onSelect(option.id)}
-              className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                isSelected
-                  ? "border-coral-500 bg-coral-50"
-                  : "border-gray-100 bg-white hover:border-gray-200"
-              }`}
+              className="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 bg-white hover:border-gray-200 transition-all"
             >
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center overflow-hidden ${option.fallbackColor}`}
+                className={`w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden transition-all ${option.fallbackColor} ${
+                  isSelected ? "ring-2 ring-gray-900 ring-offset-2" : ""
+                }`}
               >
                 <img
                   src={option.logoSrc}
@@ -84,8 +82,8 @@ export function MobileMoneySelector({
                 />
               </div>
               <span
-                className={`text-[11px] font-semibold text-center leading-tight ${
-                  isSelected ? "text-coral-600" : "text-gray-600"
+                className={`text-[11px] text-center leading-tight ${
+                  isSelected ? "font-semibold text-gray-900" : "font-medium text-gray-600"
                 }`}
               >
                 {option.label}
@@ -100,7 +98,7 @@ export function MobileMoneySelector({
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Numéro {MOBILE_MONEY_OPTIONS.find((o) => o.id === selected)?.label}
           </label>
-          <div className="flex rounded-lg overflow-hidden border border-gray-200 focus-within:border-coral-400 transition-colors">
+          <div className="flex rounded-lg overflow-hidden border border-gray-200 focus-within:border-gray-400 transition-colors">
             <span className="inline-flex items-center gap-2 px-3 bg-gray-50 border-r border-gray-200 text-sm text-gray-500 font-medium">
               <span className="text-lg">🇧🇯</span>
               +229

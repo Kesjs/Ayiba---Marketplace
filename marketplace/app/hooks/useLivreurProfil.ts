@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { StatutVerification } from "@/app/hooks/useLivreurDashboard";
 
+export interface LivreurAvis {
+  id: string;
+  note: number;
+  commentaire: string | null;
+  createdAt: string;
+}
+
 export interface LivreurProfil {
   fullName: string | null;
   avatarUrl: string | null;
@@ -16,6 +23,7 @@ export interface LivreurProfil {
   statutVerification: StatutVerification;
   membreDepuis: string;
   livraisonsTotal: number;
+  avisRecents: LivreurAvis[];
 }
 
 export function useLivreurProfil() {
@@ -52,13 +60,23 @@ export function useLivreurProfil() {
       if (userError) throw userError;
       if (livreurError) throw livreurError;
 
-      const { count: livraisonsTotal, error: countError } = await supabase
-        .from("commandes")
-        .select("id", { count: "exact", head: true })
-        .eq("livreur_id", user.id)
-        .eq("statut", "livree");
+      const [{ count: livraisonsTotal, error: countError }, { data: avisRows, error: avisError }] =
+        await Promise.all([
+          supabase
+            .from("commandes")
+            .select("id", { count: "exact", head: true })
+            .eq("livreur_id", user.id)
+            .eq("statut", "livree"),
+          supabase
+            .from("avis")
+            .select("id, note, commentaire, created_at")
+            .eq("livreur_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(5),
+        ]);
 
       if (countError) throw countError;
+      if (avisError) throw avisError;
 
       setProfil({
         fullName: userRow?.full_name ?? null,
@@ -72,6 +90,12 @@ export function useLivreurProfil() {
         statutVerification: (livreurRow?.statut_verification as StatutVerification) ?? "en_attente",
         membreDepuis: userRow?.created_at ?? new Date().toISOString(),
         livraisonsTotal: livraisonsTotal ?? 0,
+        avisRecents: (avisRows ?? []).map((a: { id: string; note: number; commentaire: string | null; created_at: string }) => ({
+          id: a.id,
+          note: a.note,
+          commentaire: a.commentaire,
+          createdAt: a.created_at,
+        })),
       });
     } catch (err) {
       console.error("[useLivreurProfil] load error:", err);

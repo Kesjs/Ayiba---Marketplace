@@ -15,11 +15,12 @@ import {
   User,
   AlertTriangle,
   Users,
-  Wallet
+  Wallet,
+  Truck,
+  History,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
-import { LIVREUR_NAV_ITEMS } from "@/lib/constants/livreur-nav";
 
 interface SidebarProps {
   role: "admin" | "vendeur" | "livreur";
@@ -51,11 +52,16 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
       { name: "Messages", icon: MessageSquare, path: "/vendeur/messages" },
       { name: "Paramètres", icon: Settings, path: "/vendeur/parametres" },
     ],
-    livreur: LIVREUR_NAV_ITEMS.map((item) => ({
-      name: item.label,
-      icon: item.icon,
-      path: item.href,
-    })),
+    // La bottom bar mobile se limite à 4 onglets (LIVREUR_NAV_ITEMS) ;
+    // le sidebar desktop a la place d'afficher toutes les sections.
+    livreur: [
+      { name: "Missions", icon: Truck, path: "/livreur/missions" },
+      { name: "Paiements", icon: Wallet, path: "/livreur/paiements" },
+      { name: "Messages", icon: MessageSquare, path: "/livreur/messages" },
+      { name: "Historique", icon: History, path: "/livreur/historique" },
+      { name: "Profil", icon: User, path: "/livreur/profil" },
+      { name: "Paramètres", icon: Settings, path: "/livreur/parametres" },
+    ],
   };
 
   const items = menuItems[role];

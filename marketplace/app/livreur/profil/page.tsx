@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { User, MapPin, Bike, Star, ShieldCheck, ShieldAlert, Truck, ChevronRight, Edit3 } from "lucide-react";
+import { User, MapPin, Bike, Star, ShieldCheck, ShieldAlert, Truck, ChevronRight, Edit3, History, Settings } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useLivreurProfil } from "@/app/hooks/useLivreurProfil";
@@ -91,6 +91,39 @@ export default function LivreurProfilPage() {
               className="flex items-center justify-center gap-2 mt-6 h-12 border border-gray-200 rounded-xl text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors"
             >
               <Edit3 size={16} /> Modifier mon profil
+            </Link>
+          </motion.div>
+
+          {/* Raccourcis */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.03 }}
+            className="bg-white rounded-3xl border border-gray-100 shadow-sm mb-6 overflow-hidden"
+          >
+            <Link
+              href="/livreur/historique"
+              className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors border-b border-gray-50"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center">
+                  <History size={18} />
+                </div>
+                <span className="font-bold text-sm text-gray-900">Historique</span>
+              </div>
+              <ChevronRight size={16} className="text-gray-300" />
+            </Link>
+            <Link
+              href="/livreur/parametres"
+              className="flex items-center justify-between p-5 hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center">
+                  <Settings size={18} />
+                </div>
+                <span className="font-bold text-sm text-gray-900">Paramètres</span>
+              </div>
+              <ChevronRight size={16} className="text-gray-300" />
             </Link>
           </motion.div>
 

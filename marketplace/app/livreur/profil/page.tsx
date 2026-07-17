@@ -67,23 +67,23 @@ export default function LivreurProfilPage() {
 
             <div
               className={`flex items-center gap-2 p-3 rounded-xl text-xs font-bold ${
-                profil?.statutVerification === "valide"
-                  ? "bg-teal-50 text-teal-700"
-                  : profil?.statutVerification === "refuse"
-                  ? "bg-red-50 text-red-600"
-                  : "bg-amber-50 text-amber-600"
+                profil?.statutVerification === "verifie"
+  ? "bg-teal-50 text-teal-700"
+  : profil?.statutVerification === "rejete"
+  ? "bg-red-50 text-red-600"
+  : "bg-amber-50 text-amber-600"
               }`}
             >
-              {profil?.statutVerification === "valide" ? (
+              {profil?.statutVerification === "verifie" ? (
                 <ShieldCheck size={16} />
               ) : (
                 <ShieldAlert size={16} />
               )}
-              {profil?.statutVerification === "valide"
-                ? "Compte vérifié"
-                : profil?.statutVerification === "refuse"
-                ? "Dossier KYC refusé"
-                : "Vérification en attente"}
+             {profil?.statutVerification === "verifie"
+  ? "Compte vérifié"
+  : profil?.statutVerification === "rejete"
+  ? "Dossier KYC refusé"
+  : "Vérification en attente"}
             </div>
 
             <Link

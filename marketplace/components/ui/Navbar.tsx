@@ -321,11 +321,16 @@ export function Navbar() {
                 Le chevron reste car un user connecté a un vrai menu déroulant derrière. */}
             <button
               onClick={handleAccountIconClick}
-              className="h-10 flex items-center justify-center gap-0.5 px-2.5 rounded-full border border-coral-200 hover:border-coral-300 transition-colors"
+              className="h-10 flex items-center justify-center rounded-full border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden"
               aria-label={!user ? "Connexion ou inscription" : "Menu du compte"}
             >
-              <User size={18} className="text-gray-900" />
-              <ChevronDown size={14} className="text-gray-900" />
+              <span className="flex items-center justify-center px-3 h-full">
+                <User size={19} strokeWidth={2} className="text-gray-900" />
+              </span>
+              <span className="w-px h-5 bg-coral-200" />
+              <span className="flex items-center justify-center px-2.5 h-full">
+                <ChevronDown size={14} strokeWidth={2.25} className="text-gray-900" />
+              </span>
             </button>
           </div>
         </div>

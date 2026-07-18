@@ -1,6 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, ShieldAlert } from "lucide-react";
 
 export function SettingsSection({
   icon: Icon,
@@ -84,102 +86,195 @@ export function SettingsToggle({
 }
 
 /**
- * Zone sensible — pause / suppression de compte.
- * Confirmation inline (pas de modale) pour rester cohérent avec le style
- * "tout sur la page" du reste du formulaire.
+ * Zone sensible — regroupement des actions destructives/sensibles
+ * (pause, suppression de compte…) dans une carte unique au format
+ * "danger zone" utilisé par les plateformes pro (GitHub, Stripe…) :
+ * une carte à bordure d'alerte, des lignes sobres avec description,
+ * et une confirmation en modale plutôt qu'un bloc qui pousse la page.
  */
-export function DangerZoneButton({
-  icon: Icon,
-  label,
-  tone = "amber",
-  onClick,
+export function DangerZoneCard({
+  title = "Zone sensible",
+  subtitle = "Ces actions concernent directement l'activité et l'accès à ton compte.",
+  children,
 }: {
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  label: string;
-  tone?: "amber" | "red";
-  onClick: () => void;
+  title?: string;
+  subtitle?: string;
+  children: React.ReactNode;
 }) {
-  const toneClasses =
-    tone === "amber"
-      ? "bg-amber-50 text-amber-700 border-amber-100 hover:bg-amber-100"
-      : "bg-red-50 text-red-600 border-red-100 hover:bg-red-100";
-  const iconToneClasses = tone === "amber" ? "text-amber-600" : "text-red-500";
-
   return (
-    <button
-      onClick={onClick}
-      className={`w-full p-4 sm:p-5 rounded-2xl border flex items-center justify-between transition-colors group ${toneClasses}`}
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="rounded-3xl border border-red-100 bg-white overflow-hidden mb-10"
     >
-      <div className="flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-lg bg-white flex items-center justify-center shadow-sm shrink-0 ${iconToneClasses}`}>
-          <Icon size={20} />
+      <div className="flex items-center gap-3 px-6 sm:px-8 py-5 border-b border-red-100 bg-red-50/60">
+        <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center text-red-500 shrink-0 shadow-sm">
+          <ShieldAlert size={18} />
         </div>
-        <p className="font-bold text-sm text-left">{label}</p>
+        <div className="min-w-0">
+          <h4 className="text-sm font-bold text-red-800">{title}</h4>
+          <p className="text-xs text-red-400 font-medium mt-0.5">{subtitle}</p>
+        </div>
       </div>
-    </button>
+      <div className="divide-y divide-gray-100">{children}</div>
+    </motion.div>
   );
 }
 
-export function DangerZoneConfirm({
+export function DangerZoneRow({
+  icon: Icon,
+  title,
+  description,
+  actionLabel,
   tone = "amber",
+  onClick,
+  disabled,
+}: {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  title: string;
+  description: string;
+  actionLabel: string;
+  tone?: "amber" | "red";
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  const iconToneClasses = tone === "amber" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-500";
+  const buttonToneClasses =
+    tone === "amber"
+      ? "border-amber-200 text-amber-700 hover:bg-amber-50"
+      : "border-red-200 text-red-600 hover:bg-red-50";
+
+  return (
+    <div className="flex items-center justify-between gap-4 px-6 sm:px-8 py-5">
+      <div className="flex items-start gap-3 min-w-0">
+        <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconToneClasses}`}>
+          <Icon size={18} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-gray-900">{title}</p>
+          <p className="text-xs text-gray-400 font-medium mt-0.5 leading-relaxed">{description}</p>
+        </div>
+      </div>
+      <button
+        onClick={onClick}
+        disabled={disabled}
+        className={`shrink-0 h-9 px-4 rounded-xl border text-xs font-bold transition-colors disabled:opacity-50 ${buttonToneClasses}`}
+      >
+        {actionLabel}
+      </button>
+    </div>
+  );
+}
+
+export function DangerZoneModal({
+  open,
+  tone = "amber",
+  title,
   description,
   error,
   confirmLabel,
   confirmDisabled,
   loading,
-  onCancel,
+  onClose,
   onConfirm,
   children,
 }: {
+  open: boolean;
   tone?: "amber" | "red";
+  title: string;
   description: string;
   error?: string | null;
   confirmLabel: string;
   confirmDisabled?: boolean;
   loading?: boolean;
-  onCancel: () => void;
+  onClose: () => void;
   onConfirm: () => void;
   children?: React.ReactNode;
 }) {
-  const confirmClasses =
-    tone === "amber"
-      ? "bg-amber-500 hover:bg-amber-600"
-      : "bg-red-600 hover:bg-red-700";
+  useEffect(() => {
+    if (!open) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.body.style.overflow = "unset";
+    };
+  }, [open, onClose]);
+
+  const confirmClasses = tone === "amber" ? "bg-amber-500 hover:bg-amber-600" : "bg-red-600 hover:bg-red-700";
+  const iconToneClasses = tone === "amber" ? "bg-amber-50 text-amber-600" : "bg-red-50 text-red-500";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: "auto" }}
-      exit={{ opacity: 0, height: 0 }}
-      className="rounded-2xl border border-gray-100 bg-gray-50 p-4 sm:p-5 space-y-4 overflow-hidden"
-    >
-      <p className="text-sm text-gray-600 leading-relaxed">{description}</p>
-      {children}
-      {error && (
-        <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg p-3">
-          {error}
-        </p>
+    <AnimatePresence>
+      {open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-gray-900/50"
+            onClick={loading ? undefined : onClose}
+          />
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.98 }}
+            transition={{ duration: 0.18 }}
+            className="relative bg-white rounded-3xl border border-gray-100 shadow-xl w-full max-w-md p-6 sm:p-7"
+          >
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconToneClasses}`}>
+                  <ShieldAlert size={20} />
+                </div>
+                <h3 className="text-base font-bold text-gray-900">{title}</h3>
+              </div>
+              <button
+                onClick={onClose}
+                disabled={loading}
+                className="text-gray-400 hover:text-gray-600 transition-colors shrink-0 disabled:opacity-50"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-600 leading-relaxed mb-4">{description}</p>
+
+            {children && <div className="mb-4">{children}</div>}
+
+            {error && (
+              <p className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-lg p-3 mb-4">
+                {error}
+              </p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                disabled={loading}
+                className="flex-1 h-11 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={onConfirm}
+                disabled={confirmDisabled || loading}
+                className={`flex-1 h-11 rounded-xl text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${confirmClasses}`}
+              >
+                {loading ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  confirmLabel
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </div>
       )}
-      <div className="flex gap-3">
-        <button
-          onClick={onCancel}
-          disabled={loading}
-          className="flex-1 h-11 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-white transition-colors disabled:opacity-50"
-        >
-          Annuler
-        </button>
-        <button
-          onClick={onConfirm}
-          disabled={confirmDisabled || loading}
-          className={`flex-1 h-11 rounded-xl text-white font-bold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${confirmClasses}`}
-        >
-          {loading ? (
-            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-          ) : (
-            confirmLabel
-          )}
-        </button>
-      </div>
-    </motion.div>
+    </AnimatePresence>
   );
 }

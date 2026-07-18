@@ -128,7 +128,7 @@ export default function VendeurBoutiquePage() {
   };
 
   return (
-    <DashboardLayout role="vendeur" title="Ma boutique">
+    <DashboardLayout role="vendeur" title="Ma boutique" backHref="/vendeur/dashboard" backLabel="Dashboard">
       {error && (
         <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4">
           <p className="text-sm text-red-600 font-medium">{error}</p>

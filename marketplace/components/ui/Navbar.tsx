@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, Menu, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck } from "lucide-react";
+import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AuthModal } from "@/components/ui/AuthModal";
 import { CartDrawer } from "@/components/ui/CartDrawer";
@@ -135,6 +135,17 @@ export function Navbar() {
     setSearchQuery(suggestion);
     router.push(`/recherche?q=${encodeURIComponent(suggestion)}`);
     setShowSearchOverlay(false);
+  };
+
+  // Icône compte mobile : visiteur non connecté -> ouvre l'AuthModal directement.
+  // Utilisateur connecté -> ouvre le drawer (dashboard, commandes, messages, déconnexion).
+  const handleAccountIconClick = () => {
+    if (!user) {
+      setIntendedRole(null);
+      setAuthModalOpen(true);
+    } else {
+      setMobileOpen(true);
+    }
   };
 
   return (
@@ -305,8 +316,16 @@ export function Navbar() {
               )}
             </button>
 
-            <button onClick={() => setMobileOpen(true)} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50">
-              <Menu size={22} className="text-gray-900" />
+            {/* Visiteur non connecté : tap -> ouvre directement l'AuthModal (tabs Se connecter / S'inscrire).
+                Utilisateur connecté : tap -> ouvre le drawer (dashboard, commandes, messages...).
+                Le chevron reste car un user connecté a un vrai menu déroulant derrière. */}
+            <button
+              onClick={handleAccountIconClick}
+              className="w-10 h-10 flex items-center justify-center gap-0.5 rounded-lg hover:bg-gray-50 transition-colors"
+              aria-label={!user ? "Connexion ou inscription" : "Menu du compte"}
+            >
+              <User size={20} className="text-gray-900" />
+              <ChevronDown size={14} className="text-gray-900" />
             </button>
           </div>
         </div>
@@ -354,6 +373,9 @@ export function Navbar() {
         </div>
       )}
 
+      {/* Drawer mobile : ne s'ouvre plus que pour un utilisateur connecté (voir handleAccountIconClick).
+          Le contenu "visiteur non connecté" a été retiré : ces liens (CGU, Confidentialité) vivent déjà
+          dans le footer, et l'action de connexion ouvre désormais l'AuthModal directement. */}
       <div className={`fixed inset-0 z-[60] md:hidden transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
         <div className={`absolute top-0 right-0 h-full w-[85%] max-w-xs bg-white shadow-xl transition-transform duration-300 ease-out flex flex-col ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
@@ -366,66 +388,38 @@ export function Navbar() {
 
           <div className="p-4 flex flex-col gap-6 overflow-y-auto flex-1">
             <div className="flex flex-col gap-1">
-              {!user ? (
-                <>
-                  <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <FileText size={20} className="text-gray-400" />
-                    <span>Conditions générales</span>
-                  </a>
-                  <a href="/privacy" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <ShieldCheck size={20} className="text-gray-400" />
-                    <span>Confidentialité</span>
-                  </a>
-                </>
-              ) : (
-                <>
-                  <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <LayoutDashboard size={20} className="text-gray-400" />
-                    <span>Mon dashboard</span>
-                  </a>
-                  <a href="/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <ShoppingBag size={20} className="text-gray-400" />
-                    <span>Mes commandes</span>
-                  </a>
-                  <a href="/messages" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <MessageSquare size={20} className="text-gray-400" />
-                    <span>Messages</span>
-                  </a>
+              <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <LayoutDashboard size={20} className="text-gray-400" />
+                <span>Mon dashboard</span>
+              </a>
+              <a href="/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <ShoppingBag size={20} className="text-gray-400" />
+                <span>Mes commandes</span>
+              </a>
+              <a href="/messages" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <MessageSquare size={20} className="text-gray-400" />
+                <span>Messages</span>
+              </a>
 
-                  <div className="h-px bg-gray-100 my-2 mx-4" />
-                  <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <FileText size={20} className="text-gray-400" />
-                    <span>Conditions générales</span>
-                  </a>
-                  <a href="/privacy" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <ShieldCheck size={20} className="text-gray-400" />
-                    <span>Confidentialité</span>
-                  </a>
+              <div className="h-px bg-gray-100 my-2 mx-4" />
+              <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <FileText size={20} className="text-gray-400" />
+                <span>Conditions générales</span>
+              </a>
+              <a href="/privacy" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <ShieldCheck size={20} className="text-gray-400" />
+                <span>Confidentialité</span>
+              </a>
 
-                  <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
-                    <LogOut size={20} />
-                    <span>Déconnexion</span>
-                  </button>
-                </>
-              )}
+              <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
+                <LogOut size={20} />
+                <span>Déconnexion</span>
+              </button>
             </div>
           </div>
 
           <div className="p-4 border-t border-gray-100 bg-gray-50">
-            {!user ? (
-              <button
-                onClick={() => { 
-                  setIntendedRole(null);
-                  setMobileOpen(false); 
-                  setAuthModalOpen(true); 
-                }}
-                className="w-full bg-coral-400 hover:bg-coral-500 text-white rounded-xl py-3.5 text-base font-semibold transition-all active:scale-[0.97]"
-              >
-                Connexion / Inscription
-              </button>
-            ) : (
-              <p className="text-sm font-semibold text-gray-900 px-2">{user?.user_metadata?.nom || "Mon compte"}</p>
-            )}
+            <p className="text-sm font-semibold text-gray-900 px-2">{user?.user_metadata?.nom || "Mon compte"}</p>
           </div>
         </div>
       </div>

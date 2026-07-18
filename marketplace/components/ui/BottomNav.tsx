@@ -52,9 +52,9 @@ export function BottomNav() {
   if (loading) return null;
 
   const vendeurMenuItems = [
-    { label: "Boutique", icon: Store, href: "/vendeur/boutique" },
-    { label: "Paiements", icon: Wallet, href: "/vendeur/paiements" },
     { label: "Messages", icon: MessageSquare, href: "/vendeur/messages", badge: badges.messages },
+    { label: "Paiements", icon: Wallet, href: "/vendeur/paiements" },
+    { label: "Boutique", icon: Store, href: "/vendeur/boutique" },
     { label: "Paramètres", icon: Settings, href: "/vendeur/parametres" },
   ];
 
@@ -79,6 +79,8 @@ export function BottomNav() {
   };
 
   if (role === "vendeur") {
+    const vendeurMenuBadgeTotal = vendeurMenuItems.reduce((sum, item) => sum + (item.badge ?? 0), 0);
+
     return (
       <>
         <AnimatePresence>
@@ -181,7 +183,14 @@ export function BottomNav() {
               onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(true); }}
               className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl min-w-[64px]"
             >
-              <MenuIcon size={22} className="text-gray-400" />
+              <div className="relative">
+                <MenuIcon size={22} className="text-gray-400" />
+                {vendeurMenuBadgeTotal > 0 && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-4 px-1 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
+                    {vendeurMenuBadgeTotal > 9 ? "9+" : vendeurMenuBadgeTotal}
+                  </span>
+                )}
+              </div>
               <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">Menu</span>
             </button>
           </nav>

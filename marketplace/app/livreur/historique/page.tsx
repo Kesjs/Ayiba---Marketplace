@@ -102,7 +102,7 @@ export default function LivreurHistoriquePage() {
   ];
 
   return (
-    <DashboardLayout role="livreur" title="Historique">
+    <DashboardLayout role="livreur" title="Historique" backHref="/livreur/profil" backLabel="Profil">
       {loading ? (
         <DashboardSkeleton />
       ) : error ? (

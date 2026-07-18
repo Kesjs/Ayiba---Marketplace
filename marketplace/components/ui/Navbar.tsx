@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, Menu, X, ChevronDown, Store, Bike, Clock } from "lucide-react";
+import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, Menu, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AuthModal } from "@/components/ui/AuthModal";
 import { CartDrawer } from "@/components/ui/CartDrawer";
@@ -368,20 +368,14 @@ export function Navbar() {
             <div className="flex flex-col gap-1">
               {!user ? (
                 <>
-                  <a href="/catalogue" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <Search size={20} className="text-gray-400" />
-                    <span>Catalogue</span>
+                  <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                    <FileText size={20} className="text-gray-400" />
+                    <span>Conditions générales</span>
                   </a>
-                  <div className="h-px bg-gray-100 my-2 mx-4" />
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider px-4 mt-2 mb-1">Opportunités</p>
-                  <button onClick={() => { setIntendedRole("vendeur"); setMobileOpen(false); setAuthModalOpen(true); }} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <Store size={20} className="text-gray-400" />
-                    <span>Devenir vendeur</span>
-                  </button>
-                  <button onClick={() => { setIntendedRole("livreur"); setMobileOpen(false); setAuthModalOpen(true); }} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <Bike size={20} className="text-gray-400" />
-                    <span>Devenir livreur</span>
-                  </button>
+                  <a href="/privacy" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                    <ShieldCheck size={20} className="text-gray-400" />
+                    <span>Confidentialité</span>
+                  </a>
                 </>
               ) : (
                 <>
@@ -389,7 +383,26 @@ export function Navbar() {
                     <LayoutDashboard size={20} className="text-gray-400" />
                     <span>Mon dashboard</span>
                   </a>
-                  <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left">
+                  <a href="/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                    <ShoppingBag size={20} className="text-gray-400" />
+                    <span>Mes commandes</span>
+                  </a>
+                  <a href="/messages" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                    <MessageSquare size={20} className="text-gray-400" />
+                    <span>Messages</span>
+                  </a>
+
+                  <div className="h-px bg-gray-100 my-2 mx-4" />
+                  <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                    <FileText size={20} className="text-gray-400" />
+                    <span>Conditions générales</span>
+                  </a>
+                  <a href="/privacy" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                    <ShieldCheck size={20} className="text-gray-400" />
+                    <span>Confidentialité</span>
+                  </a>
+
+                  <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
                     <LogOut size={20} />
                     <span>Déconnexion</span>
                   </button>

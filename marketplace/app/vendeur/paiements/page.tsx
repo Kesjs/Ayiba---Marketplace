@@ -105,7 +105,7 @@ export default function VendeurPaiementsPage() {
   };
 
   return (
-    <DashboardLayout role="vendeur" title="Paiements">
+    <DashboardLayout role="vendeur" title="Paiements" backHref="/vendeur/dashboard" backLabel="Dashboard">
       {error && (
         <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 flex items-center justify-between">
           <p className="text-sm text-red-600 font-medium">{error}</p>

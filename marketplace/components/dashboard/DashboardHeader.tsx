@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
 export interface Notification {
@@ -24,6 +24,8 @@ interface DashboardHeaderProps {
   onBoutiqueClick?: () => void;
   onAvatarClick?: () => void;
   onBellClick?: () => void;
+  backHref?: string;
+  backLabel?: string;
 }
 
 const DOT_COLORS: Record<string, string> = {
@@ -95,6 +97,8 @@ export function DashboardHeader({
   onBoutiqueClick,
   onAvatarClick,
   onBellClick,
+  backHref,
+  backLabel,
 }: DashboardHeaderProps) {
   const [showNotifs, setShowNotifs] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -124,7 +128,15 @@ export function DashboardHeader({
     <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-100">
       {/* --- Version mobile (< md) --- */}
       <div className="flex md:hidden items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
-        {greeting ? (
+        {backHref ? (
+          <Link
+            href={backHref}
+            className="flex items-center gap-1.5 -ml-2 pl-2 pr-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors min-w-0"
+          >
+            <ArrowLeft size={18} className="text-gray-500 shrink-0" />
+            <span className="text-sm font-bold text-gray-900 truncate">{backLabel || title}</span>
+          </Link>
+        ) : greeting ? (
           <div className="min-w-0">
             <p className="text-sm font-bold text-gray-900 truncate leading-tight">{greeting}</p>
             {subtitle && <p className="text-[11px] text-gray-500 truncate leading-tight">{subtitle}</p>}
@@ -162,7 +174,15 @@ export function DashboardHeader({
           {boutiqueName || "Ma boutique"}
         </button>
 
-        {greeting ? (
+        {backHref ? (
+          <Link
+            href={backHref}
+            className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-gray-50 transition-colors"
+          >
+            <ArrowLeft size={16} className="text-gray-400" />
+            <span className="text-sm font-semibold text-gray-500">{backLabel || title}</span>
+          </Link>
+        ) : greeting ? (
           <div className="absolute left-1/2 -translate-x-1/2 text-center">
             <p className="text-sm font-bold text-gray-900 leading-tight">{greeting}</p>
             {subtitle && <p className="text-[11px] text-gray-500 leading-tight">{subtitle}</p>}

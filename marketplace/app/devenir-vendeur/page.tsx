@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { AuthModal } from "@/components/ui/AuthModal";
 import { Button } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/client";
+import { getRedirectPathForRole, isValidRole } from "@/lib/auth-utils";
 import {
   Store,
   Wallet,
@@ -92,6 +95,44 @@ const FAQS = [
 export default function DevenirVendeurPage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const router = useRouter();
+
+  // Page réservée aux visiteurs non connectés : "devenir vendeur" est un
+  // choix fait à l'inscription, jamais une conversion depuis une session
+  // déjà ouverte. On vérifie UNE SEULE FOIS au chargement (pas d'écoute
+  // réactive) pour ne pas entrer en compétition avec la redirection que
+  // l'AuthModal effectue lui-même juste après une inscription réussie
+  // sur cette page.
+  const [checkingSession, setCheckingSession] = useState(true);
+  const [alreadyLoggedIn, setAlreadyLoggedIn] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!active) return;
+      if (!session?.user) {
+        setCheckingSession(false);
+        return;
+      }
+      const { data: userData } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", session.user.id)
+        .single();
+      if (!active) return;
+      setAlreadyLoggedIn(true);
+      const target = userData?.role && isValidRole(userData.role) ? getRedirectPathForRole(userData.role) : "/";
+      router.replace(target);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
+
+  if (checkingSession || alreadyLoggedIn) return null;
 
   return (
     <>

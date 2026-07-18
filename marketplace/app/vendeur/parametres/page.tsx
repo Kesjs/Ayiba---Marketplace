@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import {
   User,
@@ -33,8 +33,9 @@ import {
   SettingsSection,
   SettingsField,
   SettingsToggle,
-  DangerZoneButton,
-  DangerZoneConfirm,
+  DangerZoneCard,
+  DangerZoneRow,
+  DangerZoneModal,
 } from "@/components/settings/SettingsForm";
 
 // ============================================
@@ -405,15 +406,6 @@ export default function VendeurParametresPage() {
             placeholder="Ton nom complet"
           />
         </SettingsField>
-        <SettingsField label="Email" error={fieldErrors.email}>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            className="settings-input"
-            placeholder="toi@exemple.com"
-          />
-        </SettingsField>
         <SettingsField label="Téléphone" error={fieldErrors.phone}>
           <input
             type="tel"
@@ -441,8 +433,23 @@ export default function VendeurParametresPage() {
         </Link>
       </SettingsSection>
 
-      {/* Sécurité */}
-      <SettingsSection icon={Lock} title="Sécurité" delay={0.15}>
+      {/* Sécurité & connexion */}
+      <SettingsSection icon={Lock} title="Sécurité & connexion" delay={0.15}>
+        <SettingsField label="Email de connexion" error={fieldErrors.email}>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+            className="settings-input"
+            placeholder="toi@exemple.com"
+          />
+        </SettingsField>
+        <p className="text-xs text-gray-400 font-medium -mt-2">
+          Utilisé pour te connecter. Enregistre avec le bouton en bas de page.
+        </p>
+
+        <div className="pt-2 border-t border-gray-100" />
+
         <SettingsField label="Nouveau mot de passe">
           <input
             type="password"
@@ -558,85 +565,81 @@ export default function VendeurParametresPage() {
       </button>
 
       {/* Zone sensible */}
-      <div className="space-y-3 mb-10">
-        <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest ml-4">Zone sensible</h4>
-
-        <AnimatePresence mode="wait">
-          {!showConfirmPause ? (
-            <DangerZoneButton
-              key="pause-button"
-              icon={isPaused ? PlayCircle : PauseCircle}
-              label={isPaused ? "Réactiver la boutique" : "Fermer temporairement la boutique"}
-              tone="amber"
-              onClick={() => setShowConfirmPause(true)}
-            />
-          ) : (
-            <DangerZoneConfirm
-              key="pause-confirm"
-              tone="amber"
-              description={
-                isPaused
-                  ? "Ta boutique redeviendra visible dans le catalogue et tes clients pourront de nouveau commander."
-                  : "Ta boutique ne sera plus visible dans le catalogue tant qu'elle est en pause. Tu pourras la réactiver à tout moment depuis cette page."
-              }
-              error={pauseError}
-              confirmLabel={isPaused ? "Réactiver" : "Mettre en pause"}
-              loading={isSavingPause}
-              onCancel={() => setShowConfirmPause(false)}
-              onConfirm={handleConfirmPause}
-            />
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {deleteSent ? (
-            <div
-              key="delete-sent"
-              className="w-full p-4 sm:p-5 rounded-2xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3"
-            >
-              <Check size={18} />
-              Demande envoyée — notre équipe te contactera sous 48h.
-            </div>
-          ) : !showConfirmDelete ? (
-            <DangerZoneButton
-              key="delete-button"
-              icon={Trash2}
-              label="Supprimer mon compte"
-              tone="red"
-              onClick={() => setShowConfirmDelete(true)}
-            />
-          ) : (
-            <DangerZoneConfirm
-              key="delete-confirm"
-              tone="red"
-              description="Cette action envoie une demande de suppression définitive. Notre équipe la traitera sous 48h, après vérification de l'historique de commandes en cours."
-              error={deleteError}
-              confirmLabel="Envoyer la demande"
-              confirmDisabled={deleteConfirmText !== "SUPPRIMER"}
-              loading={isDeleting}
-              onCancel={() => {
-                setShowConfirmDelete(false);
-                setDeleteConfirmText("");
-              }}
-              onConfirm={handleConfirmDelete}
-            >
-              <div>
-                <p className="text-xs text-gray-500 font-medium mb-2">
-                  Tape <strong className="text-gray-900">SUPPRIMER</strong> pour confirmer :
-                </p>
-                <input
-                  type="text"
-                  value={deleteConfirmText}
-                  onChange={(e) => setDeleteConfirmText(e.target.value)}
-                  className="settings-input"
-                  placeholder="SUPPRIMER"
-                />
-              </div>
-            </DangerZoneConfirm>
-          )}
-        </AnimatePresence>
-      </div>
+      {deleteSent ? (
+        <div className="w-full p-4 sm:p-5 rounded-2xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3 mb-10">
+          <Check size={18} />
+          Demande envoyée — notre équipe te contactera sous 48h.
+        </div>
+      ) : (
+        <DangerZoneCard>
+          <DangerZoneRow
+            icon={isPaused ? PlayCircle : PauseCircle}
+            title={isPaused ? "Réactiver la boutique" : "Fermer temporairement la boutique"}
+            description={
+              isPaused
+                ? "Ta boutique redeviendra visible dans le catalogue."
+                : "Ta boutique ne sera plus visible tant qu'elle est en pause."
+            }
+            actionLabel={isPaused ? "Réactiver" : "Mettre en pause"}
+            tone="amber"
+            onClick={() => setShowConfirmPause(true)}
+          />
+          <DangerZoneRow
+            icon={Trash2}
+            title="Supprimer mon compte"
+            description="Demande de suppression définitive, traitée sous 48h par notre équipe."
+            actionLabel="Supprimer"
+            tone="red"
+            onClick={() => setShowConfirmDelete(true)}
+          />
+        </DangerZoneCard>
+      )}
     </div>
+
+    <DangerZoneModal
+      open={showConfirmPause}
+      tone="amber"
+      title={isPaused ? "Réactiver la boutique" : "Fermer temporairement la boutique"}
+      description={
+        isPaused
+          ? "Ta boutique redeviendra visible dans le catalogue et tes clients pourront de nouveau commander."
+          : "Ta boutique ne sera plus visible dans le catalogue tant qu'elle est en pause. Tu pourras la réactiver à tout moment depuis cette page."
+      }
+      error={pauseError}
+      confirmLabel={isPaused ? "Réactiver" : "Mettre en pause"}
+      loading={isSavingPause}
+      onClose={() => setShowConfirmPause(false)}
+      onConfirm={handleConfirmPause}
+    />
+
+    <DangerZoneModal
+      open={showConfirmDelete}
+      tone="red"
+      title="Supprimer mon compte"
+      description="Cette action envoie une demande de suppression définitive. Notre équipe la traitera sous 48h, après vérification de l'historique de commandes en cours."
+      error={deleteError}
+      confirmLabel="Envoyer la demande"
+      confirmDisabled={deleteConfirmText !== "SUPPRIMER"}
+      loading={isDeleting}
+      onClose={() => {
+        setShowConfirmDelete(false);
+        setDeleteConfirmText("");
+      }}
+      onConfirm={handleConfirmDelete}
+    >
+      <div>
+        <p className="text-xs text-gray-500 font-medium mb-2">
+          Tape <strong className="text-gray-900">SUPPRIMER</strong> pour confirmer :
+        </p>
+        <input
+          type="text"
+          value={deleteConfirmText}
+          onChange={(e) => setDeleteConfirmText(e.target.value)}
+          className="settings-input"
+          placeholder="SUPPRIMER"
+        />
+      </div>
+    </DangerZoneModal>
 
     <LegalSheet
       open={openLegalSheet === "cgu"}

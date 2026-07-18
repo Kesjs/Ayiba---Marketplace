@@ -105,7 +105,10 @@ export default function DevenirLivreurPage() {
     let active = true;
     const supabase = createClient();
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    (async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!active) return;
       if (!session?.user) {
         setCheckingSession(false);
@@ -120,7 +123,7 @@ export default function DevenirLivreurPage() {
       setAlreadyLoggedIn(true);
       const target = userData?.role && isValidRole(userData.role) ? getRedirectPathForRole(userData.role) : "/";
       router.replace(target);
-    });
+    })();
 
     return () => {
       active = false;

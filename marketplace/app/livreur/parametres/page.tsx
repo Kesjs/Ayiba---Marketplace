@@ -119,7 +119,7 @@ export default function LivreurParametresPage() {
   };
 
   return (
-    <DashboardLayout role="livreur" title="Paramètres">
+    <DashboardLayout role="livreur" title="Paramètres" backHref="/livreur/profil" backLabel="Profil">
       {loading ? (
         <DashboardSkeleton />
       ) : (

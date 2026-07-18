@@ -2,13 +2,14 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   User,
   MapPin,
   Bike,
   Wallet,
   Bell,
+  Lock,
   LogOut,
   Camera,
   Check,
@@ -36,9 +37,43 @@ import {
   SettingsSection,
   SettingsField,
   SettingsToggle,
-  DangerZoneButton,
-  DangerZoneConfirm,
+  DangerZoneCard,
+  DangerZoneRow,
+  DangerZoneModal,
 } from "@/components/settings/SettingsForm";
+
+// ============================================
+// Traduction des erreurs Supabase Auth en français
+// (mêmes règles que côté vendeur, pour rester cohérent)
+// ============================================
+function translateAuthError(err: any): string {
+  const message = (err?.message || "").toLowerCase();
+  if (!message) return "Une erreur est survenue. Réessaie.";
+  if (message.includes("email") && message.includes("already")) {
+    return "Cet email est déjà utilisé par un autre compte.";
+  }
+  if (message.includes("invalid email")) return "Adresse email invalide.";
+  if (message.includes("password") && message.includes("weak")) {
+    return "Ce mot de passe est trop faible.";
+  }
+  if (message.includes("same password") || message.includes("different from")) {
+    return "Le nouveau mot de passe doit être différent de l'ancien.";
+  }
+  if (message.includes("rate limit") || message.includes("too many")) {
+    return "Trop de tentatives. Réessaie dans quelques instants.";
+  }
+  if (message.includes("network") || message.includes("fetch")) {
+    return "Problème de connexion. Vérifie ta connexion internet.";
+  }
+  return "Une erreur est survenue. Réessaie.";
+}
+
+function validatePasswordStrength(value: string): string | null {
+  if (value.length < 8) return "Le mot de passe doit contenir au moins 8 caractères.";
+  if (!/[A-Z]/.test(value)) return "Le mot de passe doit contenir au moins une majuscule.";
+  if (!/[0-9]/.test(value)) return "Le mot de passe doit contenir au moins un chiffre.";
+  return null;
+}
 
 const VEHICULES: { value: TypeVehicule; label: string }[] = [
   { value: "motocyclette", label: "Motocyclette" },
@@ -64,6 +99,10 @@ export default function LivreurParametresPage() {
     data,
     save,
     uploadAvatar,
+    changingPassword,
+    passwordError: passwordChangeApiError,
+    passwordSuccess,
+    changePassword,
     togglingPause,
     pauseError,
     togglePause,
@@ -75,6 +114,32 @@ export default function LivreurParametresPage() {
   const [form, setForm] = useState(data);
   const [initialized, setInitialized] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // ---- Mot de passe (action séparée, comme côté vendeur) ----
+  const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
+  const [passwordFormError, setPasswordFormError] = useState<string | null>(null);
+
+  const handleChangePassword = async () => {
+    setPasswordFormError(null);
+    if (!passwordForm.next && !passwordForm.confirm) return;
+
+    const strengthError = validatePasswordStrength(passwordForm.next);
+    if (strengthError) {
+      setPasswordFormError(strengthError);
+      return;
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      setPasswordFormError("Les mots de passe ne correspondent pas.");
+      return;
+    }
+
+    try {
+      await changePassword(passwordForm.next);
+      setPasswordForm({ next: "", confirm: "" });
+    } catch (err) {
+      setPasswordFormError(translateAuthError(err));
+    }
+  };
 
   if (!loading && !initialized) {
     setForm(data);
@@ -201,6 +266,62 @@ export default function LivreurParametresPage() {
                 placeholder="+229 00 00 00 00"
               />
             </SettingsField>
+          </SettingsSection>
+
+          {/* Sécurité & connexion */}
+          <SettingsSection icon={Lock} title="Sécurité & connexion" delay={0.07}>
+            <SettingsField label="Email de connexion">
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                className="settings-input"
+                placeholder="toi@exemple.com"
+              />
+            </SettingsField>
+            <p className="text-xs text-gray-400 font-medium -mt-2">
+              Utilisé pour te connecter. Enregistre avec le bouton en bas de page.
+            </p>
+
+            <div className="pt-2 border-t border-gray-100" />
+
+            <SettingsField label="Nouveau mot de passe">
+              <input
+                type="password"
+                value={passwordForm.next}
+                onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
+                className="settings-input"
+                placeholder="8 caractères, 1 majuscule, 1 chiffre"
+              />
+            </SettingsField>
+            <SettingsField label="Confirmer le nouveau mot de passe">
+              <input
+                type="password"
+                value={passwordForm.confirm}
+                onChange={(e) => setPasswordForm((f) => ({ ...f, confirm: e.target.value }))}
+                className="settings-input"
+              />
+            </SettingsField>
+            {(passwordFormError || passwordChangeApiError) && (
+              <p className="text-xs font-semibold text-red-500">
+                {passwordFormError || passwordChangeApiError}
+              </p>
+            )}
+            <button
+              onClick={handleChangePassword}
+              disabled={changingPassword || (!passwordForm.next && !passwordForm.confirm)}
+              className="h-11 px-5 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {changingPassword ? (
+                "Mise à jour..."
+              ) : passwordSuccess ? (
+                <>
+                  <Check size={16} /> Mot de passe modifié
+                </>
+              ) : (
+                "Modifier le mot de passe"
+              )}
+            </button>
           </SettingsSection>
 
           {/* Localisation */}
@@ -362,86 +483,82 @@ export default function LivreurParametresPage() {
           </button>
 
           {/* Zone sensible */}
-          <div className="space-y-3 mb-10">
-            <h4 className="text-xs font-bold text-red-400 uppercase tracking-widest ml-4">Zone sensible</h4>
-
-            <AnimatePresence mode="wait">
-              {!showConfirmPause ? (
-                <DangerZoneButton
-                  key="pause-button"
-                  icon={form.enPause ? PlayCircle : PauseCircle}
-                  label={form.enPause ? "Réactiver mon compte" : "Suspendre temporairement mon compte"}
-                  tone="amber"
-                  onClick={() => setShowConfirmPause(true)}
-                />
-              ) : (
-                <DangerZoneConfirm
-                  key="pause-confirm"
-                  tone="amber"
-                  description={
-                    form.enPause
-                      ? "Ton compte redeviendra visible et tu recevras de nouveau des missions."
-                      : "Tu ne recevras plus de nouvelles missions tant que ton compte est en pause. Tu pourras le réactiver à tout moment depuis cette page."
-                  }
-                  error={pauseError}
-                  confirmLabel={form.enPause ? "Réactiver" : "Mettre en pause"}
-                  loading={togglingPause}
-                  onCancel={() => setShowConfirmPause(false)}
-                  onConfirm={handleConfirmPause}
-                />
-              )}
-            </AnimatePresence>
-
-            <AnimatePresence mode="wait">
-              {deleteSent ? (
-                <div
-                  key="delete-sent"
-                  className="w-full p-4 sm:p-5 rounded-2xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3"
-                >
-                  <Check size={18} />
-                  Demande envoyée — notre équipe te contactera sous 48h.
-                </div>
-              ) : !showConfirmDelete ? (
-                <DangerZoneButton
-                  key="delete-button"
-                  icon={Trash2}
-                  label="Supprimer mon compte"
-                  tone="red"
-                  onClick={() => setShowConfirmDelete(true)}
-                />
-              ) : (
-                <DangerZoneConfirm
-                  key="delete-confirm"
-                  tone="red"
-                  description="Cette action envoie une demande de suppression définitive. Notre équipe la traitera sous 48h, après vérification de tes livraisons en cours."
-                  error={deleteError}
-                  confirmLabel="Envoyer la demande"
-                  confirmDisabled={deleteConfirmText !== "SUPPRIMER"}
-                  loading={deleting}
-                  onCancel={() => {
-                    setShowConfirmDelete(false);
-                    setDeleteConfirmText("");
-                  }}
-                  onConfirm={handleConfirmDelete}
-                >
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium mb-2">
-                      Tape <strong className="text-gray-900">SUPPRIMER</strong> pour confirmer :
-                    </p>
-                    <input
-                      type="text"
-                      value={deleteConfirmText}
-                      onChange={(e) => setDeleteConfirmText(e.target.value)}
-                      className="settings-input"
-                      placeholder="SUPPRIMER"
-                    />
-                  </div>
-                </DangerZoneConfirm>
-              )}
-            </AnimatePresence>
-          </div>
+          {deleteSent ? (
+            <div className="w-full p-4 sm:p-5 rounded-2xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3 mb-10">
+              <Check size={18} />
+              Demande envoyée — notre équipe te contactera sous 48h.
+            </div>
+          ) : (
+            <DangerZoneCard>
+              <DangerZoneRow
+                icon={form.enPause ? PlayCircle : PauseCircle}
+                title={form.enPause ? "Réactiver mon compte" : "Suspendre temporairement mon compte"}
+                description={
+                  form.enPause
+                    ? "Tu redeviendras visible et recevras de nouveau des missions."
+                    : "Tu ne recevras plus de nouvelles missions tant que ton compte est en pause."
+                }
+                actionLabel={form.enPause ? "Réactiver" : "Mettre en pause"}
+                tone="amber"
+                onClick={() => setShowConfirmPause(true)}
+              />
+              <DangerZoneRow
+                icon={Trash2}
+                title="Supprimer mon compte"
+                description="Demande de suppression définitive, traitée sous 48h par notre équipe."
+                actionLabel="Supprimer"
+                tone="red"
+                onClick={() => setShowConfirmDelete(true)}
+              />
+            </DangerZoneCard>
+          )}
         </div>
       )}
+
+      <DangerZoneModal
+        open={showConfirmPause}
+        tone="amber"
+        title={form.enPause ? "Réactiver mon compte" : "Suspendre temporairement mon compte"}
+        description={
+          form.enPause
+            ? "Ton compte redeviendra visible et tu recevras de nouveau des missions."
+            : "Tu ne recevras plus de nouvelles missions tant que ton compte est en pause. Tu pourras le réactiver à tout moment depuis cette page."
+        }
+        error={pauseError}
+        confirmLabel={form.enPause ? "Réactiver" : "Mettre en pause"}
+        loading={togglingPause}
+        onClose={() => setShowConfirmPause(false)}
+        onConfirm={handleConfirmPause}
+      />
+
+      <DangerZoneModal
+        open={showConfirmDelete}
+        tone="red"
+        title="Supprimer mon compte"
+        description="Cette action envoie une demande de suppression définitive. Notre équipe la traitera sous 48h, après vérification de tes livraisons en cours."
+        error={deleteError}
+        confirmLabel="Envoyer la demande"
+        confirmDisabled={deleteConfirmText !== "SUPPRIMER"}
+        loading={deleting}
+        onClose={() => {
+          setShowConfirmDelete(false);
+          setDeleteConfirmText("");
+        }}
+        onConfirm={handleConfirmDelete}
+      >
+        <div>
+          <p className="text-xs text-gray-500 font-medium mb-2">
+            Tape <strong className="text-gray-900">SUPPRIMER</strong> pour confirmer :
+          </p>
+          <input
+            type="text"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            className="settings-input"
+            placeholder="SUPPRIMER"
+          />
+        </div>
+      </DangerZoneModal>
 
       <LegalSheet
         open={openLegalSheet === "cgu"}

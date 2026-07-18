@@ -15,10 +15,18 @@ import {
   PauseCircle,
   PlayCircle,
   Trash2,
+  LifeBuoy,
+  FileText,
+  ShieldCheck,
+  ChevronRight,
+  Mail,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { createClient } from "@/lib/supabase/client";
+import { LegalSheet } from "@/components/legal/LegalSheet";
+import { CGUContent } from "@/components/legal/CGUContent";
+import { PrivacyContent } from "@/components/legal/PrivacyContent";
 import {
   useLivreurParametres,
   type TypeVehicule,
@@ -96,6 +104,7 @@ export default function LivreurParametresPage() {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteSent, setDeleteSent] = useState(false);
+  const [openLegalSheet, setOpenLegalSheet] = useState<"cgu" | "privacy" | null>(null);
 
   const handleConfirmPause = async () => {
     try {
@@ -295,6 +304,37 @@ export default function LivreurParametresPage() {
             />
           </SettingsSection>
 
+          {/* Assistance & légal */}
+          <SettingsSection icon={LifeBuoy} title="Assistance & légal" delay={0.27}>
+            <button
+              onClick={() => setOpenLegalSheet("cgu")}
+              className="w-full flex items-center justify-between py-2 group"
+            >
+              <div className="flex items-center gap-3">
+                <FileText size={16} className="text-gray-400 shrink-0" />
+                <span className="text-sm font-bold text-gray-900">Conditions Générales d'Utilisation</span>
+              </div>
+              <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
+            </button>
+            <button
+              onClick={() => setOpenLegalSheet("privacy")}
+              className="w-full flex items-center justify-between py-2 group"
+            >
+              <div className="flex items-center gap-3">
+                <ShieldCheck size={16} className="text-gray-400 shrink-0" />
+                <span className="text-sm font-bold text-gray-900">Politique de confidentialité</span>
+              </div>
+              <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
+            </button>
+            <a href="mailto:support@ayiba.bj" className="w-full flex items-center justify-between py-2 group">
+              <div className="flex items-center gap-3">
+                <Mail size={16} className="text-gray-400 shrink-0" />
+                <span className="text-sm font-bold text-gray-900">Contacter le support</span>
+              </div>
+              <span className="text-xs text-gray-400 font-medium shrink-0">support@ayiba.bj</span>
+            </a>
+          </SettingsSection>
+
           {/* Bouton sauvegarder */}
           <motion.button
             whileTap={{ scale: 0.98 }}
@@ -402,6 +442,22 @@ export default function LivreurParametresPage() {
           </div>
         </div>
       )}
+
+      <LegalSheet
+        open={openLegalSheet === "cgu"}
+        title="Conditions Générales d'Utilisation"
+        onClose={() => setOpenLegalSheet(null)}
+      >
+        <CGUContent />
+      </LegalSheet>
+
+      <LegalSheet
+        open={openLegalSheet === "privacy"}
+        title="Politique de confidentialité"
+        onClose={() => setOpenLegalSheet(null)}
+      >
+        <PrivacyContent />
+      </LegalSheet>
     </DashboardLayout>
   );
 }

@@ -8,6 +8,7 @@ export type MobileMoneyNetwork = "mtn" | "moov" | "celtiis";
 
 export interface LivreurParametres {
   fullName: string;
+  email: string;
   phone: string;
   avatarUrl: string | null;
   quartier: string;
@@ -24,6 +25,7 @@ export interface LivreurParametres {
 
 const EMPTY: LivreurParametres = {
   fullName: "",
+  email: "",
   phone: "",
   avatarUrl: null,
   quartier: "",
@@ -79,6 +81,7 @@ export function useLivreurParametres() {
 
       setData({
         fullName: userRow?.full_name ?? "",
+        email: user.email ?? "",
         phone: userRow?.phone ?? "",
         avatarUrl: livreurRow?.photo_profil_url ?? userRow?.avatar_url ?? null,
         quartier: livreurRow?.quartier ?? "",
@@ -145,8 +148,15 @@ export function useLivreurParametres() {
 
         if (livreurUpdateError) throw livreurUpdateError;
 
+        let emailChanged = false;
+        if (next.email.trim() !== user.email) {
+          const { error: emailError } = await supabase.auth.updateUser({ email: next.email.trim() });
+          if (emailError) throw emailError;
+          emailChanged = true;
+        }
+
         setData(next);
-        setSuccessMessage("Profil mis à jour");
+        setSuccessMessage(emailChanged ? "Enregistré — vérifie ta boîte mail" : "Profil mis à jour");
         setTimeout(() => setSuccessMessage(null), 2500);
       } catch (err) {
         console.error("[useLivreurParametres] save error:", err);
@@ -202,6 +212,33 @@ export function useLivreurParametres() {
         setError(err instanceof Error ? err.message : "Erreur lors de l'envoi de la photo");
       } finally {
         setUploadingAvatar(false);
+      }
+    },
+    [supabase]
+  );
+
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  const changePassword = useCallback(
+    async (nextPassword: string) => {
+      setChangingPassword(true);
+      setPasswordError(null);
+      setPasswordSuccess(false);
+      try {
+        const { error } = await supabase.auth.updateUser({ password: nextPassword });
+        if (error) throw error;
+        setPasswordSuccess(true);
+        setTimeout(() => setPasswordSuccess(false), 2500);
+      } catch (err) {
+        console.error("[useLivreurParametres] changePassword error:", err);
+        setPasswordError(
+          err instanceof Error ? err.message : "Impossible de modifier le mot de passe — réessaie."
+        );
+        throw err;
+      } finally {
+        setChangingPassword(false);
       }
     },
     [supabase]
@@ -278,6 +315,10 @@ export function useLivreurParametres() {
     save,
     uploadAvatar,
     reload: load,
+    changingPassword,
+    passwordError,
+    passwordSuccess,
+    changePassword,
     togglingPause,
     pauseError,
     togglePause,

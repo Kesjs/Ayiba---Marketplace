@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
@@ -8,7 +8,16 @@ import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
-import { CATEGORIES, MOCK_PRODUCTS } from '@/lib/mock-data'
+import { createClient } from '@/lib/supabase/client'
+import {
+  ARTICLE_CARD_SELECT,
+  ArticleCard,
+  ArticleCardRow,
+  fetchArticleRatings,
+  fetchFavoriteIds,
+  mapArticleRow,
+  toggleFavorite,
+} from '@/lib/catalogue'
 import { useCart } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
 import { Search, ArrowLeft, X } from 'lucide-react'
@@ -16,53 +25,97 @@ import { Search, ArrowLeft, X } from 'lucide-react'
 function SearchResults() {
   const searchParams = useSearchParams()
   const router = useRouter()
+  const supabase = createClient()
   const { addItem } = useCart()
   const { showToast } = useToast()
 
   const initialQuery = searchParams.get('q') || ''
   const [query, setQuery] = useState(initialQuery)
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<ArticleCard[]>([])
   const [loading, setLoading] = useState(true)
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
+  const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const runSearch = useCallback(async (q: string) => {
     setLoading(true)
-    const timer = setTimeout(() => {
-      if (!query.trim()) {
+    try {
+      if (!q.trim()) {
         setProducts([])
-        setLoading(false)
         return
       }
 
-      const q = query.trim().toLowerCase()
-      const filtered = MOCK_PRODUCTS.filter((p) => {
-        const categoryLabel = CATEGORIES.find((c) => c.id === p.categorie)?.label || ''
-        return (
-          p.nom.toLowerCase().includes(q) ||
-          p.description?.toLowerCase().includes(q) ||
-          categoryLabel.toLowerCase().includes(q)
-        )
-      })
+      const term = q.trim()
+      const { data, error } = await supabase
+        .from('articles')
+        .select(ARTICLE_CARD_SELECT)
+        .eq('statut', 'publie')
+        .eq('actif', true)
+        .or(`nom.ilike.%${term}%,description.ilike.%${term}%`)
 
-      setProducts(filtered)
+      if (error) throw error
+
+      const rows = (data || []) as unknown as ArticleCardRow[]
+      const ratings = await fetchArticleRatings(supabase, rows.map((r) => r.id))
+      setProducts(rows.map((r) => mapArticleRow(r, ratings)))
+    } catch (error) {
+      console.error('Error searching articles:', error)
+      showToast('Erreur lors de la recherche', 'error')
+    } finally {
       setLoading(false)
-    }, 400)
+    }
+  }, [supabase, showToast])
+
+  // Recherche "live" avec un léger debounce, comme avant.
+  useEffect(() => {
+    setLoading(true)
+    const timer = setTimeout(() => runSearch(query), 400)
     return () => clearTimeout(timer)
-  }, [query])
+  }, [query, runSearch])
+
+  useEffect(() => {
+    if (!userId) {
+      setFavoriteIds(new Set())
+      return
+    }
+    fetchFavoriteIds(supabase, userId).then(setFavoriteIds)
+  }, [supabase, userId, products.length])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     router.replace(`/recherche?q=${encodeURIComponent(query.trim())}`)
   }
 
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = (product: ArticleCard) => {
     addItem({
       id: product.id,
       nom: product.nom,
       prix: product.prix,
-      vendeur_id: product.vendeur_id || 'default',
+      vendeur_id: product.vendeur_id,
       photos: product.photos,
     })
     showToast('Produit ajouté au panier', 'success')
+  }
+
+  const handleToggleFavorite = async (productId: string) => {
+    if (!userId) {
+      showToast('Connectez-vous pour ajouter aux favoris', 'warning')
+      router.push('/auth/inscription')
+      return
+    }
+    const isFav = favoriteIds.has(productId)
+    const nowFav = await toggleFavorite(supabase, userId, productId, isFav)
+    setFavoriteIds((prev) => {
+      const next = new Set(prev)
+      if (nowFav) next.add(productId)
+      else next.delete(productId)
+      return next
+    })
+    showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
   }
 
   return (
@@ -137,7 +190,7 @@ function SearchResults() {
             <Button variant="secondary" onClick={() => router.push('/')}>
               Retour à l'accueil
             </Button>
-            <Button onClick={() => router.push('/catalogue')}>
+            <Button onClick={() => router.push('/explorer')}>
               Voir le catalogue
             </Button>
           </div>
@@ -148,14 +201,15 @@ function SearchResults() {
             <Link key={product.id} href={`/produits/${product.id}`} className="block">
               <ProductCardModern
                 image={product.photos[0]}
-                category={CATEGORIES.find((c) => c.id === product.categorie)?.label || 'Divers'}
+                category={product.categorieLabel}
                 name={product.nom}
                 rating={product.rating}
                 reviewCount={product.reviewCount}
                 price={product.prix}
                 oldPrice={product.ancien_prix ?? undefined}
+                isFavorite={favoriteIds.has(product.id)}
                 onAddToCart={() => handleAddToCart(product)}
-                onToggleFavorite={() => showToast('Favori ajouté', 'success')}
+                onToggleFavorite={() => handleToggleFavorite(product.id)}
               />
             </Link>
           ))}

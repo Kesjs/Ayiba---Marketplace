@@ -65,3 +65,43 @@ export async function getBoutiquesPopulaires(limit = 10): Promise<BoutiquePubliq
     .sort((a: BoutiquePublique, b: BoutiquePublique) => b.productCount - a.productCount)
     .slice(0, limit);
 }
+
+/**
+ * Boutique unique pour la page détail (/boutiques/[id]). Même logique que
+ * getBoutiquesPopulaires pour le comptage d'articles, réduite à un seul
+ * vendeur. Retourne null si la boutique n'existe pas ou n'est pas validée
+ * (cohérent avec la RLS : un vendeur non "valide" n'a pas d'articles publics
+ * de toute façon).
+ */
+export async function getBoutiqueParId(id: string): Promise<BoutiquePublique | null> {
+  const supabase = createClient();
+
+  const { data: vendeur, error: vendeurError } = await supabase
+    .from("vendeurs")
+    .select("id, nom_boutique, quartier, commune, photo_profil_url, statut")
+    .eq("id", id)
+    .eq("statut", "valide")
+    .maybeSingle();
+
+  if (vendeurError) throw vendeurError;
+  if (!vendeur) return null;
+
+  const { count, error: countError } = await supabase
+    .from("articles")
+    .select("*", { count: "exact", head: true })
+    .eq("vendeur_id", id)
+    .eq("statut", "publie")
+    .eq("actif", true);
+
+  if (countError) throw countError;
+
+  return {
+    id: vendeur.id,
+    nom: vendeur.nom_boutique || "Boutique Ayiba",
+    logo: vendeur.photo_profil_url,
+    quartier: vendeur.quartier,
+    commune: vendeur.commune,
+    isVerified: vendeur.statut === "valide",
+    productCount: count || 0,
+  };
+}

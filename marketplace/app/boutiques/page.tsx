@@ -1,16 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, Star, CheckCircle2 } from "lucide-react";
+import { Search, CheckCircle2, MapPin } from "lucide-react";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
-import { MOCK_STORES } from "@/lib/mock-data";
+import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
 
 export default function BoutiquesPage() {
   const [search, setSearch] = useState("");
+  const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredStores = MOCK_STORES.filter((store) =>
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await getBoutiquesPopulaires(500);
+        if (!cancelled) setBoutiques(data);
+      } catch (err) {
+        console.error("Erreur chargement boutiques:", err);
+        if (!cancelled) setError("Impossible de charger les boutiques pour le moment.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const filteredStores = boutiques.filter((store) =>
     store.nom.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -28,7 +52,6 @@ export default function BoutiquesPage() {
           </p>
         </div>
 
-        {/* Recherche */}
         <div className="relative mb-8 md:mb-10 max-w-md">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -40,10 +63,21 @@ export default function BoutiquesPage() {
           />
         </div>
 
-        {/* Grille de boutiques */}
-        {filteredStores.length === 0 ? (
+        {error && (
+          <div className="mb-8 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-40 bg-gray-50 border border-gray-100 rounded-3xl animate-pulse" />
+            ))}
+          </div>
+        ) : filteredStores.length === 0 ? (
           <div className="py-20 text-center text-gray-400">
-            Aucune boutique trouvée pour "{search}".
+            {search ? `Aucune boutique trouvée pour "${search}".` : "Aucune boutique disponible pour le moment."}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -54,8 +88,12 @@ export default function BoutiquesPage() {
                 className="group p-5 md:p-6 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
               >
                 <div className="relative mb-4 inline-block">
-                  <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110">
-                    <img src={store.logo} alt={store.nom} className="w-full h-full object-cover" />
+                  <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 bg-coral-50 flex items-center justify-center">
+                    {store.logo ? (
+                      <img src={store.logo} alt={store.nom} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-coral-500 font-bold text-xl">{store.nom.charAt(0).toUpperCase()}</span>
+                    )}
                   </div>
                   {store.isVerified && (
                     <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
@@ -68,22 +106,17 @@ export default function BoutiquesPage() {
                   {store.nom}
                 </h3>
 
-                <div className="flex items-center gap-1.5 mb-3">
-                  <Star size={14} className="fill-amber-400 text-amber-400" />
-                  <span className="text-xs font-bold text-gray-700">{store.rating}</span>
-                  <span className="text-xs text-gray-400">• {store.productCount} produits</span>
+                <div className="flex items-center gap-1.5 mb-3 text-xs text-gray-400">
+                  <span className="font-bold text-gray-700">{store.productCount}</span>
+                  <span>produit{store.productCount > 1 ? "s" : ""}</span>
                 </div>
 
-                <div className="flex flex-wrap gap-2">
-                  {store.categories.slice(0, 3).map((cat, i) => (
-                    <span
-                      key={i}
-                      className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100"
-                    >
-                      {cat}
-                    </span>
-                  ))}
-                </div>
+                {(store.quartier || store.commune) && (
+                  <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100 w-fit">
+                    <MapPin size={11} />
+                    {[store.quartier, store.commune].filter(Boolean).join(", ")}
+                  </div>
+                )}
               </Link>
             ))}
           </div>

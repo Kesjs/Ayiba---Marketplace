@@ -62,6 +62,6 @@ export async function getBoutiquesPopulaires(limit = 10): Promise<BoutiquePubliq
       isVerified: v.statut === "valide",
       productCount: countByVendeur.get(v.id) || 0,
     }))
-    .sort((a, b) => b.productCount - a.productCount)
+    .sort((a: BoutiquePublique, b: BoutiquePublique) => b.productCount - a.productCount)
     .slice(0, limit);
 }

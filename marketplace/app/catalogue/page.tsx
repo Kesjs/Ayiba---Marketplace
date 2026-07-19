@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
-import { CATEGORIES, MOCK_PRODUCTS } from '@/lib/mock-data'
+import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from '@/lib/queries/articles'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
 import { useCart } from '@/context/CartContext'
@@ -19,52 +19,69 @@ function CatalogueContent() {
   const { addItem } = useCart()
   const { showToast } = useToast()
   
-  const [products, setProducts] = useState<any[]>([])
+  const [allProducts, setAllProducts] = useState<ArticlePublic[]>([])
+  const [products, setProducts] = useState<ArticlePublic[]>([])
+  const [categoryOptions, setCategoryOptions] = useState<{ nom: string; slug: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categorie') || 'Tout')
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('popular')
   const [showFilters, setShowFilters] = useState(false)
 
-  const categories = ['Tout', ...CATEGORIES.map(c => c.label)]
+  const categories = ['Tout', ...categoryOptions.map(c => c.nom)]
+
+  // Chargement initial depuis Supabase (une seule fois — le filtrage catégorie/recherche/tri
+  // se fait ensuite côté client sur ce jeu de données, comme avant avec les mocks).
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const [articles, cats] = await Promise.all([getArticlesPublics(), getCategoriesActives()])
+        if (cancelled) return
+        setAllProducts(articles)
+        setCategoryOptions(cats)
+      } catch (err) {
+        console.error('Erreur chargement catalogue:', err)
+        if (!cancelled) setError('Impossible de charger les produits.')
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   useEffect(() => {
-    setLoading(true)
-    const timer = setTimeout(() => {
-      let filtered = [...MOCK_PRODUCTS]
-      
-      if (selectedCategory !== 'Tout') {
-        filtered = filtered.filter(p => {
-          const cat = CATEGORIES.find(c => c.id === p.categorie)
-          return cat?.label === selectedCategory
-        })
-      }
+    let filtered = [...allProducts]
 
-      if (searchQuery) {
-        filtered = filtered.filter(p => 
-          p.nom.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.description.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      }
+    if (selectedCategory !== 'Tout') {
+      filtered = filtered.filter(p => p.categorie?.nom === selectedCategory)
+    }
 
-      // Sorting
-      if (sortBy === 'price-asc') filtered.sort((a, b) => a.prix - b.prix)
-      if (sortBy === 'price-desc') filtered.sort((a, b) => b.prix - a.prix)
-      if (sortBy === 'rating') filtered.sort((a, b) => b.rating - a.rating)
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter(p =>
+        p.nom.toLowerCase().includes(q) ||
+        (p.description || '').toLowerCase().includes(q)
+      )
+    }
 
-      setProducts(filtered)
-      setLoading(false)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [selectedCategory, searchQuery, sortBy])
+    if (sortBy === 'price-asc') filtered.sort((a, b) => (a.prix_promo ?? a.prix) - (b.prix_promo ?? b.prix))
+    if (sortBy === 'price-desc') filtered.sort((a, b) => (b.prix_promo ?? b.prix) - (a.prix_promo ?? a.prix))
 
-  const handleAddToCart = (product: any) => {
+    setProducts(filtered)
+  }, [allProducts, selectedCategory, searchQuery, sortBy])
+
+  const handleAddToCart = (product: ArticlePublic) => {
     addItem({
       id: product.id,
       nom: product.nom,
-      prix: product.prix,
-      vendeur_id: product.vendeur_id || "default",
+      prix: product.prix_promo ?? product.prix,
+      vendeur_id: product.vendeur_id,
       photos: product.photos
     })
     showToast('Produit ajouté au panier', 'success')
@@ -137,7 +154,6 @@ function CatalogueContent() {
                   <option value="popular">Les plus populaires</option>
                   <option value="price-asc">Prix croissant</option>
                   <option value="price-desc">Prix décroissant</option>
-                  <option value="rating">Mieux notés</option>
                 </select>
               </div>
             </aside>
@@ -164,6 +180,12 @@ function CatalogueContent() {
                 </div>
               </div>
 
+              {error && (
+                <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
+                  {error}
+                </div>
+              )}
+
               {loading ? (
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
                   {[...Array(6)].map((_, i) => (
@@ -178,13 +200,13 @@ function CatalogueContent() {
                   {products.map((product) => (
                     <Link key={product.id} href={`/produits/${product.id}`} className="block">
                       <ProductCardModern
-                        image={product.photos[0]}
-                        category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
+                        image={product.photos[0] || '/images/hero-illustration.png'}
+                        category={product.categorie?.nom || 'Divers'}
                         name={product.nom}
-                        rating={product.rating}
-                        reviewCount={product.reviewCount}
-                        price={product.prix}
-                        oldPrice={product.ancien_prix ?? undefined}
+                        rating={0}
+                        reviewCount={0}
+                        price={product.prix_promo ?? product.prix}
+                        oldPrice={product.prix_promo ? product.prix : undefined}
                         onAddToCart={() => handleAddToCart(product)}
                         onToggleFavorite={() => showToast('Favori ajouté', 'success')}
                       />

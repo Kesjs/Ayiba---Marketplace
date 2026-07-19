@@ -7,6 +7,7 @@ import { useToast } from '@/context/ToastContext'
 import { useUser } from '@/lib/hooks/useUser'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
+import { LogoutConfirmModal } from '@/components/ui/LogoutConfirmModal'
 
 interface Address {
   id: string
@@ -25,6 +26,9 @@ export default function ProfilPage() {
   const [loading, setLoading] = useState(true)
   const [showAddressModal, setShowAddressModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [newAddress, setNewAddress] = useState({
     label: 'domicile',
     adresse_complete: '',
@@ -126,12 +130,14 @@ export default function ProfilPage() {
     }
   }
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutModal(false)
     await supabase.auth.signOut()
     router.push('/auth/inscription')
   }
 
   const handleDeleteAccount = async () => {
+    setIsDeletingAccount(true)
     try {
       const { error } = await supabase
         .from('users')
@@ -144,6 +150,8 @@ export default function ProfilPage() {
     } catch (error) {
       console.error('Error deleting account:', error)
       showToast('Erreur lors de la suppression du compte', 'error')
+      setIsDeletingAccount(false)
+      setShowDeleteAccountModal(false)
     }
   }
 
@@ -271,7 +279,7 @@ export default function ProfilPage() {
 
         {/* Logout */}
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutModal(true)}
           className="w-full mt-4 py-3 rounded-lg border border-gray-100 text-sm font-medium text-red-400 hover:bg-red-50 transition-colors"
         >
           Déconnexion
@@ -279,7 +287,7 @@ export default function ProfilPage() {
 
         {/* Delete Account */}
         <button
-          onClick={handleDeleteAccount}
+          onClick={() => setShowDeleteAccountModal(true)}
           className="w-full mt-3 py-3 rounded-lg text-sm text-gray-400 hover:text-red-400 transition-colors"
         >
           Supprimer mon compte
@@ -359,6 +367,45 @@ export default function ProfilPage() {
               </Button>
               <Button variant="destructive" className="flex-1" onClick={handleDeleteAddress}>
                 Supprimer
+              </Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
+      {showDeleteAccountModal && (
+        <Modal
+          isOpen={showDeleteAccountModal}
+          onClose={() => setShowDeleteAccountModal(false)}
+          title="Supprimer définitivement mon compte"
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Cette action est <span className="font-semibold text-red-500">définitive et irréversible</span>.
+              Toutes tes données personnelles, adresses et favoris seront supprimés. Cette action ne peut pas être annulée.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                className="flex-1"
+                onClick={() => setShowDeleteAccountModal(false)}
+                disabled={isDeletingAccount}
+              >
+                Annuler
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                onClick={handleDeleteAccount}
+                disabled={isDeletingAccount}
+              >
+                {isDeletingAccount ? 'Suppression...' : 'Oui, supprimer'}
               </Button>
             </div>
           </div>

@@ -5,27 +5,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLivreurPaiements } from "@/app/hooks/useLivreurPaiements";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { LABELS_STATUT_PAIEMENT, STATUT_PAIEMENT_BADGE_VARIANT, type StatutPaiement } from "@/lib/constants/paiements";
 import {
   Wallet, Zap, X, ArrowDownToLine, ArrowUpFromLine, Truck,
 } from "lucide-react";
-
-const STATUT_STYLE: Record<string, string> = {
-  en_attente: "bg-amber-50 text-amber-700 border-amber-100",
-  paye: "bg-teal-50 text-teal-700 border-teal-100",
-  valide: "bg-blue-50 text-blue-700 border-blue-100",
-  echoue: "bg-red-50 text-red-700 border-red-100",
-  refuse: "bg-red-50 text-red-700 border-red-100",
-  rembourse: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
-const STATUT_LABEL: Record<string, string> = {
-  en_attente: "En attente",
-  paye: "Payé",
-  valide: "Validé",
-  echoue: "Échoué",
-  refuse: "Refusé",
-  rembourse: "Remboursé",
-};
 
 function GainCard({ g }: { g: { id: string; numero: string; frais_livraison: number; commune: string | null; updated_at: string } }) {
   return (
@@ -52,9 +36,9 @@ function RetraitCard({ r }: { r: any }) {
           {new Date(r.created_at).toLocaleDateString("fr-FR")} · {r.reseau?.toUpperCase()}
         </p>
       </div>
-      <span className={`text-xs font-bold px-3 py-1 rounded-full border ${STATUT_STYLE[r.statut] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
-        {STATUT_LABEL[r.statut] || r.statut}
-      </span>
+      <StatusBadge variant={STATUT_PAIEMENT_BADGE_VARIANT[r.statut as StatutPaiement] ?? "neutral"}>
+        {LABELS_STATUT_PAIEMENT[r.statut as StatutPaiement] || r.statut}
+      </StatusBadge>
     </div>
   );
 }

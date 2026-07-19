@@ -46,21 +46,10 @@ export interface DashboardMessage {
   lu: boolean | null;
 }
 
-interface ArticleRow {
-  id: string;
-  actif: boolean | null;
-  created_at: string;
-}
-
 export interface PaiementRow {
   montant_net: number | null;
   statut: string | null;
   created_at: string;
-}
-
-interface LigneRow {
-  quantite: number;
-  commande_id: string;
 }
 
 const STATUT_LABELS: Record<string, string> = {
@@ -73,8 +62,11 @@ const STATUT_LABELS: Record<string, string> = {
   remboursee: "Remboursée",
 };
 
-const PERIOD_DAYS = 30;
-
+// Toutes les stats agrégées (CA, commandes, évolution) sont calculées côté base
+// par les vues vue_stats_vendeur / vue_stats_vendeur_evolution / vue_chiffre_affaires
+// / vue_commandes_recentes — une seule source de vérité, réutilisable aussi par
+// un futur dashboard admin. Ce hook ne fait plus que lire ces vues + les listes
+// détaillées (paiements pour le graphique, messages récents) qu'aucune vue ne fournit.
 export function useVendeurDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -102,120 +94,65 @@ export function useVendeurDashboard() {
     }
 
     try {
-      const now = new Date();
-      const debutActuel = new Date(now.getTime() - PERIOD_DAYS * 24 * 60 * 60 * 1000);
-      const debutPrecedent = new Date(now.getTime() - 2 * PERIOD_DAYS * 24 * 60 * 60 * 1000);
-
       const [
-        { data: vendeurData },
-        { data: articlesData },
+        { data: statsData, error: statsError },
+        { data: caData },
+        { data: evolutionData },
         { data: commandesData },
-        { data: paiementsData },
         { data: messagesData },
+        { data: paiementsData },
       ] = await Promise.all([
-        supabase.from("vendeurs").select("nom_complet, statut").eq("id", user.id).single(),
-        supabase.from("articles").select("id, actif, created_at").eq("vendeur_id", user.id),
         supabase
-          .from("commandes")
+          .from("vue_stats_vendeur")
+          .select(
+            "nom_complet, statut, nombre_commandes, nombre_articles, articles_vendus, commandes_en_attente, messages_non_lus, chiffre_affaires"
+          )
+          .eq("vendeur_id", user.id)
+          .maybeSingle(),
+        supabase.from("vue_chiffre_affaires").select("montant_total").eq("vendeur_id", user.id).maybeSingle(),
+        supabase.from("vue_stats_vendeur_evolution").select("*").eq("vendeur_id", user.id).maybeSingle(),
+        supabase
+          .from("vue_commandes_recentes")
           .select("id, numero, nom_client, montant_total, statut, created_at")
           .eq("vendeur_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("paiements")
-          .select("montant_net, statut, created_at")
-          .eq("vendeur_id", user.id),
+          .limit(5),
         supabase
           .from("messages")
           .select("id, contenu, created_at, lu")
           .eq("destinataire_id", user.id)
           .order("created_at", { ascending: false })
           .limit(5),
+        supabase
+          .from("paiements")
+          .select("montant_net, statut, created_at")
+          .eq("vendeur_id", user.id),
       ]);
 
-      const commandesList = (commandesData || []) as (DashboardCommande & { statut: string })[];
-      const articlesList = (articlesData || []) as ArticleRow[];
-      const paiementsList = (paiementsData || []) as PaiementRow[];
-      const messagesList = (messagesData || []) as DashboardMessage[];
-      const commandeIds = commandesList.map((c) => c.id);
+      if (statsError) throw statsError;
 
-      let articlesVendusTotal = 0;
-      let articlesVendusActuel = 0;
-      let articlesVendusPrecedent = 0;
-
-      if (commandeIds.length > 0) {
-        const { data: lignesData } = await supabase
-          .from("commande_articles")
-          .select("quantite, commande_id")
-          .in("commande_id", commandeIds);
-
-        const lignesList = (lignesData || []) as LigneRow[];
-
-        const commandeDateMap = new Map<string, Date>(
-          commandesList.map((c) => [c.id, new Date(c.created_at)])
-        );
-
-        lignesList.forEach((ligne: LigneRow) => {
-          articlesVendusTotal += ligne.quantite;
-          const date = commandeDateMap.get(ligne.commande_id);
-          if (date && date >= debutActuel) {
-            articlesVendusActuel += ligne.quantite;
-          } else if (date && date >= debutPrecedent && date < debutActuel) {
-            articlesVendusPrecedent += ligne.quantite;
-          }
-        });
-      }
-
-      const caPaye = paiementsList.filter((p) => p.statut === "paye");
-      const montantTotal = caPaye.reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
-      const caActuel = caPaye
-        .filter((p) => new Date(p.created_at) >= debutActuel)
-        .reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
-      const caPrecedent = caPaye
-        .filter((p) => new Date(p.created_at) >= debutPrecedent && new Date(p.created_at) < debutActuel)
-        .reduce((sum, p) => sum + Number(p.montant_net || 0), 0);
-
-      const commandesActuel = commandesList.filter((c) => new Date(c.created_at) >= debutActuel).length;
-      const commandesPrecedent = commandesList.filter(
-        (c) => new Date(c.created_at) >= debutPrecedent && new Date(c.created_at) < debutActuel
-      ).length;
-
-      const articlesActifs = articlesList.filter((a) => a.actif);
-      const articlesActifsActuel = articlesActifs.filter((a) => new Date(a.created_at) >= debutActuel).length;
-      const articlesActifsPrecedent = articlesActifs.filter(
-        (a) => new Date(a.created_at) >= debutPrecedent && new Date(a.created_at) < debutActuel
-      ).length;
-
-      const commandesEnAttente = commandesList.filter((c) => c.statut === "en_attente").length;
-      const messagesNonLus = messagesList.filter((m) => m.lu === false).length;
-
-      setVendeur(vendeurData as VendeurInfo | null);
-      setStats({
-        nombre_commandes: commandesList.length,
-        nombre_articles: articlesActifs.length,
-        articles_vendus: articlesVendusTotal,
-        commandes_en_attente: commandesEnAttente,
-        messages_non_lus: messagesNonLus,
-      });
-      setChiffreAffaires({ montant_total: montantTotal });
-      setEvolution({
-        ca_periode_actuelle: caActuel,
-        ca_periode_precedente: caPrecedent,
-        commandes_periode_actuelle: commandesActuel,
-        commandes_periode_precedente: commandesPrecedent,
-        articles_actifs_actuel: articlesActifsActuel,
-        articles_actifs_precedent: articlesActifsPrecedent,
-        articles_vendus_periode_actuelle: articlesVendusActuel,
-        articles_vendus_periode_precedente: articlesVendusPrecedent,
-      });
+      setVendeur(statsData ? { nom_complet: statsData.nom_complet, statut: statsData.statut } : null);
+      setStats(
+        statsData
+          ? {
+              nombre_commandes: statsData.nombre_commandes,
+              nombre_articles: statsData.nombre_articles,
+              articles_vendus: statsData.articles_vendus,
+              commandes_en_attente: statsData.commandes_en_attente,
+              messages_non_lus: statsData.messages_non_lus,
+            }
+          : null
+      );
+      setChiffreAffaires({ montant_total: caData?.montant_total ?? statsData?.chiffre_affaires ?? 0 });
+      setEvolution((evolutionData as Evolution) ?? null);
       setCommandes(
-        commandesList.slice(0, 5).map((c) => ({
+        ((commandesData || []) as (DashboardCommande & { statut: string })[]).map((c) => ({
           ...c,
           statut_brut: c.statut,
           statut: STATUT_LABELS[c.statut] || c.statut,
         }))
       );
-      setMessages(messagesList);
-      setPaiements(paiementsList);
+      setMessages((messagesData || []) as DashboardMessage[]);
+      setPaiements((paiementsData || []) as PaiementRow[]);
     } catch (err) {
       console.error("Erreur lors du chargement du tableau de bord:", err);
       setError("Impossible de charger le tableau de bord");

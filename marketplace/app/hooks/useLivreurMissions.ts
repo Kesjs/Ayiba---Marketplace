@@ -26,6 +26,16 @@ interface LivreurStats {
   livraisons_jour: number;
 }
 
+// Codes affichés une seule fois au livreur juste après génération (prise en
+// charge ou régénération). Jamais persistés ailleurs qu'en mémoire ici —
+// si l'app est fermée avant confirmation, il faut regenererCodes() pour
+// en obtenir de nouveaux à afficher.
+export interface CodesLivraison {
+  commandeId: string;
+  qrToken: string;
+  code6: string;
+}
+
 interface RawCommandeRow {
   id: string;
   numero: string;
@@ -79,6 +89,9 @@ export function useLivreurMissions() {
   const [noteMoyenne, setNoteMoyenne] = useState<number | null>(null);
   const [aConfirmer, setAConfirmer] = useState<MissionCommande[]>([]);
   const [enCours, setEnCours] = useState<MissionCommande[]>([]);
+
+  // Codes en clair du moment — n'existe qu'en mémoire, jamais en base ni en storage.
+  const [codesActifs, setCodesActifs] = useState<CodesLivraison | null>(null);
 
   const loadMissions = useCallback(async () => {
     setLoading(true);
@@ -146,24 +159,6 @@ export function useLivreurMissions() {
     loadMissions();
   }, [loadMissions]);
 
-  const confirmerMission = useCallback(
-    async (id: string) => {
-      try {
-        const { error: updateError } = await supabase
-          .from("commandes")
-          .update({ livreur_confirme: true, statut: "expediee" })
-          .eq("id", id);
-
-        if (updateError) throw updateError;
-        await loadMissions();
-      } catch (err) {
-        console.error("[useLivreurMissions] confirmerMission error:", err);
-        setError(err instanceof Error ? err.message : "Erreur lors de la confirmation");
-      }
-    },
-    [supabase, loadMissions]
-  );
-
   const refuserMission = useCallback(
     async (id: string) => {
       try {
@@ -182,19 +177,74 @@ export function useLivreurMissions() {
     [supabase, loadMissions]
   );
 
-  const marquerLivree = useCallback(
+  // Remplace l'ancien "confirmerMission" (accepter la mission) ET l'ancien
+  // "marquerLivree" (qui ne vérifiait rien). Récupérer le colis = déclencher
+  // la génération des codes QR + 6 chiffres côté serveur. Le livreur n'a plus
+  // de bouton "Confirmer la livraison" : seul le client peut faire passer la
+  // commande à "livree", via verifierCodeLivraison (côté client, autre hook).
+  const recupererColis = useCallback(
     async (id: string) => {
       try {
-        const { error: updateError } = await supabase
-          .from("commandes")
-          .update({ statut: "livree" })
-          .eq("id", id);
+        const { data, error: rpcError } = await supabase.rpc("livreur_recuperer_colis", {
+          p_commande_id: id,
+        });
 
-        if (updateError) throw updateError;
+        if (rpcError) throw rpcError;
+
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row?.qr_token && row?.code6) {
+          setCodesActifs({ commandeId: id, qrToken: row.qr_token, code6: row.code6 });
+        }
+
         await loadMissions();
       } catch (err) {
-        console.error("[useLivreurMissions] marquerLivree error:", err);
-        setError(err instanceof Error ? err.message : "Erreur lors de la validation de livraison");
+        console.error("[useLivreurMissions] recupererColis error:", err);
+        setError(err instanceof Error ? err.message : "Erreur lors de la récupération du colis");
+      }
+    },
+    [supabase, loadMissions]
+  );
+
+  // À utiliser si l'app a été fermée/rechargée après recupererColis : les
+  // codes en clair précédents sont perdus (normal, ils ne sont jamais stockés),
+  // il faut en régénérer de nouveaux pour pouvoir les réafficher au client.
+  const regenererCodes = useCallback(
+    async (id: string) => {
+      try {
+        const { data, error: rpcError } = await supabase.rpc("livreur_regenerer_codes", {
+          p_commande_id: id,
+        });
+
+        if (rpcError) throw rpcError;
+
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row?.qr_token && row?.code6) {
+          setCodesActifs({ commandeId: id, qrToken: row.qr_token, code6: row.code6 });
+        }
+      } catch (err) {
+        console.error("[useLivreurMissions] regenererCodes error:", err);
+        setError(err instanceof Error ? err.message : "Erreur lors de la régénération des codes");
+      }
+    },
+    [supabase]
+  );
+
+  // "Client indisponible pour confirmer" : le colis a quand même été remis
+  // (voir principe directeur). Bascule directement en attente de vérification.
+  const signalerClientIndisponible = useCallback(
+    async (id: string, photoUrl?: string) => {
+      try {
+        const { error: rpcError } = await supabase.rpc("livreur_signaler_client_indisponible", {
+          p_commande_id: id,
+          p_photo_url: photoUrl ?? null,
+        });
+
+        if (rpcError) throw rpcError;
+        setCodesActifs(null);
+        await loadMissions();
+      } catch (err) {
+        console.error("[useLivreurMissions] signalerClientIndisponible error:", err);
+        setError(err instanceof Error ? err.message : "Erreur lors du signalement");
       }
     },
     [supabase, loadMissions]
@@ -207,9 +257,11 @@ export function useLivreurMissions() {
     noteMoyenne,
     aConfirmer,
     enCours,
+    codesActifs,
     loadMissions,
-    confirmerMission,
+    recupererColis,
+    regenererCodes,
     refuserMission,
-    marquerLivree,
+    signalerClientIndisponible,
   };
 }

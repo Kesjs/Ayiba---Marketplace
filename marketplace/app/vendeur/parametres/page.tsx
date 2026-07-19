@@ -29,6 +29,7 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { LegalSheet } from "@/components/legal/LegalSheet";
 import { CGUContent } from "@/components/legal/CGUContent";
 import { PrivacyContent } from "@/components/legal/PrivacyContent";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import {
   SettingsSection,
   SettingsField,
@@ -277,7 +278,10 @@ export default function VendeurParametresPage() {
     }
   };
 
-  const handleLogout = async () => {
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
     await supabase.auth.signOut();
     router.push("/");
   };
@@ -558,7 +562,7 @@ export default function VendeurParametresPage() {
 
       {/* Déconnexion */}
       <button
-        onClick={handleLogout}
+        onClick={() => setShowLogoutModal(true)}
         className="w-full h-14 border border-red-100 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 mb-10"
       >
         <LogOut size={18} /> Déconnexion
@@ -656,6 +660,12 @@ export default function VendeurParametresPage() {
     >
       <PrivacyContent />
     </LegalSheet>
+
+    <LogoutConfirmModal
+      open={showLogoutModal}
+      onConfirm={confirmLogout}
+      onCancel={() => setShowLogoutModal(false)}
+    />
     </DashboardLayout>
   );
 }

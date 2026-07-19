@@ -6,66 +6,64 @@ import Link from 'next/link'
 import { useToast } from '@/context/ToastContext'
 import { useCart } from '@/context/CartContext'
 import { useUser } from '@/lib/hooks/useUser'
+import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Heart, Star, ShoppingBag, MessageCircle, Share2, 
-  ChevronLeft, ChevronRight, Minus, Plus, 
-  Wallet, Key, ShieldCheck, MapPin, Truck, ChevronUp,
+import {
+  Heart, Star, ShoppingBag, MessageCircle, Share2,
+  ChevronLeft, ChevronRight, Minus, Plus,
+  Wallet, Key, ShieldCheck, MapPin, Truck,
   CheckCircle2
 } from 'lucide-react'
-import { MOCK_PRODUCTS, MOCK_STORES, CATEGORIES } from '@/lib/mock-data'
+import {
+  ARTICLE_CARD_SELECT,
+  ArticleCard,
+  ArticleCardRow,
+  fetchArticleRatings,
+  fetchVendeurStats,
+  mapArticleRow,
+  toggleFavorite,
+  VendeurStats,
+} from '@/lib/catalogue'
 import { ScrollToTop } from '@/components/ui/ScrollToTop'
 
-interface Product {
+interface VendeurInfo {
   id: string
-  nom: string
-  description: string
-  prix: number
-  ancien_prix: number | null
-  categorie: string
-  categorieId: string
-  photos: string[]
-  rating: number
-  reviewCount: number
-  vendeur: {
-    id: string
-    full_name: string
-    avatar_url: string | null
-    note_moyenne: number
-    productCount: number
-    isVerified: boolean
-  }
-  distanceKm: number
+  full_name: string
+  avatar_url: string | null
+  commune: string | null
+  isVerified: boolean
+}
+
+interface Product extends ArticleCard {
+  vendeur: VendeurInfo
   is_favorite: boolean
 }
 
-const MOCK_REVIEWS = [
-  {
-    name: "Chimène A.",
-    rating: 5,
-    date: "Il y a 2 semaines",
-    text: "Produit conforme à la description, livraison rapide. Je recommande sans hésiter.",
-    avatar: "https://i.pravatar.cc/150?u=review-1",
-  },
-  {
-    name: "Yssouf D.",
-    rating: 4,
-    date: "Il y a 1 mois",
-    text: "Bonne qualité pour le prix. Léger délai à la livraison mais rien de grave, le vendeur a bien communiqué.",
-    avatar: "https://i.pravatar.cc/150?u=review-2",
-  },
-  {
-    name: "Aïcha M.",
-    rating: 5,
-    date: "Il y a 2 mois",
-    text: "Exactement ce que j'attendais. Le paiement sécurisé m'a rassurée pour ma première commande sur Ayiba.",
-    avatar: "https://i.pravatar.cc/150?u=review-3",
-  },
-]
+interface Avis {
+  id: string
+  note: number
+  commentaire: string | null
+  created_at: string
+  reviewer_name: string
+  reviewer_avatar: string | null
+}
+
+function timeAgo(dateStr: string): string {
+  const diffMs = Date.now() - new Date(dateStr).getTime()
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (days <= 0) return "Aujourd'hui"
+  if (days === 1) return 'Il y a 1 jour'
+  if (days < 30) return `Il y a ${days} jours`
+  const months = Math.floor(days / 30)
+  if (months === 1) return 'Il y a 1 mois'
+  if (months < 12) return `Il y a ${months} mois`
+  const years = Math.floor(months / 12)
+  return years === 1 ? 'Il y a 1 an' : `Il y a ${years} ans`
+}
 
 export default function ProductDetailPage() {
   const params = useParams()
@@ -73,6 +71,7 @@ export default function ProductDetailPage() {
   const { showToast } = useToast()
   const { addItem } = useCart()
   const { user } = useUser()
+  const supabase = createClient()
 
   const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
@@ -80,12 +79,16 @@ export default function ProductDetailPage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [justAdded, setJustAdded] = useState(false)
   const [showStickyBar, setShowStickyBar] = useState(false)
+  const [reviews, setReviews] = useState<Avis[]>([])
+  const [similarProducts, setSimilarProducts] = useState<ArticleCard[]>([])
+  const [vendeurStats, setVendeurStats] = useState<VendeurStats>({ rating: 0, reviewCount: 0, productCount: 0 })
 
   useEffect(() => {
     fetchProduct()
     setCurrentImageIndex(0)
     setQuantity(1)
     window.scrollTo(0, 0)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
 
   useEffect(() => {
@@ -96,49 +99,131 @@ export default function ProductDetailPage() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  const fetchProduct = () => {
+  const fetchProduct = async () => {
     setLoading(true)
     try {
-      const mockProduct = MOCK_PRODUCTS.find(p => p.id === params.id)
+      const articleId = params.id as string
 
-      if (!mockProduct) {
-        throw new Error('Product not found')
+      // Select dédié (plutôt que ARTICLE_CARD_SELECT) pour éviter d'embarquer
+      // deux fois la relation vendeurs avec des colonnes différentes : ici on
+      // a besoin du profil complet du vendeur (commune, statut...).
+      const { data: row, error } = await supabase
+        .from('articles')
+        .select(`
+          id, nom, description, prix, prix_promo, categorie_id, vendeur_id, vues, created_at,
+          categories ( nom, slug ),
+          article_images ( image_url, ordre ),
+          vendeurs ( id, nom_boutique, photo_profil_url, commune, statut )
+        `)
+        .eq('id', articleId)
+        .eq('statut', 'publie')
+        .eq('actif', true)
+        .single()
+
+      if (error || !row) throw error || new Error('Product not found')
+
+      const articleRow = row as unknown as ArticleCardRow & {
+        vendeurs: { id: string; nom_boutique: string | null; photo_profil_url: string | null; commune: string | null; statut: string } | { id: string; nom_boutique: string | null; photo_profil_url: string | null; commune: string | null; statut: string }[] | null
+      }
+      const vendeurRow = Array.isArray(articleRow.vendeurs) ? articleRow.vendeurs[0] : articleRow.vendeurs
+
+      const ratings = await fetchArticleRatings(supabase, [articleId])
+      const card = mapArticleRow(articleRow, ratings)
+
+      let isFavorite = false
+      if (user) {
+        const { data: fav } = await supabase
+          .from('favoris')
+          .select('id')
+          .eq('client_id', user.id)
+          .eq('article_id', articleId)
+          .maybeSingle()
+        isFavorite = !!fav
       }
 
-      const store = MOCK_STORES.find(s => s.id === mockProduct.vendeur_id)
-      const categoryLabel = CATEGORIES.find(c => c.id === mockProduct.categorie)?.label || 'Divers'
-
-      const pseudoDistance = (mockProduct.id.charCodeAt(0) % 12) + 1
-
       setProduct({
-        id: mockProduct.id,
-        nom: mockProduct.nom,
-        description: mockProduct.description || "Produit de qualité disponible sur Ayiba.",
-        prix: mockProduct.prix,
-        ancien_prix: mockProduct.ancien_prix ?? null,
-        categorie: categoryLabel,
-        categorieId: mockProduct.categorie,
-        photos: mockProduct.photos,
-        rating: mockProduct.rating,
-        reviewCount: mockProduct.reviewCount,
+        ...card,
         vendeur: {
-          id: mockProduct.vendeur_id || "default",
-          full_name: store?.nom || "Boutique Ayiba",
-          avatar_url: store?.logo || null,
-          note_moyenne: store?.rating || 4.5,
-          productCount: store?.productCount || 0,
-          isVerified: store?.isVerified ?? false,
+          id: vendeurRow?.id || card.vendeur_id,
+          full_name: vendeurRow?.nom_boutique || 'Boutique Ayiba',
+          avatar_url: vendeurRow?.photo_profil_url || null,
+          commune: vendeurRow?.commune || null,
+          isVerified: vendeurRow?.statut === 'valide',
         },
-        distanceKm: pseudoDistance,
-        is_favorite: false
+        is_favorite: isFavorite,
       })
+
+      fetchReviews(articleId)
+      fetchSimilar(articleRow.categorie_id, articleId)
+      if (vendeurRow?.id) {
+        fetchVendeurStats(supabase, vendeurRow.id).then(setVendeurStats)
+      }
     } catch (error) {
       console.error('Error fetching product:', error)
       showToast('Produit non trouvé', 'error')
-      router.push('/catalogue')
+      router.push('/explorer')
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchReviews = async (articleId: string) => {
+    const { data: avisRows, error } = await supabase
+      .from('avis')
+      .select('id, note, commentaire, created_at, utilisateur_id')
+      .eq('article_id', articleId)
+      .order('created_at', { ascending: false })
+      .limit(10)
+
+    if (error || !avisRows || avisRows.length === 0) {
+      setReviews([])
+      return
+    }
+
+    const userIds = [...new Set(avisRows.map((a: any) => a.utilisateur_id))]
+    const { data: reviewers } = await supabase
+      .from('users')
+      .select('id, full_name, avatar_url')
+      .in('id', userIds)
+
+    const reviewerMap = new Map((reviewers || []).map((u: any) => [u.id, u]))
+
+    setReviews(
+      avisRows.map((a: any) => {
+        const reviewer = reviewerMap.get(a.utilisateur_id)
+        return {
+          id: a.id,
+          note: a.note,
+          commentaire: a.commentaire,
+          created_at: a.created_at,
+          reviewer_name: reviewer?.full_name || 'Client Ayiba',
+          reviewer_avatar: reviewer?.avatar_url || null,
+        }
+      })
+    )
+  }
+
+  const fetchSimilar = async (categorieId: string | null, excludeId: string) => {
+    if (!categorieId) {
+      setSimilarProducts([])
+      return
+    }
+    const { data, error } = await supabase
+      .from('articles')
+      .select(ARTICLE_CARD_SELECT)
+      .eq('statut', 'publie')
+      .eq('actif', true)
+      .eq('categorie_id', categorieId)
+      .neq('id', excludeId)
+      .limit(4)
+
+    if (error || !data) {
+      setSimilarProducts([])
+      return
+    }
+    const rows = data as unknown as ArticleCardRow[]
+    const ratings = await fetchArticleRatings(supabase, rows.map((r) => r.id))
+    setSimilarProducts(rows.map((r) => mapArticleRow(r, ratings)))
   }
 
   const handleAddToCart = () => {
@@ -171,15 +256,16 @@ export default function ProductDetailPage() {
     router.push('/checkout')
   }
 
-  const handleToggleFavorite = () => {
+  const handleToggleFavorite = async () => {
     if (!product) return
     if (!user) {
       showToast('Connectez-vous pour ajouter aux favoris', 'warning')
       router.push('/auth/inscription')
       return
     }
-    setProduct({ ...product, is_favorite: !product.is_favorite })
-    showToast(product.is_favorite ? 'Retiré des favoris' : 'Ajouté aux favoris', 'success')
+    const nowFav = await toggleFavorite(supabase, user.id, product.id, product.is_favorite)
+    setProduct({ ...product, is_favorite: nowFav })
+    showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
   }
 
   const handleContactSeller = () => {
@@ -189,7 +275,7 @@ export default function ProductDetailPage() {
       router.push('/auth/inscription')
       return
     }
-    showToast('Conversation avec le vendeur (mock)', 'info')
+    showToast('Conversation avec le vendeur bientôt disponible', 'info')
   }
 
   const handleShare = () => {
@@ -233,15 +319,11 @@ export default function ProductDetailPage() {
   const totalPrice = product.prix * quantity
 
   const specs = [
-    { label: "Catégorie", value: product.categorie },
+    { label: "Catégorie", value: product.categorieLabel },
     { label: "Vendu par", value: product.vendeur.full_name },
     { label: "État", value: "Neuf" },
     { label: "Livraison estimée", value: "24 à 48h" },
   ]
-
-  const similarProducts = MOCK_PRODUCTS
-    .filter(p => p.categorie === product.categorieId && p.id !== product.id)
-    .slice(0, 4)
 
   return (
     <div className="min-h-screen bg-white">
@@ -266,19 +348,11 @@ export default function ProductDetailPage() {
             transition={{ duration: 0.5 }}
           >
             <div className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-square">
-              {product.photos.length > 0 ? (
-                <img
-                  src={product.photos[currentImageIndex]}
-                  alt={product.nom}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="text-gray-300">
-                    <Share2 size={64} />
-                  </div>
-                </div>
-              )}
+              <img
+                src={product.photos[currentImageIndex]}
+                alt={product.nom}
+                className="w-full h-full object-cover"
+              />
 
               {product.photos.length > 1 && (
                 <>
@@ -319,9 +393,9 @@ export default function ProductDetailPage() {
                   onClick={handleToggleFavorite}
                   className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
                 >
-                  <Heart 
-                    size={20} 
-                    className={product.is_favorite ? 'fill-coral-500 text-coral-500' : 'text-gray-600'} 
+                  <Heart
+                    size={20}
+                    className={product.is_favorite ? 'fill-coral-500 text-coral-500' : 'text-gray-600'}
                   />
                 </button>
                 <button
@@ -358,7 +432,7 @@ export default function ProductDetailPage() {
             className="space-y-5 md:space-y-6"
           >
             <span className="text-xs font-bold text-coral-600 uppercase tracking-wider">
-              {product.categorie}
+              {product.categorieLabel}
             </span>
 
             <h1 className="text-xl md:text-3xl font-bold text-gray-900 leading-tight -mt-2">
@@ -384,20 +458,22 @@ export default function ProductDetailPage() {
               <span className="text-sm text-gray-500">({product.reviewCount} avis)</span>
             </div>
 
-            <div className="bg-teal-50/50 border border-teal-100 rounded-xl p-4 flex flex-col gap-2">
-              <div className="flex items-center gap-2 text-sm">
-                <MapPin size={16} className="text-teal-600 shrink-0" />
-                <span className="text-gray-700 font-medium">
-                  Vendeur à environ <strong>{product.distanceKm} km</strong> de vous
-                </span>
+            {product.vendeur.commune && (
+              <div className="bg-teal-50/50 border border-teal-100 rounded-xl p-4 flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-sm">
+                  <MapPin size={16} className="text-teal-600 shrink-0" />
+                  <span className="text-gray-700 font-medium">
+                    Vendeur basé à <strong>{product.vendeur.commune}</strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Truck size={16} className="text-teal-600 shrink-0" />
+                  <span className="text-gray-700 font-medium">
+                    Livraison estimée : <strong>24 à 48h</strong>
+                  </span>
+                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm">
-                <Truck size={16} className="text-teal-600 shrink-0" />
-                <span className="text-gray-700 font-medium">
-                  Livraison estimée : <strong>24 à 48h</strong>
-                </span>
-              </div>
-            </div>
+            )}
 
             <div>
               <h3 className="text-sm font-bold text-gray-900 mb-2">Description</h3>
@@ -441,7 +517,7 @@ export default function ProductDetailPage() {
                   <div className="flex items-center gap-1">
                     <Star size={12} className="fill-amber-500 text-amber-500" />
                     <span className="text-xs text-gray-600">
-                      {product.vendeur.note_moyenne.toFixed(1)} • {product.vendeur.productCount} produits
+                      {vendeurStats.rating.toFixed(1)} • {vendeurStats.productCount} produits
                     </span>
                   </div>
                 </div>
@@ -520,29 +596,46 @@ export default function ProductDetailPage() {
           <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-6 md:mb-8">
             Avis clients <span className="text-gray-400 font-medium">({product.reviewCount})</span>
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-            {MOCK_REVIEWS.map((review, i) => (
-              <div key={i} className="bg-gray-50 rounded-2xl p-5 md:p-6">
-                <div className="flex items-center gap-1 mb-3">
-                  {Array.from({ length: 5 }).map((_, s) => (
-                    <Star
-                      key={s}
-                      size={13}
-                      className={s < review.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}
-                    />
-                  ))}
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed mb-4">"{review.text}"</p>
-                <div className="flex items-center gap-3">
-                  <img src={review.avatar} alt={review.name} className="w-9 h-9 rounded-full object-cover" />
-                  <div>
-                    <p className="text-xs font-bold text-gray-900">{review.name}</p>
-                    <p className="text-[11px] text-gray-400">{review.date}</p>
+          {reviews.length === 0 ? (
+            <div className="py-12 text-center bg-gray-50 rounded-2xl">
+              <Star size={28} className="mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 text-sm">Aucun avis pour le moment. Soyez le premier à donner votre avis après achat.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              {reviews.map((review) => (
+                <div key={review.id} className="bg-gray-50 rounded-2xl p-5 md:p-6">
+                  <div className="flex items-center gap-1 mb-3">
+                    {Array.from({ length: 5 }).map((_, s) => (
+                      <Star
+                        key={s}
+                        size={13}
+                        className={s < review.note ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}
+                      />
+                    ))}
+                  </div>
+                  {review.commentaire && (
+                    <p className="text-sm text-gray-600 leading-relaxed mb-4">&ldquo;{review.commentaire}&rdquo;</p>
+                  )}
+                  <div className="flex items-center gap-3">
+                    {review.reviewer_avatar ? (
+                      <img src={review.reviewer_avatar} alt={review.reviewer_name} className="w-9 h-9 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-coral-100 flex items-center justify-center">
+                        <span className="text-coral-800 text-xs font-bold">
+                          {review.reviewer_name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">{review.reviewer_name}</p>
+                      <p className="text-[11px] text-gray-400">{timeAgo(review.created_at)}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Produits similaires */}
@@ -556,14 +649,14 @@ export default function ProductDetailPage() {
                 <Link key={p.id} href={`/produits/${p.id}`} className="block">
                   <ProductCardModern
                     image={p.photos[0]}
-                    category={CATEGORIES.find(c => c.id === p.categorie)?.label || 'Divers'}
+                    category={p.categorieLabel}
                     name={p.nom}
                     rating={p.rating}
                     reviewCount={p.reviewCount}
                     price={p.prix}
                     oldPrice={p.ancien_prix ?? undefined}
                     onAddToCart={() => {
-                      addItem({ id: p.id, nom: p.nom, prix: p.prix, vendeur_id: p.vendeur_id || "default", photos: p.photos })
+                      addItem({ id: p.id, nom: p.nom, prix: p.prix, vendeur_id: p.vendeur_id, photos: p.photos })
                       showToast('Produit ajouté au panier', 'success')
                     }}
                     onToggleFavorite={() => showToast('Favori ajouté', 'success')}

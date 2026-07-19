@@ -1,7 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import {
+  Search, Package, Home, MessageSquare, Menu as MenuIcon,
+  ShoppingCart, LogOut, Minus, Plus, Trash2, ShoppingBag, X,
+} from 'lucide-react'
 import { CartProvider, useCart } from '@/context/CartContext'
 import { ToastProvider } from '@/context/ToastContext'
 import { Toast } from '@/components/ui/Toast'
@@ -9,10 +14,25 @@ import LogoAyiba from '@/components/ui/LogoAyiba'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
 
+// 5 points d'entrée du Dashboard Client — voir dashboard-client.md, Décision 1.
+// Explorer fusionne Catalogue+Boutiques (Décision 3). Accueil n'est PAS élevé
+// visuellement (Décision 2) : actif par couleur, comme les autres.
+const NAV_ITEMS = [
+  { href: '/explorer', icon: Search, label: 'Explorer' },
+  { href: '/commandes', icon: Package, label: 'Commandes' },
+  { href: '/accueil', icon: Home, label: 'Accueil' },
+  { href: '/messages', icon: MessageSquare, label: 'Messages' },
+  { href: '/menu', icon: MenuIcon, label: 'Menu' },
+]
+
+function estActif(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`)
+}
+
 function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
+  const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [activeMenu, setActiveMenu] = useState('accueil')
   const { isOpen, closeCart, items, total, itemCount, updateQty, removeItem } = useCart()
   const supabase = createClient()
 
@@ -32,27 +52,23 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
 
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
-          {[
-            { id: 'accueil', icon: 'ti-home', label: 'Accueil' },
-            { id: 'commandes', icon: 'ti-shopping-bag', label: 'Commandes' },
-            { id: 'messages', icon: 'ti-message-circle', label: 'Messages' },
-            { id: 'favoris', icon: 'ti-heart', label: 'Favoris' },
-            { id: 'historique', icon: 'ti-clock', label: 'Historique' },
-            { id: 'profil', icon: 'ti-user', label: 'Profil' }
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveMenu(item.id)}
-              className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                activeMenu === item.id
-                  ? 'bg-coral-50 text-coral-800 border-l-2 border-coral-400'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <i className={`ti ${item.icon} text-lg`} />
-              {!sidebarCollapsed && <span>{item.label}</span>}
-            </button>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const actif = estActif(pathname, item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-all ${
+                  actif
+                    ? 'bg-coral-50 text-coral-800 border-l-2 border-coral-400'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <item.icon size={18} />
+                {!sidebarCollapsed && <span>{item.label}</span>}
+              </Link>
+            )
+          })}
         </nav>
 
         {/* Cart Button */}
@@ -61,7 +77,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
             onClick={closeCart}
             className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all cursor-pointer relative"
           >
-            <i className="ti ti-shopping-cart text-lg" />
+            <ShoppingCart size={18} />
             {!sidebarCollapsed && <span>Panier</span>}
             {itemCount > 0 && (
               <span className="absolute right-3 bg-coral-400 text-white rounded-full text-[11px] w-4 h-4 flex items-center justify-center">
@@ -77,38 +93,35 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
             onClick={handleLogout}
             className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium text-red-400 hover:bg-red-50 transition-all cursor-pointer"
           >
-            <i className="ti ti-logout text-lg" />
+            <LogOut size={18} />
             {!sidebarCollapsed && <span>Déconnexion</span>}
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 pb-16 md:pb-0">
         {children}
       </div>
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation — mêmes 5 items que la sidebar, navigation réelle via Link */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40">
         <div className="flex items-center justify-around h-16">
-          {[
-            { id: 'accueil', icon: 'ti-home', label: 'Accueil' },
-            { id: 'commandes', icon: 'ti-shopping-bag', label: 'Commandes' },
-            { id: 'messages', icon: 'ti-message-circle', label: 'Messages' },
-            { id: 'favoris', icon: 'ti-heart', label: 'Favoris' },
-            { id: 'profil', icon: 'ti-user', label: 'Profil' }
-          ].map((item) => (
-            <button
-              key={item.id}
-              onClick={() => setActiveMenu(item.id)}
-              className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-                activeMenu === item.id ? 'text-coral-800' : 'text-gray-400'
-              }`}
-            >
-              <i className={`ti ${item.icon} text-xl`} />
-              <span className="text-xs font-medium">{item.label}</span>
-            </button>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const actif = estActif(pathname, item.href)
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
+                  actif ? 'text-coral-800' : 'text-gray-400'
+                }`}
+              >
+                <item.icon size={20} strokeWidth={actif ? 2.5 : 2} />
+                <span className="text-[10px] font-bold uppercase tracking-wide">{item.label}</span>
+              </Link>
+            )
+          })}
         </div>
       </nav>
 
@@ -124,7 +137,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
               <h2 className="text-base font-medium text-gray-900">Mon panier</h2>
               <button onClick={closeCart} className="text-gray-400 hover:text-gray-600">
-                <i className="ti ti-x text-lg" />
+                <X size={18} />
               </button>
             </div>
 
@@ -132,7 +145,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
             <div className="flex-1 overflow-y-auto p-4">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <i className="ti ti-shopping-cart-off text-4xl text-gray-400 mb-4" />
+                  <ShoppingBag size={40} className="text-gray-400 mb-4" />
                   <p className="text-gray-600">Ton panier est vide</p>
                 </div>
               ) : (
@@ -154,20 +167,20 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                             onClick={() => updateQty(item.id, item.quantite - 1)}
                             className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 hover:bg-gray-100 text-gray-600"
                           >
-                            <i className="ti ti-minus text-xs" />
+                            <Minus size={12} />
                           </button>
                           <span className="w-6 text-center text-sm font-medium">{item.quantite}</span>
                           <button
                             onClick={() => updateQty(item.id, item.quantite + 1)}
                             className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 hover:bg-gray-100 text-gray-600"
                           >
-                            <i className="ti ti-plus text-xs" />
+                            <Plus size={12} />
                           </button>
                           <button
                             onClick={() => removeItem(item.id)}
                             className="ml-auto text-red-400 hover:text-red-600"
                           >
-                            <i className="ti ti-trash text-lg" />
+                            <Trash2 size={18} />
                           </button>
                         </div>
                       </div>

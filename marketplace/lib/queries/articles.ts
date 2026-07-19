@@ -20,7 +20,7 @@ export interface ArticlePublic {
  * explicite ci-dessous est redondant avec la RLS mais garde l'intention
  * lisible côté front et évite de dépendre uniquement de la policy.
  */
-export async function getArticlesPublics(options?: { categorieSlug?: string; recherche?: string }) {
+export async function getArticlesPublics(options?: { categorieSlug?: string; recherche?: string; vendeurId?: string }) {
   const supabase = createClient();
 
   let query = supabase
@@ -39,6 +39,10 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
     // Filtre appliqué après coup (voir plus bas) car la relation categories
     // est imbriquée ; on garde la requête simple plutôt que d'enchaîner un
     // second aller-retour uniquement pour résoudre le slug en id.
+  }
+
+  if (options?.vendeurId) {
+    query = query.eq("vendeur_id", options.vendeurId);
   }
 
   if (options?.recherche) {

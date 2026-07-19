@@ -6,39 +6,50 @@ import { useCart } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
 import { ProductCard } from '@/components/ui/ProductCard'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
-import { Button } from '@/components/ui/Button'
 import LogoAyiba from '@/components/ui/LogoAyiba'
-import { CATEGORIES, MOCK_PRODUCTS } from '@/lib/mock-data'
+import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from '@/lib/queries/articles'
 
 export default function AccueilPage() {
   const router = useRouter()
   const { addItem } = useCart()
   const { showToast } = useToast()
 
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<ArticlePublic[]>([])
+  const [categories, setCategories] = useState<{ nom: string; slug: string }[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('Tout')
 
-  const categories = ['Tout', ...CATEGORIES.map(c => c.label)]
+  const categoryLabels = ['Tout', ...categories.map((c) => c.nom)]
 
   useEffect(() => {
-    // Simulation de chargement
-    setLoading(true)
-    const timer = setTimeout(() => {
-      let filtered = [...MOCK_PRODUCTS]
-      
-      if (selectedCategory !== 'Tout') {
-        filtered = filtered.filter(p => {
-          const cat = CATEGORIES.find(c => c.id === p.categorie)
-          return cat?.label === selectedCategory
-        })
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      setError(null)
+      try {
+        const [articles, cats] = await Promise.all([
+          getArticlesPublics(),
+          getCategoriesActives(),
+        ])
+        if (cancelled) return
+        setProducts(articles)
+        setCategories(cats)
+      } catch (err) {
+        console.error('Erreur chargement catalogue:', err)
+        if (!cancelled) setError('Impossible de charger les produits.')
+      } finally {
+        if (!cancelled) setLoading(false)
       }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
 
-      setProducts(filtered)
-      setLoading(false)
-    }, 600)
-    return () => clearTimeout(timer)
-  }, [selectedCategory])
+  const filteredProducts =
+    selectedCategory === 'Tout'
+      ? products
+      : products.filter((p) => p.categorie?.nom === selectedCategory)
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -53,7 +64,7 @@ export default function AccueilPage() {
 
       {/* Categories Bar */}
       <section className="bg-white border-b border-gray-50 flex items-center gap-3 px-4 py-3 overflow-x-auto no-scrollbar shrink-0">
-        {categories.map((cat) => (
+        {categoryLabels.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
@@ -76,30 +87,43 @@ export default function AccueilPage() {
             <p className="text-gray-500 text-sm mt-1">Découvrez les meilleures offres de votre quartier aujourd'hui.</p>
           </div>
 
+          {error && (
+            <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
+              {error}
+            </div>
+          )}
+
           {loading ? (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
               {[...Array(6)].map((_, i) => (
                 <ProductCardSkeleton key={i} />
               ))}
             </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
+              <p className="font-semibold text-gray-700">Aucun produit pour le moment</p>
+              <p className="text-sm text-gray-400">Revenez bientôt, de nouveaux articles arrivent régulièrement.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((product) => (
+              {filteredProducts.map((product) => (
                 <ProductCard
                   key={product.id}
-                  image={product.photos[0]}
-                  category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
+                  image={product.photos[0] || '/images/hero-illustration.png'}
+                  category={product.categorie?.nom || 'Divers'}
                   name={product.nom}
-                  rating={product.rating}
-                  reviewCount={product.reviewCount}
-                  price={product.prix}
+                  rating={0}
+                  reviewCount={0}
+                  price={product.prix_promo ?? product.prix}
+                  oldPrice={product.prix_promo ? product.prix : undefined}
+                  onClick={() => router.push(`/produits/${product.id}`)}
                   onAddToCart={() => {
                     addItem({
                       id: product.id,
                       nom: product.nom,
-                      prix: product.prix,
-                      photos: [product.photos[0]],
-                      vendeur_id: product.vendeur_id
+                      prix: product.prix_promo ?? product.prix,
+                      photos: product.photos,
+                      vendeur_id: product.vendeur_id,
                     })
                     showToast('Produit ajouté au panier !', 'success')
                   }}

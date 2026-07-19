@@ -28,6 +28,7 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { createClient } from "@/lib/supabase/client";
 import { LegalSheet } from "@/components/legal/LegalSheet";
 import { CGUContent } from "@/components/legal/CGUContent";
+import { useToast } from "@/context/ToastContext";
 import { PrivacyContent } from "@/components/legal/PrivacyContent";
 import {
   useLivreurParametres,
@@ -115,6 +116,7 @@ export default function LivreurParametresPage() {
   const [form, setForm] = useState(data);
   const [initialized, setInitialized] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showToast } = useToast();
 
   // ---- Mot de passe (action séparée, comme côté vendeur) ----
   const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
@@ -137,6 +139,7 @@ export default function LivreurParametresPage() {
     try {
       await changePassword(passwordForm.next);
       setPasswordForm({ next: "", confirm: "" });
+      showToast("Mot de passe modifié avec succès.", "success");
     } catch (err) {
       setPasswordFormError(translateAuthError(err));
     }

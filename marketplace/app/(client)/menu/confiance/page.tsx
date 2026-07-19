@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 import { ArrowLeft, ShieldCheck, Lock, Smartphone, KeyRound, Fingerprint, ChevronRight } from "lucide-react";
 
 // Rend visible ce qui existe déjà côté sécurité (escrow, KYC vendeur/livreur,
@@ -15,7 +16,7 @@ export default function CentreConfiancePage() {
   const [derniereConnexion, setDerniereConnexion] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
       setEmail(data.user?.email ?? null);
       setDerniereConnexion(data.user?.last_sign_in_at ?? null);
     });

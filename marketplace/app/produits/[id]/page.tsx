@@ -52,6 +52,33 @@ interface Avis {
   reviewer_avatar: string | null
 }
 
+// Type dédié à la requête de détail produit (avec le profil vendeur complet).
+// Volontairement indépendant de ArticleCardRow pour éviter une intersection
+// de types sur le champ `vendeurs` (qui a une forme différente dans
+// ARTICLE_CARD_SELECT vs. ce select dédié).
+interface VendeurDetailRow {
+  id: string
+  nom_boutique: string | null
+  photo_profil_url: string | null
+  commune: string | null
+  statut: string
+}
+
+interface ArticleDetailRow {
+  id: string
+  nom: string
+  description: string
+  prix: number
+  prix_promo: number | null
+  categorie_id: string | null
+  vendeur_id: string
+  vues: number
+  created_at: string
+  categories: { nom: string; slug: string } | { nom: string; slug: string }[] | null
+  article_images: { image_url: string; ordre: number }[]
+  vendeurs: VendeurDetailRow | VendeurDetailRow[] | null
+}
+
 function timeAgo(dateStr: string): string {
   const diffMs = Date.now() - new Date(dateStr).getTime()
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24))
@@ -122,13 +149,11 @@ export default function ProductDetailPage() {
 
       if (error || !row) throw error || new Error('Product not found')
 
-      const articleRow = row as unknown as ArticleCardRow & {
-        vendeurs: { id: string; nom_boutique: string | null; photo_profil_url: string | null; commune: string | null; statut: string } | { id: string; nom_boutique: string | null; photo_profil_url: string | null; commune: string | null; statut: string }[] | null
-      }
+      const articleRow = row as unknown as ArticleDetailRow
       const vendeurRow = Array.isArray(articleRow.vendeurs) ? articleRow.vendeurs[0] : articleRow.vendeurs
 
       const ratings = await fetchArticleRatings(supabase, [articleId])
-      const card = mapArticleRow(articleRow, ratings)
+      const card = mapArticleRow(articleRow as unknown as ArticleCardRow, ratings)
 
       let isFavorite = false
       if (user) {

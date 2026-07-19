@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { STATUT_BADGE_VARIANT, type StatutCommande } from "@/lib/constants/commandes";
 
 function calculerVariation(actuel: number, precedent: number): string | null {
   if (precedent === 0) {
@@ -28,20 +30,9 @@ function calculerVariation(actuel: number, precedent: number): string | null {
   return `${signe}${Math.round(pct)}%`;
 }
 
-function StatutBadge({ statut }: { statut: string }) {
-  return (
-    <span
-      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold border ${
-        statut === "En attente"
-          ? "bg-amber-50 text-amber-700 border-amber-100"
-          : statut === "Confirmé"
-          ? "bg-teal-50 text-teal-700 border-teal-100"
-          : "bg-gray-100 text-gray-600 border-gray-200"
-      }`}
-    >
-      {statut}
-    </span>
-  );
+function StatutBadge({ statutBrut, statut }: { statutBrut: string; statut: string }) {
+  const variant = STATUT_BADGE_VARIANT[statutBrut as StatutCommande] ?? "neutral";
+  return <StatusBadge variant={variant}>{statut}</StatusBadge>;
 }
 
 // Composant Action Rapide réutilisable
@@ -350,7 +341,7 @@ export default function VendeurDashboardPage() {
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-gray-900 truncate">{order.nom_client}</p>
                             <p className="text-xs text-gray-500 mb-2">{order.numero}</p>
-                            <StatutBadge statut={order.statut} />
+                            <StatutBadge statutBrut={order.statut_brut} statut={order.statut} />
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
@@ -384,7 +375,7 @@ export default function VendeurDashboardPage() {
                                 <p className="text-sm text-gray-500">{order.numero}</p>
                               </td>
                               <td className="px-8 py-6">
-                                <StatutBadge statut={order.statut} />
+                                <StatutBadge statutBrut={order.statut_brut} statut={order.statut} />
                               </td>
                               <td className="px-8 py-6 font-semibold text-gray-900">
                                 {order.montant_total} F

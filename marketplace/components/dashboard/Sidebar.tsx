@@ -21,15 +21,20 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import LogoAyiba from "@/components/ui/LogoAyiba";
 
 interface SidebarProps {
   role: "admin" | "vendeur" | "livreur";
   userName?: string;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  /** Cible du logo — le dashboard du rôle plutôt que "/", pour éviter un
+   * aller-retour inutile par la home publique (qui redirige de toute façon
+   * vendeur/livreur/admin vers leur dashboard). */
+  logoHref?: string;
 }
 
-export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHref = "/" }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { exitDemoMode } = useUser();
@@ -86,12 +91,14 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
     >
       {/* Logo */}
       <div className="h-20 flex items-center px-6">
-        <Link href="/" className="flex items-center gap-3 overflow-hidden">
-          <div className="w-8 h-8 bg-coral-500 rounded-lg flex items-center justify-center text-white font-bold shrink-0">A</div>
-          {!isCollapsed && (
-            <span className="text-xl font-bold tracking-tight whitespace-nowrap">
-              Ayiba <span className="text-gray-400 font-medium text-sm">| {role}</span>
-            </span>
+        <Link href={logoHref} className="flex items-center gap-2 overflow-hidden">
+          {isCollapsed ? (
+            <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />
+          ) : (
+            <>
+              <LogoAyiba className="h-8 w-auto shrink-0" />
+              <span className="text-gray-400 font-medium text-sm whitespace-nowrap">| {role}</span>
+            </>
           )}
         </Link>
       </div>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Bell, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import LogoAyiba from "@/components/ui/LogoAyiba";
 
 export interface Notification {
   id: string;
@@ -26,6 +27,10 @@ interface DashboardHeaderProps {
   onBellClick?: () => void;
   backHref?: string;
   backLabel?: string;
+  /** Cible du logo affiché en dessous du breakpoint lg (là où le Sidebar,
+   * qui porte déjà le logo, est masqué). Le dashboard du rôle plutôt que
+   * "/" pour éviter un aller-retour inutile par la home publique. */
+  logoHref?: string;
 }
 
 const DOT_COLORS: Record<string, string> = {
@@ -99,6 +104,7 @@ export function DashboardHeader({
   onBellClick,
   backHref,
   backLabel,
+  logoHref = "/",
 }: DashboardHeaderProps) {
   const [showNotifs, setShowNotifs] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -126,6 +132,18 @@ export function DashboardHeader({
 
   return (
     <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+      {/* --- Bandeau logo (< lg) ---
+          Le Sidebar porte déjà le logo à partir de lg ; en dessous, il est
+          masqué (`hidden lg:flex`), donc mobile ET tablette (md-lg) n'ont
+          sinon aucune trace de la marque. Bandeau à part plutôt que
+          d'insérer le logo dans la rangée du dessous : ça évite de toucher
+          au centrage/troncature déjà en place pour le retour/salutation. */}
+      <div className="lg:hidden flex items-center px-4 h-11 border-b border-gray-50">
+        <Link href={logoHref} className="flex items-center">
+          <LogoAyiba className="h-6 w-auto" />
+        </Link>
+      </div>
+
       {/* --- Version mobile (< md) --- */}
       <div className="flex md:hidden items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
         {backHref ? (

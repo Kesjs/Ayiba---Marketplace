@@ -18,6 +18,15 @@ interface DashboardLayoutProps {
   backLabel?: string;  // libellé du bouton retour (par défaut "Retour")
 }
 
+// Même mapping que la redirection de la home publique (app/page.tsx) :
+// le logo doit ramener au dashboard du rôle, pas à "/" qui rebondirait
+// immédiatement dessus.
+const ROLE_HOME: Record<"admin" | "vendeur" | "livreur", string> = {
+  vendeur: "/vendeur/dashboard",
+  livreur: "/livreur/missions",
+  admin: "/admin/dashboard",
+};
+
 function saluerSelonHeure(): string {
   const h = new Date().getHours();
   if (h < 12) return "Bonjour";
@@ -49,6 +58,7 @@ export function DashboardLayout({
         userName={displayName}
         isCollapsed={isCollapsed}
         onToggleCollapse={() => setIsCollapsed((c) => !c)}
+        logoHref={ROLE_HOME[role]}
       />
 
       <main className={`flex-1 min-w-0 transition-all duration-300 ${isCollapsed ? "lg:pl-20" : "lg:pl-64"}`}>
@@ -63,6 +73,7 @@ export function DashboardLayout({
           notifications={badges.notificationsList}
           backHref={backHref}
           backLabel={backLabel}
+          logoHref={ROLE_HOME[role]}
         />
 
 <div className="p-5 sm:p-6 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0">

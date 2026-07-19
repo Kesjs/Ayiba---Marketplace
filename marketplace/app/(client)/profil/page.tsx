@@ -16,6 +16,31 @@ interface Address {
   est_defaut: boolean
 }
 
+// ============================================
+// Traduction des erreurs Supabase Auth en français
+// ============================================
+function translateAuthError(err: any): string {
+  const message = (err?.message || '').toLowerCase()
+  if (!message) return 'Une erreur est survenue. Réessaie.'
+  if (message.includes('password') && message.includes('weak')) {
+    return 'Ce mot de passe est trop faible.'
+  }
+  if (message.includes('same password') || message.includes('different from')) {
+    return "Le nouveau mot de passe doit être différent de l'ancien."
+  }
+  if (message.includes('rate limit') || message.includes('too many')) {
+    return 'Trop de tentatives. Réessaie dans quelques instants.'
+  }
+  return 'Une erreur est survenue. Réessaie.'
+}
+
+function validatePasswordStrength(value: string): string | null {
+  if (value.length < 8) return 'Le mot de passe doit contenir au moins 8 caractères.'
+  if (!/[A-Z]/.test(value)) return 'Le mot de passe doit contenir au moins une majuscule.'
+  if (!/[0-9]/.test(value)) return 'Le mot de passe doit contenir au moins un chiffre.'
+  return null
+}
+
 export default function ProfilPage() {
   const router = useRouter()
   const supabase = createClient()
@@ -35,6 +60,46 @@ export default function ProfilPage() {
     est_defaut: false
   })
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null)
+
+  // ---- Sécurité / mot de passe ----
+  const [showSecurityModal, setShowSecurityModal] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({ next: '', confirm: '' })
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [isSavingPassword, setIsSavingPassword] = useState(false)
+
+  const closeSecurityModal = () => {
+    setShowSecurityModal(false)
+    setPasswordForm({ next: '', confirm: '' })
+    setPasswordError(null)
+  }
+
+  const handleChangePassword = async () => {
+    setPasswordError(null)
+    if (!passwordForm.next && !passwordForm.confirm) return
+
+    const strengthError = validatePasswordStrength(passwordForm.next)
+    if (strengthError) {
+      setPasswordError(strengthError)
+      return
+    }
+    if (passwordForm.next !== passwordForm.confirm) {
+      setPasswordError('Les mots de passe ne correspondent pas.')
+      return
+    }
+
+    setIsSavingPassword(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: passwordForm.next })
+      if (error) throw error
+
+      closeSecurityModal()
+      showToast('Mot de passe modifié avec succès.', 'success')
+    } catch (err: any) {
+      setPasswordError(translateAuthError(err))
+    } finally {
+      setIsSavingPassword(false)
+    }
+  }
 
   useEffect(() => {
     if (profile) {
@@ -263,7 +328,10 @@ export default function ProfilPage() {
             <span className="text-sm text-gray-900">Notifications</span>
             <i className="ti ti-chevron-right text-gray-400" />
           </button>
-          <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+          <button
+            onClick={() => setShowSecurityModal(true)}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
             <span className="text-sm text-gray-900">Sécurité</span>
             <i className="ti ti-chevron-right text-gray-400" />
           </button>
@@ -369,6 +437,41 @@ export default function ProfilPage() {
                 Supprimer
               </Button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Security / Change Password Modal */}
+      {showSecurityModal && (
+        <Modal isOpen={showSecurityModal} onClose={closeSecurityModal} title="Sécurité">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Nouveau mot de passe</label>
+              <input
+                type="password"
+                value={passwordForm.next}
+                onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
+                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Confirmer le nouveau mot de passe</label>
+              <input
+                type="password"
+                value={passwordForm.confirm}
+                onChange={(e) => setPasswordForm((f) => ({ ...f, confirm: e.target.value }))}
+                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
+              />
+            </div>
+            {passwordError && <p className="text-xs font-semibold text-red-500">{passwordError}</p>}
+            <Button
+              variant="primary"
+              className="w-full"
+              onClick={handleChangePassword}
+              disabled={isSavingPassword || (!passwordForm.next && !passwordForm.confirm)}
+            >
+              {isSavingPassword ? 'Modification...' : 'Modifier le mot de passe'}
+            </Button>
           </div>
         </Modal>
       )}

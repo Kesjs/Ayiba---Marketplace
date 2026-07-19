@@ -44,7 +44,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Desktop Sidebar */}
-      <aside className={`bg-white border-r border-gray-100 flex-col shrink-0 md:flex h-screen sticky top-0 transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+      <aside className={`hidden bg-white border-r border-gray-100 flex-col shrink-0 md:flex h-screen sticky top-0 transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
         {/* Logo */}
         <div className="p-4 border-b border-gray-50">
           <LogoAyiba />

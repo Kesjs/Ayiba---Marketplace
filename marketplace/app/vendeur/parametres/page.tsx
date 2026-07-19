@@ -269,6 +269,7 @@ export default function VendeurParametresPage() {
 
       setPasswordForm({ next: "", confirm: "" });
       setPasswordSuccess(true);
+      showToast("Mot de passe modifié avec succès.", "success");
       setTimeout(() => setPasswordSuccess(false), 2500);
     } catch (err: any) {
       console.error("Change password:", err);

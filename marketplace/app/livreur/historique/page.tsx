@@ -11,19 +11,9 @@ import {
 } from "lucide-react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { LABELS_STATUT_COMMANDE, STATUT_BADGE_VARIANT, type StatutCommande } from "@/lib/constants/commandes";
 import { useLivreurHistorique, type HistoriqueMission } from "@/app/hooks/useLivreurHistorique";
-
-const STATUT_STYLE: Record<string, string> = {
-  livree: "bg-teal-50 text-teal-700 border-teal-100",
-  annulee: "bg-red-50 text-red-700 border-red-100",
-  remboursee: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
-const STATUT_LABEL: Record<string, string> = {
-  livree: "Livrée",
-  annulee: "Annulée",
-  remboursee: "Remboursée",
-};
 
 function MissionRow({ mission }: { mission: HistoriqueMission }) {
   const isLivree = mission.statut === "livree";
@@ -42,9 +32,9 @@ function MissionRow({ mission }: { mission: HistoriqueMission }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3 mb-1">
           <p className="text-sm font-bold text-gray-900 truncate">Commande {mission.numero}</p>
-          <span className={`shrink-0 text-[10px] font-bold px-2 py-1 rounded-full border ${STATUT_STYLE[mission.statut] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
-            {STATUT_LABEL[mission.statut] || mission.statut}
-          </span>
+          <StatusBadge variant={STATUT_BADGE_VARIANT[mission.statut as StatutCommande] ?? "neutral"}>
+            {LABELS_STATUT_COMMANDE[mission.statut as StatutCommande] || mission.statut}
+          </StatusBadge>
         </div>
 
         <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium mb-2">

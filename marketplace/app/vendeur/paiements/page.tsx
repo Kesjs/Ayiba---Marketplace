@@ -5,57 +5,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useVendeurPaiements } from "../../hooks/useVendeurPaiements";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { StatusBadge } from "@/components/ui/StatusBadge";
+import { LABELS_STATUT_PAIEMENT, STATUT_PAIEMENT_BADGE_VARIANT, getLivraisonBadge, type StatutPaiement } from "@/lib/constants/paiements";
 import {
   Wallet, Clock, X, ArrowDownToLine, ArrowUpFromLine, ChevronRight,
 } from "lucide-react";
 
-const STATUT_STYLE: Record<string, string> = {
-  en_attente: "bg-amber-50 text-amber-700 border-amber-100",
-  paye: "bg-teal-50 text-teal-700 border-teal-100",
-  valide: "bg-blue-50 text-blue-700 border-blue-100",
-  echoue: "bg-red-50 text-red-700 border-red-100",
-  refuse: "bg-red-50 text-red-700 border-red-100",
-  rembourse: "bg-gray-100 text-gray-600 border-gray-200",
-};
-
-const STATUT_LABEL: Record<string, string> = {
-  en_attente: "En attente",
-  paye: "Payé",
-  valide: "Validé",
-  echoue: "Échoué",
-  refuse: "Refusé",
-  rembourse: "Remboursé",
-};
-
-function statutLivraisonLabel(commandeStatut?: string): { label: string; style: string } {
-  if (commandeStatut === "livree") {
-    return { label: "Livrée · disponible", style: "bg-teal-50 text-teal-700 border-teal-100" };
-  }
-  if (commandeStatut === "annulee" || commandeStatut === "remboursee") {
-    return { label: "Annulée", style: "bg-gray-100 text-gray-600 border-gray-200" };
-  }
-  return { label: "En cours de livraison", style: "bg-amber-50 text-amber-700 border-amber-100" };
-}
-
 function PaiementCard({ p }: { p: any }) {
-  const livraison = statutLivraisonLabel(p.commande?.statut);
+  const livraison = getLivraisonBadge(p.commande?.statut);
   return (
     <div className="p-4">
       <div className="flex items-center justify-between mb-1">
         <p className="font-semibold text-gray-900 text-sm">
           {Number(p.montant_net ?? p.montant).toLocaleString("fr-FR")} F
         </p>
-        <span className={`text-xs font-bold px-3 py-1 rounded-full border ${STATUT_STYLE[p.statut] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
-          {STATUT_LABEL[p.statut] || p.statut}
-        </span>
+        <StatusBadge variant={STATUT_PAIEMENT_BADGE_VARIANT[p.statut as StatutPaiement] ?? "neutral"}>
+          {LABELS_STATUT_PAIEMENT[p.statut as StatutPaiement] || p.statut}
+        </StatusBadge>
       </div>
       <div className="flex items-center justify-between">
         <p className="text-xs text-gray-400">
           {p.commande?.numero ? `Commande ${p.commande.numero}` : "—"} · {new Date(p.created_at).toLocaleDateString("fr-FR")}
         </p>
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${livraison.style}`}>
-          {livraison.label}
-        </span>
+        <StatusBadge variant={livraison.variant}>{livraison.label}</StatusBadge>
       </div>
       {p.commission > 0 && (
         <p className="text-[11px] text-gray-400 mt-1">
@@ -75,9 +47,9 @@ function RetraitCard({ r }: { r: any }) {
           {new Date(r.created_at).toLocaleDateString("fr-FR")} · {r.reseau?.toUpperCase()}
         </p>
       </div>
-      <span className={`text-xs font-bold px-3 py-1 rounded-full border ${STATUT_STYLE[r.statut] || "bg-gray-100 text-gray-600 border-gray-200"}`}>
-        {STATUT_LABEL[r.statut] || r.statut}
-      </span>
+      <StatusBadge variant={STATUT_PAIEMENT_BADGE_VARIANT[r.statut as StatutPaiement] ?? "neutral"}>
+        {LABELS_STATUT_PAIEMENT[r.statut as StatutPaiement] || r.statut}
+      </StatusBadge>
     </div>
   );
 }

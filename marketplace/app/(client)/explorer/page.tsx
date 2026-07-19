@@ -68,22 +68,23 @@ function ExplorerContent() {
   // Utilisateur courant (pour l'état des favoris) + table de correspondance
   // slug -> id des catégories (nécessaire pour filtrer articles.categorie_id).
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null));
+    const loadUserAndCategories = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      setUserId(userData.user?.id ?? null);
 
-    supabase
-      .from("categories")
-      .select("id, slug")
-      .then(({ data, error }) => {
-        if (error) {
-          console.error("Error fetching categories:", error);
-          return;
-        }
-        const map: Record<string, string> = {};
-        (data || []).forEach((c: any) => {
-          map[c.slug] = c.id;
-        });
-        setCategorySlugToId(map);
+      const { data, error } = await supabase.from("categories").select("id, slug");
+      if (error) {
+        console.error("Error fetching categories:", error);
+        return;
+      }
+      const map: Record<string, string> = {};
+      (data || []).forEach((c: any) => {
+        map[c.slug] = c.id;
       });
+      setCategorySlugToId(map);
+    };
+
+    loadUserAndCategories();
   }, [supabase]);
 
   const fetchProducts = useCallback(async () => {

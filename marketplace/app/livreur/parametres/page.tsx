@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import {
   User,
   MapPin,
@@ -158,7 +159,8 @@ export default function LivreurParametresPage() {
     await save(form);
   };
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/");
@@ -166,6 +168,7 @@ export default function LivreurParametresPage() {
 
   // ---- Zone sensible ----
   const [showConfirmPause, setShowConfirmPause] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deleteSent, setDeleteSent] = useState(false);
@@ -476,7 +479,7 @@ export default function LivreurParametresPage() {
 
           {/* Déconnexion */}
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="w-full h-14 border border-red-100 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 mb-10"
           >
             <LogOut size={18} /> Déconnexion
@@ -575,6 +578,12 @@ export default function LivreurParametresPage() {
       >
         <PrivacyContent />
       </LegalSheet>
+
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </DashboardLayout>
   );
 }

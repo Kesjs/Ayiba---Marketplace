@@ -37,7 +37,11 @@ function SearchResults() {
   const [userId, setUserId] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null))
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser()
+      setUserId(data.user?.id ?? null)
+    }
+    loadUser()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

@@ -13,10 +13,8 @@ import { Toast } from '@/components/ui/Toast'
 import LogoAyiba from '@/components/ui/LogoAyiba'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
+import { LogoutConfirmModal } from '@/components/ui/LogoutConfirmModal'
 
-// 5 points d'entrée du Dashboard Client — voir dashboard-client.md, Décision 1.
-// Explorer fusionne Catalogue+Boutiques (Décision 3). Accueil n'est PAS élevé
-// visuellement (Décision 2) : actif par couleur, comme les autres.
 const NAV_ITEMS = [
   { href: '/explorer', icon: Search, label: 'Explorer' },
   { href: '/commandes', icon: Package, label: 'Commandes' },
@@ -33,24 +31,22 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const { isOpen, closeCart, items, total, itemCount, updateQty, removeItem } = useCart()
   const supabase = createClient()
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutModal(false)
     await supabase.auth.signOut()
     router.push('/auth/inscription')
   }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Desktop Sidebar */}
       <aside className={`hidden bg-white border-r border-gray-100 flex-col shrink-0 md:flex h-screen sticky top-0 transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        {/* Logo */}
         <div className="p-4 border-b border-gray-50">
           <LogoAyiba />
         </div>
-
-        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1">
           {NAV_ITEMS.map((item) => {
             const actif = estActif(pathname, item.href)
@@ -70,8 +66,6 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
             )
           })}
         </nav>
-
-        {/* Cart Button */}
         <div className="p-4 border-t border-gray-50">
           <button
             onClick={closeCart}
@@ -86,11 +80,9 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
             )}
           </button>
         </div>
-
-        {/* Logout */}
         <div className="p-4 border-t border-gray-50">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium text-red-400 hover:bg-red-50 transition-all cursor-pointer"
           >
             <LogOut size={18} />
@@ -99,12 +91,15 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Main Content */}
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
       <div className="flex-1 flex flex-col min-h-0 pb-16 md:pb-0">
         {children}
       </div>
-
-      {/* Mobile Bottom Navigation — mêmes 5 items que la sidebar, navigation réelle via Link */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40">
         <div className="flex items-center justify-around h-16">
           {NAV_ITEMS.map((item) => {
@@ -124,8 +119,6 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
-
-      {/* Cart Drawer */}
       {isOpen && (
         <>
           <div
@@ -133,15 +126,12 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
             onClick={closeCart}
           />
           <div className="fixed right-0 top-0 bottom-0 w-full md:w-[400px] bg-white z-50 flex flex-col">
-            {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-gray-100">
               <h2 className="text-base font-medium text-gray-900">Mon panier</h2>
               <button onClick={closeCart} className="text-gray-400 hover:text-gray-600">
                 <X size={18} />
               </button>
             </div>
-
-            {/* Items */}
             <div className="flex-1 overflow-y-auto p-4">
               {items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
@@ -189,8 +179,6 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
                 </div>
               )}
             </div>
-
-            {/* Footer */}
             <div className="p-4 border-t border-gray-100">
               <div className="flex justify-between mb-4">
                 <span className="text-base font-medium text-gray-900">Total</span>

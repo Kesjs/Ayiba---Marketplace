@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
@@ -13,16 +13,14 @@ import {
   ChevronRight,
   ShieldCheck,
   Star,
-  AlertCircle,
   Zap,
   PackageCheck,
   Radio,
-  Sparkles,
   Bike,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
-import { useLivreurMissions, type MissionCommande } from "@/app/hooks/useLivreurMissions";
+import { useLivreurMissions, type MissionCommande, type CodesLivraison } from "@/app/hooks/useLivreurMissions";
 
 const DeliveryMap = dynamic(() => import("@/components/dashboard/DeliveryMap"), {
   ssr: false,
@@ -41,16 +39,17 @@ export default function LivreurMissionsPage() {
     noteMoyenne,
     aConfirmer,
     enCours,
+    codesActifs,
     loadMissions,
-    confirmerMission,
+    recupererColis,
+    regenererCodes,
     refuserMission,
-    marquerLivree,
+    signalerClientIndisponible,
   } = useLivreurMissions();
 
   const [activeTab, setActiveTab] = useState<"a-confirmer" | "en-cours">("a-confirmer");
   const [actionEnCours, setActionEnCours] = useState<string | null>(null);
   const [enLigne, setEnLigne] = useState(true);
-  const [justDelivered, setJustDelivered] = useState<string | null>(null);
 
   const statCards = [
     {
@@ -79,10 +78,11 @@ export default function LivreurMissionsPage() {
     },
   ];
 
-  const handleConfirmer = async (id: string) => {
+  const handleRecupererColis = async (id: string) => {
     setActionEnCours(id);
-    await confirmerMission(id);
+    await recupererColis(id);
     setActionEnCours(null);
+    setActiveTab("en-cours");
   };
 
   const handleRefuser = async (id: string) => {
@@ -91,12 +91,10 @@ export default function LivreurMissionsPage() {
     setActionEnCours(null);
   };
 
-  const handleMarquerLivree = async (id: string) => {
+  const handleClientIndisponible = async (id: string) => {
     setActionEnCours(id);
-    await marquerLivree(id);
-    setJustDelivered(id);
+    await signalerClientIndisponible(id);
     setActionEnCours(null);
-    setTimeout(() => setJustDelivered(null), 2200);
   };
 
   return (
@@ -271,7 +269,7 @@ export default function LivreurMissionsPage() {
                         <MissionACConfirmerCard
                           mission={mission}
                           disabled={actionEnCours === mission.id}
-                          onAccepter={() => handleConfirmer(mission.id)}
+                          onAccepter={() => handleRecupererColis(mission.id)}
                           onRefuser={() => handleRefuser(mission.id)}
                         />
                       </motion.div>
@@ -297,8 +295,9 @@ export default function LivreurMissionsPage() {
                       <MissionEnCoursCard
                         mission={mission}
                         disabled={actionEnCours === mission.id}
-                        justDelivered={justDelivered === mission.id}
-                        onMarquerLivree={() => handleMarquerLivree(mission.id)}
+                        codes={codesActifs?.commandeId === mission.id ? codesActifs : null}
+                        onRegenererCodes={() => regenererCodes(mission.id)}
+                        onClientIndisponible={() => handleClientIndisponible(mission.id)}
                       />
                     </motion.div>
                   ))
@@ -480,13 +479,15 @@ function MissionACConfirmerCard({
 function MissionEnCoursCard({
   mission,
   disabled,
-  justDelivered,
-  onMarquerLivree,
+  codes,
+  onRegenererCodes,
+  onClientIndisponible,
 }: {
   mission: MissionCommande;
   disabled: boolean;
-  justDelivered: boolean;
-  onMarquerLivree: () => void;
+  codes: CodesLivraison | null;
+  onRegenererCodes: () => void;
+  onClientIndisponible: () => void;
 }) {
   const points = [
     mission.vendeur_quartier
@@ -497,29 +498,6 @@ function MissionEnCoursCard({
 
   return (
     <div className="bg-white p-5 sm:p-6 md:p-8 rounded-3xl border border-teal-100 shadow-xl shadow-teal-500/5 relative overflow-hidden">
-      <AnimatePresence>
-        {justDelivered && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center gap-3 px-4"
-          >
-            <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 18 }}
-              className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center"
-            >
-              <CheckCircle2 size={32} className="text-teal-500" />
-            </motion.div>
-            <p className="font-bold text-gray-900 flex items-center gap-1.5 text-center">
-              Livraison confirmée <Sparkles size={16} className="text-amber-400" />
-            </p>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
       <div className="absolute top-0 right-0 p-4">
         <span className="flex h-3 w-3 relative">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
@@ -583,21 +561,84 @@ function MissionEnCoursCard({
           Appeler Client
         </motion.button>
       </div>
+
+      {/* Confirmation de livraison : ce n'est plus le livreur qui confirme.
+          Il affiche son QR + code de secours ; c'est le client qui les
+          scanne/saisit depuis son propre compte pour valider la réception. */}
       <div className="mt-10 pt-8 border-t border-gray-100">
-        <div className="flex items-start gap-2 mb-4">
-          <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
-          <p className="text-xs font-medium text-amber-600">
-            Code OTP non vérifié automatiquement pour l'instant — confirmation manuelle
+        <div className="flex items-start gap-2 mb-5">
+          <ShieldCheck size={14} className="text-teal-600 shrink-0 mt-0.5" />
+          <p className="text-xs font-medium text-gray-500">
+            Montre cet écran au client. Il scanne le QR (ou saisit le code de secours) depuis son
+            application pour confirmer la réception — c'est ce qui libère le paiement.
           </p>
         </div>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
+
+        {codes ? (
+          <CodeConfirmationDisplay qrToken={codes.qrToken} code6={codes.code6} />
+        ) : (
+          <div className="p-5 bg-amber-50 border border-amber-100 rounded-2xl text-center">
+            <p className="text-sm font-medium text-amber-700 mb-3">
+              Codes non disponibles à l'écran (app rechargée depuis la prise en charge).
+            </p>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              disabled={disabled}
+              onClick={onRegenererCodes}
+              className="h-11 px-5 bg-amber-500 text-white font-bold rounded-xl text-sm disabled:opacity-50"
+            >
+              {disabled ? "..." : "Régénérer les codes"}
+            </motion.button>
+          </div>
+        )}
+
+        <button
           disabled={disabled}
-          onClick={onMarquerLivree}
-          className="w-full h-14 bg-gray-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50"
+          onClick={onClientIndisponible}
+          className="w-full mt-4 h-12 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50"
         >
-          {disabled ? "..." : "Confirmer la livraison"}
-        </motion.button>
+          Client indisponible pour confirmer
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Affiche le QR (encode commande_id + token, jamais transmis à un service tiers —
+// génération 100% côté client via la lib "qrcode") et le code de secours à 6
+// chiffres en dessous. Nécessite d'ajouter la dépendance : npm install qrcode
+function CodeConfirmationDisplay({ qrToken, code6 }: { qrToken: string; code6: string }) {
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    import("qrcode")
+      .then((QRCode) =>
+        QRCode.toDataURL(qrToken, { margin: 1, width: 220 }).then((url: string) => {
+          if (!cancelled) setQrDataUrl(url);
+        })
+      )
+      .catch((err) => console.error("[CodeConfirmationDisplay] génération QR échouée:", err));
+    return () => {
+      cancelled = true;
+    };
+  }, [qrToken]);
+
+  return (
+    <div className="flex flex-col items-center gap-5 p-6 bg-gray-50 rounded-2xl border border-gray-100">
+      <div className="w-[220px] h-[220px] bg-white rounded-xl flex items-center justify-center border border-gray-100 overflow-hidden">
+        {qrDataUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={qrDataUrl} alt="QR Code de confirmation de livraison" width={220} height={220} />
+        ) : (
+          <span className="text-xs text-gray-400">Génération du QR...</span>
+        )}
+      </div>
+      <div className="text-center">
+        <p className="text-[11px] font-bold uppercase tracking-widest text-gray-400 mb-1">
+          Code de secours
+        </p>
+        <p className="text-2xl font-bold tracking-[0.3em] text-gray-900">{code6}</p>
       </div>
     </div>
   );

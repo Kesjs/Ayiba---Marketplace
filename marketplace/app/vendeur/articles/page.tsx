@@ -11,6 +11,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/context/ToastContext";
 import { createClient } from "@/lib/supabase/client";
+import { StatusBadge as SharedStatusBadge } from "@/components/ui/StatusBadge";
 
 interface ArticleImage {
   image_url: string;
@@ -77,44 +78,38 @@ function getStatutCategorie(item: ArticleRow): StatutFilter | "desactive" {
   return "publie";
 }
 
+const ARTICLE_BADGE_DOTS: Record<string, string> = {
+  neutral: "bg-gray-400",
+  pending: "bg-amber-500",
+  error: "bg-red-500",
+  success: "bg-teal-500",
+};
+
 function StatusBadge({ statut, stock, actif }: { statut: string; stock: number; actif: boolean }) {
+  let variant: "neutral" | "pending" | "error" | "success" = "success";
+  let label = "En ligne";
+
   if (!actif) {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-gray-500">
-        <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-        Désactivé
-      </span>
-    );
+    variant = "neutral";
+    label = "Désactivé";
+  } else if (statut === "en_attente") {
+    variant = "pending";
+    label = "En vérification";
+  } else if (statut === "rejete") {
+    variant = "error";
+    label = "Refusé";
+  } else if (stock === 0) {
+    variant = "error";
+    label = "Rupture";
   }
-  if (statut === "en_attente") {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600">
-        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-        En vérification
-      </span>
-    );
-  }
-  if (statut === "rejete") {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-        Refusé
-      </span>
-    );
-  }
-  if (stock === 0) {
-    return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-600">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
-        Rupture
-      </span>
-    );
-  }
+
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-teal-600">
-      <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-      En ligne
-    </span>
+    <SharedStatusBadge
+      variant={variant}
+      icon={<span className={`w-1.5 h-1.5 rounded-full ${ARTICLE_BADGE_DOTS[variant]}`} />}
+    >
+      {label}
+    </SharedStatusBadge>
   );
 }
 

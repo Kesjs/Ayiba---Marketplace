@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import {
   LayoutDashboard,
   Package,
@@ -38,6 +40,7 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
   const pathname = usePathname();
   const router = useRouter();
   const { exitDemoMode } = useUser();
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const menuItems = {
     admin: [
@@ -71,7 +74,9 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
 
   const items = menuItems[role];
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+
     // Nettoie le mode démo (localStorage) s'il était actif
     exitDemoMode();
 
@@ -149,7 +154,7 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
       {/* Bottom Actions */}
       <div className="p-3 border-t border-gray-50">
         <button
-          onClick={handleLogout}
+          onClick={() => setShowLogoutModal(true)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all group"
         >
           <LogOut size={22} className="group-hover:text-red-500 shrink-0" />
@@ -163,6 +168,12 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
           <ChevronLeft size={20} className={`transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
         </button>
       </div>
+
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </aside>
   );
 }

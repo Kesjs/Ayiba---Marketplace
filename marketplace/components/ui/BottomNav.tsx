@@ -66,10 +66,11 @@ export function BottomNav() {
       { label: "Partenaire", icon: Briefcase, isAction: true },
     ],
     client: [
+      { label: "Explorer", icon: Search, href: "/explorer" },
+      { label: "Commandes", icon: Package, href: "/commandes", badge: badges.commandes },
       { label: "Accueil", icon: Home, href: "/" },
-      { label: "Favoris", icon: Heart, href: "/favoris", badge: badges.favoris },
-      { label: "Explorer", icon: MapPin, href: "/boutiques" },
-      { label: "Profil", icon: User, href: "/profil" },
+      { label: "Messages", icon: MessageSquare, href: "/messages", badge: badges.messages },
+      { label: "Menu", icon: MenuIcon, href: "/menu" },
     ],
     admin: [
       { label: "Admin", icon: LayoutDashboard, href: "/admin/dashboard" },

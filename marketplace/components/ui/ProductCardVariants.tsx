@@ -84,14 +84,16 @@ export function ProductCardModern({
           {name}
         </p>
 
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-0.5">
-            <Star size={10} className="fill-amber-400 text-amber-400" />
-            <span className="text-[10px] font-bold text-gray-600">{rating}</span>
+        {reviewCount > 0 && (
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-0.5">
+              <Star size={10} className="fill-amber-400 text-amber-400" />
+              <span className="text-[10px] font-bold text-gray-600">{rating}</span>
+            </div>
+            <span className="text-[10px] text-gray-300">•</span>
+            <span className="text-[10px] text-gray-400">{reviewCount} avis</span>
           </div>
-          <span className="text-[10px] text-gray-300">•</span>
-          <span className="text-[10px] text-gray-400">{reviewCount} avis</span>
-        </div>
+        )}
 
         {/* Ligne prix + icône panier à droite, sans fond ni bordure */}
         <div className="flex items-center justify-between mt-0.5 gap-2">

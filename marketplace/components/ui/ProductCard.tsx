@@ -80,10 +80,12 @@ export function ProductCard({
       <div className="p-5 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <p className="text-[11px] font-bold text-coral-500 uppercase tracking-widest">{category}</p>
-          <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg">
-            <i className="ti ti-star-filled text-[10px] text-amber-500" />
-            <span className="text-[10px] font-bold text-amber-700">{rating}</span>
-          </div>
+          {reviewCount > 0 && (
+            <div className="flex items-center gap-1 bg-amber-50 px-2 py-0.5 rounded-lg">
+              <i className="ti ti-star-filled text-[10px] text-amber-500" />
+              <span className="text-[10px] font-bold text-amber-700">{rating}</span>
+            </div>
+          )}
         </div>
         
         <p className="text-lg font-bold text-gray-900 leading-tight line-clamp-1">{name}</p>

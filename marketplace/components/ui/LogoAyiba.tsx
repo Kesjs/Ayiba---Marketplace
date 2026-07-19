@@ -1,11 +1,18 @@
 import React from 'react';
 
-export default function LogoAyiba({ className = "h-12 w-auto" }: { className?: string }) {
+interface LogoAyibaProps {
+  className?: string;
+  /** N'affiche que le monogramme A+Y (sans le texte "iba"), pour les espaces
+   * trop étroits pour le logo complet — ex. sidebar dashboard repliée. */
+  iconOnly?: boolean;
+}
+
+export default function LogoAyiba({ className = "h-12 w-auto", iconOnly = false }: LogoAyibaProps) {
   return (
-    <svg 
-      viewBox="0 0 320 100" 
-      fill="none" 
-      xmlns="http://www.w3.org/2000/svg" 
+    <svg
+      viewBox={iconOnly ? "10 5 95 85" : "0 0 320 100"}
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
       {/* Icône Monogramme Fusion A + Y */}
@@ -23,19 +30,21 @@ export default function LogoAyiba({ className = "h-12 w-auto" }: { className?: s
       </g>
 
       {/* Texte "iba" aligné proprement */}
-      <g id="Text-iba">
-        <text 
-          x="115" 
-          y="80" 
-          fontFamily="system-ui, -apple-system, sans-serif" 
-          fontSize="70" 
-          fontWeight="500" 
-          fill="#111827" 
-          letterSpacing="-0.02em"
-        >
-          iba
-        </text>
-      </g>
+      {!iconOnly && (
+        <g id="Text-iba">
+          <text
+            x="115"
+            y="80"
+            fontFamily="system-ui, -apple-system, sans-serif"
+            fontSize="70"
+            fontWeight="500"
+            fill="#111827"
+            letterSpacing="-0.02em"
+          >
+            iba
+          </text>
+        </g>
+      )}
     </svg>
   );
 }

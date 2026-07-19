@@ -211,7 +211,9 @@ export default function ProductDetailPage() {
       .select('id, full_name, avatar_url')
       .in('id', userIds)
 
-    const reviewerMap = new Map((reviewers || []).map((u: any) => [u.id, u]))
+    const reviewerMap = new Map<string, { full_name: string | null; avatar_url: string | null }>(
+      (reviewers || []).map((u: any) => [u.id, u])
+    )
 
     setReviews(
       avisRows.map((a: any) => {

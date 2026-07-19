@@ -3,9 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  ShieldCheck, Lock, Key, Store, Bike, ArrowRight, BadgeCheck, 
-  UserCheck, Wallet, Star, 
+import {
+  ShieldCheck, Lock, Key, Store, Bike, ArrowRight, BadgeCheck,
+  UserCheck, Wallet, Star, MapPin,
   CheckCircle2, ChevronRight, Search, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +13,9 @@ import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { useRouter } from "next/navigation";
-import { CATEGORIES, MOCK_PRODUCTS, MOCK_STORES } from "@/lib/mock-data";
+import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
+import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
+import { getCategoryStyle } from "@/lib/constants/category-styles";
 import { useUser } from "@/lib/hooks/useUser";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
@@ -23,7 +25,9 @@ import { HomeSkeleton } from "@/components/ui/Skeleton";
 
 
 
-// Témoignages (à remplacer plus tard par de vrais avis en base)
+// Témoignages (à remplacer plus tard par de vrais avis en base — pas de
+// système d'avis clients existant aujourd'hui, décision à prendre séparément
+// comme pour les notes produits/boutiques)
 const TESTIMONIALS = [
   {
     name: "Fabrice A.",
@@ -48,17 +52,15 @@ const TESTIMONIALS = [
   },
 ];
 
-// ============================================// ============================================
+// ============================================
 // VARIANTS D'ANIMATION
 // ============================================
 
-// Reveal simple pour les sections (fade + montée)
 const sectionVariants: Variants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
 };
 
-// Container en cascade pour les grilles de produits (effet "dépôt en cascade")
 const gridStagger: Variants = {
   hidden: {},
   visible: {
@@ -66,7 +68,6 @@ const gridStagger: Variants = {
   }
 };
 
-// Item enfant de la grille produit (hérite du parent automatiquement)
 const gridItem: Variants = {
   hidden: { opacity: 0, y: 24, scale: 0.97 },
   visible: {
@@ -75,7 +76,6 @@ const gridItem: Variants = {
   }
 };
 
-// Reveal plus léger pour catégories / témoignages (moins de déplacement)
 const lightStagger: Variants = {
   hidden: {},
   visible: {
@@ -91,7 +91,6 @@ const lightItem: Variants = {
   }
 };
 
-// Cascade pour le contenu texte du Hero (badge, titre, paragraphe, CTAs, trust indicators)
 const heroContainer: Variants = {
   hidden: {},
   visible: {
@@ -107,23 +106,38 @@ const heroItem: Variants = {
   }
 };
 
+// Prix affiché / prix barré à partir d'un article réel : la promo, si elle
+// existe, est le prix affiché ; le prix normal devient alors le prix barré
+// (même logique que /catalogue et /(client)/accueil).
+function prixAffiche(a: ArticlePublic) {
+  return a.prix_promo ?? a.prix;
+}
+function ancienPrixAffiche(a: ArticlePublic) {
+  return a.prix_promo ? a.prix : undefined;
+}
 
 export default function Home() {
   const router = useRouter();
   const { user, profile, loading: userLoading } = useUser();
   const { addItem } = useCart();
   const { showToast } = useToast();
-  const [products, setProducts] = useState<any[]>([]);
-  const [productsLoading, setProductsLoading] = useState(true);
+
+  const [articles, setArticles] = useState<ArticlePublic[]>([]);
+  const [categories, setCategories] = useState<{ id: string; nom: string; slug: string }[]>([]);
+  const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("Tout");
   const [visibleProductsCount, setVisibleProductsCount] = useState(8);
 
-  // Countdown pour les ventes flash
-  const [flashEndTime, setFlashEndTime] = useState<number>(() => Date.now() + 1000 * 60 * 60 * 3); // +3h
+  // Countdown pour les ventes flash — la fenêtre de 3h est un choix produit
+  // indépendant des données ; à faire évoluer séparément si un vrai système
+  // de promos programmées est décidé.
+  const [flashEndTime, setFlashEndTime] = useState<number>(() => Date.now() + 1000 * 60 * 60 * 3);
   const [countdown, setCountdown] = useState({ h: 3, m: 0, s: 0 });
 
-  // Ref + scroll progress pour la parallaxe du Hero
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress: heroScrollProgress } = useScroll({
     target: heroRef,
@@ -149,18 +163,35 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    const timer = setTimeout(() => {
-      setProducts(MOCK_PRODUCTS);
-      setProductsLoading(false);
-    }, 1200); // Un peu plus long pour voir le skeleton
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    async function load() {
+      setDataLoading(true);
+      setDataError(null);
+      try {
+        const [articlesData, categoriesData, boutiquesData] = await Promise.all([
+          getArticlesPublics(),
+          getCategoriesActives(),
+          getBoutiquesPopulaires(),
+        ]);
+        if (cancelled) return;
+        setArticles(articlesData);
+        setCategories(categoriesData);
+        setBoutiques(boutiquesData);
+      } catch (err) {
+        console.error("Erreur chargement page d'accueil:", err);
+        if (!cancelled) setDataError("Impossible de charger le catalogue pour le moment.");
+      } finally {
+        if (!cancelled) setDataLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
       const diff = flashEndTime - Date.now();
       if (diff <= 0) {
-        // Relance un nouveau cycle de 3h quand le compte à rebours arrive à zéro
         setFlashEndTime(Date.now() + 1000 * 60 * 60 * 3);
         return;
       }
@@ -172,25 +203,29 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [flashEndTime]);
 
-  const filteredProducts = activeTab === "Tout" 
-    ? [...products].sort(() => Math.random() - 0.5)
-    : products.filter(p => CATEGORIES.find(c => c.id === p.categorie)?.label === activeTab);
+  const filteredProducts = activeTab === "Tout"
+    ? articles
+    : articles.filter(a => a.categorie?.nom === activeTab);
 
   const productsToShow = filteredProducts.slice(0, visibleProductsCount);
   const hasMoreProducts = visibleProductsCount < filteredProducts.length;
 
-  const trendingProducts = [...products].sort((a, b) => b.rating - a.rating).slice(0, 4);
+  // "Produits du moment" : les plus récemment publiés (l'ordre vient déjà
+  // de la requête). Pas de note produit en base pour trier par popularité —
+  // même décision que pour les cartes produit (reviewCount à 0 plutôt
+  // qu'inventé).
+  const produitsDuMoment = articles.slice(0, 4);
 
-  // Sélection des produits en vente flash — uniquement ceux qui ont un vrai ancien_prix
-  const flashDealsProducts = products.filter(p => p.ancien_prix).slice(0, 4);
+  // Ventes flash : uniquement les articles avec une vraie promo en base.
+  const flashDealsProducts = articles.filter(a => a.prix_promo != null).slice(0, 4);
 
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = (article: ArticlePublic) => {
     addItem({
-      id: product.id,
-      nom: product.nom,
-      prix: product.prix,
-      vendeur_id: product.vendeur_id || "default",
-      photos: product.photos
+      id: article.id,
+      nom: article.nom,
+      prix: prixAffiche(article),
+      vendeur_id: article.vendeur_id,
+      photos: article.photos,
     });
     showToast("Produit ajouté au panier", "success");
   };
@@ -213,19 +248,26 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
 
-      {productsLoading ? (
+      {dataLoading ? (
         <div className="pt-20">
           <HomeSkeleton />
         </div>
       ) : (
         <>
+          {dataError && (
+            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 pt-24">
+              <div className="rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
+                {dataError}
+              </div>
+            </div>
+          )}
+
           {/* --- 1. HERO SECTION --- */}
           <section ref={heroRef} className="relative pt-10 pb-16 md:pt-16 md:pb-28 overflow-hidden">
             {/* Wave Background Decoration */}
             <div className="absolute top-0 right-0 w-2/3 h-[110%] -z-10 bg-gradient-to-bl from-coral-50/40 via-white to-transparent opacity-80" />
             <div className="absolute -top-24 -right-24 w-72 h-72 md:w-96 md:h-96 bg-teal-50/50 rounded-full blur-3xl -z-10" />
 
-            {/* Illustration en background subtil - avec parallaxe au scroll */}
             <motion.div
               style={{ y: illustrationY, opacity: illustrationOpacity }}
               className="absolute inset-0 -z-0 flex items-center justify-center lg:justify-end pointer-events-none"
@@ -269,7 +311,6 @@ export default function Home() {
                     Trouvez des milliers de produits près de chez vous. Votre argent est bloqué en sécurité jusqu'à ce que vous validiez la réception.
                   </motion.p>
 
-                  {/* CTAs */}
                   <motion.div
                     variants={heroItem}
                     className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-10 md:mb-12 justify-center lg:justify-start"
@@ -286,7 +327,6 @@ export default function Home() {
                     </Link>
                   </motion.div>
 
-                  {/* Trust Indicators - 3 sur une ligne, compact sur mobile */}
                   <motion.div
                     variants={heroItem}
                     className="grid grid-cols-3 gap-2 sm:gap-3 max-w-md mx-auto lg:mx-0 lg:max-w-none lg:flex lg:gap-8"
@@ -315,10 +355,16 @@ export default function Home() {
             </div>
           </section>
 
-          {/* --- 2. ROLE BASED WIDGET --- */}
+          {/* --- 2. BANDEAU CLIENT CONNECTÉ ---
+              Vendeur/livreur/admin sont redirigés avant ce rendu (cf. plus
+              haut) : ce bandeau ne s'adresse donc qu'aux clients. On
+              n'affiche plus de compteurs inventés (favoris/commandes) —
+              afficher un faux chiffre à un utilisateur connecté sur ses
+              propres données, c'est pire qu'un état vide. À réintroduire
+              avec de vraies requêtes (favoris, commandes) séparément. */}
           <AnimatePresence>
-            {profile && (
-              <motion.section 
+            {profile && profile.role === "client" && (
+              <motion.section
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="pt-4 pb-4 bg-white"
@@ -327,7 +373,13 @@ export default function Home() {
                   <div className="bg-gray-50 rounded-[28px] md:rounded-[32px] p-5 md:p-8 border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-5 md:gap-6 shadow-sm">
                     <div className="flex items-center gap-4">
                       <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-coral-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-sm shrink-0">
-                        <img src={`https://i.pravatar.cc/150?u=${profile.id}`} className="w-full h-full object-cover" />
+                        {profile.avatar_url ? (
+                          <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
+                        ) : (
+                          <span className="text-coral-500 font-bold text-lg">
+                            {(profile.full_name || "A").charAt(0).toUpperCase()}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <h2 className="text-lg md:text-xl font-bold text-gray-900">Bienvenue, {profile.full_name || "l'ami"} !</h2>
@@ -335,56 +387,9 @@ export default function Home() {
                       </div>
                     </div>
 
-                    {profile.role === "client" && (
-                      <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-end">
-                        <div className="text-center">
-                          <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Favoris</p>
-                          <p className="text-lg md:text-xl font-bold text-gray-900">12</p>
-                        </div>
-                        <div className="w-px h-8 bg-gray-200" />
-                        <div className="text-center">
-                          <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Commandes</p>
-                          <p className="text-lg md:text-xl font-bold text-gray-900">3</p>
-                        </div>
-                        <Link href="/profil">
-                          <Button className="h-10 md:h-11 px-4 md:px-6 rounded-xl text-xs font-bold whitespace-nowrap">Mon Profil</Button>
-                        </Link>
-                      </div>
-                    )}
-
-                    {profile.role === "vendeur" && (
-                      <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-end">
-                        <div className="text-center">
-                          <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Ventes du jour</p>
-                          <p className="text-lg md:text-xl font-bold text-teal-600">45 000 F</p>
-                        </div>
-                        <div className="w-px h-8 bg-gray-200" />
-                        <div className="text-center">
-                          <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Stock</p>
-                          <p className="text-lg md:text-xl font-bold text-gray-900">24</p>
-                        </div>
-                        <Link href="/vendeur/dashboard">
-                          <Button className="h-10 md:h-11 px-4 md:px-6 rounded-xl text-xs font-bold whitespace-nowrap">Mon Dashboard</Button>
-                        </Link>
-                      </div>
-                    )}
-
-                    {profile.role === "livreur" && (
-                      <div className="flex items-center gap-4 md:gap-6 w-full md:w-auto justify-between md:justify-end">
-                        <div className="text-center">
-                          <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Gains</p>
-                          <p className="text-lg md:text-xl font-bold text-amber-600">8 500 F</p>
-                        </div>
-                        <div className="w-px h-8 bg-gray-200" />
-                        <div className="text-center">
-                          <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Missions</p>
-                          <p className="text-lg md:text-xl font-bold text-gray-900">4</p>
-                        </div>
-                        <Link href="/livreur/missions">
-                          <Button className="h-10 md:h-11 px-4 md:px-6 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-700 whitespace-nowrap">Mes Missions</Button>
-                        </Link>
-                      </div>
-                    )}
+                    <Link href="/profil">
+                      <Button className="h-10 md:h-11 px-4 md:px-6 rounded-xl text-xs font-bold whitespace-nowrap">Mon Profil</Button>
+                    </Link>
                   </div>
                 </div>
               </motion.section>
@@ -393,7 +398,7 @@ export default function Home() {
 
           {/* --- 3. FLASH DEALS --- */}
           {flashDealsProducts.length > 0 && (
-            <motion.section 
+            <motion.section
               variants={sectionVariants}
               initial="hidden"
               whileInView="visible"
@@ -433,14 +438,13 @@ export default function Home() {
                     <motion.div key={product.id} variants={gridItem}>
                       <Link href={`/produits/${product.id}`} className="block">
                         <ProductCardModern
-                          image={product.photos[0]}
-                          category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
+                          image={product.photos[0] || '/images/hero-illustration.png'}
+                          category={product.categorie?.nom || 'Divers'}
                           name={product.nom}
-                          rating={product.rating}
-                          reviewCount={product.reviewCount}
-                          price={product.prix}
-                          oldPrice={product.ancien_prix ?? undefined}
-
+                          rating={0}
+                          reviewCount={0}
+                          price={prixAffiche(product)}
+                          oldPrice={ancienPrixAffiche(product)}
                           onAddToCart={() => handleAddToCart(product)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
                         />
@@ -453,7 +457,7 @@ export default function Home() {
           )}
 
           {/* --- 4. POUR VOUS (produits + tabs) --- */}
-          <motion.section 
+          <motion.section
             variants={sectionVariants}
             initial="hidden"
             whileInView="visible"
@@ -466,7 +470,7 @@ export default function Home() {
                   <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">Pour vous</h2>
                   <p className="text-gray-500 text-xs md:text-sm mt-1">Sélectionnés avec soin selon vos envies</p>
                 </div>
-                
+
                 <div className="flex items-center gap-4">
                   <Link href="/catalogue">
                     <Button variant="outline" className="h-9 md:h-10 px-4 md:px-5 text-xs font-bold rounded-xl border-gray-200 bg-white shadow-sm">
@@ -489,54 +493,60 @@ export default function Home() {
                 >
                   Tout
                 </button>
-                {CATEGORIES.map((cat) => (
+                {categories.map((cat) => (
                   <button
                     key={cat.id}
-                    onClick={() => { setActiveTab(cat.label); setVisibleProductsCount(8); }}
+                    onClick={() => { setActiveTab(cat.nom); setVisibleProductsCount(8); }}
                     className={`shrink-0 px-5 md:px-6 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-bold whitespace-nowrap transition-all duration-300 ${
-                      activeTab === cat.label
+                      activeTab === cat.nom
                         ? 'bg-coral-50 text-coral-600 border-2 border-coral-200'
                         : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-100'
                     }`}
                   >
-                    {cat.label}
+                    {cat.nom}
                   </button>
                 ))}
               </div>
-              
-              <motion.div
-                key={activeTab}
-                variants={gridStagger}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-80px" }}
-                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 min-h-[400px]"
-              >
-                {productsToShow.map((product) => (
-                  <motion.div key={product.id} variants={gridItem}>
-                    <Link href={`/produits/${product.id}`} className="block">
-                      <ProductCardModern
-                        image={product.photos[0]}
-                        category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
-                        name={product.nom}
-                        rating={product.rating}
-                        reviewCount={product.reviewCount}
-                        price={product.prix}
-                        oldPrice={product.ancien_prix ?? undefined}
 
-                        onAddToCart={() => handleAddToCart(product)}
-                        onToggleFavorite={() => handleToggleFavorite(product.id)}
-                      />
-                    </Link>
-                  </motion.div>
-                ))}
-              </motion.div>
+              {productsToShow.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
+                  <p className="font-semibold text-gray-700">Aucun produit pour le moment</p>
+                  <p className="text-sm text-gray-400">Revenez bientôt, de nouveaux articles arrivent régulièrement.</p>
+                </div>
+              ) : (
+                <motion.div
+                  key={activeTab}
+                  variants={gridStagger}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-80px" }}
+                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 min-h-[400px]"
+                >
+                  {productsToShow.map((product) => (
+                    <motion.div key={product.id} variants={gridItem}>
+                      <Link href={`/produits/${product.id}`} className="block">
+                        <ProductCardModern
+                          image={product.photos[0] || '/images/hero-illustration.png'}
+                          category={product.categorie?.nom || 'Divers'}
+                          name={product.nom}
+                          rating={0}
+                          reviewCount={0}
+                          price={prixAffiche(product)}
+                          oldPrice={ancienPrixAffiche(product)}
+                          onAddToCart={() => handleAddToCart(product)}
+                          onToggleFavorite={() => handleToggleFavorite(product.id)}
+                        />
+                      </Link>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
 
               {hasMoreProducts && (
                 <div className="mt-10 md:mt-16 text-center">
-                  <Button 
+                  <Button
                     onClick={() => setVisibleProductsCount(prev => prev + 8)}
-                    variant="outline" 
+                    variant="outline"
                     className="h-11 md:h-12 px-8 md:px-10 text-sm font-bold rounded-2xl border-gray-200 bg-white hover:bg-gray-50 shadow-sm"
                   >
                     Voir plus de produits
@@ -547,110 +557,115 @@ export default function Home() {
           </motion.section>
 
           {/* --- 5. BOUTIQUES POPULAIRES --- */}
-          <motion.section 
-            variants={sectionVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="py-10 md:py-12 bg-white"
-          >
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="flex items-center justify-between mb-6 md:mb-8">
-                <div>
-                  <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">Explorer les boutiques</h2>
-                  <p className="text-gray-500 text-xs md:text-sm mt-1">Les meilleurs vendeurs de votre quartier</p>
+          {boutiques.length > 0 && (
+            <motion.section
+              variants={sectionVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              className="py-10 md:py-12 bg-white"
+            >
+              <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+                <div className="flex items-center justify-between mb-6 md:mb-8">
+                  <div>
+                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">Explorer les boutiques</h2>
+                    <p className="text-gray-500 text-xs md:text-sm mt-1">Les vendeurs actifs de votre quartier</p>
+                  </div>
+                  <Link href="/boutiques" className="text-xs md:text-sm font-bold text-coral-500 hover:underline whitespace-nowrap ml-3">
+                    Voir tout
+                  </Link>
                 </div>
-                <Link href="/boutiques" className="text-xs md:text-sm font-bold text-coral-500 hover:underline whitespace-nowrap ml-3">
-                  Voir tout
-                </Link>
-              </div>
 
-              <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 no-scrollbar">
-                {MOCK_STORES.map((store) => (
-                  <Link 
-                    key={store.id} 
-                    href={`/boutiques/${store.id}`}
-                    className="group shrink-0 w-56 md:w-64 p-4 md:p-5 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
-                  >
-                    <div className="relative mb-3 md:mb-4">
-                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110">
-                        <img src={store.logo} alt={store.nom} className="w-full h-full object-cover" />
+                <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 no-scrollbar">
+                  {boutiques.map((store) => (
+                    <Link
+                      key={store.id}
+                      href={`/boutiques/${store.id}`}
+                      className="group shrink-0 w-56 md:w-64 p-4 md:p-5 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
+                    >
+                      <div className="relative mb-3 md:mb-4">
+                        <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 bg-coral-50 flex items-center justify-center">
+                          {store.logo ? (
+                            <img src={store.logo} alt={store.nom} className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-coral-500 font-bold text-xl">{store.nom.charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        {store.isVerified && (
+                          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                            <CheckCircle2 size={18} className="text-teal-500 fill-teal-50" />
+                          </div>
+                        )}
                       </div>
-                      {store.isVerified && (
-                        <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                          <CheckCircle2 size={18} className="text-teal-500 fill-teal-50" />
+                      <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1 group-hover:text-coral-500 transition-colors truncate">{store.nom}</h3>
+                      <div className="flex items-center gap-1.5 mb-3 text-xs text-gray-400">
+                        <span className="font-bold text-gray-700">{store.productCount}</span>
+                        <span>produit{store.productCount > 1 ? 's' : ''}</span>
+                      </div>
+                      {(store.quartier || store.commune) && (
+                        <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100 w-fit">
+                          <MapPin size={11} />
+                          {[store.quartier, store.commune].filter(Boolean).join(', ')}
                         </div>
                       )}
-                    </div>
-                    <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1 group-hover:text-coral-500 transition-colors truncate">{store.nom}</h3>
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <Star size={14} className="fill-amber-400 text-amber-400" />
-                      <span className="text-xs font-bold text-gray-700">{store.rating}</span>
-                      <span className="text-xs text-gray-400">• {store.productCount} produits</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {store.categories.slice(0, 2).map((cat, i) => (
-                        <span key={i} className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100">
-                          {cat}
-                        </span>
-                      ))}
-                    </div>
-                  </Link>
-                ))}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
-          </motion.section>
+            </motion.section>
+          )}
 
           {/* --- 6. PRODUITS DU MOMENT --- */}
-          <motion.section 
-            variants={sectionVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="py-14 md:py-24 bg-white"
-          >
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="flex items-center justify-between mb-8 md:mb-12">
-                <div className="flex items-center gap-3 md:gap-4">
-                  <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
-                    <Star size={22} />
+          {produitsDuMoment.length > 0 && (
+            <motion.section
+              variants={sectionVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              className="py-14 md:py-24 bg-white"
+            >
+              <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+                <div className="flex items-center justify-between mb-8 md:mb-12">
+                  <div className="flex items-center gap-3 md:gap-4">
+                    <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                      <Star size={22} />
+                    </div>
+                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">Produits du moment</h2>
                   </div>
-                  <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">Produits du moment</h2>
+                  <Link href="/catalogue" className="hidden sm:flex group items-center gap-2 text-sm font-bold text-gray-900 hover:text-coral-500 transition-colors whitespace-nowrap">
+                    Découvrir la sélection
+                    <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
+                  </Link>
                 </div>
-                <Link href="/catalogue?sort=popular" className="hidden sm:flex group items-center gap-2 text-sm font-bold text-gray-900 hover:text-coral-500 transition-colors whitespace-nowrap">
-                  Découvrir la sélection
-                  <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
-                </Link>
+
+                <motion.div
+                  variants={gridStagger}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-80px" }}
+                  className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
+                >
+                  {produitsDuMoment.map((product) => (
+                    <motion.div key={product.id} variants={gridItem}>
+                      <Link href={`/produits/${product.id}`} className="block">
+                        <ProductCardModern
+                          image={product.photos[0] || '/images/hero-illustration.png'}
+                          category={product.categorie?.nom || 'Divers'}
+                          name={product.nom}
+                          rating={0}
+                          reviewCount={0}
+                          price={prixAffiche(product)}
+                          oldPrice={ancienPrixAffiche(product)}
+                          onAddToCart={() => handleAddToCart(product)}
+                          onToggleFavorite={() => handleToggleFavorite(product.id)}
+                        />
+                      </Link>
+                    </motion.div>
+                  ))}
+                </motion.div>
               </div>
-
-              <motion.div
-                variants={gridStagger}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-80px" }}
-                className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
-              >
-                {trendingProducts.map((product) => (
-                  <motion.div key={product.id} variants={gridItem}>
-                    <Link href={`/produits/${product.id}`} className="block">
-                      <ProductCardModern
-                        image={product.photos[0]}
-                        category={CATEGORIES.find(c => c.id === product.categorie)?.label || 'Divers'}
-                        name={product.nom}
-                        rating={product.rating}
-                        reviewCount={product.reviewCount}
-                        price={product.prix}
-                        oldPrice={product.ancien_prix ?? undefined}
-
-                        onAddToCart={() => handleAddToCart(product)}
-                        onToggleFavorite={() => handleToggleFavorite(product.id)}
-                      />
-                    </Link>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </div>
-          </motion.section>
+            </motion.section>
+          )}
 
           {/* --- 7. COMMENT ÇA MARCHE (Zéro risque) --- */}
           <section id="comment-ca-marche" className="py-14 md:py-24 bg-gray-50/50 text-gray-900 overflow-hidden relative border-y border-gray-100">
@@ -715,50 +730,52 @@ export default function Home() {
           </section>
 
           {/* --- 8. CATÉGORIES POPULAIRES --- */}
-          <motion.section 
-            variants={sectionVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="py-14 md:py-24 bg-white"
-          >
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="text-center max-w-2xl mx-auto mb-8 md:mb-14">
-                <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight mb-2 md:mb-3">Catégories populaires</h2>
-                <p className="text-gray-500 text-xs md:text-base">Naviguez directement vers ce que vous cherchez</p>
+          {categories.length > 0 && (
+            <motion.section
+              variants={sectionVariants}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              className="py-14 md:py-24 bg-white"
+            >
+              <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+                <div className="text-center max-w-2xl mx-auto mb-8 md:mb-14">
+                  <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight mb-2 md:mb-3">Catégories populaires</h2>
+                  <p className="text-gray-500 text-xs md:text-base">Naviguez directement vers ce que vous cherchez</p>
+                </div>
+
+                <motion.div
+                  variants={lightStagger}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-80px" }}
+                  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-6"
+                >
+                  {categories.map((cat) => {
+                    const style = getCategoryStyle(cat.nom);
+                    const count = articles.filter(a => a.categorie?.slug === cat.slug).length;
+                    return (
+                      <motion.div key={cat.id} variants={lightItem}>
+                        <Link
+                          href={`/catalogue?categorie=${cat.slug}`}
+                          className="group flex flex-col items-center text-center p-4 md:p-6 rounded-3xl border border-gray-100 hover:border-coral-100 hover:shadow-lg transition-all duration-300"
+                        >
+                          <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${style.color} flex items-center justify-center mb-3 md:mb-4 transition-transform duration-300 group-hover:scale-110 shadow-sm`}>
+                            <style.icon size={22} />
+                          </div>
+                          <h3 className="text-xs md:text-sm font-bold text-gray-900 mb-0.5 md:mb-1">{cat.nom}</h3>
+                          <p className="text-[10px] md:text-xs text-gray-400 font-medium">{count} produit{count > 1 ? 's' : ''}</p>
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
               </div>
-
-              <motion.div
-  variants={lightStagger}
-  initial="hidden"
-  whileInView="visible"
-  viewport={{ once: true, margin: "-80px" }}
-  className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-6"
->
-  {CATEGORIES.map((cat) => {
-    const count = products.filter(p => p.categorie === cat.id).length;
-    return (
-      <motion.div key={cat.id} variants={lightItem}>
-        <Link
-          href={`/catalogue?categorie=${cat.id}`}
-          className="group flex flex-col items-center text-center p-4 md:p-6 rounded-3xl border border-gray-100 hover:border-coral-100 hover:shadow-lg transition-all duration-300"
-        >
-          <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${cat.color} flex items-center justify-center mb-3 md:mb-4 transition-transform duration-300 group-hover:scale-110 shadow-sm`}>
-            <cat.icon size={22} />
-          </div>
-          <h3 className="text-xs md:text-sm font-bold text-gray-900 mb-0.5 md:mb-1">{cat.label}</h3>
-          <p className="text-[10px] md:text-xs text-gray-400 font-medium">{count} produits</p>
-        </Link>
-      </motion.div>
-    );
-  })}
-</motion.div>
-
-            </div>
-          </motion.section>
+            </motion.section>
+          )}
 
           {/* --- 9. TÉMOIGNAGES --- */}
-          <motion.section 
+          <motion.section
             variants={sectionVariants}
             initial="hidden"
             whileInView="visible"
@@ -786,10 +803,10 @@ export default function Home() {
                   >
                     <div className="flex items-center gap-1 mb-4">
                       {Array.from({ length: 5 }).map((_, s) => (
-                        <Star 
-                          key={s} 
-                          size={14} 
-                          className={s < t.rating ? "fill-amber-400 text-amber-400" : "fill-gray-100 text-gray-100"} 
+                        <Star
+                          key={s}
+                          size={14}
+                          className={s < t.rating ? "fill-amber-400 text-amber-400" : "fill-gray-100 text-gray-100"}
                         />
                       ))}
                     </div>
@@ -820,7 +837,6 @@ export default function Home() {
           >
             <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
               <div className="flex flex-col md:flex-row items-stretch gap-5 md:gap-6">
-                {/* Vendeur Section */}
                 <div className="flex-1 bg-coral-50/50 rounded-3xl p-7 md:p-10 flex flex-col items-center text-center group">
                   <div className="w-11 h-11 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center text-coral-500 mb-5 md:mb-6 shadow-xs border border-coral-100/50">
                     <Store size={22} />
@@ -834,7 +850,6 @@ export default function Home() {
                   </Link>
                 </div>
 
-                {/* Livreur Section */}
                 <div className="flex-1 bg-teal-50/50 rounded-3xl p-7 md:p-10 flex flex-col items-center text-center group">
                   <div className="w-11 h-11 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center text-teal-600 mb-5 md:mb-6 shadow-xs border border-teal-100/50">
                     <Bike size={22} />

@@ -14,6 +14,7 @@ import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { LIVREUR_NAV_ITEMS } from "@/lib/constants/livreur-nav";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -21,6 +22,7 @@ export function BottomNav() {
   const { profile, loading, exitDemoMode } = useUser();
   const [isPartnerOpen, setIsPartnerOpen] = useState(false);
   const [isVendeurMenuOpen, setIsVendeurMenuOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const role = profile?.role || "guest";
   const badges = useBadgeCounts(profile?.id, role);
@@ -31,7 +33,8 @@ export function BottomNav() {
     }
   };
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
     exitDemoMode();
     const supabase = createClient();
     await supabase.auth.signOut();
@@ -124,7 +127,10 @@ export function BottomNav() {
                   ))}
 
                   <button
-                    onClick={handleLogout}
+                    onClick={() => {
+                      setIsVendeurMenuOpen(false);
+                      setShowLogoutModal(true);
+                    }}
                     className="flex items-center gap-3 p-4 rounded-2xl hover:bg-red-50 transition-colors text-left mt-2 border-t border-gray-50 pt-6"
                   >
                     <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
@@ -315,6 +321,12 @@ export function BottomNav() {
           })}
         </nav>
       </div>
+
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </>
   );
 }

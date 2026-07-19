@@ -10,6 +10,7 @@ import LogoAyiba from "@/components/ui/LogoAyiba";
 import { useCart } from "@/context/CartContext";
 import { createClient } from "@/lib/supabase/client";
 import { getRedirectPathForRole, isValidRole } from "@/lib/auth-utils";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 
 const supabase = createClient();
 
@@ -26,6 +27,7 @@ export function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -116,7 +118,8 @@ export function Navbar() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
     await supabase.auth.signOut();
     window.location.href = "/auth/inscription";
   };
@@ -287,7 +290,7 @@ export function Navbar() {
                     </div>
                     <div className="h-px bg-gray-100 mx-2" />
                     <div className="p-2">
-                      <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 hover:bg-red-50 rounded-xl transition-all text-left text-sm text-red-500 font-bold">
+                      <button onClick={() => { setUserMenuOpen(false); setShowLogoutModal(true); }} className="flex items-center gap-3 w-full px-4 py-3 hover:bg-red-50 rounded-xl transition-all text-left text-sm text-red-500 font-bold">
                         <LogOut size={18} />
                         <span>Déconnexion</span>
                       </button>
@@ -416,7 +419,7 @@ export function Navbar() {
                 <span>Confidentialité</span>
               </a>
 
-              <button onClick={handleLogout} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
+              <button onClick={() => { setMobileOpen(false); setShowLogoutModal(true); }} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
                 <LogOut size={20} />
                 <span>Déconnexion</span>
               </button>
@@ -431,6 +434,11 @@ export function Navbar() {
 
       <AuthModal isOpen={authModalOpen} onClose={() => { setAuthModalOpen(false); setIntendedRole(null); }} intendedRole={intendedRole} />
       <CartDrawer />
+      <LogoutConfirmModal
+        open={showLogoutModal}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </>
   );
 }

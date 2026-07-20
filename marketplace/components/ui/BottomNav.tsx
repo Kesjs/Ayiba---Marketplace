@@ -11,10 +11,13 @@ import {
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
+import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
 import { createClient } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { LIVREUR_NAV_ITEMS } from "@/lib/constants/livreur-nav";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
+import { useToast } from "@/context/ToastContext";
+import { Lock } from "lucide-react";
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -23,9 +26,15 @@ export function BottomNav() {
   const [isPartnerOpen, setIsPartnerOpen] = useState(false);
   const [isVendeurMenuOpen, setIsVendeurMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { showToast } = useToast();
 
   const role = profile?.role || "guest";
   const badges = useBadgeCounts(profile?.id, role);
+  // Onglets Missions/Paiements/Messages verrouillés tant que le dossier KYC
+  // n'est pas validé — évite le rebond silencieux vers /livreur/kyc que
+  // produisait requireValidLivreur() quand on tapait dessus en attente.
+  const { isValide: isLivreurValide, loading: statutLoading } =
+    useLivreurVerificationStatut(role === "livreur");
 
   const triggerHaptic = () => {
     if (typeof navigator !== "undefined" && navigator.vibrate) {
@@ -46,7 +55,7 @@ export function BottomNav() {
     '/auth', '/cgu', '/privacy', '/compte-suspendu', 
     '/devenir-vendeur', '/devenir-livreur', '/accueil', 
     '/commandes', '/messages', '/favoris', '/historique', 
-    '/profil', '/produits'
+    '/profil', '/produits', '/livreur/kyc', '/vendeur/kyc'
   ];
 
   const shouldHide = hideOnPaths.some(path => pathname.startsWith(path));
@@ -212,17 +221,47 @@ export function BottomNav() {
     return (
       <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden">
         <nav className="bg-white border-t border-gray-100 shadow-[0_-2px_16px_rgba(0,0,0,0.06)] flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-          {LIVREUR_NAV_ITEMS.map((item) => (
-            <VendeurNavLink
-              key={item.href}
-              href={item.href}
-              icon={item.icon}
-              label={item.label}
-              badge={item.badgeKey ? badges[item.badgeKey] : undefined}
-              pathname={pathname}
-              onClick={triggerHaptic}
-            />
-          ))}
+          {LIVREUR_NAV_ITEMS.map((item) => {
+            const isLocked = item.requiresValidation && !statutLoading && !isLivreurValide;
+
+            if (isLocked) {
+              return (
+                <button
+                  key={item.href}
+                  onClick={() => {
+                    triggerHaptic();
+                    showToast("Compte en cours de vérification — accessible sous 24-48h.", "info");
+                  }}
+                  className="relative flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-2xl min-w-[56px] opacity-40"
+                  aria-label={`${item.label} (verrouillé, vérification en cours)`}
+                >
+                  <div className="relative">
+                    <item.icon size={22} className="text-gray-400" />
+                    <Lock
+                      size={11}
+                      strokeWidth={2.5}
+                      className="absolute -bottom-1 -right-1.5 text-gray-500 bg-white rounded-full p-[1px]"
+                    />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-gray-400">
+                    {item.label}
+                  </span>
+                </button>
+              );
+            }
+
+            return (
+              <VendeurNavLink
+                key={item.href}
+                href={item.href}
+                icon={item.icon}
+                label={item.label}
+                badge={item.badgeKey ? badges[item.badgeKey] : undefined}
+                pathname={pathname}
+                onClick={triggerHaptic}
+              />
+            );
+          })}
         </nav>
       </div>
     );

@@ -401,7 +401,7 @@ export function LivreurKycWizard() {
   if (showStatusScreen) {
     const isValide = livreurStatut === "valide";
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="h-dvh bg-gray-50 flex flex-col overflow-hidden">
         <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             <button
@@ -412,7 +412,14 @@ export function LivreurKycWizard() {
               <X size={20} />
             </button>
             <div className="flex-1" />
-            <StatutIndicator statut={livreurStatut!} />
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${
+                isValide ? "bg-teal-50 text-teal-600" : "bg-amber-50 text-amber-600"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${isValide ? "bg-teal-500" : "bg-amber-500"}`} />
+              {isValide ? "Vérifié" : "En attente"}
+            </span>
           </div>
         </div>
 

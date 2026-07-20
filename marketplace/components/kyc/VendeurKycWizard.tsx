@@ -367,7 +367,7 @@ export function VendeurKycWizard() {
     const isValide = vendeurStatut === "valide";
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-4 md:px-8">
+        <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             <button
               onClick={() => router.push("/")}

@@ -211,6 +211,12 @@ export function BottomNav() {
             </button>
           </nav>
         </div>
+
+        <LogoutConfirmModal
+          open={showLogoutModal}
+          onConfirm={confirmLogout}
+          onCancel={() => setShowLogoutModal(false)}
+        />
       </>
     );
   }

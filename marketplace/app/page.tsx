@@ -17,6 +17,7 @@ import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { getCategoryStyle } from "@/lib/constants/category-styles";
 import { useUser } from "@/lib/hooks/useUser";
+import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from "framer-motion";
@@ -147,13 +148,26 @@ export default function Home() {
   const illustrationOpacity = useTransform(heroScrollProgress, [0, 1], [1, 0.4]);
 
   // Redirige automatiquement vendeur/livreur/admin vers leur dashboard —
-  // la home publique ne sert qu'aux visiteurs (guest) et clients
+  // la home publique ne sert qu'aux visiteurs (guest) et clients.
+  // Le dashboard livreur (/livreur/missions) est verrouillé par
+  // requireValidLivreur() tant que le KYC n'est pas validé : rediriger un
+  // livreur en attente là-bas provoquait une boucle (missions → kyc → cet
+  // effet relance vers missions...). On n'auto-redirige donc le livreur que
+  // s'il est validé ; sinon il reste sur la home, comme demandé quand il
+  // clique "Retour à l'accueil" depuis l'écran KYC.
+  const { isValide: isLivreurValide, loading: livreurStatutLoading } =
+    useLivreurVerificationStatut(profile?.role === "livreur");
+
   const DASHBOARD_REDIRECTS: Record<string, string> = {
     vendeur: "/vendeur/dashboard",
     livreur: "/livreur/missions",
     admin: "/admin/dashboard",
   };
-  const shouldRedirectToDashboard = !userLoading && !!profile?.role && !!DASHBOARD_REDIRECTS[profile.role];
+  const shouldRedirectToDashboard =
+    !userLoading &&
+    !!profile?.role &&
+    !!DASHBOARD_REDIRECTS[profile.role] &&
+    (profile.role !== "livreur" || (!livreurStatutLoading && isLivreurValide));
 
   useEffect(() => {
     if (shouldRedirectToDashboard && profile) {

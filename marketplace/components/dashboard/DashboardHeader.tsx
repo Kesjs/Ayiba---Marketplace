@@ -4,14 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { Bell, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import LogoAyiba from "@/components/ui/LogoAyiba";
+import { NotificationsDropdown, type Notification } from "./NotificationsDropdown";
 
-export interface Notification {
-  id: string;
-  titre: string;
-  createdAt: string;
-  couleur?: "coral" | "teal" | "amber" | "gray";
-  lien?: string | null;
-}
+export type { Notification };
 
 interface DashboardHeaderProps {
   boutiqueName?: string;
@@ -33,63 +28,6 @@ interface DashboardHeaderProps {
   logoHref?: string;
 }
 
-const DOT_COLORS: Record<string, string> = {
-  coral: "bg-coral-500",
-  teal: "bg-teal-500",
-  amber: "bg-amber-500",
-  gray: "bg-gray-400",
-};
-
-function NotificationsDropdown({
-  notifications,
-  onClose,
-}: {
-  notifications: Notification[];
-  onClose: () => void;
-}) {
-  return (
-    <div className="absolute right-0 top-11 w-80 max-w-[90vw] bg-white rounded-2xl border border-gray-100 shadow-xl overflow-hidden z-30">
-      <div className="px-5 py-4 border-b border-gray-100">
-        <p className="font-bold text-gray-900">Notifications</p>
-      </div>
-
-      {notifications.length === 0 ? (
-        <div className="px-5 py-10 text-center text-sm text-gray-400">
-          Aucune notification pour le moment
-        </div>
-      ) : (
-        <ul className="max-h-80 overflow-y-auto divide-y divide-gray-50">
-          {notifications.map((n) => (
-            <li key={n.id}>
-              <Link
-                href={n.lien || "#"}
-                onClick={onClose}
-                className="flex items-start gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors"
-              >
-                <span
-                  className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${DOT_COLORS[n.couleur || "gray"]}`}
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{n.titre}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{n.createdAt}</p>
-                </div>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <Link
-        href="/vendeur/notifications"
-        onClick={onClose}
-        className="block text-center py-3 text-sm font-bold text-coral-600 hover:bg-gray-50 transition-colors border-t border-gray-100"
-      >
-        Voir tout
-      </Link>
-    </div>
-  );
-}
-
 export function DashboardHeader({
   boutiqueName,
   title,
@@ -107,11 +45,17 @@ export function DashboardHeader({
   logoHref = "/",
 }: DashboardHeaderProps) {
   const [showNotifs, setShowNotifs] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Deux instances de la cloche (bande unique mobile/tablette, ligne desktop réel)
+  // coexistent dans le DOM ; chacune a son propre conteneur pour le clic-dehors.
+  const topBarRef = useRef<HTMLDivElement>(null);
+  const desktopRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const insideTopBar = topBarRef.current?.contains(target);
+      const insideDesktop = desktopRef.current?.contains(target);
+      if (!insideTopBar && !insideDesktop) {
         setShowNotifs(false);
       }
     }
@@ -132,20 +76,53 @@ export function DashboardHeader({
 
   return (
     <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-100">
-      {/* --- Bandeau logo (< lg) ---
-          Le Sidebar porte déjà le logo à partir de lg ; en dessous, il est
-          masqué (`hidden lg:flex`), donc mobile ET tablette (md-lg) n'ont
-          sinon aucune trace de la marque. Bandeau à part plutôt que
-          d'insérer le logo dans la rangée du dessous : ça évite de toucher
-          au centrage/troncature déjà en place pour le retour/salutation. */}
-      <div className="lg:hidden flex items-center px-4 h-11 border-b border-gray-50">
+      {/* --- Bande actions unique, mobile ET tablette (< lg) ---
+          Le Sidebar porte déjà logo + avatar à partir de lg ; en dessous,
+          cette bande unique regroupe logo + cloche + avatar sur une seule
+          ligne (fusion des anciennes bandes "logo" et "desktop-style" qui
+          se dupliquaient sur la tranche tablette md-lg). La bande du
+          dessous ne porte plus que le contenu (salutation/retour/titre). */}
+      <div className="lg:hidden flex items-center justify-between gap-3 px-4 h-12 border-b border-gray-50">
         <Link href={logoHref} className="flex items-center">
           <LogoAyiba className="h-6 w-auto" />
         </Link>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative" ref={topBarRef}>
+            <button
+              onClick={handleBellClick}
+              className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell size={20} className="text-gray-500" />
+              {notificationsCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
+                  {notificationsCount > 9 ? "9+" : notificationsCount}
+                </span>
+              )}
+            </button>
+
+            {showNotifs && (
+              <NotificationsDropdown notifications={notifications} onClose={() => setShowNotifs(false)} />
+            )}
+          </div>
+
+          <button
+            onClick={onAvatarClick}
+            className="w-9 h-9 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0"
+            aria-label="Profil"
+          >
+            {avatarUrl ? (
+              <img src={avatarUrl} alt={fullName || "Avatar"} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-bold text-gray-500">{initials}</span>
+            )}
+          </button>
+        </div>
       </div>
 
-      {/* --- Version mobile (< md) --- */}
-      <div className="flex md:hidden items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
+      {/* --- Bande contenu, mobile ET tablette (< lg) : pleine largeur, plus rien à droite --- */}
+      <div className="lg:hidden flex items-center px-4 h-14 max-w-7xl mx-auto">
         {backHref ? (
           <Link
             href={backHref}
@@ -162,29 +139,10 @@ export function DashboardHeader({
         ) : (
           <h1 className="text-base font-bold text-gray-900 truncate">{title}</h1>
         )}
-
-        <div className="relative shrink-0" ref={containerRef}>
-          <button
-            onClick={handleBellClick}
-            className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
-            aria-label="Notifications"
-          >
-            <Bell size={20} className="text-gray-500" />
-            {notificationsCount > 0 && (
-              <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
-                {notificationsCount > 9 ? "9+" : notificationsCount}
-              </span>
-            )}
-          </button>
-
-          {showNotifs && (
-            <NotificationsDropdown notifications={notifications} onClose={() => setShowNotifs(false)} />
-          )}
-        </div>
       </div>
 
-      {/* --- Version desktop (>= md) --- */}
-      <div className="hidden md:flex relative items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
+      {/* --- Desktop réel (>= lg) : inchangé --- */}
+      <div className="hidden lg:flex relative items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
         <button
           onClick={onBoutiqueClick}
           className="flex items-center gap-1 shrink-0 text-sm font-bold text-gray-900"
@@ -212,7 +170,7 @@ export function DashboardHeader({
         )}
 
         <div className="flex items-center gap-2 shrink-0">
-          <div className="relative" ref={containerRef}>
+          <div className="relative" ref={desktopRef}>
             <button
               onClick={handleBellClick}
               className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"

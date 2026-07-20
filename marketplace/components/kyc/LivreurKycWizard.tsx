@@ -437,6 +437,24 @@ export function LivreurKycWizard() {
 
   const isRecap = step === totalSteps + 1;
 
+  const showStatusScreen =
+    hydrated && (livreurStatut === "en_attente" || livreurStatut === "valide") && !editMode;
+
+  // Le <main> du layout racine a un padding-bottom (pb-24) prévu pour laisser
+  // de la place à la BottomNav sur les pages qui scrollent normalement. Sur
+  // cet écran on ne veut aucun scroll du tout : nos conteneurs internes en
+  // h-full/overflow-hidden ne suffisent pas à eux seuls à annuler ce padding
+  // hérité, donc on verrouille explicitement le scroll du document tant que
+  // cet écran est affiché.
+  useEffect(() => {
+    if (!showStatusScreen || typeof document === "undefined") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showStatusScreen]);
+
   if (!hydrated) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -444,9 +462,6 @@ export function LivreurKycWizard() {
       </div>
     );
   }
-
-  const showStatusScreen =
-    (livreurStatut === "en_attente" || livreurStatut === "valide") && !editMode;
 
   if (showStatusScreen) {
     const isValide = livreurStatut === "valide";

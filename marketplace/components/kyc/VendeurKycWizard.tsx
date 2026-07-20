@@ -7,8 +7,9 @@ import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { DocumentUpload } from "./DocumentUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Clock, AlertTriangle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/context/ToastContext";
 
 const STEP_LABELS = ["Identité", "Document", "Boutique", "Localisation", "Paiement"];
 const STORAGE_KEY = "ayiba-vendeur-kyc-draft";
@@ -129,6 +130,11 @@ export function VendeurKycWizard() {
   const [existingPhotoCniPath, setExistingPhotoCniPath] = useState<string | null>(null);
   const [vendeurStatut, setVendeurStatut] = useState<string | null>(null);
   const [raisonRejet, setRaisonRejet] = useState<string | null>(null);
+  // Une fois le dossier soumis (en_attente/valide), on affiche un écran de
+  // statut plutôt que de renvoyer directement dans le formulaire à chaque
+  // visite de /vendeur/kyc — "Modifier mes informations" repasse en édition.
+  const [editMode, setEditMode] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -226,12 +232,20 @@ export function VendeurKycWizard() {
       return;
     }
     clearDraft();
+    if (editMode && vendeurStatut) {
+      setEditMode(false);
+      return;
+    }
     router.push("/");
   };
 
   const confirmCancel = () => {
     clearDraft();
     setShowCancelModal(false);
+    if (editMode && vendeurStatut) {
+      setEditMode(false);
+      return;
+    }
     router.push("/");
   };
 
@@ -323,6 +337,10 @@ export function VendeurKycWizard() {
       if (insertError) throw insertError;
 
       clearDraft();
+      showToast(
+        "Dossier envoyé ! Ton dashboard est accessible dès maintenant — ta boutique restera privée jusqu'à validation (24-48h).",
+        "success"
+      );
       router.push("/vendeur/dashboard");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue, réessaie.");
@@ -337,6 +355,64 @@ export function VendeurKycWizard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const showStatusScreen =
+    (vendeurStatut === "en_attente" || vendeurStatut === "valide") && !editMode;
+
+  if (showStatusScreen) {
+    const isValide = vendeurStatut === "valide";
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-4 md:px-8">
+          <div className="max-w-2xl mx-auto flex items-center gap-3">
+            <button
+              onClick={() => router.push("/")}
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
+              aria-label="Fermer"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex-1" />
+            <StatutIndicator statut={vendeurStatut!} />
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md bg-white rounded-[32px] border border-gray-100 p-8 shadow-sm text-center flex flex-col items-center gap-4">
+            <div
+              className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                isValide ? "bg-teal-50 text-teal-500" : "bg-amber-50 text-amber-500"
+              }`}
+            >
+              {isValide ? <ShieldCheck size={28} /> : <Clock size={28} />}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">
+                {isValide ? "Compte vérifié" : "Dossier en cours de vérification"}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1.5">
+                {isValide
+                  ? "Ton identité et ta boutique sont validées. Tout est en ordre."
+                  : "Ton dossier a bien été envoyé — activation sous 24-48h. En attendant, ton dashboard est accessible : tu peux configurer ta boutique et ajouter des articles, ils resteront privés jusqu'à validation."}
+              </p>
+            </div>
+            <button
+              onClick={() => router.push("/vendeur/dashboard")}
+              className="w-full h-12 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
+            >
+              Aller au dashboard
+            </button>
+            <button
+              onClick={() => setEditMode(true)}
+              className="text-sm font-semibold text-gray-500 hover:text-gray-700"
+            >
+              Modifier mes informations
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

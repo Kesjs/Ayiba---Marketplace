@@ -52,10 +52,9 @@ export function BottomNav() {
   };
 
   const hideOnPaths = [
-    '/auth', '/cgu', '/privacy', '/compte-suspendu', 
-    '/devenir-vendeur', '/devenir-livreur', '/accueil', 
-    '/commandes', '/messages', '/favoris', '/historique', 
-    '/profil', '/produits', '/livreur/kyc', '/vendeur/kyc'
+    '/auth', '/cgu', '/privacy', '/compte-suspendu',
+    '/devenir-vendeur', '/devenir-livreur',
+    '/produits', '/livreur/kyc', '/vendeur/kyc'
   ];
 
   const shouldHide = hideOnPaths.some(path => pathname.startsWith(path));
@@ -211,12 +210,6 @@ export function BottomNav() {
             </button>
           </nav>
         </div>
-
-        <LogoutConfirmModal
-          open={showLogoutModal}
-          onConfirm={confirmLogout}
-          onCancel={() => setShowLogoutModal(false)}
-        />
       </>
     );
   }

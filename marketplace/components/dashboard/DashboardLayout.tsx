@@ -1,10 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Store, User, Settings } from "lucide-react";
 import { Sidebar } from "./Sidebar";
 import { DashboardHeader } from "./DashboardHeader";
+import type { AccountLink } from "./AccountDropdown";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
+import { createClient } from "@/lib/supabase/client";
 import { ReactNode } from "react";
 
 interface DashboardLayoutProps {
@@ -27,6 +31,21 @@ const ROLE_HOME: Record<"admin" | "vendeur" | "livreur", string> = {
   admin: "/admin/dashboard",
 };
 
+// Liens rapides du menu compte (clic avatar). Chaque rôle n'a pas la même
+// page profil : le vendeur n'en a pas de dédiée (l'info profil vit dans
+// Paramètres), le livreur en a une ("Mon profil"), l'admin n'a que Paramètres.
+const ROLE_ACCOUNT_LINKS: Record<"admin" | "vendeur" | "livreur", AccountLink[]> = {
+  vendeur: [
+    { label: "Ma boutique", href: "/vendeur/boutique", icon: Store },
+    { label: "Paramètres", href: "/vendeur/parametres", icon: Settings },
+  ],
+  livreur: [
+    { label: "Mon profil", href: "/livreur/profil", icon: User },
+    { label: "Paramètres", href: "/livreur/parametres", icon: Settings },
+  ],
+  admin: [{ label: "Paramètres", href: "/admin/parametres", icon: Settings }],
+};
+
 function saluerSelonHeure(): string {
   const h = new Date().getHours();
   if (h < 12) return "Bonjour";
@@ -45,11 +64,27 @@ export function DashboardLayout({
   backLabel,
 }: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const { profile } = useUser();
+  const router = useRouter();
+  const { profile, exitDemoMode } = useUser();
   const badges = useBadgeCounts(profile?.id, role);
 
   const displayName = userName || profile?.full_name || "Utilisateur";
   const prenom = displayName.split(" ")[0];
+
+  const accountSubtitle: Record<"admin" | "vendeur" | "livreur", string> = {
+    vendeur: boutiqueName || "Vendeur Ayiba",
+    livreur: "Livreur Ayiba",
+    admin: "Administrateur",
+  };
+
+  async function handleLogout() {
+    // Nettoie le mode démo (localStorage) s'il était actif
+    exitDemoMode?.();
+    // Déconnecte la vraie session Supabase si elle existe
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50/50">
@@ -74,6 +109,9 @@ export function DashboardLayout({
           backHref={backHref}
           backLabel={backLabel}
           logoHref={ROLE_HOME[role]}
+          accountSubtitle={accountSubtitle[role]}
+          accountLinks={ROLE_ACCOUNT_LINKS[role]}
+          onLogout={handleLogout}
         />
 
 <div className="p-5 sm:p-6 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0">

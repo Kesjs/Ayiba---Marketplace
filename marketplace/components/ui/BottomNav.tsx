@@ -33,7 +33,7 @@ export function BottomNav() {
   // Onglets Missions/Paiements/Messages verrouillés tant que le dossier KYC
   // n'est pas validé — évite le rebond silencieux vers /livreur/kyc que
   // produisait requireValidLivreur() quand on tapait dessus en attente.
-  const { isValide: isLivreurValide, loading: statutLoading } =
+  const { statut: livreurStatut, isValide: isLivreurValide, loading: statutLoading } =
     useLivreurVerificationStatut(role === "livreur");
 
   const triggerHaptic = () => {
@@ -54,10 +54,19 @@ export function BottomNav() {
   const hideOnPaths = [
     '/auth', '/cgu', '/privacy', '/compte-suspendu',
     '/devenir-vendeur', '/devenir-livreur',
-    '/produits', '/livreur/kyc', '/vendeur/kyc'
+    '/produits', '/vendeur/kyc'
   ];
 
-  const shouldHide = hideOnPaths.some(path => pathname.startsWith(path));
+  // Cas particulier /livreur/kyc : la page sert à la fois pour le wizard actif
+  // (formulaire pas encore soumis, ou en train d'être modifié) et pour l'écran
+  // de statut "En attente"/"Vérifié" une fois le dossier envoyé. On ne cache
+  // la bottom bar que dans le premier cas.
+  const dossierDejaSoumis = livreurStatut === "en_attente" || livreurStatut === "valide";
+  const isLivreurKycWizardActif =
+    pathname.startsWith('/livreur/kyc') && (statutLoading || !dossierDejaSoumis);
+
+  const shouldHide =
+    hideOnPaths.some(path => pathname.startsWith(path)) || isLivreurKycWizardActif;
   if (shouldHide) return null;
 
   if (loading) return null;

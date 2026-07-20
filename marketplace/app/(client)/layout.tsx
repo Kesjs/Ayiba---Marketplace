@@ -97,28 +97,9 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
         onCancel={() => setShowLogoutModal(false)}
       />
 
-      <div className="flex-1 flex flex-col min-h-0 pb-16 md:pb-0">
+      <div className="flex-1 flex flex-col min-h-0">
         {children}
       </div>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-40">
-        <div className="flex items-center justify-around h-16">
-          {NAV_ITEMS.map((item) => {
-            const actif = estActif(pathname, item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg transition-colors ${
-                  actif ? 'text-coral-800' : 'text-gray-400'
-                }`}
-              >
-                <item.icon size={20} strokeWidth={actif ? 2.5 : 2} />
-                <span className="text-[10px] font-bold uppercase tracking-wide">{item.label}</span>
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
       {isOpen && (
         <>
           <div

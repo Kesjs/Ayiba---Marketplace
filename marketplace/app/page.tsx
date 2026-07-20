@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   ShieldCheck, Lock, Key, Store, Bike, ArrowRight, BadgeCheck,
-  UserCheck, Wallet, Star, MapPin,
+  UserCheck, Wallet, Star, MapPin, Clock,
   CheckCircle2, ChevronRight, Search, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -369,16 +369,20 @@ export default function Home() {
             </div>
           </section>
 
-          {/* --- 2. BANDEAU CLIENT CONNECTÉ ---
-              Vendeur/livreur/admin sont redirigés avant ce rendu (cf. plus
-              haut) : ce bandeau ne s'adresse donc qu'aux clients. On
-              n'affiche plus de compteurs inventés (favoris/commandes) —
-              afficher un faux chiffre à un utilisateur connecté sur ses
-              propres données, c'est pire qu'un état vide. À réintroduire
-              avec de vraies requêtes (favoris, commandes) séparément. */}
+          {/* --- 2. BANDEAU CLIENT CONNECTÉ / LIVREUR EN ATTENTE ---
+              Vendeur (dashboard non verrouillé) et admin sont redirigés
+              avant ce rendu (cf. plus haut). Le livreur n'est lui redirigé
+              vers son dashboard que s'il est validé (cf. useLivreurVerificationStatut
+              plus haut) — un livreur en attente atterrit donc ici et voit un
+              rappel dédié plutôt que rien. On n'affiche plus de compteurs
+              inventés (favoris/commandes) pour le client — afficher un faux
+              chiffre à un utilisateur connecté sur ses propres données,
+              c'est pire qu'un état vide. À réintroduire avec de vraies
+              requêtes (favoris, commandes) séparément. */}
           <AnimatePresence>
             {profile && profile.role === "client" && (
               <motion.section
+                key="client-banner"
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="pt-4 pb-4 bg-white"
@@ -403,6 +407,38 @@ export default function Home() {
 
                     <Link href="/profil">
                       <Button className="h-10 md:h-11 px-4 md:px-6 rounded-xl text-xs font-bold whitespace-nowrap">Mon Profil</Button>
+                    </Link>
+                  </div>
+                </div>
+              </motion.section>
+            )}
+
+            {profile && profile.role === "livreur" && !livreurStatutLoading && !isLivreurValide && (
+              <motion.section
+                key="livreur-pending-banner"
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="pt-4 pb-4 bg-white"
+              >
+                <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+                  <div className="bg-gray-50 rounded-[28px] md:rounded-[32px] p-5 md:p-8 border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-5 md:gap-6 shadow-sm">
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 border-4 border-white shadow-sm shrink-0">
+                        <Clock size={26} />
+                      </div>
+                      <div>
+                        <h2 className="text-lg md:text-xl font-bold text-gray-900">Dossier en cours de vérification</h2>
+                        <p className="text-xs md:text-sm text-gray-500 font-medium">Activation sous 24-48h. En attendant, découvre le catalogue.</p>
+                      </div>
+                    </div>
+
+                    <Link href="/livreur/kyc">
+                      <Button
+                        variant="outline"
+                        className="h-10 md:h-11 px-4 md:px-6 rounded-xl text-xs font-bold whitespace-nowrap"
+                      >
+                        Voir mon dossier
+                      </Button>
                     </Link>
                   </div>
                 </div>

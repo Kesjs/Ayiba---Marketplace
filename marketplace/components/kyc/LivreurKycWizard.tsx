@@ -7,9 +7,11 @@ import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { DocumentUpload } from "./DocumentUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, ShieldCheck, Clock, AlertTriangle, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Hourglass, AlertTriangle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
+import LogoAyiba from "@/components/ui/LogoAyiba";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 
 const STEP_LABELS = ["Identité", "Document", "Véhicule", "Localisation", "Paiement"];
 const STORAGE_KEY = "ayiba-livreur-kyc-draft";
@@ -143,7 +145,15 @@ export function LivreurKycWizard() {
   const [livreurStatut, setLivreurStatut] = useState<string | null>(null);
   const [raisonRejet, setRaisonRejet] = useState<string | null>(null);
   const [editMode, setEditMode] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { showToast } = useToast();
+
+  const confirmLogoutAndGoHome = async () => {
+    setShowLogoutModal(false);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -402,14 +412,20 @@ export function LivreurKycWizard() {
     const isValide = livreurStatut === "valide";
     return (
       <div className="h-dvh bg-gray-50 flex flex-col overflow-hidden">
+        <LogoutConfirmModal
+          open={showLogoutModal}
+          onConfirm={confirmLogoutAndGoHome}
+          onCancel={() => setShowLogoutModal(false)}
+        />
+
         <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             <button
-              onClick={() => router.push("/")}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
-              aria-label="Fermer"
+              onClick={() => setShowLogoutModal(true)}
+              className="shrink-0 flex items-center rounded-full hover:opacity-80 transition-opacity"
+              aria-label="Accueil (déconnexion)"
             >
-              <X size={20} />
+              <LogoAyiba className="h-7 w-auto" />
             </button>
             <div className="flex-1" />
             <span
@@ -430,7 +446,21 @@ export function LivreurKycWizard() {
                 isValide ? "bg-teal-50 text-teal-500" : "bg-amber-50 text-amber-500"
               }`}
             >
-              {isValide ? <ShieldCheck size={28} /> : <Clock size={28} />}
+              {isValide ? (
+                <ShieldCheck size={28} />
+              ) : (
+                <motion.div
+                  animate={{ rotate: [0, 0, 180, 180, 360] }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    times: [0, 0.4, 0.5, 0.9, 1],
+                  }}
+                >
+                  <Hourglass size={28} />
+                </motion.div>
+              )}
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">
@@ -443,10 +473,10 @@ export function LivreurKycWizard() {
               </p>
             </div>
             <button
-              onClick={() => router.push(isValide ? "/livreur/missions" : "/")}
+              onClick={() => (isValide ? router.push("/livreur/missions") : setShowLogoutModal(true))}
               className="w-full h-12 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
             >
-              {isValide ? "Aller aux missions" : "Retour à l'accueil"}
+              {isValide ? "Aller aux missions" : "Se déconnecter"}
             </button>
             <button
               onClick={() => setEditMode(true)}

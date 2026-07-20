@@ -6,13 +6,27 @@ import { useCart } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
 import { ProductCard } from '@/components/ui/ProductCard'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
-import LogoAyiba from '@/components/ui/LogoAyiba'
+import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
+import { useUser } from '@/lib/hooks/useUser'
+import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from '@/lib/queries/articles'
+
+function saluerSelonHeure(): string {
+  const h = new Date().getHours()
+  if (h < 12) return 'Bonjour'
+  if (h < 18) return 'Bon après-midi'
+  return 'Bonsoir'
+}
 
 export default function AccueilPage() {
   const router = useRouter()
   const { addItem } = useCart()
   const { showToast } = useToast()
+  const { profile } = useUser()
+  const badges = useBadgeCounts(profile?.id, 'client')
+
+  const displayName = profile?.full_name || 'Utilisateur'
+  const prenom = displayName.split(' ')[0]
 
   const [products, setProducts] = useState<ArticlePublic[]>([])
   const [categories, setCategories] = useState<{ nom: string; slug: string }[]>([])
@@ -53,14 +67,17 @@ export default function AccueilPage() {
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
-      {/* Top Header */}
-      <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-8 shrink-0">
-        <div className="flex items-center gap-4">
-          <LogoAyiba className="h-8 w-auto" />
-          <div className="h-8 w-px bg-gray-100 hidden md:block" />
-          <h1 className="text-lg font-bold text-gray-900 hidden md:block">Tableau de bord</h1>
-        </div>
-      </header>
+      <ClientDashboardHeader
+        title="Tableau de bord"
+        greeting={`${saluerSelonHeure()} ${prenom} 👋`}
+        subtitle="Découvrez les meilleures offres de votre quartier"
+        avatarUrl={profile?.avatar_url}
+        fullName={displayName}
+        notificationsCount={badges.notifications}
+        notifications={badges.notificationsList}
+        onAvatarClick={() => router.push('/profil')}
+        logoHref="/accueil"
+      />
 
       {/* Categories Bar */}
       <section className="bg-white border-b border-gray-50 flex items-center gap-3 px-4 py-3 overflow-x-auto no-scrollbar shrink-0">
@@ -82,11 +99,6 @@ export default function AccueilPage() {
       {/* Content Area */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50/30">
         <div className="max-w-6xl mx-auto">
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Bienvenue sur Ayiba 👋</h2>
-            <p className="text-gray-500 text-sm mt-1">Découvrez les meilleures offres de votre quartier aujourd'hui.</p>
-          </div>
-
           {error && (
             <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
               {error}

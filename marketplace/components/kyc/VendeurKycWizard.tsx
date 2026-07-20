@@ -246,6 +246,7 @@ export function VendeurKycWizard() {
       setEditMode(false);
       return;
     }
+    showToast("Pas de souci, tu pourras reprendre à tout moment.", "info");
     router.push("/");
   };
 

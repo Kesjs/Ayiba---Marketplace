@@ -7,8 +7,9 @@ import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { DocumentUpload } from "./DocumentUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, ShieldCheck, AlertTriangle, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Clock, AlertTriangle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/context/ToastContext";
 
 const STEP_LABELS = ["Identité", "Document", "Véhicule", "Localisation", "Paiement"];
 const STORAGE_KEY = "ayiba-livreur-kyc-draft";
@@ -141,6 +142,8 @@ export function LivreurKycWizard() {
   const [existingPhotoVehiculeUrl, setExistingPhotoVehiculeUrl] = useState<string | null>(null);
   const [livreurStatut, setLivreurStatut] = useState<string | null>(null);
   const [raisonRejet, setRaisonRejet] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -242,12 +245,20 @@ export function LivreurKycWizard() {
       return;
     }
     clearDraft();
+    if (editMode && livreurStatut) {
+      setEditMode(false);
+      return;
+    }
     router.push("/");
   };
 
   const confirmCancel = () => {
     clearDraft();
     setShowCancelModal(false);
+    if (editMode && livreurStatut) {
+      setEditMode(false);
+      return;
+    }
     router.push("/");
   };
 
@@ -356,7 +367,16 @@ export function LivreurKycWizard() {
       if (insertError) throw insertError;
 
       clearDraft();
-      router.push("/livreur/missions");
+      showToast(
+        "Dossier envoyé ! Vérification en cours — activation sous 24-48h.",
+        "success"
+      );
+      // Pas de router.push ici : /livreur/missions (et les autres onglets)
+      // restent verrouillés par requireValidLivreur() tant que le statut
+      // n'est pas "valide", donc une redirection immédiate ne ferait que
+      // rebondir en boucle vers /livreur/kyc. On met juste à jour le statut
+      // local pour basculer sur l'écran "Dossier en cours" ci-dessous.
+      setLivreurStatut("en_attente");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue, réessaie.");
     } finally {
@@ -370,6 +390,64 @@ export function LivreurKycWizard() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const showStatusScreen =
+    (livreurStatut === "en_attente" || livreurStatut === "valide") && !editMode;
+
+  if (showStatusScreen) {
+    const isValide = livreurStatut === "valide";
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-4 md:px-8">
+          <div className="max-w-2xl mx-auto flex items-center gap-3">
+            <button
+              onClick={() => router.push("/")}
+              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
+              aria-label="Fermer"
+            >
+              <X size={20} />
+            </button>
+            <div className="flex-1" />
+            <StatutIndicator statut={livreurStatut!} />
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md bg-white rounded-[32px] border border-gray-100 p-8 shadow-sm text-center flex flex-col items-center gap-4">
+            <div
+              className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                isValide ? "bg-teal-50 text-teal-500" : "bg-amber-50 text-amber-500"
+              }`}
+            >
+              {isValide ? <ShieldCheck size={28} /> : <Clock size={28} />}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">
+                {isValide ? "Compte vérifié" : "Dossier en cours de vérification"}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1.5">
+                {isValide
+                  ? "Ton identité est validée, tu peux accepter des missions."
+                  : "Ton dossier a bien été envoyé — activation sous 24-48h. Missions, paiements et messages restent verrouillés jusqu'à validation."}
+              </p>
+            </div>
+            <button
+              onClick={() => router.push(isValide ? "/livreur/missions" : "/")}
+              className="w-full h-12 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
+            >
+              {isValide ? "Aller aux missions" : "Retour à l'accueil"}
+            </button>
+            <button
+              onClick={() => setEditMode(true)}
+              className="text-sm font-semibold text-gray-500 hover:text-gray-700"
+            >
+              Modifier mes informations
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

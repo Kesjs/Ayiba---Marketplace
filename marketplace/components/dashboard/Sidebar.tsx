@@ -20,9 +20,12 @@ import {
   Wallet,
   Truck,
   History,
+  Lock,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
+import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
+import { useToast } from "@/context/ToastContext";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 
 interface SidebarProps {
@@ -63,16 +66,19 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
     // La bottom bar mobile se limite à 4 onglets (LIVREUR_NAV_ITEMS) ;
     // le sidebar desktop a la place d'afficher toutes les sections.
     livreur: [
-      { name: "Missions", icon: Truck, path: "/livreur/missions" },
-      { name: "Paiements", icon: Wallet, path: "/livreur/paiements" },
-      { name: "Messages", icon: MessageSquare, path: "/livreur/messages" },
-      { name: "Historique", icon: History, path: "/livreur/historique" },
+      { name: "Missions", icon: Truck, path: "/livreur/missions", requiresValidation: true },
+      { name: "Paiements", icon: Wallet, path: "/livreur/paiements", requiresValidation: true },
+      { name: "Messages", icon: MessageSquare, path: "/livreur/messages", requiresValidation: true },
+      { name: "Historique", icon: History, path: "/livreur/historique", requiresValidation: true },
       { name: "Profil", icon: User, path: "/livreur/profil" },
       { name: "Paramètres", icon: Settings, path: "/livreur/parametres" },
     ],
   };
 
   const items = menuItems[role];
+  const { isValide: isLivreurValide, loading: statutLoading } =
+    useLivreurVerificationStatut(role === "livreur");
+  const { showToast } = useToast();
 
   const confirmLogout = async () => {
     setShowLogoutModal(false);
@@ -127,6 +133,35 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {items.map((item) => {
           const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`);
+          const isLocked =
+            (item as { requiresValidation?: boolean }).requiresValidation &&
+            !statutLoading &&
+            !isLivreurValide;
+
+          if (isLocked) {
+            return (
+              <button
+                key={item.path}
+                onClick={() =>
+                  showToast("Compte en cours de vérification — accessible sous 24-48h.", "info")
+                }
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 cursor-not-allowed group"
+              >
+                <div className="relative shrink-0">
+                  <item.icon size={22} strokeWidth={2} />
+                  <Lock
+                    size={11}
+                    strokeWidth={2.5}
+                    className="absolute -bottom-1 -right-1.5 text-gray-400 bg-white rounded-full p-[1px]"
+                  />
+                </div>
+                {!isCollapsed && (
+                  <span className="font-semibold text-[14px] whitespace-nowrap">{item.name}</span>
+                )}
+              </button>
+            );
+          }
+
           return (
             <Link
               key={item.path}

@@ -7,9 +7,10 @@ import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { DocumentUpload } from "./DocumentUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, ShieldCheck, Clock, AlertTriangle, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Hourglass, AlertTriangle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
+import LogoAyiba from "@/components/ui/LogoAyiba";
 
 const STEP_LABELS = ["Identité", "Document", "Boutique", "Localisation", "Paiement"];
 const STORAGE_KEY = "ayiba-vendeur-kyc-draft";
@@ -363,18 +364,30 @@ export function VendeurKycWizard() {
   const showStatusScreen =
     (vendeurStatut === "en_attente" || vendeurStatut === "valide") && !editMode;
 
+  // Même souci que côté livreur : le <main> du layout racine a un
+  // padding-bottom (pb-24) prévu pour les pages qui scrollent normalement.
+  // On verrouille le scroll du document tant que cet écran est affiché.
+  useEffect(() => {
+    if (!showStatusScreen || typeof document === "undefined") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showStatusScreen]);
+
   if (showStatusScreen) {
     const isValide = vendeurStatut === "valide";
     return (
-      <div className="h-dvh bg-gray-50 flex flex-col overflow-hidden">
+      <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
         <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             <button
               onClick={() => router.push("/")}
-              className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
-              aria-label="Fermer"
+              className="shrink-0 flex items-center rounded-full hover:opacity-80 transition-opacity"
+              aria-label="Accueil"
             >
-              <X size={20} />
+              <LogoAyiba className="h-7 w-auto" />
             </button>
             <div className="flex-1" />
             <span
@@ -395,7 +408,21 @@ export function VendeurKycWizard() {
                 isValide ? "bg-teal-50 text-teal-500" : "bg-amber-50 text-amber-500"
               }`}
             >
-              {isValide ? <ShieldCheck size={28} /> : <Clock size={28} />}
+              {isValide ? (
+                <ShieldCheck size={28} />
+              ) : (
+                <motion.div
+                  animate={{ rotate: [0, 0, 180, 180, 360] }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    times: [0, 0.4, 0.5, 0.9, 1],
+                  }}
+                >
+                  <Hourglass size={28} />
+                </motion.div>
+              )}
             </div>
             <div>
               <h2 className="text-lg font-bold text-gray-900">

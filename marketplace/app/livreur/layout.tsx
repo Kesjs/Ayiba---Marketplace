@@ -23,11 +23,16 @@ export default async function LivreurLayout({
     .maybeSingle();
 
   return (
-    <>
+    <div className="flex flex-col h-dvh overflow-hidden">
       {livreur && (
         <LivreurStatusBanner statut={livreur.statut_verification} raisonRejet={livreur.raison_rejet} />
       )}
-      {children}
-    </>
+      {/* flex-1 + min-h-0 : le bandeau garde sa hauteur naturelle, le reste
+          du contenu prend l'espace restant. overflow-y-auto ici (et pas sur
+          le conteneur global) pour que les pages livreur normales (Missions,
+          Profil...) puissent scroller si besoin, sans faire dépasser tout
+          le layout de la hauteur du viewport. */}
+      <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
+    </div>
   );
 }

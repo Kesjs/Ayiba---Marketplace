@@ -34,7 +34,7 @@ export function Toast() {
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
               layout
               className={`
-                bg-white/90 backdrop-blur-xl border rounded-2xl p-4 flex items-start gap-3 shadow-xl shadow-black/5
+                bg-white border rounded-2xl p-4 flex items-start gap-3 shadow-xl shadow-black/10
                 ${variantColors[toast.variant]}
               `}
             >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { StepIndicator } from "./StepIndicator";
@@ -147,6 +147,10 @@ export function LivreurKycWizard() {
   const [editMode, setEditMode] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { showToast } = useToast();
+  // Instantané des champs pris au chargement (dossier déjà soumis), pour
+  // détecter si "Modifier mes informations" a vraiment changé quelque chose
+  // avant de forcer une resoumission (voir handleSubmit).
+  const originalSnapshotRef = useRef<PersistedFields | null>(null);
 
   const confirmLogoutAndGoHome = async () => {
     setShowLogoutModal(false);
@@ -191,6 +195,15 @@ export function LivreurKycWizard() {
               mobileMoneyNetwork: livreur.mobile_money_network ?? prev.mobileMoneyNetwork,
               mobileMoneyNumber: livreur.mobile_money_number ?? prev.mobileMoneyNumber,
             }));
+            originalSnapshotRef.current = {
+              nomComplet: livreur.nom_complet ?? "",
+              typeVehicule: (livreur.type_vehicule as TypeVehicule) ?? null,
+              plaqueImmatriculation: livreur.plaque_immatriculation ?? "",
+              quartier: livreur.quartier ?? "",
+              commune: livreur.commune ?? "",
+              mobileMoneyNetwork: livreur.mobile_money_network ?? null,
+              mobileMoneyNumber: livreur.mobile_money_number ?? "",
+            };
             setExistingPhotoProfilUrl(livreur.photo_profil_url ?? null);
             setExistingPhotoCniPath(livreur.photo_cni_path ?? null);
             setExistingPhotoVehiculeUrl(livreur.photo_vehicule_url ?? null);
@@ -313,7 +326,34 @@ export function LivreurKycWizard() {
     if (step > 1) goToStep(step - 1);
   };
 
+  const hasMeaningfulChanges = () => {
+    if (data.photoProfil || data.photoCni || data.photoVehicule) return true;
+    const snap = originalSnapshotRef.current;
+    if (!snap) return true; // pas d'instantané connu (première soumission) → on soumet normalement
+    return (
+      data.nomComplet !== snap.nomComplet ||
+      data.typeVehicule !== snap.typeVehicule ||
+      data.plaqueImmatriculation !== snap.plaqueImmatriculation ||
+      data.quartier !== snap.quartier ||
+      data.commune !== snap.commune ||
+      data.mobileMoneyNetwork !== snap.mobileMoneyNetwork ||
+      data.mobileMoneyNumber !== snap.mobileMoneyNumber
+    );
+  };
+
   const handleSubmit = async () => {
+    // Dossier déjà soumis (en_attente/valide) rouvert via "Modifier mes
+    // informations" mais renvoyé sans aucun changement réel : on n'écrase pas
+    // le statut existant (surtout pas un compte déjà "valide") et on ne
+    // redéclenche pas le toast "Dossier envoyé !" pour rien.
+    const wasAlreadySubmitted = livreurStatut === "en_attente" || livreurStatut === "valide";
+    if (wasAlreadySubmitted && !hasMeaningfulChanges()) {
+      clearDraft();
+      setEditMode(false);
+      showToast("Aucune modification détectée — ton dossier reste inchangé.", "info");
+      return;
+    }
+
     setSubmitting(true);
     setError(null);
 

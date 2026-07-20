@@ -27,7 +27,10 @@ export function LivreurStatusBanner({ statut, raisonRejet }: LivreurStatusBanner
             : "rgba(254, 242, 242, 0.85)",
         }}
       >
-        <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-2.5">
+        <Link
+          href="/livreur/kyc"
+          className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-2.5"
+        >
           <div
             className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
               isPending ? "bg-amber-100" : "bg-red-100"
@@ -50,16 +53,15 @@ export function LivreurStatusBanner({ statut, raisonRejet }: LivreurStatusBanner
               : `Vérification refusée${raisonRejet ? ` — ${raisonRejet}` : "."}`}
           </p>
 
-          {!isPending && (
-            <Link
-              href="/livreur/kyc"
-              className="flex items-center gap-1 text-[13px] font-semibold text-red-700 hover:text-red-800 transition-colors shrink-0 whitespace-nowrap"
-            >
-              Corriger
-              <ArrowRight size={13} />
-            </Link>
-          )}
-        </div>
+          <span
+            className={`flex items-center gap-1 text-[13px] font-semibold shrink-0 whitespace-nowrap ${
+              isPending ? "text-amber-700" : "text-red-700"
+            }`}
+          >
+            {isPending ? "Voir" : "Corriger"}
+            <ArrowRight size={13} />
+          </span>
+        </Link>
       </motion.div>
     </AnimatePresence>
   );

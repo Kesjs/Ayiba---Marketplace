@@ -451,7 +451,7 @@ export function LivreurKycWizard() {
   if (showStatusScreen) {
     const isValide = livreurStatut === "valide";
     return (
-      <div className="h-dvh bg-gray-50 flex flex-col overflow-hidden">
+      <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
         <LogoutConfirmModal
           open={showLogoutModal}
           onConfirm={confirmLogoutAndGoHome}

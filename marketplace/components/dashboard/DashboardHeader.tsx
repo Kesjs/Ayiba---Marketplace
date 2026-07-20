@@ -5,8 +5,10 @@ import { Bell, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { NotificationsDropdown, type Notification } from "./NotificationsDropdown";
+import { AccountDropdown, type AccountLink } from "./AccountDropdown";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 
-export type { Notification };
+export type { Notification, AccountLink };
 
 interface DashboardHeaderProps {
   boutiqueName?: string;
@@ -18,6 +20,7 @@ interface DashboardHeaderProps {
   notificationsCount?: number;
   notifications?: Notification[];
   onBoutiqueClick?: () => void;
+  /** Utilisé seulement si `accountLinks` n'est pas fourni : clic direct sans menu. */
   onAvatarClick?: () => void;
   onBellClick?: () => void;
   backHref?: string;
@@ -26,6 +29,13 @@ interface DashboardHeaderProps {
    * qui porte déjà le logo, est masqué). Le dashboard du rôle plutôt que
    * "/" pour éviter un aller-retour inutile par la home publique. */
   logoHref?: string;
+  /** Sous-titre affiché dans le menu compte (ex: nom de la boutique, "Livreur Ayiba"). */
+  accountSubtitle?: string;
+  /** Si fourni (et non vide), le clic sur l'avatar ouvre un menu déroulant
+   * (identité + ces liens + déconnexion) au lieu d'appeler `onAvatarClick`. */
+  accountLinks?: AccountLink[];
+  /** Appelé après confirmation dans la modale de déconnexion. */
+  onLogout?: () => void | Promise<void>;
 }
 
 export function DashboardHeader({
@@ -43,12 +53,20 @@ export function DashboardHeader({
   backHref,
   backLabel,
   logoHref = "/",
+  accountSubtitle,
+  accountLinks,
+  onLogout,
 }: DashboardHeaderProps) {
   const [showNotifs, setShowNotifs] = useState(false);
-  // Deux instances de la cloche (bande unique mobile/tablette, ligne desktop réel)
-  // coexistent dans le DOM ; chacune a son propre conteneur pour le clic-dehors.
+  const [showAccount, setShowAccount] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  // Deux instances (bande unique mobile/tablette, ligne desktop réel)
+  // coexistent dans le DOM ; chaque grappe cloche+avatar a son propre
+  // conteneur pour le clic-dehors, qui referme les deux menus à la fois.
   const topBarRef = useRef<HTMLDivElement>(null);
   const desktopRef = useRef<HTMLDivElement>(null);
+
+  const hasAccountMenu = !!accountLinks && accountLinks.length > 0;
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -57,21 +75,42 @@ export function DashboardHeader({
       const insideDesktop = desktopRef.current?.contains(target);
       if (!insideTopBar && !insideDesktop) {
         setShowNotifs(false);
+        setShowAccount(false);
       }
     }
-    if (showNotifs) {
+    if (showNotifs || showAccount) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showNotifs]);
+  }, [showNotifs, showAccount]);
 
   const initials = fullName
     ? fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : "?";
 
   function handleBellClick() {
+    setShowAccount(false);
     setShowNotifs((v) => !v);
     onBellClick?.();
+  }
+
+  function handleAvatarClick() {
+    if (hasAccountMenu) {
+      setShowNotifs(false);
+      setShowAccount((v) => !v);
+    } else {
+      onAvatarClick?.();
+    }
+  }
+
+  function handleLogoutClick() {
+    setShowAccount(false);
+    setShowLogoutConfirm(true);
+  }
+
+  async function confirmLogout() {
+    setShowLogoutConfirm(false);
+    await onLogout?.();
   }
 
   return (
@@ -87,8 +126,8 @@ export function DashboardHeader({
           <LogoAyiba className="h-6 w-auto" />
         </Link>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="relative" ref={topBarRef}>
+        <div className="flex items-center gap-2 shrink-0" ref={topBarRef}>
+          <div className="relative">
             <button
               onClick={handleBellClick}
               className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
@@ -107,17 +146,30 @@ export function DashboardHeader({
             )}
           </div>
 
-          <button
-            onClick={onAvatarClick}
-            className="w-9 h-9 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0"
-            aria-label="Profil"
-          >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={fullName || "Avatar"} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xs font-bold text-gray-500">{initials}</span>
+          <div className="relative">
+            <button
+              onClick={handleAvatarClick}
+              className="w-9 h-9 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0"
+              aria-label="Profil"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={fullName || "Avatar"} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-gray-500">{initials}</span>
+              )}
+            </button>
+
+            {showAccount && hasAccountMenu && (
+              <AccountDropdown
+                fullName={fullName}
+                avatarUrl={avatarUrl}
+                subtitle={accountSubtitle}
+                links={accountLinks!}
+                onLogoutClick={handleLogoutClick}
+                onClose={() => setShowAccount(false)}
+              />
             )}
-          </button>
+          </div>
         </div>
       </div>
 
@@ -169,8 +221,8 @@ export function DashboardHeader({
           </h1>
         )}
 
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="relative" ref={desktopRef}>
+        <div className="flex items-center gap-2 shrink-0" ref={desktopRef}>
+          <div className="relative">
             <button
               onClick={handleBellClick}
               className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
@@ -189,19 +241,38 @@ export function DashboardHeader({
             )}
           </div>
 
-          <button
-            onClick={onAvatarClick}
-            className="w-9 h-9 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0"
-            aria-label="Profil"
-          >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt={fullName || "Avatar"} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xs font-bold text-gray-500">{initials}</span>
+          <div className="relative">
+            <button
+              onClick={handleAvatarClick}
+              className="w-9 h-9 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0"
+              aria-label="Profil"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={fullName || "Avatar"} className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs font-bold text-gray-500">{initials}</span>
+              )}
+            </button>
+
+            {showAccount && hasAccountMenu && (
+              <AccountDropdown
+                fullName={fullName}
+                avatarUrl={avatarUrl}
+                subtitle={accountSubtitle}
+                links={accountLinks!}
+                onLogoutClick={handleLogoutClick}
+                onClose={() => setShowAccount(false)}
+              />
             )}
-          </button>
+          </div>
         </div>
       </div>
+
+      <LogoutConfirmModal
+        open={showLogoutConfirm}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
     </header>
   );
 }

@@ -1,6 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useUser } from "@/lib/hooks/useUser";
+import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
+import { ClientDashboardHeader } from "@/components/client/ClientDashboardHeader";
 import {
   User,
   Heart,
@@ -81,9 +85,22 @@ const SECTIONS: MenuSection[] = [
 ];
 
 export default function MenuPage() {
+  const router = useRouter();
+  const { profile } = useUser();
+  const badges = useBadgeCounts(profile?.id, 'client');
+
   return (
-    <main className="min-h-screen bg-gray-50/30 px-4 md:px-8 py-6 md:py-10 max-w-2xl mx-auto w-full">
-      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight mb-6">Menu</h1>
+    <main className="min-h-screen bg-gray-50/30">
+      <ClientDashboardHeader
+        title="Menu"
+        avatarUrl={profile?.avatar_url}
+        fullName={profile?.full_name || undefined}
+        notificationsCount={badges.notifications}
+        notifications={badges.notificationsList}
+        onAvatarClick={() => router.push('/profil')}
+        logoHref="/accueil"
+      />
+      <div className="px-4 md:px-8 py-6 md:py-10 max-w-2xl mx-auto w-full">
 
       {/* Décision 5 : point d'entrée "devenir partenaire" pour un client déjà
           connecté — même contenu visuel que le menu partenaire guest. */}
@@ -142,6 +159,7 @@ export default function MenuPage() {
           </div>
         </div>
       ))}
+      </div>
     </main>
   );
 }

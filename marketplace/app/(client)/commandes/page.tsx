@@ -10,17 +10,18 @@ import { StatusBadge } from '@/components/ui/StatusBadge'
 interface Order {
   id: string
   statut: string
-  statut_paiement: string
   created_at: string
-  product: {
-    nom: string
-    photos: string[]
-    prix: number
-  }
+  commande_articles: {
+    quantite: number
+    article: {
+      nom: string
+      prix: number
+      article_images: { image_url: string }[]
+    }
+  }[]
   vendeur: {
-    full_name: string
+    nom_boutique: string
   }
-  quantite: number
   montant_total: number
   otp_livraison: string
   otp_confirme: boolean
@@ -42,7 +43,8 @@ export default function CommandesPage() {
 
   useEffect(() => {
     fetchOrders()
-    setupRealtime()
+    const cleanup = setupRealtime()
+    return cleanup
   }, [activeTab])
 
   const fetchOrders = async () => {
@@ -52,19 +54,22 @@ export default function CommandesPage() {
       if (!user) return
 
       let query = supabase
-        .from('orders')
+        .from('commandes')
         .select(`
           *,
-          product:products(nom, photos, prix),
-          vendeur:users(full_name)
+          commande_articles(
+            quantite,
+            article:articles(nom, prix, article_images(image_url))
+          ),
+          vendeur:vendeurs(nom_boutique)
         `)
         .eq('client_id', user.id)
         .order('created_at', { ascending: false })
 
       if (activeTab === 'active') {
-        query = query.in('statut', ['en_attente', 'payé', 'en_preparation', 'collecté', 'en_livraison'])
+        query = query.in('statut', ['en_attente', 'confirmee', 'preparee', 'expediee'])
       } else {
-        query = query.in('statut', ['livré', 'annulé'])
+        query = query.in('statut', ['livree', 'annulee', 'remboursee'])
       }
 
       const { data, error } = await query
@@ -81,8 +86,8 @@ export default function CommandesPage() {
 
   const setupRealtime = () => {
     const channel = supabase
-      .channel('orders-client')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+      .channel('commandes-client')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'commandes' }, () => {
         fetchOrders()
       })
       .subscribe()
@@ -100,8 +105,8 @@ export default function CommandesPage() {
 
     try {
       const { error } = await supabase
-        .from('orders')
-        .update({ otp_confirme: true, statut: 'livré' })
+        .from('commandes')
+        .update({ otp_confirme: true, statut: 'livree' })
         .eq('id', selectedOrder.id)
 
       if (error) throw error
@@ -118,12 +123,12 @@ export default function CommandesPage() {
   const getStatusVariant = (statut: string): 'success' | 'pending' | 'error' | 'neutral' => {
     const statusMap: Record<string, 'success' | 'pending' | 'error' | 'neutral'> = {
       en_attente: 'pending',
-      payé: 'success',
-      en_preparation: 'pending',
-      collecté: 'pending',
-      en_livraison: 'pending',
-      livré: 'success',
-      annulé: 'error'
+      confirmee: 'success',
+      preparee: 'pending',
+      expediee: 'pending',
+      livree: 'success',
+      annulee: 'error',
+      remboursee: 'error'
     }
     return statusMap[statut] || 'neutral'
   }
@@ -141,7 +146,7 @@ export default function CommandesPage() {
       const { error } = await supabase
         .from('disputes')
         .insert({
-          order_id: selectedOrder.id,
+          commande_id: selectedOrder.id,
           client_id: user.id,
           motif: disputeReason
         })
@@ -159,11 +164,10 @@ export default function CommandesPage() {
   const getStatusSteps = (statut: string) => {
     const steps = [
       { key: 'en_attente', label: 'En attente' },
-      { key: 'payé', label: 'Payé' },
-      { key: 'en_preparation', label: 'Préparation' },
-      { key: 'collecté', label: 'Collecté' },
-      { key: 'en_livraison', label: 'En livraison' },
-      { key: 'livré', label: 'Livré' }
+      { key: 'confirmee', label: 'Confirmée' },
+      { key: 'preparee', label: 'Préparation' },
+      { key: 'expediee', label: 'Expédiée' },
+      { key: 'livree', label: 'Livrée' }
     ]
 
     const currentIndex = steps.findIndex(s => s.key === statut)
@@ -175,12 +179,10 @@ export default function CommandesPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header */}
       <header className="bg-white border-b border-gray-100 p-4">
         <h1 className="text-lg font-medium text-gray-900">Mes commandes</h1>
       </header>
 
-      {/* Tabs */}
       <div className="bg-white border-b border-gray-100">
         <div className="flex">
           <button
@@ -206,7 +208,6 @@ export default function CommandesPage() {
         </div>
       </div>
 
-      {/* Orders List */}
       <div className="flex-1 p-4">
         {loading ? (
           <div className="space-y-4">
@@ -223,86 +224,88 @@ export default function CommandesPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="bg-white border border-gray-100 rounded-lg p-5">
-                <div className="flex gap-4 mb-4">
-                  <img
-                    src={order.product.photos[0] || ''}
-                    alt={order.product.nom}
-                    className="w-14 h-14 object-cover rounded-lg"
-                  />
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-gray-900 mb-1">{order.product.nom}</h3>
-                    <p className="text-xs text-gray-500 mb-1">{order.vendeur.full_name}</p>
-                    <p className="text-sm font-medium text-coral-400">
-                      {order.montant_total.toLocaleString()} FCFA
-                    </p>
-                  </div>
-                  <StatusBadge variant={getStatusVariant(order.statut)}>{order.statut}</StatusBadge>
-                </div>
+            {orders.map((order) => {
+              const firstItem = order.commande_articles?.[0]
+              const article = firstItem?.article
+              const photo = article?.article_images?.[0]?.image_url || ''
 
-                {activeTab === 'active' && (
-                  <>
-                    {/* Timeline */}
-                    <div className="flex items-center justify-between mb-4 overflow-x-auto pb-2">
-                      {getStatusSteps(order.statut).map((step, index) => (
-                        <div key={step.key} className="flex flex-col items-center min-w-[60px]">
-                          <div
-                            className={`w-3 h-3 rounded-full ${
-                              step.status === 'past'
-                                ? 'bg-teal-400'
-                                : step.status === 'current'
-                                ? 'bg-coral-400 animate-pulse'
-                                : 'bg-gray-100'
-                            }`}
-                          />
-                          <span className="text-[11px] text-gray-600 mt-1">{step.label}</span>
-                        </div>
-                      ))}
+              return (
+                <div key={order.id} className="bg-white border border-gray-100 rounded-lg p-5">
+                  <div className="flex gap-4 mb-4">
+                    <img
+                      src={photo}
+                      alt={article?.nom || ''}
+                      className="w-14 h-14 object-cover rounded-lg"
+                    />
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-gray-900 mb-1">{article?.nom}</h3>
+                      <p className="text-xs text-gray-500 mb-1">{order.vendeur?.nom_boutique}</p>
+                      <p className="text-sm font-medium text-coral-400">
+                        {order.montant_total.toLocaleString()} FCFA
+                      </p>
                     </div>
+                    <StatusBadge variant={getStatusVariant(order.statut)}>{order.statut}</StatusBadge>
+                  </div>
 
-                    {/* Delivery Map (if en_livraison) */}
-                    {order.statut === 'en_livraison' && order.livreur_latitude && order.livreur_longitude && (
-                      <div className="bg-gray-50 rounded-lg h-40 mb-4 flex items-center justify-center">
-                        <p className="text-sm text-gray-600">Carte de livraison en temps réel</p>
+                  {activeTab === 'active' && (
+                    <>
+                      <div className="flex items-center justify-between mb-4 overflow-x-auto pb-2">
+                        {getStatusSteps(order.statut).map((step) => (
+                          <div key={step.key} className="flex flex-col items-center min-w-[60px]">
+                            <div
+                              className={`w-3 h-3 rounded-full ${
+                                step.status === 'past'
+                                  ? 'bg-teal-400'
+                                  : step.status === 'current'
+                                  ? 'bg-coral-400 animate-pulse'
+                                  : 'bg-gray-100'
+                              }`}
+                            />
+                            <span className="text-[11px] text-gray-600 mt-1">{step.label}</span>
+                          </div>
+                        ))}
                       </div>
-                    )}
 
-                    {/* Actions */}
-                    <div className="flex gap-3">
-                      {order.statut === 'en_livraison' && !order.otp_confirme && (
+                      {order.statut === 'expediee' && order.livreur_latitude && order.livreur_longitude && (
+                        <div className="bg-gray-50 rounded-lg h-40 mb-4 flex items-center justify-center">
+                          <p className="text-sm text-gray-600">Carte de livraison en temps réel</p>
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
+                        {order.statut === 'expediee' && !order.otp_confirme && (
+                          <Button
+                            variant="primary"
+                            className="flex-1"
+                            onClick={() => {
+                              setSelectedOrder(order)
+                              setShowOtpModal(true)
+                            }}
+                          >
+                            Confirmer la réception
+                          </Button>
+                        )}
                         <Button
-                          variant="primary"
-                          className="flex-1"
+                          variant="secondary"
+                          className="flex items-center gap-2"
                           onClick={() => {
                             setSelectedOrder(order)
-                            setShowOtpModal(true)
+                            setShowDisputeModal(true)
                           }}
                         >
-                          Confirmer la réception
+                          <i className="ti ti-alert-triangle text-amber-400" />
+                          Signaler un problème
                         </Button>
-                      )}
-                      <Button
-                        variant="secondary"
-                        className="flex items-center gap-2"
-                        onClick={() => {
-                          setSelectedOrder(order)
-                          setShowDisputeModal(true)
-                        }}
-                      >
-                        <i className="ti ti-alert-triangle text-amber-400" />
-                        Signaler un problème
-                      </Button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
 
-      {/* OTP Modal */}
       {showOtpModal && selectedOrder && (
         <Modal
           isOpen={showOtpModal}
@@ -329,7 +332,6 @@ export default function CommandesPage() {
         </Modal>
       )}
 
-      {/* Dispute Modal */}
       {showDisputeModal && (
         <Modal
           isOpen={showDisputeModal}

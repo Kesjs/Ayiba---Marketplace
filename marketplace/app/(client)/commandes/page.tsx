@@ -6,6 +6,8 @@ import { useToast } from '@/context/ToastContext'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { QrScannerModal } from '@/components/scanner/QrScannerModal'
+import { QrCode, Keyboard } from 'lucide-react'
 
 interface Order {
   id: string
@@ -34,7 +36,8 @@ export default function CommandesPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'active' | 'history'>('active')
-  const [showOtpModal, setShowOtpModal] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmMode, setConfirmMode] = useState<'choice' | 'scan' | 'manual'>('choice')
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [otpInput, setOtpInput] = useState('')
@@ -98,27 +101,24 @@ export default function CommandesPage() {
     }
   }
 
-  const handleConfirmDelivery = async () => {
-    if (!selectedOrder || otpInput.length !== 6) {
-      showToast('Veuillez entrer un code à 6 chiffres', 'error')
-      return
-    }
+  const confirmDelivery = async (code: string) => {
+    if (!selectedOrder) return
 
     setConfirming(true)
     try {
       const { error } = await supabase.rpc('client_confirmer_livraison', {
         p_commande_id: selectedOrder.id,
-        p_code: otpInput,
+        p_code: code,
       })
 
       if (error) {
-        showToast(error.message || 'Erreur lors de la confirmation', 'error')
+        showToast(error.message || 'Code incorrect ou expiré', 'error')
+        setConfirmMode('choice')
         return
       }
 
       showToast('Livraison confirmée', 'success')
-      setShowOtpModal(false)
-      setOtpInput('')
+      closeConfirmModal()
       fetchOrders()
     } catch (error) {
       console.error('Error confirming delivery:', error)
@@ -126,6 +126,24 @@ export default function CommandesPage() {
     } finally {
       setConfirming(false)
     }
+  }
+
+  const handleManualConfirm = () => {
+    if (otpInput.length !== 6) {
+      showToast('Veuillez entrer un code à 6 chiffres', 'error')
+      return
+    }
+    confirmDelivery(otpInput)
+  }
+
+  const handleQrScan = (decodedText: string) => {
+    confirmDelivery(decodedText)
+  }
+
+  const closeConfirmModal = () => {
+    setShowConfirmModal(false)
+    setConfirmMode('choice')
+    setOtpInput('')
   }
 
   const getStatusVariant = (statut: string): 'success' | 'pending' | 'error' | 'neutral' => {
@@ -287,7 +305,8 @@ export default function CommandesPage() {
                             className="flex-1"
                             onClick={() => {
                               setSelectedOrder(order)
-                              setShowOtpModal(true)
+                              setConfirmMode('choice')
+                              setShowConfirmModal(true)
                             }}
                           >
                             Confirmer la réception
@@ -314,15 +333,41 @@ export default function CommandesPage() {
         )}
       </div>
 
-      {showOtpModal && selectedOrder && (
-        <Modal
-          isOpen={showOtpModal}
-          onClose={() => {
-            setShowOtpModal(false)
-            setOtpInput('')
-          }}
-          title="Confirmer la réception"
-        >
+      {/* Choix : scanner ou saisie manuelle */}
+      {showConfirmModal && selectedOrder && confirmMode === 'choice' && (
+        <Modal isOpen={showConfirmModal} onClose={closeConfirmModal} title="Confirmer la réception">
+          <div className="space-y-3">
+            <p className="text-sm text-gray-600 mb-4">
+              Demande au livreur d'afficher son QR code, ou entre le code de secours à 6 chiffres.
+            </p>
+            <button
+              onClick={() => setConfirmMode('scan')}
+              className="w-full h-14 rounded-xl border border-gray-200 flex items-center gap-3 px-4 hover:bg-gray-50 transition-colors"
+            >
+              <QrCode className="text-coral-400" size={22} />
+              <span className="font-medium text-gray-900">Scanner le QR code</span>
+            </button>
+            <button
+              onClick={() => setConfirmMode('manual')}
+              className="w-full h-14 rounded-xl border border-gray-200 flex items-center gap-3 px-4 hover:bg-gray-50 transition-colors"
+            >
+              <Keyboard className="text-coral-400" size={22} />
+              <span className="font-medium text-gray-900">Entrer le code manuellement</span>
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Scanner caméra */}
+      <QrScannerModal
+        isOpen={showConfirmModal && confirmMode === 'scan'}
+        onClose={closeConfirmModal}
+        onScan={handleQrScan}
+      />
+
+      {/* Saisie manuelle */}
+      {showConfirmModal && confirmMode === 'manual' && (
+        <Modal isOpen={showConfirmModal} onClose={closeConfirmModal} title="Code de secours">
           <div className="space-y-4">
             <p className="text-sm text-gray-600">Entrez le code de livraison à 6 chiffres</p>
             <input
@@ -334,12 +379,7 @@ export default function CommandesPage() {
               placeholder="000000"
               inputMode="numeric"
             />
-            <Button
-              variant="primary"
-              className="w-full"
-              onClick={handleConfirmDelivery}
-              disabled={confirming}
-            >
+            <Button variant="primary" className="w-full" onClick={handleManualConfirm} disabled={confirming}>
               {confirming ? 'Vérification...' : 'Valider'}
             </Button>
           </div>

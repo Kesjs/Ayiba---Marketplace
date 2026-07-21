@@ -159,6 +159,19 @@ export default function CommandesPage() {
     return statusMap[statut] || 'neutral'
   }
 
+  const getStatusLabel = (statut: string): string => {
+    const labelMap: Record<string, string> = {
+      en_attente: 'En attente',
+      confirmee: 'Confirmée',
+      preparee: 'Préparation',
+      expediee: 'Expédiée',
+      livree: 'Livrée',
+      annulee: 'Annulée',
+      remboursee: 'Remboursée'
+    }
+    return labelMap[statut] || statut
+  }
+
   const handleOpenDispute = async () => {
     if (!selectedOrder || !disputeReason) {
       showToast('Veuillez renseigner le motif', 'warning')
@@ -261,7 +274,7 @@ export default function CommandesPage() {
                     <img
                       src={photo}
                       alt={article?.nom || ''}
-                      className="w-14 h-14 object-cover rounded-lg"
+                      className="w-14 h-14 object-cover rounded-lg bg-gray-50"
                     />
                     <div className="flex-1">
                       <h3 className="text-sm font-medium text-gray-900 mb-1">{article?.nom}</h3>
@@ -270,7 +283,9 @@ export default function CommandesPage() {
                         {order.montant_total.toLocaleString()} FCFA
                       </p>
                     </div>
-                    <StatusBadge variant={getStatusVariant(order.statut)}>{order.statut}</StatusBadge>
+                    <StatusBadge variant={getStatusVariant(order.statut)}>
+                      {getStatusLabel(order.statut)}
+                    </StatusBadge>
                   </div>
 
                   {activeTab === 'active' && (
@@ -333,7 +348,6 @@ export default function CommandesPage() {
         )}
       </div>
 
-      {/* Choix : scanner ou saisie manuelle */}
       {showConfirmModal && selectedOrder && confirmMode === 'choice' && (
         <Modal isOpen={showConfirmModal} onClose={closeConfirmModal} title="Confirmer la réception">
           <div className="space-y-3">
@@ -358,14 +372,12 @@ export default function CommandesPage() {
         </Modal>
       )}
 
-      {/* Scanner caméra */}
       <QrScannerModal
         isOpen={showConfirmModal && confirmMode === 'scan'}
         onClose={closeConfirmModal}
         onScan={handleQrScan}
       />
 
-      {/* Saisie manuelle */}
       {showConfirmModal && confirmMode === 'manual' && (
         <Modal isOpen={showConfirmModal} onClose={closeConfirmModal} title="Code de secours">
           <div className="space-y-4">

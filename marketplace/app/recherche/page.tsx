@@ -8,6 +8,7 @@ import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
+import { AuthModal } from '@/components/ui/AuthModal'
 import { createClient } from '@/lib/supabase/client'
 import {
   ARTICLE_CARD_SELECT,
@@ -35,6 +36,7 @@ function SearchResults() {
   const [loading, setLoading] = useState(true)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -107,8 +109,7 @@ function SearchResults() {
 
   const handleToggleFavorite = async (productId: string) => {
     if (!userId) {
-      showToast('Connectez-vous pour ajouter aux favoris', 'warning')
-      router.push('/auth/inscription')
+      setAuthModalOpen(true)
       return
     }
     const isFav = favoriteIds.has(productId)
@@ -219,6 +220,12 @@ function SearchResults() {
           ))}
         </div>
       )}
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        intendedRole={null}
+      />
     </div>
   )
 }

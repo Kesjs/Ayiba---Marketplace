@@ -2,25 +2,24 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useCart } from '@/context/CartContext'
-import { ProductCard } from '@/components/ui/ProductCard'
+import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
 import { useUser } from '@/lib/hooks/useUser'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
-
-interface Product {
-  id: string
-  nom: string
-  description: string
-  prix: number
-  ancien_prix: number | null
-  categorie: string
-  photos: string[]
-  vendeur_id: string
-}
+import {
+  ARTICLE_CARD_SELECT,
+  ArticleCard,
+  ArticleCardRow,
+  fetchArticleRatings,
+  fetchFavoriteIds,
+  mapArticleRow,
+  toggleFavorite,
+} from '@/lib/catalogue'
 
 export default function FavorisPage() {
   const router = useRouter()
@@ -30,29 +29,38 @@ export default function FavorisPage() {
   const { showToast } = useToast()
   const { addItem } = useCart()
 
-  const [products, setProducts] = useState<Product[]>([])
+  const [products, setProducts] = useState<ArticleCard[]>([])
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchFavorites()
-  }, [])
+    if (profile) {
+      fetchFavorites()
+    }
+  }, [profile?.id])
 
   const fetchFavorites = async () => {
+    if (!profile) return
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      const ids = await fetchFavoriteIds(supabase, profile.id)
+      setFavoriteIds(ids)
+
+      if (ids.size === 0) {
+        setProducts([])
+        return
+      }
 
       const { data, error } = await supabase
-        .from('favorites')
-        .select(`
-          product:products(*)
-        `)
-        .eq('user_id', user.id)
+        .from('articles')
+        .select(ARTICLE_CARD_SELECT)
+        .in('id', Array.from(ids))
 
       if (error) throw error
 
-      setProducts(data?.map((f: any) => f.product).filter(Boolean) || [])
+      const rows = (data || []) as unknown as ArticleCardRow[]
+      const ratings = await fetchArticleRatings(supabase, rows.map((r) => r.id))
+      setProducts(rows.map((r) => mapArticleRow(r, ratings)))
     } catch (error) {
       console.error('Error fetching favorites:', error)
       showToast('Erreur lors du chargement des favoris', 'error')
@@ -61,38 +69,32 @@ export default function FavorisPage() {
     }
   }
 
-  const handleAddToCart = (product: Product) => {
+  const handleAddToCart = (product: ArticleCard) => {
     addItem({
       id: product.id,
       nom: product.nom,
       prix: product.prix,
       vendeur_id: product.vendeur_id,
-      photos: product.photos
+      photos: product.photos,
     })
     showToast('Ajouté au panier', 'success')
   }
 
   const handleToggleFavorite = async (productId: string) => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data: existing } = await supabase
-        .from('favorites')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('product_id', productId)
-        .single()
-
-      if (existing) {
-        await supabase.from('favorites').delete().eq('id', existing.id)
-        showToast('Retiré des favoris', 'info')
-        fetchFavorites()
-      }
-    } catch (error) {
-      console.error('Error toggling favorite:', error)
-      showToast('Erreur lors de la modification des favoris', 'error')
+    if (!profile) return
+    const isFav = favoriteIds.has(productId)
+    const nowFav = await toggleFavorite(supabase, profile.id, productId, isFav)
+    setFavoriteIds((prev) => {
+      const next = new Set(prev)
+      if (nowFav) next.add(productId)
+      else next.delete(productId)
+      return next
+    })
+    if (!nowFav) {
+      // Retiré : on l'enlève aussi de la liste affichée sans tout recharger.
+      setProducts((prev) => prev.filter((p) => p.id !== productId))
     }
+    showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
   }
 
   return (
@@ -111,7 +113,7 @@ export default function FavorisPage() {
       {/* Product List */}
       <div className="flex-1 p-4">
         {loading ? (
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-4">
             {[...Array(4)].map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
@@ -122,21 +124,22 @@ export default function FavorisPage() {
             <p className="text-gray-600 mb-4">Aucun favori pour le moment</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-4">
             {products.map((product) => (
-              <ProductCard
-                key={product.id}
-                image={product.photos[0] || ''}
-                category={product.categorie}
-                name={product.nom}
-                rating={4.5}
-                reviewCount={12}
-                price={product.prix}
-                oldPrice={product.ancien_prix || undefined}
-                onAddToCart={() => handleAddToCart(product)}
-                onToggleFavorite={() => handleToggleFavorite(product.id)}
-                onClick={() => router.push(`/produits/${product.id}`)}
-              />
+              <Link key={product.id} href={`/produits/${product.id}`} className="block">
+                <ProductCardModern
+                  image={product.photos[0] || ''}
+                  category={product.categorieLabel}
+                  name={product.nom}
+                  rating={product.rating}
+                  reviewCount={product.reviewCount}
+                  price={product.prix}
+                  oldPrice={product.ancien_prix ?? undefined}
+                  isFavorite={favoriteIds.has(product.id)}
+                  onAddToCart={() => handleAddToCart(product)}
+                  onToggleFavorite={() => handleToggleFavorite(product.id)}
+                />
+              </Link>
             ))}
           </div>
         )}

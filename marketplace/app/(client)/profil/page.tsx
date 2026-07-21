@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useUser } from '@/lib/hooks/useUser'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { LogoutConfirmModal } from '@/components/ui/LogoutConfirmModal'
+import { SettingsToggle } from '@/components/settings/SettingsForm'
 
 interface Address {
   id: string
@@ -56,6 +58,8 @@ export default function ProfilPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false)
+  const [savingNotif, setSavingNotif] = useState<string | null>(null)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [newAddress, setNewAddress] = useState({
     label: 'domicile',
@@ -66,6 +70,35 @@ export default function ProfilPage() {
     est_defaut: false
   })
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null)
+
+  const [notifPrefs, setNotifPrefs] = useState({ notif_push: false, notif_whatsapp: false, notif_email: false })
+
+  useEffect(() => {
+    if (profile) {
+      setNotifPrefs({
+        notif_push: profile.notif_push,
+        notif_whatsapp: profile.notif_whatsapp,
+        notif_email: profile.notif_email,
+      })
+    }
+  }, [profile])
+
+  const handleToggleNotif = async (key: 'notif_push' | 'notif_whatsapp' | 'notif_email', value: boolean) => {
+    if (!profile) return
+    const previous = notifPrefs[key]
+    setNotifPrefs((prev) => ({ ...prev, [key]: value }))
+    setSavingNotif(key)
+    try {
+      const { error } = await supabase.from('users').update({ [key]: value }).eq('id', profile.id)
+      if (error) throw error
+    } catch (error) {
+      console.error('Error updating notification preference:', error)
+      setNotifPrefs((prev) => ({ ...prev, [key]: previous }))
+      showToast('Erreur lors de la mise à jour', 'error')
+    } finally {
+      setSavingNotif(null)
+    }
+  }
 
   // ---- Sécurité / mot de passe ----
   const [showSecurityModal, setShowSecurityModal] = useState(false)
@@ -342,7 +375,10 @@ export default function ProfilPage() {
 
         {/* Settings */}
         <div className="bg-white border border-gray-100 rounded-lg divide-y divide-gray-100">
-          <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+          <button
+            onClick={() => setShowNotificationsModal(true)}
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
             <span className="text-sm text-gray-900">Notifications</span>
             <i className="ti ti-chevron-right text-gray-400" />
           </button>
@@ -353,14 +389,24 @@ export default function ProfilPage() {
             <span className="text-sm text-gray-900">Sécurité</span>
             <i className="ti ti-chevron-right text-gray-400" />
           </button>
-          <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+          <Link
+            href="/cgu"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
             <span className="text-sm text-gray-900">Conditions d'utilisation</span>
             <i className="ti ti-chevron-right text-gray-400" />
-          </button>
-          <button className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+          </Link>
+          <Link
+            href="/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+          >
             <span className="text-sm text-gray-900">Politique de confidentialité</span>
             <i className="ti ti-chevron-right text-gray-400" />
-          </button>
+          </Link>
         </div>
 
         {/* Logout */}
@@ -490,6 +536,32 @@ export default function ProfilPage() {
                 Supprimer
               </Button>
             </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Notifications Modal */}
+      {showNotificationsModal && (
+        <Modal isOpen={showNotificationsModal} onClose={() => setShowNotificationsModal(false)} title="Notifications">
+          <div className="space-y-1">
+            <SettingsToggle
+              label="Notifications push"
+              checked={notifPrefs.notif_push}
+              onChange={(v) => handleToggleNotif('notif_push', v)}
+              disabled={savingNotif === 'notif_push'}
+            />
+            <SettingsToggle
+              label="Alertes WhatsApp"
+              checked={notifPrefs.notif_whatsapp}
+              onChange={(v) => handleToggleNotif('notif_whatsapp', v)}
+              disabled={savingNotif === 'notif_whatsapp'}
+            />
+            <SettingsToggle
+              label="Notifications email"
+              checked={notifPrefs.notif_email}
+              onChange={(v) => handleToggleNotif('notif_email', v)}
+              disabled={savingNotif === 'notif_email'}
+            />
           </div>
         </Modal>
       )}

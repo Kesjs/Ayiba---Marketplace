@@ -23,7 +23,7 @@ export function LogoutConfirmModal({ open, onConfirm, onCancel }: LogoutConfirmM
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4"
           onClick={onCancel}
         >
           <motion.div

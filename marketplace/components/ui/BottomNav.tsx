@@ -161,6 +161,12 @@ export function BottomNav() {
           )}
         </AnimatePresence>
 
+        <LogoutConfirmModal
+          open={showLogoutModal}
+          onConfirm={confirmLogout}
+          onCancel={() => setShowLogoutModal(false)}
+        />
+
         {/* Nav pleine largeur, collée au bord, fond opaque — plus d'effet flottant */}
         <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden">
           <nav className="bg-white border-t border-gray-100 shadow-[0_-2px_16px_rgba(0,0,0,0.06)] flex items-center justify-around px-2 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">

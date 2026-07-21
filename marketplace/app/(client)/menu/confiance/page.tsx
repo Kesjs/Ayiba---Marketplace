@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { ArrowLeft, ShieldCheck, Lock, Smartphone, KeyRound, Fingerprint, ChevronRight } from "lucide-react";
@@ -68,13 +69,16 @@ export default function CentreConfiancePage() {
             </div>
           </div>
 
-          <button className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors">
+          <Link
+            href="/profil/parametres"
+            className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors"
+          >
             <KeyRound size={18} className="text-gray-400 shrink-0" />
             <div className="flex-1 text-left">
               <p className="text-sm font-semibold text-gray-800">Changer le mot de passe</p>
             </div>
             <ChevronRight size={16} className="text-gray-300" />
-          </button>
+          </Link>
 
           <div className="flex items-center gap-3 px-4 py-4 opacity-50">
             <Fingerprint size={18} className="text-gray-400 shrink-0" />

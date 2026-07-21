@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { LABELS_STATUT_COMMANDE, STATUT_STYLE, type StatutCommande } from "@/lib/constants/commandes";
 import { ConfirmationLivraisonModal } from "@/components/client/ConfirmationLivraisonModal";
+import { LaisserAvisCard, type AvisExistant } from "@/components/client/LaisserAvisCard";
 
 interface CommandeDetail {
   id: string;
@@ -28,8 +29,18 @@ interface CommandeDetail {
   adresse_livraison: string | null;
   commune: string | null;
   created_at: string;
+  livreur_id: string | null;
   vendeur: { nom_boutique: string | null; telephone: string | null } | null;
   livreur: { nom: string | null; telephone: string | null } | null;
+  commande_articles: {
+    article_id: string;
+    article: { nom: string } | { nom: string }[] | null;
+  }[];
+}
+
+function one<T>(rel: T | T[] | null | undefined): T | null {
+  if (!rel) return null;
+  return Array.isArray(rel) ? rel[0] ?? null : rel;
 }
 
 const ETAPES: { statut: StatutCommande; label: string }[] = [
@@ -53,15 +64,18 @@ export default function CommandeDetailPage() {
   const [commande, setCommande] = useState<CommandeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [modalOuvert, setModalOuvert] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [avisMap, setAvisMap] = useState<Record<string, AvisExistant>>({});
 
   const charger = useCallback(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        `id, numero, statut, montant_total, frais_livraison, adresse_livraison, commune, created_at,
+        `id, numero, statut, montant_total, frais_livraison, adresse_livraison, commune, created_at, livreur_id,
          vendeur:vendeurs ( nom_boutique, telephone ),
-         livreur:users!commandes_livreur_id_fkey ( nom, telephone )`
+         livreur:users!commandes_livreur_id_fkey ( nom, telephone ),
+         commande_articles ( article_id, article:articles ( nom ) )`
       )
       .eq("id", params.id)
       .single();
@@ -93,6 +107,39 @@ export default function CommandeDetailPage() {
       supabase.removeChannel(channel);
     };
   }, [supabase, params.id, charger]);
+
+  // Charge l'utilisateur courant + ses avis déjà déposés sur cette commande
+  // (pour afficher "Modifier mon avis" plutôt que de risquer un doublon —
+  // la table avis n'a pas de contrainte unique côté base).
+  useEffect(() => {
+    if (!commande || commande.statut !== "livree") return;
+
+    const chargerAvis = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
+
+      const { data, error } = await supabase
+        .from("avis")
+        .select("id, note, commentaire, article_id, livreur_id")
+        .eq("commande_id", commande.id)
+        .eq("utilisateur_id", user.id);
+
+      if (error) {
+        console.error("Error fetching avis existants:", error);
+        return;
+      }
+
+      const map: Record<string, AvisExistant> = {};
+      (data || []).forEach((a: any) => {
+        const key = a.article_id ? `article:${a.article_id}` : `livreur:${a.livreur_id}`;
+        map[key] = { id: a.id, note: a.note, commentaire: a.commentaire };
+      });
+      setAvisMap(map);
+    };
+
+    chargerAvis();
+  }, [commande, supabase]);
 
   if (loading) {
     return (
@@ -238,6 +285,46 @@ export default function CommandeDetailPage() {
             <button className="flex items-center justify-center gap-2 h-11 border border-gray-200 rounded-xl text-sm font-bold text-gray-700">
               <Phone size={16} /> Appeler
             </button>
+          </div>
+        )}
+
+        {/* Laisser un avis — uniquement une fois la commande livrée. */}
+        {commande.statut === "livree" && userId && (
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-1">
+              Ton avis
+            </h2>
+            <div className="space-y-3">
+              {commande.commande_articles?.map((ca) => {
+                const article = one(ca.article);
+                const key = `article:${ca.article_id}`;
+                return (
+                  <LaisserAvisCard
+                    key={key}
+                    type="article"
+                    cibleId={ca.article_id}
+                    label={article?.nom || "Produit"}
+                    commandeId={commande.id}
+                    userId={userId}
+                    avisExistant={avisMap[key] || null}
+                    onSaved={(avis) => setAvisMap((prev) => ({ ...prev, [key]: avis }))}
+                  />
+                );
+              })}
+              {commande.livreur_id && commande.livreur?.nom && (
+                <LaisserAvisCard
+                  type="livreur"
+                  cibleId={commande.livreur_id}
+                  label={commande.livreur.nom}
+                  commandeId={commande.id}
+                  userId={userId}
+                  avisExistant={avisMap[`livreur:${commande.livreur_id}`] || null}
+                  onSaved={(avis) =>
+                    setAvisMap((prev) => ({ ...prev, [`livreur:${commande.livreur_id}`]: avis }))
+                  }
+                />
+              )}
+            </div>
           </div>
         )}
 

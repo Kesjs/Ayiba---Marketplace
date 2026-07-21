@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { validateBeninPhone } from "@/lib/validation";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -118,6 +119,8 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [nomComplet, setNomComplet] = useState("");
+  const [telephone, setTelephone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -128,6 +131,10 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
   const [resending, setResending] = useState(false);
 
   const roleConfig = getRoleConfig(intendedRole);
+  // Seul le client n'a pas d'étape KYC après l'inscription pour recueillir
+  // son nom — vendeur/livreur le referont dans leur wizard, pas la peine
+  // de le redemander ici.
+  const isClientSignup = mode === "inscription" && !intendedRole;
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -170,6 +177,8 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
     setError(null);
     setPassword("");
     setConfirmPassword("");
+    setNomComplet("");
+    setTelephone("");
   };
 
   const switchMode = (m: Mode) => {
@@ -206,6 +215,14 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         if (password.length < 6) return setError("Le mot de passe doit contenir au moins 6 caractères");
       }
 
+      let telephoneFormatted = "";
+      if (isClientSignup) {
+        if (nomComplet.trim().length < 2) return setError("Merci d'indiquer ton nom complet");
+        const phoneValidation = validateBeninPhone(telephone);
+        if (!phoneValidation.isValid) return setError(phoneValidation.error || "Numéro de téléphone invalide");
+        telephoneFormatted = phoneValidation.formatted;
+      }
+
       setLoading(true);
 
       if (mode === "inscription") {
@@ -214,7 +231,12 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/auth/callback`,
-            data: { role: intendedRole ?? "client" },
+            data: {
+              role: intendedRole ?? "client",
+              ...(isClientSignup
+                ? { full_name: nomComplet.trim(), phone: telephoneFormatted }
+                : {}),
+            },
           },
         });
 
@@ -232,6 +254,19 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
           setMode("verification-inscription");
           setResendCooldown(RESEND_COOLDOWN);
           return;
+        }
+
+        // Session dispo tout de suite (confirmation email désactivée) : on
+        // peut écrire directement. Sinon (cas ci-dessus), /auth/callback
+        // s'en charge une fois l'email confirmé, via les métadonnées
+        // passées dans options.data.
+        if (isClientSignup && data.user) {
+          await supabase.from("users").upsert({
+            id: data.user.id,
+            phone: telephoneFormatted,
+            full_name: nomComplet.trim(),
+            role: "client",
+          });
         }
 
         onClose();
@@ -339,7 +374,8 @@ router.refresh();
     loading ||
     !email ||
     (mode !== "mot-de-passe-oublie" && !password) ||
-    (mode === "inscription" && !confirmPassword);
+    (mode === "inscription" && !confirmPassword) ||
+    (isClientSignup && (!nomComplet.trim() || !telephone.trim()));
 
   return (
     <div
@@ -434,9 +470,15 @@ router.refresh();
             ) : mode !== "mot-de-passe-oublie" ? (
               <>
                 <h2 className="text-[18px] font-medium text-gray-900 mb-1">Bienvenue sur Ayiba</h2>
-                <p className="text-[14px] text-gray-600 mb-4">
+                <p className={`text-[14px] text-gray-600 ${isClientSignup ? "mb-2" : "mb-4"}`}>
                   {mode === "connexion" ? "Heureux de te revoir !" : "Rejoins-nous en quelques secondes"}
                 </p>
+                {isClientSignup && (
+                  <div className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1 mb-4">
+                    <ShoppingBag size={12} className="text-gray-400" />
+                    <span className="text-[11px] font-medium text-gray-500">Compte client</span>
+                  </div>
+                )}
               </>
             ) : null}
 
@@ -492,6 +534,39 @@ router.refresh();
                   <div className="flex-1 h-px bg-gray-100" />
                   <span className="text-[11px] text-gray-400 uppercase tracking-wide">ou</span>
                   <div className="flex-1 h-px bg-gray-100" />
+                </div>
+              </>
+            )}
+
+            {isClientSignup && (
+              <>
+                <div className="mb-3">
+                  <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
+                    <User size={16} className="text-gray-400 shrink-0" />
+                    <input
+                      type="text"
+                      placeholder="Nom complet"
+                      value={nomComplet}
+                      onChange={(e) => setNomComplet(e.target.value)}
+                      className="flex-1 h-11 text-sm px-2 focus:outline-none"
+                      autoComplete="name"
+                    />
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
+                    <Phone size={16} className="text-gray-400 shrink-0" />
+                    <span className="text-sm text-gray-400 pl-2 pr-1 border-r border-gray-200 mr-2">+229</span>
+                    <input
+                      type="tel"
+                      placeholder="01 23 45 67 89"
+                      value={telephone}
+                      onChange={(e) => setTelephone(e.target.value)}
+                      className="flex-1 h-11 text-sm px-1 focus:outline-none"
+                      autoComplete="tel"
+                    />
+                  </div>
                 </div>
               </>
             )}

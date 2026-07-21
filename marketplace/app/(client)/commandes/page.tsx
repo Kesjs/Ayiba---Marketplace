@@ -23,7 +23,6 @@ interface Order {
     nom_boutique: string
   }
   montant_total: number
-  otp_livraison: string
   otp_confirme: boolean
   livreur_latitude: number | null
   livreur_longitude: number | null
@@ -39,6 +38,7 @@ export default function CommandesPage() {
   const [showDisputeModal, setShowDisputeModal] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [otpInput, setOtpInput] = useState('')
+  const [confirming, setConfirming] = useState(false)
   const [disputeReason, setDisputeReason] = useState('')
 
   useEffect(() => {
@@ -56,7 +56,8 @@ export default function CommandesPage() {
       let query = supabase
         .from('commandes')
         .select(`
-          *,
+          id, statut, created_at, montant_total, otp_confirme,
+          livreur_latitude, livreur_longitude,
           commande_articles(
             quantite,
             article:articles(nom, prix, article_images(image_url))
@@ -98,18 +99,41 @@ export default function CommandesPage() {
   }
 
   const handleConfirmDelivery = async () => {
-    if (!selectedOrder || otpInput !== selectedOrder.otp_livraison) {
-      showToast('Code OTP incorrect', 'error')
+    if (!selectedOrder || otpInput.length !== 6) {
+      showToast('Veuillez entrer un code à 6 chiffres', 'error')
       return
     }
 
+    setConfirming(true)
     try {
-      const { error } = await supabase
-        .from('commandes')
-        .update({ otp_confirme: true, statut: 'livree' })
-        .eq('id', selectedOrder.id)
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        showToast('Session expirée, veuillez vous reconnecter', 'error')
+        return
+      }
 
-      if (error) throw error
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/confirm-delivery`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            commande_id: selectedOrder.id,
+            otp_input: otpInput,
+          }),
+        }
+      )
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        showToast(result.error || 'Erreur lors de la confirmation', 'error')
+        return
+      }
+
       showToast('Livraison confirmée', 'success')
       setShowOtpModal(false)
       setOtpInput('')
@@ -117,6 +141,8 @@ export default function CommandesPage() {
     } catch (error) {
       console.error('Error confirming delivery:', error)
       showToast('Erreur lors de la confirmation', 'error')
+    } finally {
+      setConfirming(false)
     }
   }
 
@@ -321,12 +347,18 @@ export default function CommandesPage() {
               type="text"
               maxLength={6}
               value={otpInput}
-              onChange={(e) => setOtpInput(e.target.value)}
+              onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
               className="w-full h-10 rounded-lg border border-gray-100 px-3 text-center text-2xl font-medium text-coral-400 focus:border-coral-400 outline-none"
               placeholder="000000"
+              inputMode="numeric"
             />
-            <Button variant="primary" className="w-full" onClick={handleConfirmDelivery}>
-              Valider
+            <Button
+              variant="primary"
+              className="w-full"
+              onClick={handleConfirmDelivery}
+              disabled={confirming}
+            >
+              {confirming ? 'Vérification...' : 'Valider'}
             </Button>
           </div>
         </Modal>

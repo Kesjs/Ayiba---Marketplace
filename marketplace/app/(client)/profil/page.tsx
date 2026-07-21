@@ -13,6 +13,9 @@ interface Address {
   id: string
   label: string
   adresse_complete: string
+  quartier: string
+  commune: string
+  repere: string | null
   est_defaut: boolean
 }
 
@@ -57,6 +60,9 @@ export default function ProfilPage() {
   const [newAddress, setNewAddress] = useState({
     label: 'domicile',
     adresse_complete: '',
+    quartier: '',
+    commune: '',
+    repere: '',
     est_defaut: false
   })
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null)
@@ -131,6 +137,11 @@ export default function ProfilPage() {
   const handleAddAddress = async () => {
     if (!profile) return
 
+    if (!newAddress.quartier.trim() || !newAddress.commune.trim()) {
+      showToast('Le quartier et la commune sont obligatoires', 'error')
+      return
+    }
+
     try {
       const { error } = await supabase
         .from('addresses')
@@ -138,13 +149,16 @@ export default function ProfilPage() {
           user_id: profile.id,
           label: newAddress.label,
           adresse_complete: newAddress.adresse_complete,
+          quartier: newAddress.quartier.trim(),
+          commune: newAddress.commune.trim(),
+          repere: newAddress.repere.trim() || null,
           est_defaut: newAddress.est_defaut
         })
 
       if (error) throw error
       showToast('Adresse ajoutée', 'success')
       setShowAddressModal(false)
-      setNewAddress({ label: 'domicile', adresse_complete: '', est_defaut: false })
+      setNewAddress({ label: 'domicile', adresse_complete: '', quartier: '', commune: '', repere: '', est_defaut: false })
       fetchAddresses()
     } catch (error) {
       console.error('Error adding address:', error)
@@ -296,6 +310,10 @@ export default function ProfilPage() {
                       )}
                     </div>
                     <p className="text-sm text-gray-600">{address.adresse_complete}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {[address.quartier, address.commune].filter(Boolean).join(', ')}
+                      {address.repere && ` · Repère : ${address.repere}`}
+                    </p>
                   </div>
                   <div className="flex gap-2">
                     {!address.est_defaut && (
@@ -368,7 +386,7 @@ export default function ProfilPage() {
           isOpen={showAddressModal}
           onClose={() => {
             setShowAddressModal(false)
-            setNewAddress({ label: 'domicile', adresse_complete: '', est_defaut: false })
+            setNewAddress({ label: 'domicile', adresse_complete: '', quartier: '', commune: '', repere: '', est_defaut: false })
           }}
           title="Ajouter une adresse"
         >
@@ -386,12 +404,42 @@ export default function ProfilPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 mb-2">Adresse</label>
+              <label className="block text-sm text-gray-600 mb-2">Commune *</label>
+              <input
+                type="text"
+                value={newAddress.commune}
+                onChange={(e) => setNewAddress({ ...newAddress, commune: e.target.value })}
+                placeholder="Ex: Calavi"
+                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Quartier *</label>
+              <input
+                type="text"
+                value={newAddress.quartier}
+                onChange={(e) => setNewAddress({ ...newAddress, quartier: e.target.value })}
+                placeholder="Ex: Godomey"
+                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Rue / description</label>
               <textarea
                 value={newAddress.adresse_complete}
                 onChange={(e) => setNewAddress({ ...newAddress, adresse_complete: e.target.value })}
-                placeholder="Rue, quartier, ville..."
-                className="w-full h-24 rounded-lg border border-gray-100 px-3 py-2 text-sm focus:border-coral-400 outline-none resize-none"
+                placeholder="Numéro, rue, précisions..."
+                className="w-full h-20 rounded-lg border border-gray-100 px-3 py-2 text-sm focus:border-coral-400 outline-none resize-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 mb-2">Point de repère (facultatif)</label>
+              <input
+                type="text"
+                value={newAddress.repere}
+                onChange={(e) => setNewAddress({ ...newAddress, repere: e.target.value })}
+                placeholder="Ex: près du carrefour, portail bleu..."
+                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
               />
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
@@ -403,7 +451,12 @@ export default function ProfilPage() {
               />
               <span className="text-sm text-gray-900">Définir comme adresse par défaut</span>
             </label>
-            <Button variant="primary" className="w-full" onClick={handleAddAddress}>
+            <Button
+              variant="primary"
+              className="w-full"
+              onClick={handleAddAddress}
+              disabled={!newAddress.quartier.trim() || !newAddress.commune.trim()}
+            >
               Ajouter
             </Button>
           </div>

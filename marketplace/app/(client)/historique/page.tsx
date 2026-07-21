@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { StatusBadge } from '@/components/ui/StatusBadge'
+import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
+import { useUser } from '@/lib/hooks/useUser'
+import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 
 interface Order {
   id: string
@@ -29,6 +32,8 @@ interface Order {
 
 export default function HistoriquePage() {
   const router = useRouter()
+  const { profile } = useUser()
+  const badges = useBadgeCounts(profile?.id, 'client')
   const supabase = createClient()
   const { showToast } = useToast()
 
@@ -135,9 +140,15 @@ export default function HistoriquePage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 p-4">
-        <h1 className="text-lg font-medium text-gray-900">Historique</h1>
-      </header>
+      <ClientDashboardHeader
+        title="Historique"
+        avatarUrl={profile?.avatar_url}
+        fullName={profile?.full_name || undefined}
+        notificationsCount={badges.notifications}
+        notifications={badges.notificationsList}
+        onAvatarClick={() => router.push('/profil')}
+        logoHref="/accueil"
+      />
 
       {/* Orders List */}
       <div className="flex-1 p-4">

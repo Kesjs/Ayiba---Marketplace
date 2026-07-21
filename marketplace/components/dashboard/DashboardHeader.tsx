@@ -114,7 +114,8 @@ export function DashboardHeader({
   }
 
   return (
-    <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+    <>
+      <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-100">
       {/* --- Bande actions unique, mobile ET tablette (< lg) ---
           Le Sidebar porte déjà logo + avatar à partir de lg ; en dessous,
           cette bande unique regroupe logo + cloche + avatar sur une seule
@@ -268,11 +269,13 @@ export function DashboardHeader({
         </div>
       </div>
 
+      </header>
+
       <LogoutConfirmModal
         open={showLogoutConfirm}
         onConfirm={confirmLogout}
         onCancel={() => setShowLogoutConfirm(false)}
       />
-    </header>
+    </>
   );
 }

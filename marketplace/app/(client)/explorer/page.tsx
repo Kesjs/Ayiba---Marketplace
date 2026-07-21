@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
+import { AuthModal } from "@/components/ui/AuthModal";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
 import { CATEGORIES } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
@@ -58,6 +59,7 @@ function ExplorerContent() {
   const [products, setProducts] = useState<ArticleCard[]>([]);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const [storesLoading, setStoresLoading] = useState(true);
   const [stores, setStores] = useState<StoreCard[]>([]);
@@ -213,8 +215,7 @@ function ExplorerContent() {
 
   const handleToggleFavorite = async (productId: string) => {
     if (!userId) {
-      showToast("Connectez-vous pour ajouter aux favoris", "warning");
-      router.push("/auth/inscription");
+      setAuthModalOpen(true);
       return;
     }
     const isFav = favoriteIds.has(productId);
@@ -402,6 +403,12 @@ function ExplorerContent() {
           </>
         )}
       </div>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        intendedRole={null}
+      />
     </main>
   );
 }

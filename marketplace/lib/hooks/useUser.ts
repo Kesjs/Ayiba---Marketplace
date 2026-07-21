@@ -11,6 +11,9 @@ interface UserProfile {
   note_moyenne: number
   nb_avis: number
   created_at: string
+  notif_push: boolean
+  notif_whatsapp: boolean
+  notif_email: boolean
 }
 
 const DEMO_ROLE_KEY = 'ayiba-demo-role'
@@ -36,6 +39,9 @@ export function useUser() {
           note_moyenne: 4.8,
           nb_avis: 0,
           created_at: new Date().toISOString(),
+          notif_push: true,
+          notif_whatsapp: true,
+          notif_email: false,
         })
         setLoading(false)
         return

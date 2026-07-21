@@ -106,31 +106,13 @@ export default function CommandesPage() {
 
     setConfirming(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        showToast('Session expirée, veuillez vous reconnecter', 'error')
-        return
-      }
+      const { error } = await supabase.rpc('client_confirmer_livraison', {
+        p_commande_id: selectedOrder.id,
+        p_code: otpInput,
+      })
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/confirm-delivery`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            commande_id: selectedOrder.id,
-            otp_input: otpInput,
-          }),
-        }
-      )
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        showToast(result.error || 'Erreur lors de la confirmation', 'error')
+      if (error) {
+        showToast(error.message || 'Erreur lors de la confirmation', 'error')
         return
       }
 

@@ -7,6 +7,9 @@ import { useToast } from '@/context/ToastContext'
 import { useCart } from '@/context/CartContext'
 import { ProductCard } from '@/components/ui/ProductCard'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
+import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
+import { useUser } from '@/lib/hooks/useUser'
+import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 
 interface Product {
   id: string
@@ -21,6 +24,8 @@ interface Product {
 
 export default function FavorisPage() {
   const router = useRouter()
+  const { profile } = useUser()
+  const badges = useBadgeCounts(profile?.id, 'client')
   const supabase = createClient()
   const { showToast } = useToast()
   const { addItem } = useCart()
@@ -93,9 +98,15 @@ export default function FavorisPage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 p-4">
-        <h1 className="text-lg font-medium text-gray-900">Favoris</h1>
-      </header>
+      <ClientDashboardHeader
+        title="Favoris"
+        avatarUrl={profile?.avatar_url}
+        fullName={profile?.full_name || undefined}
+        notificationsCount={badges.notifications}
+        notifications={badges.notificationsList}
+        onAvatarClick={() => router.push('/profil')}
+        logoHref="/accueil"
+      />
 
       {/* Product List */}
       <div className="flex-1 p-4">

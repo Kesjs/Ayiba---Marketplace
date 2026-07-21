@@ -51,15 +51,19 @@ export function WelcomeAddressModal() {
     }
 
     let cancelled = false
-    supabase
-      .from('addresses')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', profile.id)
-      .then(({ count }) => {
-        if (cancelled) return
-        if (!count) setIsOpen(true)
-        setHasChecked(true)
-      })
+
+    const checkAddresses = async () => {
+      const { count } = await supabase
+        .from('addresses')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', profile.id)
+
+      if (cancelled) return
+      if (!count) setIsOpen(true)
+      setHasChecked(true)
+    }
+
+    checkAddresses()
 
     return () => {
       cancelled = true

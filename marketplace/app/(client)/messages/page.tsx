@@ -1,8 +1,11 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useClientMessages } from "@/lib/hooks/useClientMessages";
+import { useUser } from "@/lib/hooks/useUser";
+import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
+import { ClientDashboardHeader } from "@/components/client/ClientDashboardHeader";
 import { MessageCircleOff, Send, User, ArrowLeft, Phone, Store, Bike, LifeBuoy, RotateCcw } from "lucide-react";
 
 const ONGLETS = [
@@ -12,6 +15,9 @@ const ONGLETS = [
 ];
 
 function MessagesContent() {
+  const router = useRouter()
+  const { profile } = useUser()
+  const badges = useBadgeCounts(profile?.id, 'client')
   const {
     loading,
     error,
@@ -87,10 +93,16 @@ function MessagesContent() {
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50/30">
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10">
-        <div className="px-4 pt-4 pb-2">
-          <h1 className="text-lg font-bold text-gray-900">Messages</h1>
-        </div>
+      <ClientDashboardHeader
+        title="Messages"
+        avatarUrl={profile?.avatar_url}
+        fullName={profile?.full_name || undefined}
+        notificationsCount={badges.notifications}
+        notifications={badges.notificationsList}
+        onAvatarClick={() => router.push('/profil')}
+        logoHref="/accueil"
+      />
+      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
         <div className="flex px-4 gap-1 overflow-x-auto">
           {ONGLETS.map((o) => {
             const actif = onglet === o.id
@@ -117,7 +129,7 @@ function MessagesContent() {
             )
           })}
         </div>
-      </header>
+      </div>
 
       {error && (
         <div className="m-4 rounded-2xl bg-red-50 border border-red-100 p-4 flex items-center justify-between">

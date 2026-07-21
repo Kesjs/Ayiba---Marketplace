@@ -1,6 +1,18 @@
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { AuthModal } from "@/components/ui/AuthModal";
 
 export function SellerLivreurSection() {
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [intendedRole, setIntendedRole] = useState<"vendeur" | "livreur" | null>(null);
+
+  const openAuth = (role: "vendeur" | "livreur") => {
+    setIntendedRole(role);
+    setAuthModalOpen(true);
+  };
+
   return (
     <section className="py-12 px-4 bg-gray-50 md:px-8 lg:px-12 lg:py-20">
       <div className="max-w-5xl mx-auto">
@@ -33,9 +45,7 @@ export function SellerLivreurSection() {
             <Button
               variant="secondary"
               className="w-full lg:w-auto lg:px-8"
-              onClick={() =>
-                (window.location.href = "/auth/inscription?role=vendeur")
-              }
+              onClick={() => openAuth("vendeur")}
             >
               Ouvrir ma boutique
             </Button>
@@ -61,15 +71,19 @@ export function SellerLivreurSection() {
             <Button
               variant="secondary"
               className="w-full lg:w-auto lg:px-8"
-              onClick={() =>
-                (window.location.href = "/auth/inscription?role=livreur")
-              }
+              onClick={() => openAuth("livreur")}
             >
               Devenir livreur
             </Button>
           </div>
         </div>
       </div>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => { setAuthModalOpen(false); setIntendedRole(null); }}
+        intendedRole={intendedRole}
+      />
     </section>
   );
 }

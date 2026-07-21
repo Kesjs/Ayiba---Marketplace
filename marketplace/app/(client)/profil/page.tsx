@@ -10,6 +10,9 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { LogoutConfirmModal } from '@/components/ui/LogoutConfirmModal'
 import { SettingsToggle } from '@/components/settings/SettingsForm'
+import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
+import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
+import { validateBeninPhone } from '@/lib/validation'
 
 interface Address {
   id: string
@@ -51,6 +54,7 @@ export default function ProfilPage() {
   const supabase = createClient()
   const { showToast } = useToast()
   const { profile, loading: userLoading } = useUser()
+  const badges = useBadgeCounts(profile?.id, 'client')
 
   const [addresses, setAddresses] = useState<Address[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,6 +74,57 @@ export default function ProfilPage() {
     est_defaut: false
   })
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null)
+
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editNomComplet, setEditNomComplet] = useState('')
+  const [editTelephone, setEditTelephone] = useState('')
+  const [editError, setEditError] = useState<string | null>(null)
+  const [savingProfile, setSavingProfile] = useState(false)
+  // Reflète la sauvegarde immédiatement à l'écran ; useUser() n'expose pas
+  // de refetch, ce petit overlay évite un rechargement complet de la page.
+  const [profileOverride, setProfileOverride] = useState<{ full_name?: string; phone?: string }>({})
+  const displayFullName = profileOverride.full_name ?? profile?.full_name
+  const displayPhone = profileOverride.phone ?? profile?.phone
+
+  const openEditModal = () => {
+    setEditNomComplet(displayFullName || '')
+    setEditTelephone(displayPhone || '')
+    setEditError(null)
+    setShowEditModal(true)
+  }
+
+  const handleSaveProfile = async () => {
+    if (!profile) return
+    if (editNomComplet.trim().length < 2) {
+      setEditError('Merci d\'indiquer ton nom complet')
+      return
+    }
+    const phoneValidation = validateBeninPhone(editTelephone)
+    if (!phoneValidation.isValid) {
+      setEditError(phoneValidation.error || 'Numéro de téléphone invalide')
+      return
+    }
+
+    setSavingProfile(true)
+    setEditError(null)
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ full_name: editNomComplet.trim(), phone: phoneValidation.formatted })
+        .eq('id', profile.id)
+
+      if (error) throw error
+
+      setProfileOverride({ full_name: editNomComplet.trim(), phone: phoneValidation.formatted })
+      showToast('Informations mises à jour', 'success')
+      setShowEditModal(false)
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      setEditError('Une erreur est survenue. Réessaie.')
+    } finally {
+      setSavingProfile(false)
+    }
+  }
 
   const [notifPrefs, setNotifPrefs] = useState({ notif_push: false, notif_whatsapp: false, notif_email: false })
 
@@ -284,9 +339,14 @@ export default function ProfilPage() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <header className="bg-white border-b border-gray-100 p-4">
-        <h1 className="text-lg font-medium text-gray-900">Mon profil</h1>
-      </header>
+      <ClientDashboardHeader
+        title="Mon profil"
+        avatarUrl={profile?.avatar_url}
+        fullName={profile?.full_name || undefined}
+        notificationsCount={badges.notifications}
+        notifications={badges.notificationsList}
+        logoHref="/accueil"
+      />
 
       {/* Profile Info */}
       <div className="p-4">
@@ -295,22 +355,22 @@ export default function ProfilPage() {
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
-                alt={profile.full_name || ''}
+                alt={displayFullName || ''}
                 className="w-16 h-16 rounded-full object-cover"
               />
             ) : (
               <div className="w-16 h-16 rounded-full bg-coral-100 flex items-center justify-center">
                 <span className="text-coral-800 text-xl font-medium">
-                  {profile?.full_name?.charAt(0).toUpperCase() || 'U'}
+                  {displayFullName?.charAt(0).toUpperCase() || 'U'}
                 </span>
               </div>
             )}
             <div>
-              <h2 className="text-base font-medium text-gray-900">{profile?.full_name || 'Non renseigné'}</h2>
-              <p className="text-sm text-gray-500">{profile?.phone || ''}</p>
+              <h2 className="text-base font-medium text-gray-900">{displayFullName || 'Non renseigné'}</h2>
+              <p className="text-sm text-gray-500">{displayPhone || ''}</p>
             </div>
           </div>
-          <Button variant="secondary" className="w-full">
+          <Button variant="secondary" className="w-full" onClick={openEditModal}>
             Modifier mes informations
           </Button>
         </div>
@@ -425,6 +485,50 @@ export default function ProfilPage() {
           Supprimer mon compte
         </button>
       </div>
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          title="Modifier mes informations"
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+              <input
+                type="text"
+                value={editNomComplet}
+                onChange={(e) => setEditNomComplet(e.target.value)}
+                className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-coral-400"
+                placeholder="Nom complet"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+              <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400">
+                <span className="text-sm text-gray-400 pr-2 border-r border-gray-200 mr-2">+229</span>
+                <input
+                  type="tel"
+                  value={editTelephone}
+                  onChange={(e) => setEditTelephone(e.target.value)}
+                  className="flex-1 h-11 text-sm focus:outline-none"
+                  placeholder="01 23 45 67 89"
+                />
+              </div>
+            </div>
+            {editError && <p className="text-sm text-red-500">{editError}</p>}
+            <Button
+              variant="primary"
+              className="w-full"
+              onClick={handleSaveProfile}
+              disabled={savingProfile}
+            >
+              {savingProfile ? 'Enregistrement...' : 'Enregistrer'}
+            </Button>
+          </div>
+        </Modal>
+      )}
 
       {/* Add Address Modal */}
       {showAddressModal && (

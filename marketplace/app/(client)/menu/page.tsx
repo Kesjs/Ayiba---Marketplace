@@ -48,7 +48,7 @@ const SECTIONS: MenuSection[] = [
   },
   {
     titre: "Livraison",
-    liens: [{ label: "Mes adresses", href: "/profil/adresses", icon: MapPin }],
+    liens: [{ label: "Mes adresses", href: "/profil", icon: MapPin }],
   },
   {
     titre: "Favoris",
@@ -166,12 +166,9 @@ export default function MenuPage() {
 
 // NOTE D'IMPLÉMENTATION (à lire avant de considérer ce fichier "terminé") :
 //
-// 1. Les liens /profil/adresses, /profil/paiements, /profil/notifications,
-//    /profil/avis, /profil/support, /profil/parametres ne sont que des CIBLES
-//    prévues — ces pages n'existent pas encore dans le dépôt, seule /profil
-//    existe réellement. Chaque lien renverra un 404 tant qu'elles ne sont pas
-//    créées. Priorité recommandée : adresses et paiements en premier (les
-//    plus utiles), le reste peut rester des stubs "à venir".
+// 1. Toutes les pages du menu existent désormais : /profil (adresses y sont
+//    gérées directement), /profil/paiements, /profil/avis, /profil/support,
+//    /profil/parametres, /profil/notifications, /menu/confiance.
 //
 // 2. Les cartes "Ouvrir ma boutique" / "Devenir livreur" pointent directement
 //    vers /vendeur/kyc et /livreur/kyc. Or ces pages (voir

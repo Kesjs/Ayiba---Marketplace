@@ -417,6 +417,18 @@ export function LivreurKycWizard() {
       });
       if (insertError) throw insertError;
 
+      // Le header (useUser()/profile.full_name) lit la table `users`, pas
+      // `livreurs` — sans cette synchro le nom saisi ici n'apparaissait
+      // dans l'avatar qu'après un passage manuel par Paramètres.
+      const { error: userUpdateError } = await supabase
+        .from("users")
+        .update({
+          full_name: data.nomComplet,
+          ...(photoProfilUrl ? { avatar_url: photoProfilUrl } : {}),
+        })
+        .eq("id", user.id);
+      if (userUpdateError) throw userUpdateError;
+
       clearDraft();
       showToast(
         "Dossier envoyé ! Vérification en cours — activation sous 24-48h.",

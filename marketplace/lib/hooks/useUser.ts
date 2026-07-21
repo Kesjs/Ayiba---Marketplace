@@ -44,11 +44,14 @@ export function useUser() {
 
     const supabase = createClient()
 
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }: any) => {
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        fetchProfile(session.user.id)
+    // Get initial user (getUser() est vérifié côté serveur, contrairement à
+    // getSession() qui peut renvoyer null juste après l'hydratation avant
+    // que le storage local du client Supabase soit prêt — c'est ce qui
+    // causait l'affichage de "Utilisateur" à la place du vrai nom).
+    supabase.auth.getUser().then(({ data: { user } }: any) => {
+      setUser(user ?? null)
+      if (user) {
+        fetchProfile(user.id)
       } else {
         setLoading(false)
       }

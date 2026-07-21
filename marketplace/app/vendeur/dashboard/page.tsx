@@ -159,7 +159,6 @@ export default function VendeurDashboardPage() {
   return (
     <DashboardLayout
       role="vendeur"
-      userName={vendeur?.nom_complet || "Vendeur"}
       title="Tableau de bord Vendeur"
       personalized
     >

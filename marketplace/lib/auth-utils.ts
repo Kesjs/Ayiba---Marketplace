@@ -8,8 +8,8 @@ export const ROLE_REDIRECTS: Record<UserRole, string> = {
 };
 
 export function getRedirectPathForRole(role: UserRole | null): string {
-  if (!role) return '/auth/choix-role';
-  return ROLE_REDIRECTS[role] || '/auth/choix-role';
+  if (!role) return '/';
+  return ROLE_REDIRECTS[role] || '/';
 }
 
 export function isValidRole(role: string): role is UserRole {

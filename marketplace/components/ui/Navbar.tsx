@@ -121,7 +121,7 @@ export function Navbar() {
   const confirmLogout = async () => {
     setShowLogoutModal(false);
     await supabase.auth.signOut();
-    window.location.href = "/auth/inscription";
+    window.location.href = "/";
   };
 
   const handleSearch = (e?: React.FormEvent) => {

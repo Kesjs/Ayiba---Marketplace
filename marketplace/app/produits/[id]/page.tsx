@@ -9,6 +9,7 @@ import { useUser } from '@/lib/hooks/useUser'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
+import { AuthModal } from '@/components/ui/AuthModal'
 import { Footer } from '@/components/home/Footer'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -109,6 +110,7 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<Avis[]>([])
   const [similarProducts, setSimilarProducts] = useState<ArticleCard[]>([])
   const [vendeurStats, setVendeurStats] = useState<VendeurStats>({ rating: 0, reviewCount: 0, productCount: 0 })
+  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   useEffect(() => {
     fetchProduct()
@@ -286,8 +288,7 @@ export default function ProductDetailPage() {
   const handleToggleFavorite = async () => {
     if (!product) return
     if (!user) {
-      showToast('Connectez-vous pour ajouter aux favoris', 'warning')
-      router.push('/auth/inscription')
+      setAuthModalOpen(true)
       return
     }
     const nowFav = await toggleFavorite(supabase, user.id, product.id, product.is_favorite)
@@ -298,8 +299,7 @@ export default function ProductDetailPage() {
   const handleContactSeller = () => {
     if (!product) return
     if (!user) {
-      showToast('Connectez-vous pour contacter le vendeur', 'warning')
-      router.push('/auth/inscription')
+      setAuthModalOpen(true)
       return
     }
     showToast('Conversation avec le vendeur bientôt disponible', 'info')
@@ -737,6 +737,12 @@ export default function ProductDetailPage() {
       <ScrollToTop />
 
       <Footer />
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        intendedRole={null}
+      />
     </div>
   )
 }

@@ -144,6 +144,14 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
 
   useEffect(() => {
     if (!isOpen) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") handleClose();
     };

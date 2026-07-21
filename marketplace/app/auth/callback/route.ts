@@ -31,7 +31,9 @@ export async function GET(request: Request) {
         .eq("id", user.id)
         .maybeSingle();
 
-      if (!existingRow) {
+      const isNewRow = !existingRow;
+
+      if (isNewRow) {
         const meta = user.user_metadata || {};
         await supabase.from("users").insert({
           id: user.id,
@@ -65,7 +67,8 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/${userData.role}/kyc`);
       }
 
-      return NextResponse.redirect(`${origin}/catalogue`);
+      const shouldWelcome = isNewRow && userData?.role === "client";
+      return NextResponse.redirect(`${origin}/catalogue${shouldWelcome ? "?welcome=1" : ""}`);
     }
   }
 

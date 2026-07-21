@@ -38,7 +38,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   const confirmLogout = async () => {
     setShowLogoutModal(false)
     await supabase.auth.signOut()
-    router.push('/auth/inscription')
+    router.push('/')
   }
 
   return (

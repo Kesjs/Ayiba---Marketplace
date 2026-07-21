@@ -6,6 +6,7 @@ import {
   LayoutGrid, List
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -515,6 +516,7 @@ export default function MesArticlesPage() {
   };
 
 return (
+  <DashboardLayout role="vendeur" title="Mes articles" backHref="/vendeur/dashboard" backLabel="Dashboard">
   <div className="w-full min-w-0 px-5 sm:px-6 md:px-8 lg:px-10 py-6 lg:py-10 max-w-7xl mx-auto">
       <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
         <div className="relative flex-1 sm:max-w-md">
@@ -896,5 +898,6 @@ return (
         )}
       </AnimatePresence>
     </div>
+  </DashboardLayout>
   );
 }

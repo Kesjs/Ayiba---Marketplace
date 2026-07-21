@@ -9,7 +9,6 @@ import { useUser } from '@/lib/hooks/useUser'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { LogoutConfirmModal } from '@/components/ui/LogoutConfirmModal'
-import { SettingsToggle } from '@/components/settings/SettingsForm'
 import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 import { validateBeninPhone } from '@/lib/validation'
@@ -22,31 +21,6 @@ interface Address {
   commune: string
   repere: string | null
   est_defaut: boolean
-}
-
-// ============================================
-// Traduction des erreurs Supabase Auth en français
-// ============================================
-function translateAuthError(err: any): string {
-  const message = (err?.message || '').toLowerCase()
-  if (!message) return 'Une erreur est survenue. Réessaie.'
-  if (message.includes('password') && message.includes('weak')) {
-    return 'Ce mot de passe est trop faible.'
-  }
-  if (message.includes('same password') || message.includes('different from')) {
-    return "Le nouveau mot de passe doit être différent de l'ancien."
-  }
-  if (message.includes('rate limit') || message.includes('too many')) {
-    return 'Trop de tentatives. Réessaie dans quelques instants.'
-  }
-  return 'Une erreur est survenue. Réessaie.'
-}
-
-function validatePasswordStrength(value: string): string | null {
-  if (value.length < 8) return 'Le mot de passe doit contenir au moins 8 caractères.'
-  if (!/[A-Z]/.test(value)) return 'Le mot de passe doit contenir au moins une majuscule.'
-  if (!/[0-9]/.test(value)) return 'Le mot de passe doit contenir au moins un chiffre.'
-  return null
 }
 
 export default function ProfilPage() {
@@ -62,8 +36,6 @@ export default function ProfilPage() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
-  const [showNotificationsModal, setShowNotificationsModal] = useState(false)
-  const [savingNotif, setSavingNotif] = useState<string | null>(null)
   const [isDeletingAccount, setIsDeletingAccount] = useState(false)
   const [newAddress, setNewAddress] = useState({
     label: 'domicile',
@@ -123,75 +95,6 @@ export default function ProfilPage() {
       setEditError('Une erreur est survenue. Réessaie.')
     } finally {
       setSavingProfile(false)
-    }
-  }
-
-  const [notifPrefs, setNotifPrefs] = useState({ notif_push: false, notif_whatsapp: false, notif_email: false })
-
-  useEffect(() => {
-    if (profile) {
-      setNotifPrefs({
-        notif_push: profile.notif_push,
-        notif_whatsapp: profile.notif_whatsapp,
-        notif_email: profile.notif_email,
-      })
-    }
-  }, [profile])
-
-  const handleToggleNotif = async (key: 'notif_push' | 'notif_whatsapp' | 'notif_email', value: boolean) => {
-    if (!profile) return
-    const previous = notifPrefs[key]
-    setNotifPrefs((prev) => ({ ...prev, [key]: value }))
-    setSavingNotif(key)
-    try {
-      const { error } = await supabase.from('users').update({ [key]: value }).eq('id', profile.id)
-      if (error) throw error
-    } catch (error) {
-      console.error('Error updating notification preference:', error)
-      setNotifPrefs((prev) => ({ ...prev, [key]: previous }))
-      showToast('Erreur lors de la mise à jour', 'error')
-    } finally {
-      setSavingNotif(null)
-    }
-  }
-
-  // ---- Sécurité / mot de passe ----
-  const [showSecurityModal, setShowSecurityModal] = useState(false)
-  const [passwordForm, setPasswordForm] = useState({ next: '', confirm: '' })
-  const [passwordError, setPasswordError] = useState<string | null>(null)
-  const [isSavingPassword, setIsSavingPassword] = useState(false)
-
-  const closeSecurityModal = () => {
-    setShowSecurityModal(false)
-    setPasswordForm({ next: '', confirm: '' })
-    setPasswordError(null)
-  }
-
-  const handleChangePassword = async () => {
-    setPasswordError(null)
-    if (!passwordForm.next && !passwordForm.confirm) return
-
-    const strengthError = validatePasswordStrength(passwordForm.next)
-    if (strengthError) {
-      setPasswordError(strengthError)
-      return
-    }
-    if (passwordForm.next !== passwordForm.confirm) {
-      setPasswordError('Les mots de passe ne correspondent pas.')
-      return
-    }
-
-    setIsSavingPassword(true)
-    try {
-      const { error } = await supabase.auth.updateUser({ password: passwordForm.next })
-      if (error) throw error
-
-      closeSecurityModal()
-      showToast('Mot de passe modifié avec succès.', 'success')
-    } catch (err: any) {
-      setPasswordError(translateAuthError(err))
-    } finally {
-      setIsSavingPassword(false)
     }
   }
 
@@ -435,20 +338,20 @@ export default function ProfilPage() {
 
         {/* Settings */}
         <div className="bg-white border border-gray-100 rounded-lg divide-y divide-gray-100">
-          <button
-            onClick={() => setShowNotificationsModal(true)}
+          <Link
+            href="/profil/notifications"
             className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
           >
             <span className="text-sm text-gray-900">Notifications</span>
             <i className="ti ti-chevron-right text-gray-400" />
-          </button>
-          <button
-            onClick={() => setShowSecurityModal(true)}
+          </Link>
+          <Link
+            href="/profil/parametres"
             className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
           >
             <span className="text-sm text-gray-900">Sécurité</span>
             <i className="ti ti-chevron-right text-gray-400" />
-          </button>
+          </Link>
           <Link
             href="/cgu"
             target="_blank"
@@ -640,67 +543,6 @@ export default function ProfilPage() {
                 Supprimer
               </Button>
             </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Notifications Modal */}
-      {showNotificationsModal && (
-        <Modal isOpen={showNotificationsModal} onClose={() => setShowNotificationsModal(false)} title="Notifications">
-          <div className="space-y-1">
-            <SettingsToggle
-              label="Notifications push"
-              checked={notifPrefs.notif_push}
-              onChange={(v) => handleToggleNotif('notif_push', v)}
-              disabled={savingNotif === 'notif_push'}
-            />
-            <SettingsToggle
-              label="Alertes WhatsApp"
-              checked={notifPrefs.notif_whatsapp}
-              onChange={(v) => handleToggleNotif('notif_whatsapp', v)}
-              disabled={savingNotif === 'notif_whatsapp'}
-            />
-            <SettingsToggle
-              label="Notifications email"
-              checked={notifPrefs.notif_email}
-              onChange={(v) => handleToggleNotif('notif_email', v)}
-              disabled={savingNotif === 'notif_email'}
-            />
-          </div>
-        </Modal>
-      )}
-
-      {/* Security / Change Password Modal */}
-      {showSecurityModal && (
-        <Modal isOpen={showSecurityModal} onClose={closeSecurityModal} title="Sécurité">
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Nouveau mot de passe</label>
-              <input
-                type="password"
-                value={passwordForm.next}
-                onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
-                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Confirmer le nouveau mot de passe</label>
-              <input
-                type="password"
-                value={passwordForm.confirm}
-                onChange={(e) => setPasswordForm((f) => ({ ...f, confirm: e.target.value }))}
-                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
-              />
-            </div>
-            {passwordError && <p className="text-xs font-semibold text-red-500">{passwordError}</p>}
-            <Button
-              variant="primary"
-              className="w-full"
-              onClick={handleChangePassword}
-              disabled={isSavingPassword || (!passwordForm.next && !passwordForm.confirm)}
-            >
-              {isSavingPassword ? 'Modification...' : 'Modifier le mot de passe'}
-            </Button>
           </div>
         </Modal>
       )}

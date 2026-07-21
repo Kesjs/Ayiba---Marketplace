@@ -270,7 +270,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         }
 
         onClose();
-        router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue");
+        router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue?welcome=1");
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(false);

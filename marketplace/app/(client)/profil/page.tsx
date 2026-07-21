@@ -105,7 +105,7 @@ export default function ProfilPage() {
     if (profile) {
       fetchAddresses()
     }
-  }, [profile])
+  }, [profile?.id])
 
   const fetchAddresses = async () => {
     if (!profile) return

@@ -198,7 +198,7 @@ export default function ProfilPage() {
   const confirmLogout = async () => {
     setShowLogoutModal(false)
     await supabase.auth.signOut()
-    router.push('/auth/inscription')
+    router.push('/')
   }
 
   const handleDeleteAccount = async () => {
@@ -211,7 +211,7 @@ export default function ProfilPage() {
 
       if (error) throw error
       await supabase.auth.signOut()
-      router.push('/auth/inscription')
+      router.push('/')
     } catch (error) {
       console.error('Error deleting account:', error)
       showToast('Erreur lors de la suppression du compte', 'error')

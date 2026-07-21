@@ -1,57 +1,60 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useUser } from "@/lib/hooks/useUser";
+import { useToast } from "@/context/ToastContext";
+import { SettingsToggle } from "@/components/settings/SettingsForm";
 
-interface ReglageNotif {
-  id: string;
-  label: string;
-  description: string;
-}
+type Canal = "notif_push" | "notif_whatsapp" | "notif_email";
 
-// Deux catégories distinctes pour que l'utilisateur puisse couper le
-// commercial sans risquer de rater une alerte de livraison/litige — voir
-// dashboard-client.md, section 9.
-const IMPORTANTES: ReglageNotif[] = [
-  { id: "commande", label: "Commande", description: "Confirmation, préparation, expédition" },
-  { id: "livraison", label: "Livraison", description: "Livreur assigné, en route, confirmation" },
-  { id: "paiement", label: "Paiement", description: "Débit, remboursement" },
-  { id: "litige", label: "Litige", description: "Vérification en cours, résolution" },
+const CANAUX: { id: Canal; label: string; description: string }[] = [
+  { id: "notif_push", label: "Notifications push", description: "Alertes directement sur ton téléphone" },
+  { id: "notif_whatsapp", label: "Alertes WhatsApp", description: "Suivi de commande et livraison par WhatsApp" },
+  { id: "notif_email", label: "Notifications email", description: "Récapitulatifs et confirmations par email" },
 ];
-
-const COMMERCIALES: ReglageNotif[] = [
-  { id: "promotions", label: "Promotions", description: "Réductions et offres du moment" },
-  { id: "nouveaux_produits", label: "Nouveaux produits", description: "Nouveautés des boutiques suivies" },
-  { id: "campagnes", label: "Campagnes marketing", description: "Actualités Ayiba" },
-];
-
-function Toggle({ actif, onChange }: { actif: boolean; onChange: () => void }) {
-  return (
-    <button
-      onClick={onChange}
-      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${actif ? "bg-teal-500" : "bg-gray-200"}`}
-      aria-pressed={actif}
-    >
-      <span
-        className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${
-          actif ? "translate-x-[22px]" : "translate-x-0.5"
-        }`}
-      />
-    </button>
-  );
-}
 
 export default function NotificationsPage() {
   const router = useRouter();
+  const supabase = createClient();
+  const { profile, loading: userLoading } = useUser();
+  const { showToast } = useToast();
 
-  // Les notifications "importantes" sont activées par défaut et non
-  // désactivables individuellement dans cette V1 (litige/paiement doivent
-  // toujours atteindre le client) — seules les commerciales sont réglables.
-  // À revoir si un besoin de granularité plus fine émerge.
-  const [commerciales, setCommerciales] = useState<Record<string, boolean>>(
-    Object.fromEntries(COMMERCIALES.map((c) => [c.id, true]))
-  );
+  const [prefs, setPrefs] = useState<Record<Canal, boolean>>({
+    notif_push: false,
+    notif_whatsapp: false,
+    notif_email: false,
+  });
+  const [saving, setSaving] = useState<Canal | null>(null);
+
+  useEffect(() => {
+    if (profile) {
+      setPrefs({
+        notif_push: profile.notif_push,
+        notif_whatsapp: profile.notif_whatsapp,
+        notif_email: profile.notif_email,
+      });
+    }
+  }, [profile]);
+
+  const handleToggle = async (canal: Canal, value: boolean) => {
+    if (!profile) return;
+    const previous = prefs[canal];
+    setPrefs((prev) => ({ ...prev, [canal]: value }));
+    setSaving(canal);
+    try {
+      const { error } = await supabase.from("users").update({ [canal]: value }).eq("id", profile.id);
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error updating notification preference:", error);
+      setPrefs((prev) => ({ ...prev, [canal]: previous }));
+      showToast("Erreur lors de la mise à jour", "error");
+    } finally {
+      setSaving(null);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-gray-50/30 pb-10">
@@ -62,45 +65,30 @@ export default function NotificationsPage() {
         <h1 className="text-base font-bold text-gray-900">Notifications</h1>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
-            Notifications importantes
-          </h2>
-          <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-            {IMPORTANTES.map((n) => (
-              <div key={n.id} className="flex items-center gap-3 px-4 py-3.5">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800">{n.label}</p>
-                  <p className="text-xs text-gray-400">{n.description}</p>
-                </div>
-                <Toggle actif onChange={() => {}} />
-              </div>
-            ))}
-          </div>
-          <p className="text-[11px] text-gray-400 mt-2 px-1">
-            Toujours activées — commandes, livraisons et litiges ne peuvent pas être coupés.
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
-            Notifications commerciales
-          </h2>
-          <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-            {COMMERCIALES.map((n) => (
-              <div key={n.id} className="flex items-center gap-3 px-4 py-3.5">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-800">{n.label}</p>
-                  <p className="text-xs text-gray-400">{n.description}</p>
-                </div>
-                <Toggle
-                  actif={commerciales[n.id]}
-                  onChange={() => setCommerciales((prev) => ({ ...prev, [n.id]: !prev[n.id] }))}
+      <div className="max-w-lg mx-auto px-4 py-6 space-y-2">
+        <p className="text-xs text-gray-400 px-1 mb-2">
+          Choisis comment tu veux être prévenu pour tes commandes, livraisons et paiements.
+        </p>
+        <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 overflow-hidden px-4">
+          {userLoading ? (
+            <div className="py-6 space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-6 bg-gray-100 rounded animate-pulse" />
+              ))}
+            </div>
+          ) : (
+            CANAUX.map((c) => (
+              <div key={c.id} className="py-3.5">
+                <SettingsToggle
+                  label={c.label}
+                  checked={prefs[c.id]}
+                  onChange={(v) => handleToggle(c.id, v)}
+                  disabled={saving === c.id}
                 />
+                <p className="text-xs text-gray-400 mt-0.5">{c.description}</p>
               </div>
-            ))}
-          </div>
+            ))
+          )}
         </div>
       </div>
     </main>

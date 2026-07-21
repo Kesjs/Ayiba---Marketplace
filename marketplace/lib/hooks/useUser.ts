@@ -57,10 +57,13 @@ export function useUser() {
       }
     })
 
-    // Listen for auth changes
+    // Listen for auth changes (INITIAL_SESSION est ignoré : déjà couvert
+    // par le getUser() ci-dessus, l'inclure ici doublait fetchProfile()
+    // au montage et donc fetchAddresses() côté page Profil).
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+    } = supabase.auth.onAuthStateChange((event: any, session: any) => {
+      if (event === "INITIAL_SESSION") return
       setUser(session?.user ?? null)
       if (session?.user) {
         fetchProfile(session.user.id)

@@ -18,6 +18,29 @@ export async function GET(request: Request) {
         return NextResponse.redirect(`${origin}/auth/reset-password`);
       }
 
+      // Si l'inscription attendait la confirmation par email, la ligne
+      // `users` n'a pas pu être écrite depuis AuthModal (pas de session à
+      // ce moment-là) — on la crée ici avec les métadonnées passées au
+      // signUp (nom, téléphone, rôle), une seule fois. On vérifie d'abord
+      // qu'elle n'existe pas déjà : ce callback est aussi emprunté à
+      // chaque connexion Google, un upsert aveugle écraserait le rôle
+      // (vendeur/livreur/admin) d'un compte existant à chaque login.
+      const { data: existingRow } = await supabase
+        .from("users")
+        .select("id")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (!existingRow) {
+        const meta = user.user_metadata || {};
+        await supabase.from("users").insert({
+          id: user.id,
+          phone: meta.phone || user.phone || "",
+          full_name: meta.full_name || "Utilisateur",
+          role: meta.role || "client",
+        });
+      }
+
       const { data: userData } = await supabase
         .from("users")
         .select("role")

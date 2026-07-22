@@ -79,15 +79,25 @@ export interface VendeurKyc {
   id: string;
   nom_complet: string | null;
   nom_boutique: string | null;
+  description: string | null;
   quartier: string | null;
   commune: string | null;
   photo_cni_path: string | null;
   photo_profil_url: string | null;
+  photo_couverture_url: string | null;
+  horaires: Record<string, unknown> | null;
+  en_pause: boolean | null;
   mobile_money_network: string | null;
   mobile_money_number: string | null;
   statut: string;
   raison_rejet: string | null;
   created_at: string;
+  // Infos jointes depuis public.users (coordonnées de contact, réputation)
+  email: string | null;
+  phone: string | null;
+  compte_cree_le: string | null;
+  note_moyenne: number | null;
+  nb_avis: number | null;
 }
 
 export function useAdminVendeursKyc() {
@@ -98,9 +108,21 @@ export function useAdminVendeursKyc() {
     setLoading(true);
     const { data } = await supabase
       .from("vendeurs")
-      .select("id, nom_complet, nom_boutique, quartier, commune, photo_cni_path, photo_profil_url, mobile_money_network, mobile_money_number, statut, raison_rejet, created_at")
+      .select(
+        "id, nom_complet, nom_boutique, description, quartier, commune, photo_cni_path, photo_profil_url, photo_couverture_url, horaires, en_pause, mobile_money_network, mobile_money_number, statut, raison_rejet, created_at, users!vendeurs_id_fkey(email, phone, created_at, note_moyenne, nb_avis)"
+      )
       .order("created_at", { ascending: false });
-    setVendeurs(data || []);
+
+    const mapped: VendeurKyc[] = (data || []).map((v: any) => ({
+      ...v,
+      email: v.users?.email ?? null,
+      phone: v.users?.phone ?? null,
+      compte_cree_le: v.users?.created_at ?? null,
+      note_moyenne: v.users?.note_moyenne ?? null,
+      nb_avis: v.users?.nb_avis ?? null,
+    }));
+
+    setVendeurs(mapped);
     setLoading(false);
   }, []);
 

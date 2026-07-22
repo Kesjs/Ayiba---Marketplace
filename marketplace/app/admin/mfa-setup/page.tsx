@@ -45,7 +45,9 @@ export default function MfaSetupPage() {
         if (cancelled) return;
         if (listError) throw listError;
 
-        const verifiedTotp = factors?.totp?.find((f) => f.status === "verified");
+        const verifiedTotp = factors?.totp?.find(
+          (f: { status: string }) => f.status === "verified"
+        );
         if (verifiedTotp) {
           router.replace("/admin/mfa-verify");
           return;

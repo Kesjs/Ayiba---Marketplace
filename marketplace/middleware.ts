@@ -31,6 +31,29 @@ export async function middleware(req: NextRequest) {
 
   const path = req.nextUrl.pathname;
 
+  // Mode maintenance : bloque tout le monde sauf les admins et la page /maintenance elle-même.
+  // Seule cette ligne (cle = 'mode_maintenance') est lisible publiquement, cf. policy dédiée.
+  if (path !== "/maintenance" && !path.startsWith("/admin")) {
+    const { data: maintenanceRow } = await supabase
+      .from("parametres_systeme")
+      .select("valeur")
+      .eq("cle", "mode_maintenance")
+      .single();
+
+    const isMaintenance = maintenanceRow?.valeur === true || maintenanceRow?.valeur === "true";
+
+    if (isMaintenance) {
+      let isAdmin = false;
+      if (user) {
+        const { data: userData } = await supabase.from("users").select("role").eq("id", user.id).single();
+        isAdmin = userData?.role === "admin";
+      }
+      if (!isAdmin) {
+        return NextResponse.redirect(new URL("/maintenance", req.url));
+      }
+    }
+  }
+
   // Liste des routes accessibles sans connexion
   const publicRoutes = [
     "/", "/catalogue", "/devenir-vendeur", "/devenir-livreur",

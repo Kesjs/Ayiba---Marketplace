@@ -1,172 +1,188 @@
 "use client";
 
+import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { 
-  Users, 
-  ShoppingBag, 
-  AlertTriangle, 
-  TrendingUp, 
-  CheckCircle2, 
-  Clock, 
-  MoreVertical,
-  ArrowUpRight,
-  ArrowDownRight,
+import { useAdminOverview } from "@/lib/hooks/useAdmin";
+import {
+  Users,
+  ShoppingBag,
+  AlertTriangle,
+  TrendingUp,
   ShieldCheck,
-  Search,
-  Filter
+  Store,
+  Truck,
+  Package,
+  Wallet,
+  UserX,
+  ArrowUpRight,
 } from "lucide-react";
-import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
+
+function formatFCFA(n: number) {
+  return new Intl.NumberFormat("fr-FR").format(Math.round(n)) + " F";
+}
 
 export default function AdminDashboardPage() {
-  const stats = [
-    { label: "Utilisateurs actifs", value: "1 240", change: "+5.4%", trend: "up", icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Commandes / jour", value: "87", change: "+12.1%", trend: "up", icon: ShoppingBag, color: "text-teal-600", bg: "bg-teal-50" },
-    { label: "Litiges ouverts", value: "3", change: "-2", trend: "up", icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
-    { label: "Volume d'affaires", value: "540k F", change: "+8.2%", trend: "up", icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50" },
-  ];
+  const { stats, recentCommandes, recentDisputes, loading, error } = useAdminOverview();
 
-  const recentActivities = [
-    { type: "user", user: "Modeste K.", action: "s'est inscrit comme vendeur", date: "Il y a 5 min", status: "En attente de validation" },
-    { type: "dispute", user: "Koffi vs Warda", action: "Nouveau litige ouvert", date: "Il y a 12 min", status: "Urgent" },
-    { type: "order", user: "Sika A.", action: "Commande livrée avec succès", date: "Il y a 25 min", status: "Terminé" },
-    { type: "kyc", user: "Jean D.", action: "Document d'identité soumis", date: "Il y a 1h", status: "À vérifier" },
-  ];
+  const kpis = stats
+    ? [
+        { label: "Utilisateurs actifs", value: stats.utilisateurs_actifs, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+        { label: "Commandes (24h)", value: stats.commandes_24h, icon: ShoppingBag, color: "text-teal-600", bg: "bg-teal-50" },
+        { label: "Litiges ouverts", value: stats.litiges_ouverts, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
+        { label: "Volume d'affaires (mois)", value: formatFCFA(stats.volume_affaires_mois), icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50" },
+      ]
+    : [];
+
+  const actionsRequises = stats
+    ? [
+        { label: "Vendeurs KYC en attente", count: stats.vendeurs_kyc_attente, href: "/admin/vendeurs", icon: Store },
+        { label: "Livreurs KYC en attente", count: stats.livreurs_kyc_attente, href: "/admin/livreurs", icon: Truck },
+        { label: "Articles à modérer", count: stats.articles_a_moderer, href: "/admin/moderation", icon: Package },
+        { label: "Retraits à valider", count: stats.retraits_a_valider, href: "/admin/paiements", icon: Wallet },
+        { label: "Demandes de suppression", count: stats.demandes_suppression_attente, href: "/admin/demandes", icon: UserX },
+      ]
+    : [];
 
   return (
     <DashboardLayout role="admin" userName="Admin Ayiba" title="Administration Système">
-      
-      {/* Search & Filter Bar */}
-      <div className="flex flex-col md:flex-row gap-4 mb-10">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Rechercher un utilisateur, une commande, un vendeur..." 
-            className="w-full h-12 pl-12 pr-4 bg-white border border-gray-100 rounded-2xl shadow-sm focus:outline-none focus:ring-2 focus:ring-coral-500/10 focus:border-coral-500 transition-all font-medium text-sm"
-          />
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl text-sm font-medium">
+          Erreur de chargement : {error}
         </div>
-        <button className="h-12 px-6 bg-white border border-gray-100 rounded-2xl shadow-sm flex items-center gap-2 font-bold text-sm text-gray-600 hover:bg-gray-50 transition-all">
-          <Filter size={18} />
-          Filtres
-        </button>
-      </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        {stats.map((stat, i) => (
-          <div key={i} className="bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm hover:shadow-xl hover:shadow-gray-200/20 transition-all duration-300">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
-                <stat.icon size={24} />
+        {loading
+          ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-[32px]" />)
+          : kpis.map((stat, i) => (
+              <div key={i} className="bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm hover:shadow-xl hover:shadow-gray-200/20 transition-all duration-300">
+                <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4`}>
+                  <stat.icon size={24} />
+                </div>
+                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
               </div>
-              <div className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg ${stat.trend === 'up' ? 'bg-teal-50 text-teal-600' : 'bg-red-50 text-red-600'}`}>
-                {stat.trend === 'up' ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                {stat.change}
-              </div>
-            </div>
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-            <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-          </div>
-        ))}
+            ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
-        {/* Recent Activities */}
+        {/* Actions requises */}
         <div className="lg:col-span-2 space-y-8">
           <div className="bg-white rounded-[40px] border border-gray-50 shadow-sm overflow-hidden">
-            <div className="p-8 border-b border-gray-50 flex items-center justify-between">
-              <h3 className="text-lg font-bold">Flux d'activités</h3>
-              <button className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-colors">Rafraîchir</button>
+            <div className="p-8 border-b border-gray-50">
+              <h3 className="text-lg font-bold">Actions requises</h3>
+              <p className="text-sm text-gray-400 font-medium mt-1">Ce qui attend une décision de votre part</p>
             </div>
             <div className="divide-y divide-gray-50">
-              {recentActivities.map((activity, i) => (
-                <div key={i} className="p-8 hover:bg-gray-50/30 transition-all flex items-start gap-4 group">
-                  <div className={`w-10 h-10 rounded-full shrink-0 flex items-center justify-center ${
-                    activity.type === "user" ? "bg-blue-50 text-blue-500" :
-                    activity.type === "dispute" ? "bg-red-50 text-red-500" :
-                    activity.type === "order" ? "bg-teal-50 text-teal-500" :
-                    "bg-amber-50 text-amber-500"
-                  }`}>
-                    {activity.type === "user" ? <Users size={18} /> :
-                     activity.type === "dispute" ? <AlertTriangle size={18} /> :
-                     activity.type === "order" ? <CheckCircle2 size={18} /> :
-                     <ShieldCheck size={18} />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="text-sm font-bold text-gray-900 group-hover:text-coral-500 transition-colors">{activity.user}</p>
-                      <span className="text-[10px] text-gray-400 font-bold uppercase">{activity.date}</span>
-                    </div>
-                    <p className="text-sm text-gray-500 font-medium mb-3">{activity.action}</p>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                      activity.status === "Urgent" ? "bg-red-50 text-red-600" :
-                      activity.status === "Terminé" ? "bg-teal-50 text-teal-600" :
-                      "bg-gray-100 text-gray-500"
-                    }`}>
-                      {activity.status}
-                    </span>
-                  </div>
-                  <button className="p-2 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <MoreVertical size={18} />
-                  </button>
+              {loading ? (
+                <div className="p-8 space-y-4">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-12 rounded-xl" />
+                  ))}
                 </div>
-              ))}
+              ) : (
+                actionsRequises.map((item, i) => (
+                  <Link
+                    key={i}
+                    href={item.href}
+                    className="p-6 hover:bg-gray-50/30 transition-all flex items-center gap-4 group"
+                  >
+                    <div className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center bg-coral-50 text-coral-500">
+                      <item.icon size={18} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-900 group-hover:text-coral-500 transition-colors">{item.label}</p>
+                    </div>
+                    <span
+                      className={`text-xs font-bold px-3 py-1 rounded-full ${
+                        item.count > 0 ? "bg-amber-50 text-amber-700" : "bg-gray-50 text-gray-400"
+                      }`}
+                    >
+                      {item.count}
+                    </span>
+                    <ArrowUpRight size={16} className="text-gray-300 group-hover:text-coral-400" />
+                  </Link>
+                ))
+              )}
             </div>
-            <button className="w-full p-6 text-sm font-bold text-gray-400 hover:text-gray-900 bg-gray-50/30 border-t border-gray-50 transition-all">
-              Voir tout l'historique
-            </button>
+          </div>
+
+          {/* Commandes récentes */}
+          <div className="bg-white rounded-[40px] border border-gray-50 shadow-sm overflow-hidden">
+            <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+              <h3 className="text-lg font-bold">Commandes récentes</h3>
+              <Link href="/admin/commandes" className="text-xs font-bold text-gray-400 uppercase tracking-widest hover:text-gray-900 transition-colors">
+                Voir tout
+              </Link>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {loading ? (
+                <div className="p-8 space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-10 rounded-xl" />
+                  ))}
+                </div>
+              ) : recentCommandes.length === 0 ? (
+                <p className="p-8 text-sm text-gray-400">Aucune commande pour le moment.</p>
+              ) : (
+                recentCommandes.map((c) => (
+                  <div key={c.id} className="p-6 flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900">#{c.numero}</p>
+                      <p className="text-xs text-gray-400 font-medium">{c.nom_client || "Client"}</p>
+                    </div>
+                    <p className="text-sm font-bold text-gray-700">{formatFCFA(c.montant_total)}</p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Sidebar Alerts & Shortcuts */}
+        {/* Sidebar litiges */}
         <div className="space-y-8">
-          
-          {/* Moderation Alert */}
           <div className="bg-gray-900 p-8 rounded-[40px] text-white relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-coral-500/20 rounded-full -mr-16 -mt-16 blur-3xl" />
             <div className="relative z-10">
               <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-6">
                 <ShieldCheck size={24} className="text-coral-400" />
               </div>
-              <h4 className="font-bold text-xl mb-3">Modération</h4>
-              <p className="text-sm text-gray-400 leading-relaxed font-medium mb-8">
-                <span className="text-white font-bold">12 articles</span> sont en attente de validation manuelle pour aujourd'hui.
+              <h4 className="font-bold text-xl mb-3">Séquestre en cours</h4>
+              <p className="text-sm text-gray-400 leading-relaxed font-medium mb-2">
+                <span className="text-white font-bold">{loading ? "..." : formatFCFA(stats?.montant_en_sequestre || 0)}</span> retenus en escrow, en attente de livraison confirmée.
               </p>
-              <button className="w-full py-4 bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-2xl shadow-xl shadow-coral-500/20 transition-all active:scale-[0.98]">
-                Lancer la modération
-              </button>
             </div>
           </div>
 
-          {/* Dispute Quick Access */}
-          <div className="bg-red-50 p-8 rounded-[40px] border border-red-100 group">
+          <div className="bg-red-50 p-8 rounded-[40px] border border-red-100">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="text-red-500" size={20} />
               <h4 className="font-bold text-red-700">Litiges Actifs</h4>
             </div>
             <div className="space-y-4">
-              <div className="bg-white p-4 rounded-2xl border border-red-100 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-gray-900">#DIS-102</p>
-                  <p className="text-[10px] text-gray-400 font-medium">Non réception</p>
-                </div>
-                <button className="p-2 bg-red-50 text-red-500 rounded-lg">
-                  <ArrowUpRight size={16} />
-                </button>
-              </div>
-              <div className="bg-white p-4 rounded-2xl border border-red-100 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold text-gray-900">#DIS-105</p>
-                  <p className="text-[10px] text-gray-400 font-medium">Produit endommagé</p>
-                </div>
-                <button className="p-2 bg-red-50 text-red-500 rounded-lg">
-                  <ArrowUpRight size={16} />
-                </button>
-              </div>
+              {loading ? (
+                <Skeleton className="h-16 rounded-2xl" />
+              ) : recentDisputes.length === 0 ? (
+                <p className="text-xs text-gray-500">Aucun litige ouvert.</p>
+              ) : (
+                recentDisputes.map((d) => (
+                  <Link
+                    key={d.id}
+                    href="/admin/litiges"
+                    className="bg-white p-4 rounded-2xl border border-red-100 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="text-xs font-bold text-gray-900">#{d.id.slice(0, 8)}</p>
+                      <p className="text-[10px] text-gray-400 font-medium">{d.motif}</p>
+                    </div>
+                    <ArrowUpRight size={16} className="text-red-400" />
+                  </Link>
+                ))
+              )}
             </div>
           </div>
-
         </div>
       </div>
     </DashboardLayout>

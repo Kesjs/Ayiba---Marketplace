@@ -57,7 +57,7 @@ export async function middleware(req: NextRequest) {
   // Liste des routes accessibles sans connexion
   const publicRoutes = [
     "/", "/catalogue", "/devenir-vendeur", "/devenir-livreur",
-    "/cgu", "/privacy", "/compte-suspendu", "/auth",
+    "/cgu", "/privacy", "/compte-suspendu", "/auth", "/admin/login",
   ];
   if (publicRoutes.some((route) => path.startsWith(route))) return res;
 
@@ -92,6 +92,21 @@ export async function middleware(req: NextRequest) {
     }
     if (adminRoutes.some((r) => path.startsWith(r)) && userData?.role !== "admin") {
       return NextResponse.redirect(new URL("/catalogue", req.url));
+    }
+
+    // 2FA obligatoire pour toute route admin, hors les pages du flux MFA lui-même
+    // (sinon on créerait une boucle de redirection infinie).
+    const mfaFlowRoutes = ["/admin/mfa-setup", "/admin/mfa-verify"];
+    if (
+      adminRoutes.some((r) => path.startsWith(r)) &&
+      userData?.role === "admin" &&
+      !mfaFlowRoutes.some((r) => path.startsWith(r))
+    ) {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.currentLevel !== "aal2") {
+        const destination = aal?.nextLevel === "aal2" ? "/admin/mfa-verify" : "/admin/mfa-setup";
+        return NextResponse.redirect(new URL(destination, req.url));
+      }
     }
   }
 

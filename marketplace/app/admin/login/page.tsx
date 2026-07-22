@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
 
       if (error) throw error;
 
-      // Check if user is admin
+      // Vérifie le rôle admin
       if (data.user) {
         const { data: userData } = await supabase
           .from("users")
@@ -37,7 +37,18 @@ export default function AdminLoginPage() {
           throw new Error("Accès non autorisé");
         }
 
-        window.location.href = "/admin/dashboard";
+        // La 2FA est obligatoire pour tout compte admin.
+        const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+        if (aal?.currentLevel === "aal2") {
+          window.location.href = "/admin/dashboard";
+        } else if (aal?.nextLevel === "aal2") {
+          // Un facteur TOTP est déjà inscrit, il reste à vérifier le code.
+          window.location.href = "/admin/mfa-verify";
+        } else {
+          // Aucun facteur inscrit : inscription 2FA obligatoire avant tout accès.
+          window.location.href = "/admin/mfa-setup";
+        }
       }
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue");

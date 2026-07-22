@@ -227,7 +227,7 @@ export function useAdminArticles() {
   }, [load]);
 
   const publier = async (id: string) => {
-    await supabase.from("articles").update({ statut: "publie", raison_rejet: null }).eq("id", id);
+    await supabase.from("articles").update({ statut: "publie", raison_rejet: null, actif: true }).eq("id", id);
     await logAction("article_publie", "article", id);
     await load();
   };

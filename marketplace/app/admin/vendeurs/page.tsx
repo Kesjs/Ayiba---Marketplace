@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { RejectReasonModal } from "@/components/dashboard/RejectReasonModal";
+import { VendeurDetailModal } from "@/components/dashboard/VendeurDetailModal";
 import { useAdminVendeursKyc, VendeurKyc } from "@/lib/hooks/useAdmin";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -19,6 +20,7 @@ export default function AdminVendeursPage() {
   const { vendeurs, loading, valider, rejeter } = useAdminVendeursKyc();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("en_attente");
   const [rejectTarget, setRejectTarget] = useState<VendeurKyc | null>(null);
+  const [detailTarget, setDetailTarget] = useState<VendeurKyc | null>(null);
 
   const filtered = vendeurs.filter((v) => v.statut === tab);
 
@@ -51,7 +53,11 @@ export default function AdminVendeursPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filtered.map((v) => (
-            <div key={v.id} className="bg-white rounded-[32px] border border-gray-50 shadow-sm p-6">
+            <div
+              key={v.id}
+              onClick={() => setDetailTarget(v)}
+              className="bg-white rounded-[32px] border border-gray-50 shadow-sm p-6 cursor-pointer hover:border-gray-200 transition-colors"
+            >
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="font-bold text-gray-900">{v.nom_boutique || "Sans nom de boutique"}</h3>
@@ -88,7 +94,7 @@ export default function AdminVendeursPage() {
               )}
 
               {v.statut === "en_attente" && (
-                <div className="flex gap-3">
+                <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
                   <Button variant="primary" className="flex-1" onClick={() => valider(v.id)}>
                     <CheckCircle2 size={16} /> Valider
                   </Button>
@@ -108,6 +114,8 @@ export default function AdminVendeursPage() {
         onConfirm={async (raison) => { if (rejectTarget) await rejeter(rejectTarget.id, raison); }}
         title={`Refuser ${rejectTarget?.nom_boutique || "ce vendeur"}`}
       />
+
+      <VendeurDetailModal vendeur={detailTarget} onClose={() => setDetailTarget(null)} />
     </DashboardLayout>
   );
 }

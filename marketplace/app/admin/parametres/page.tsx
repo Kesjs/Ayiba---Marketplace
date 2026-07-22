@@ -1,89 +1,82 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { 
-  Shield, 
-  Settings, 
-  Users, 
-  Globe, 
-  Bell, 
-  Lock, 
-  ChevronRight, 
-  Database,
-  Smartphone
-} from "lucide-react";
+import { useAdminParametres } from "@/lib/hooks/useAdmin";
 import { Button } from "@/components/ui/Button";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 export default function AdminParametresPage() {
-  const adminSections = [
-    {
-      title: "Gestion Plateforme",
-      items: [
-        { label: "Configuration Système", icon: Settings, value: "Variables d'environnement & API" },
-        { label: "Modération de contenu", icon: Shield, value: "Règles de validation auto" },
-        { label: "Zones de livraison", icon: Globe, value: "Gestion des secteurs actifs" },
-      ]
-    },
-    {
-      title: "Utilisateurs & Rôles",
-      items: [
-        { label: "Permissions Administrateurs", icon: Lock, value: "3 admins actifs" },
-        { label: "Validation Vendeurs", icon: Users, value: "Paramètres KYC" },
-      ]
-    },
-    {
-      title: "Infrastructure",
-      items: [
-        { label: "Base de données", icon: Database, value: "État Supabase: Sain" },
-        { label: "Notifications Système", icon: Bell, value: "Journal des erreurs & alertes" },
-      ]
+  const { params, loading, mettreAJour } = useAdminParametres();
+  const [commission, setCommission] = useState("10");
+  const [fraisLivraison, setFraisLivraison] = useState("500");
+  const [maintenance, setMaintenance] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!loading) {
+      if (params.commission_pourcentage !== undefined) setCommission(String(params.commission_pourcentage));
+      if (params.frais_livraison_defaut !== undefined) setFraisLivraison(String(params.frais_livraison_defaut));
+      if (params.mode_maintenance !== undefined) setMaintenance(params.mode_maintenance === true || params.mode_maintenance === "true");
     }
-  ];
+  }, [loading, params]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await mettreAJour("commission_pourcentage", Number(commission));
+    await mettreAJour("frais_livraison_defaut", Number(fraisLivraison));
+    await mettreAJour("mode_maintenance", maintenance);
+    setSaving(false);
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout role="admin" userName="Admin Ayiba" title="Paramètres système">
+        <Skeleton className="h-64 rounded-[32px]" />
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Paramètres Système">
-      <div className="max-w-4xl mx-auto space-y-10">
-        
-        {/* Admin Header */}
-        <div className="bg-gray-900 p-8 rounded-[40px] text-white shadow-xl flex flex-col md:flex-row items-center gap-8 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-coral-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
-          
-          <div className="w-20 h-20 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-md border border-white/20">
-             <Shield size={40} className="text-coral-400" />
-          </div>
-          
-          <div className="text-center md:text-left flex-1 relative z-10">
-            <h3 className="text-2xl font-bold mb-1">Espace Super-Admin</h3>
-            <p className="text-gray-400 font-medium mb-0">Contrôle total de l'écosystème Ayiba</p>
-          </div>
-          
-          <Button className="rounded-2xl h-12 px-6 bg-coral-500 hover:bg-coral-600 border-none relative z-10">Sauvegarder config</Button>
+    <DashboardLayout role="admin" userName="Admin Ayiba" title="Paramètres système">
+      <div className="bg-white rounded-[32px] border border-gray-50 shadow-sm p-8 max-w-xl space-y-6">
+        <div>
+          <label className="text-sm font-bold text-gray-700 block mb-2">Commission plateforme (%)</label>
+          <input
+            type="number"
+            value={commission}
+            onChange={(e) => setCommission(e.target.value)}
+            className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coral-500/20"
+          />
+          <p className="text-xs text-gray-400 mt-1">Prélevée sur chaque commande livrée.</p>
         </div>
 
-        {/* Settings Sections */}
-        <div className="space-y-6">
-          {adminSections.map((section, i) => (
-            <div key={i} className="space-y-4">
-              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-4">{section.title}</h4>
-              <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-50">
-                {section.items.map((item, j) => (
-                  <button key={j} className="w-full flex items-center justify-between p-6 hover:bg-gray-50 transition-colors group text-left">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center group-hover:bg-gray-900 group-hover:text-white transition-colors">
-                        <item.icon size={20} />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900">{item.label}</p>
-                        <p className="text-xs text-gray-400 font-medium mt-0.5">{item.value}</p>
-                      </div>
-                    </div>
-                    <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          ))}
+        <div>
+          <label className="text-sm font-bold text-gray-700 block mb-2">Frais de livraison par défaut (FCFA)</label>
+          <input
+            type="number"
+            value={fraisLivraison}
+            onChange={(e) => setFraisLivraison(e.target.value)}
+            className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coral-500/20"
+          />
         </div>
+
+        <div className="flex items-center justify-between p-4 bg-red-50 rounded-2xl">
+          <div>
+            <p className="text-sm font-bold text-red-700">Mode maintenance</p>
+            <p className="text-xs text-red-500">Bloque l'accès au site pour tous les non-admins</p>
+          </div>
+          <input
+            type="checkbox"
+            checked={maintenance}
+            onChange={(e) => setMaintenance(e.target.checked)}
+            className="w-5 h-5"
+          />
+        </div>
+
+        <Button variant="primary" onClick={handleSave} disabled={saving} className="w-full">
+          {saving ? "Enregistrement..." : "Enregistrer les paramètres"}
+        </Button>
       </div>
     </DashboardLayout>
   );

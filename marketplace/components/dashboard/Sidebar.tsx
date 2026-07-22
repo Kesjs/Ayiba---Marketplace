@@ -48,10 +48,16 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
   const menuItems = {
     admin: [
       { name: "Vue d'ensemble", icon: LayoutDashboard, path: "/admin/dashboard" },
-      { name: "Vendeurs", icon: Store, path: "/admin/vendeurs" },
-      { name: "Utilisateurs", icon: Users, path: "/admin/utilisateurs" },
+      { name: "Vendeurs (KYC)", icon: Store, path: "/admin/vendeurs" },
+      { name: "Livreurs (KYC)", icon: Truck, path: "/admin/livreurs" },
+      { name: "Modération articles", icon: ShieldCheck, path: "/admin/moderation" },
+      { name: "Commandes", icon: ShoppingBag, path: "/admin/commandes" },
       { name: "Litiges", icon: AlertTriangle, path: "/admin/litiges" },
-      { name: "Modération", icon: ShieldCheck, path: "/admin/moderation" },
+      { name: "Paiements & retraits", icon: Wallet, path: "/admin/paiements" },
+      { name: "Utilisateurs", icon: Users, path: "/admin/utilisateurs" },
+      { name: "Catégories", icon: Package, path: "/admin/categories" },
+      { name: "Avis", icon: MessageSquare, path: "/admin/avis" },
+      { name: "Suppressions", icon: Lock, path: "/admin/demandes" },
       { name: "Paramètres", icon: Settings, path: "/admin/parametres" },
     ],
     vendeur: [

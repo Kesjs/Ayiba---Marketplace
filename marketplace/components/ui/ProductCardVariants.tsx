@@ -69,12 +69,14 @@ export function ProductCardModern({
         <button
           type="button"
           onClick={handleFavorite}
-          className="absolute top-2 right-2 w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+          className="absolute top-1 right-1 w-10 h-10 flex items-center justify-center"
         >
-          <Heart
-            size={13}
-            className={favorite ? "fill-coral-500 text-coral-500" : "text-gray-500"}
-          />
+          <span className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+            <Heart
+              size={13}
+              className={favorite ? "fill-coral-500 text-coral-500" : "text-gray-500"}
+            />
+          </span>
         </button>
       </div>
 
@@ -116,7 +118,7 @@ export function ProductCardModern({
           <button
             type="button"
             onClick={handleAddToCart}
-            className="shrink-0 p-1 -m-1"
+            className="shrink-0 p-3 -m-3 flex items-center justify-center"
             aria-label="Ajouter au panier"
           >
             <ShoppingBag

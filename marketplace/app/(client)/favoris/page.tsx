@@ -83,18 +83,22 @@ export default function FavorisPage() {
   const handleToggleFavorite = async (productId: string) => {
     if (!profile) return
     const isFav = favoriteIds.has(productId)
-    const nowFav = await toggleFavorite(supabase, profile.id, productId, isFav)
-    setFavoriteIds((prev) => {
-      const next = new Set(prev)
-      if (nowFav) next.add(productId)
-      else next.delete(productId)
-      return next
-    })
-    if (!nowFav) {
-      // Retiré : on l'enlève aussi de la liste affichée sans tout recharger.
-      setProducts((prev) => prev.filter((p) => p.id !== productId))
+    try {
+      const nowFav = await toggleFavorite(supabase, profile.id, productId, isFav)
+      setFavoriteIds((prev) => {
+        const next = new Set(prev)
+        if (nowFav) next.add(productId)
+        else next.delete(productId)
+        return next
+      })
+      if (!nowFav) {
+        // Retiré : on l'enlève aussi de la liste affichée sans tout recharger.
+        setProducts((prev) => prev.filter((p) => p.id !== productId))
+      }
+      showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
+    } catch (error: any) {
+      showToast(error?.message || 'Impossible de mettre à jour les favoris', 'error')
     }
-    showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
   }
 
   return (

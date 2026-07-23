@@ -142,6 +142,7 @@ export default function HistoriquePage() {
       {/* Header */}
       <ClientDashboardHeader
         title="Historique"
+        backHref="/menu"
         avatarUrl={profile?.avatar_url}
         fullName={profile?.full_name || undefined}
         notificationsCount={badges.notifications}

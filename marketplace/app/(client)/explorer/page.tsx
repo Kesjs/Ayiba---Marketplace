@@ -224,14 +224,18 @@ function ExplorerContent() {
       return;
     }
     const isFav = favoriteIds.has(productId);
-    const nowFav = await toggleFavorite(supabase, userId, productId, isFav);
-    setFavoriteIds((prev) => {
-      const next = new Set(prev);
-      if (nowFav) next.add(productId);
-      else next.delete(productId);
-      return next;
-    });
-    showToast(nowFav ? "Ajouté aux favoris" : "Retiré des favoris", "success");
+    try {
+      const nowFav = await toggleFavorite(supabase, userId, productId, isFav);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (nowFav) next.add(productId);
+        else next.delete(productId);
+        return next;
+      });
+      showToast(nowFav ? "Ajouté aux favoris" : "Retiré des favoris", "success");
+    } catch (error: any) {
+      showToast(error?.message || "Impossible de mettre à jour les favoris", "error");
+    }
   };
 
   const search = onglet === "produits" ? searchQuery : storeSearch;

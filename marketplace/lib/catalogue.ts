@@ -200,7 +200,7 @@ export async function toggleFavorite(
       .eq("article_id", articleId);
     if (error) {
       console.error("Error removing favori:", error);
-      return isFavorite;
+      throw error;
     }
     return false;
   }
@@ -208,7 +208,7 @@ export async function toggleFavorite(
   const { error } = await supabase.from("favoris").insert({ client_id: userId, article_id: articleId });
   if (error) {
     console.error("Error adding favori:", error);
-    return isFavorite;
+    throw error;
   }
   return true;
 }

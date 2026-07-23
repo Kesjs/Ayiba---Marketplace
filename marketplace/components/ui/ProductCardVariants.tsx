@@ -36,12 +36,14 @@ export function ProductCardModern({
   const discount = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
 
   const handleFavorite = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setFavorite((f) => !f);
     onToggleFavorite();
   };
 
   const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     onAddToCart();
     setJustAdded(true);

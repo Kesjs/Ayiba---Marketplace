@@ -291,9 +291,13 @@ export default function ProductDetailPage() {
       setAuthModalOpen(true)
       return
     }
-    const nowFav = await toggleFavorite(supabase, user.id, product.id, product.is_favorite)
-    setProduct({ ...product, is_favorite: nowFav })
-    showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
+    try {
+      const nowFav = await toggleFavorite(supabase, user.id, product.id, product.is_favorite)
+      setProduct({ ...product, is_favorite: nowFav })
+      showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
+    } catch (error: any) {
+      showToast(error?.message || 'Impossible de mettre à jour les favoris', 'error')
+    }
   }
 
   const handleContactSeller = () => {
@@ -374,7 +378,23 @@ export default function ProductDetailPage() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-square">
+            <div
+              className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-square touch-pan-y"
+              onTouchStart={(e) => {
+                (e.currentTarget as any)._touchStartX = e.touches[0].clientX
+              }}
+              onTouchEnd={(e) => {
+                const startX = (e.currentTarget as any)._touchStartX
+                if (startX == null || product.photos.length <= 1) return
+                const deltaX = e.changedTouches[0].clientX - startX
+                if (Math.abs(deltaX) < 40) return // pas un swipe volontaire
+                if (deltaX < 0) {
+                  setCurrentImageIndex((prev) => (prev + 1) % product.photos.length)
+                } else {
+                  setCurrentImageIndex((prev) => (prev - 1 + product.photos.length) % product.photos.length)
+                }
+              }}
+            >
               <img
                 src={product.photos[currentImageIndex]}
                 alt={product.nom}
@@ -385,15 +405,21 @@ export default function ProductDetailPage() {
                 <>
                   <button
                     onClick={() => setCurrentImageIndex((prev) => (prev - 1 + product.photos.length) % product.photos.length)}
-                    className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center"
+                    aria-label="Image précédente"
                   >
-                    <ChevronLeft size={20} />
+                    <span className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg">
+                      <ChevronLeft size={20} />
+                    </span>
                   </button>
                   <button
                     onClick={() => setCurrentImageIndex((prev) => (prev + 1) % product.photos.length)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center"
+                    aria-label="Image suivante"
                   >
-                    <ChevronRight size={20} />
+                    <span className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg">
+                      <ChevronRight size={20} />
+                    </span>
                   </button>
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
                     {product.photos.map((_, i) => (

@@ -371,12 +371,13 @@ export default function ProductDetailPage() {
           <span className="text-gray-900 truncate">{product.nom}</span>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 md:gap-8 lg:gap-12">
+        <div className="grid md:grid-cols-2 gap-6 md:gap-8 lg:gap-12 min-w-0">
           {/* Images */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
+            className="min-w-0"
           >
             <div
               className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-square touch-pan-y"
@@ -482,7 +483,7 @@ export default function ProductDetailPage() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="space-y-5 md:space-y-6"
+            className="space-y-5 md:space-y-6 min-w-0"
           >
             <span className="text-xs font-bold text-coral-600 uppercase tracking-wider">
               {product.categorieLabel}

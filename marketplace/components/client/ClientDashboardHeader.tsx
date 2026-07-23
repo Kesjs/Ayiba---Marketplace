@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, ChevronLeft } from "lucide-react";
 import Link from "next/link";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { NotificationsDropdown, type Notification } from "@/components/dashboard/NotificationsDropdown";
@@ -21,6 +21,10 @@ interface ClientDashboardHeaderProps {
   /** Cible du logo affiché en dessous du breakpoint md (là où l'aside client,
    * qui porte déjà le logo, est masqué). */
   logoHref?: string;
+  /** Si fourni, affiche une flèche retour vers cette route. À utiliser sur les
+   * pages ouvertes depuis le Menu (favoris, historique, profil...) qui ne sont
+   * pas des onglets principaux de la barre de navigation basse. */
+  backHref?: string;
 }
 
 export function ClientDashboardHeader({
@@ -34,6 +38,7 @@ export function ClientDashboardHeader({
   onAvatarClick,
   onBellClick,
   logoHref = "/accueil",
+  backHref,
 }: ClientDashboardHeaderProps) {
   const [showNotifs, setShowNotifs] = useState(false);
   // Deux instances de la cloche (bande unique mobile, ligne desktop réel)
@@ -117,7 +122,16 @@ export function ClientDashboardHeader({
       </div>
 
       {/* --- Bande contenu, mobile (< md) : pleine largeur, plus rien à droite --- */}
-      <div className="md:hidden flex items-center px-4 h-14">
+      <div className="md:hidden flex items-center gap-2 px-4 h-14">
+        {backHref && (
+          <Link
+            href={backHref}
+            className="w-8 h-8 -ml-1.5 flex items-center justify-center shrink-0 text-gray-600 hover:text-gray-900"
+            aria-label="Retour"
+          >
+            <ChevronLeft size={22} />
+          </Link>
+        )}
         {greeting ? (
           <div className="min-w-0">
             <p className="text-sm font-bold text-gray-900 truncate leading-tight">{greeting}</p>
@@ -130,14 +144,25 @@ export function ClientDashboardHeader({
 
       {/* --- Desktop réel (>= md) : l'aside garde le logo, le header garde cloche+avatar --- */}
       <div className="hidden md:flex relative items-center justify-between gap-3 px-4 md:px-8 h-16">
-        {greeting ? (
-          <div>
-            <p className="text-lg font-bold text-gray-900 tracking-tight leading-tight">{greeting}</p>
-            {subtitle && <p className="text-sm text-gray-500 leading-tight mt-0.5">{subtitle}</p>}
-          </div>
-        ) : (
-          <h1 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h1>
-        )}
+        <div className="flex items-center gap-3 min-w-0">
+          {backHref && (
+            <Link
+              href={backHref}
+              className="w-9 h-9 flex items-center justify-center shrink-0 rounded-full hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
+              aria-label="Retour"
+            >
+              <ChevronLeft size={20} />
+            </Link>
+          )}
+          {greeting ? (
+            <div>
+              <p className="text-lg font-bold text-gray-900 tracking-tight leading-tight">{greeting}</p>
+              {subtitle && <p className="text-sm text-gray-500 leading-tight mt-0.5">{subtitle}</p>}
+            </div>
+          ) : (
+            <h1 className="text-lg font-bold text-gray-900 tracking-tight">{title}</h1>
+          )}
+        </div>
 
         <div className="flex items-center gap-2 shrink-0">
           <div className="relative" ref={desktopRef}>

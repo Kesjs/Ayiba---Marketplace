@@ -106,6 +106,7 @@ export default function FavorisPage() {
       {/* Header */}
       <ClientDashboardHeader
         title="Favoris"
+        backHref="/menu"
         avatarUrl={profile?.avatar_url}
         fullName={profile?.full_name || undefined}
         notificationsCount={badges.notifications}

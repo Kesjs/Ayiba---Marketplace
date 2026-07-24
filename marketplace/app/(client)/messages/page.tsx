@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useClientMessages } from "@/lib/hooks/useClientMessages";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
+import { useUiChrome } from "@/context/UiChromeContext";
 import { ClientDashboardHeader } from "@/components/client/ClientDashboardHeader";
 import { MessageCircleOff, Send, User, ArrowLeft, Phone, Store, Bike, LifeBuoy, RotateCcw } from "lucide-react";
 
@@ -38,6 +39,7 @@ function MessagesContent() {
   const vendeurParam = searchParams.get("vendeur");
   const livreurParam = searchParams.get("livreur");
   const commandeParam = searchParams.get("commande");
+  const { setHideBottomNav } = useUiChrome();
 
   const [onglet, setOnglet] = useState<"vendeur" | "livreur" | "support">("vendeur");
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -93,6 +95,14 @@ function MessagesContent() {
   useEffect(() => {
     lastMessageIdRef.current = null;
   }, [selectedId]);
+
+  // Cache la bottom nav globale de l'appli quand une conversation est ouverte
+  // (comportement Instagram : le fil de discussion prend tout l'écran, la
+  // barre d'onglets ne revient que quand on referme la conversation).
+  useEffect(() => {
+    setHideBottomNav(!!selectedId);
+    return () => setHideBottomNav(false);
+  }, [selectedId, setHideBottomNav]);
 
   const handleSend = async () => {
     if (!selectedId || !texte.trim()) return;

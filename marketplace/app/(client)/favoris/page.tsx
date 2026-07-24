@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useCart } from '@/context/CartContext'
@@ -131,7 +130,7 @@ export default function FavorisPage() {
         ) : (
           <div className="grid grid-cols-2 gap-4">
             {products.map((product) => (
-              <Link key={product.id} href={`/produits/${product.id}`} className="block">
+              <div key={product.id} className="block">
                 <ProductCardModern
                   image={product.photos[0] || ''}
                   category={product.categorieLabel}
@@ -143,8 +142,9 @@ export default function FavorisPage() {
                   isFavorite={favoriteIds.has(product.id)}
                   onAddToCart={() => handleAddToCart(product)}
                   onToggleFavorite={() => handleToggleFavorite(product.id)}
+                  onClick={() => router.push(`/produits/${product.id}`)}
                 />
-              </Link>
+              </div>
             ))}
           </div>
         )}

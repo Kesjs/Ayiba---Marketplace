@@ -185,6 +185,10 @@ export default function BoutiqueDetailPage() {
                   reviewCount={0}
                   price={prixAffiche(product)}
                   oldPrice={ancienPrixAffiche(product)}
+                  location={product.vendeur?.quartier || product.vendeur?.commune || undefined}
+                  stock={product.stock}
+                  createdAt={product.created_at}
+                  photosCount={product.photos.length}
                   onAddToCart={() => handleAddToCart(product)}
                   onToggleFavorite={() => showToast("Favori ajouté", "success")}
                 />

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
@@ -10,6 +11,7 @@ import {
   Navigation,
   CheckCircle2,
   Phone,
+  MessageCircle,
   ChevronRight,
   ShieldCheck,
   Star,
@@ -489,6 +491,7 @@ function MissionEnCoursCard({
   onRegenererCodes: () => void;
   onClientIndisponible: () => void;
 }) {
+  const router = useRouter();
   const points = [
     mission.vendeur_quartier
       ? { lat: 6.366, lng: 2.418, label: `${mission.vendeur_nom_boutique ?? "Boutique"} (Retrait)`, type: "pickup" as const }
@@ -553,13 +556,33 @@ function MissionEnCoursCard({
           <Navigation size={20} />
           Ouvrir GPS
         </motion.button>
-        <motion.button
-          whileTap={{ scale: 0.97 }}
-          className="flex-1 h-14 border border-teal-200 text-teal-700 font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-50 transition-all"
-        >
-          <Phone size={20} />
-          Appeler Client
-        </motion.button>
+        {mission.telephone_client ? (
+          <a
+            href={`tel:${mission.telephone_client}`}
+            className="flex-1 h-14 border border-teal-200 text-teal-700 font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-50 transition-all"
+          >
+            <Phone size={20} />
+            Appeler Client
+          </a>
+        ) : (
+          <button
+            disabled
+            className="flex-1 h-14 border border-gray-200 text-gray-300 font-bold rounded-2xl flex items-center justify-center gap-3 cursor-not-allowed"
+          >
+            <Phone size={20} />
+            Numéro indisponible
+          </button>
+        )}
+        {mission.client_id && (
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => router.push(`/livreur/messages?client=${mission.client_id}&commande=${mission.id}`)}
+            className="flex-1 h-14 border border-teal-200 text-teal-700 font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-50 transition-all"
+          >
+            <MessageCircle size={20} />
+            Contacter
+          </motion.button>
+        )}
       </div>
 
       {/* Confirmation de livraison : ce n'est plus le livreur qui confirme.

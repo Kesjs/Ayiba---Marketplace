@@ -524,6 +524,11 @@ export default function Home() {
                           reviewCount={0}
                           price={prixAffiche(product)}
                           oldPrice={ancienPrixAffiche(product)}
+                          sellerName={product.vendeur?.nom_boutique || undefined}
+                          location={product.vendeur?.quartier || product.vendeur?.commune || undefined}
+                          stock={product.stock}
+                          createdAt={product.created_at}
+                          photosCount={product.photos.length}
                           onAddToCart={() => handleAddToCart(product)}
                           isFavorite={favoriteIds.has(product.id)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
@@ -614,6 +619,11 @@ export default function Home() {
                           reviewCount={0}
                           price={prixAffiche(product)}
                           oldPrice={ancienPrixAffiche(product)}
+                          sellerName={product.vendeur?.nom_boutique || undefined}
+                          location={product.vendeur?.quartier || product.vendeur?.commune || undefined}
+                          stock={product.stock}
+                          createdAt={product.created_at}
+                          photosCount={product.photos.length}
                           onAddToCart={() => handleAddToCart(product)}
                           isFavorite={favoriteIds.has(product.id)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
@@ -739,6 +749,11 @@ export default function Home() {
                           reviewCount={0}
                           price={prixAffiche(product)}
                           oldPrice={ancienPrixAffiche(product)}
+                          sellerName={product.vendeur?.nom_boutique || undefined}
+                          location={product.vendeur?.quartier || product.vendeur?.commune || undefined}
+                          stock={product.stock}
+                          createdAt={product.created_at}
+                          photosCount={product.photos.length}
                           onAddToCart={() => handleAddToCart(product)}
                           isFavorite={favoriteIds.has(product.id)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}

@@ -28,7 +28,7 @@ export function StatusBadge({ variant, children, icon }: StatusBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-[11px] font-medium ${variants[variant]}`}
+      className={`inline-flex items-center gap-1.5 rounded-pill px-3 py-1 text-[11px] font-medium whitespace-nowrap shrink-0 ${variants[variant]}`}
     >
       {icon}
       {children}

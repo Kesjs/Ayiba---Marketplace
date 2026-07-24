@@ -12,9 +12,27 @@ interface ProductCardProps {
   price: number;
   oldPrice?: number;
   isFavorite?: boolean;
+  /** Nom de la boutique vendeuse. Affiché sous le nom si fourni. */
+  sellerName?: string;
+  /** Quartier ou commune du vendeur, pour un repère de proximité. */
+  location?: string;
+  /** Stock restant. Si 0, la carte passe en état "Rupture" et désactive l'ajout au panier. */
+  stock?: number;
+  /** Date de création (ISO) de l'article, pour le badge "Nouveau" (< 7 jours). */
+  createdAt?: string;
+  /** Nombre de photos disponibles pour ce produit, pour l'indicateur multi-photos. */
+  photosCount?: number;
   onAddToCart: () => void;
   onToggleFavorite: () => void;
   onClick?: () => void;
+}
+
+const NOUVEAU_SEUIL_JOURS = 7;
+
+function estNouveau(createdAt?: string): boolean {
+  if (!createdAt) return false;
+  const jours = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
+  return jours >= 0 && jours <= NOUVEAU_SEUIL_JOURS;
 }
 
 export function ProductCardModern({
@@ -26,6 +44,11 @@ export function ProductCardModern({
   price,
   oldPrice,
   isFavorite = false,
+  sellerName,
+  location,
+  stock,
+  createdAt,
+  photosCount,
   onAddToCart,
   onToggleFavorite,
   onClick,
@@ -34,6 +57,8 @@ export function ProductCardModern({
   const [justAdded, setJustAdded] = useState(false);
 
   const discount = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
+  const enRupture = stock === 0;
+  const nouveau = !enRupture && estNouveau(createdAt);
 
   const handleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -45,6 +70,7 @@ export function ProductCardModern({
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    if (enRupture) return;
     onAddToCart();
     setJustAdded(true);
     setTimeout(() => setJustAdded(false), 1500);
@@ -65,8 +91,32 @@ export function ProductCardModern({
           src={image}
           alt={name}
           fill
-          className="object-cover transition-transform duration-500 group-hover/image:scale-105"
+          className={`object-cover transition-transform duration-500 group-hover/image:scale-105 ${
+            enRupture ? "grayscale-[50%] opacity-70" : ""
+          }`}
         />
+
+        {/* Badge Nouveau, en haut à gauche */}
+        {nouveau && (
+          <span className="absolute top-2 left-2 bg-gray-950 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">
+            Nouveau
+          </span>
+        )}
+
+        {/* Bandeau Rupture de stock */}
+        {enRupture && (
+          <span className="absolute top-2 left-2 bg-white/95 text-gray-700 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">
+            Rupture
+          </span>
+        )}
+
+        {/* Indicateur multi-photos, en bas à gauche */}
+        {photosCount != null && photosCount > 1 && (
+          <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+            <i className="ti ti-photo text-[11px]" />
+            {photosCount}
+          </span>
+        )}
 
         <button
           type="button"
@@ -84,9 +134,21 @@ export function ProductCardModern({
 
       {/* TEXTE — aucune carte, directement sur fond blanc */}
       <div className="flex flex-col gap-1 px-0.5">
+        <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest truncate">
+          {category}
+        </p>
+
         <p className="text-xs text-gray-600 font-medium truncate">
           {name}
         </p>
+
+        {(sellerName || location) && (
+          <p className="text-[10px] text-gray-400 truncate">
+            {sellerName}
+            {sellerName && location && " · "}
+            {location}
+          </p>
+        )}
 
         {reviewCount > 0 && (
           <div className="flex items-center gap-1.5">
@@ -120,13 +182,21 @@ export function ProductCardModern({
           <button
             type="button"
             onClick={handleAddToCart}
-            className="shrink-0 p-3 -m-3 flex items-center justify-center"
-            aria-label="Ajouter au panier"
+            disabled={enRupture}
+            aria-disabled={enRupture}
+            className={`shrink-0 p-3 -m-3 flex items-center justify-center ${
+              enRupture ? "cursor-not-allowed" : ""
+            }`}
+            aria-label={enRupture ? "Produit en rupture de stock" : "Ajouter au panier"}
           >
             <ShoppingBag
               size={19}
               className={`transition-colors duration-300 ${
-                justAdded ? "text-teal-600" : "text-gray-900 hover:text-coral-500"
+                enRupture
+                  ? "text-gray-300"
+                  : justAdded
+                  ? "text-teal-600"
+                  : "text-gray-900 hover:text-coral-500"
               }`}
             />
           </button>

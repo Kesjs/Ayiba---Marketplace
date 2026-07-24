@@ -365,20 +365,15 @@ export function VendeurKycWizard() {
 
   const isRecap = step === totalSteps + 1;
 
-  if (!hydrated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
   const showStatusScreen =
-    (vendeurStatut === "en_attente" || vendeurStatut === "valide") && !editMode;
+    hydrated && (vendeurStatut === "en_attente" || vendeurStatut === "valide") && !editMode;
 
   // Même souci que côté livreur : le <main> du layout racine a un
   // padding-bottom (pb-24) prévu pour les pages qui scrollent normalement.
   // On verrouille le scroll du document tant que cet écran est affiché.
+  // Ce hook doit rester avant tout return conditionnel (Rules of Hooks) :
+  // on utilise showStatusScreen (qui inclut déjà !hydrated) plutôt qu'un
+  // early-return sur `hydrated` placé avant lui.
   useEffect(() => {
     if (!showStatusScreen || typeof document === "undefined") return;
     const previousOverflow = document.body.style.overflow;
@@ -387,6 +382,14 @@ export function VendeurKycWizard() {
       document.body.style.overflow = previousOverflow;
     };
   }, [showStatusScreen]);
+
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (showStatusScreen) {
     const isValide = vendeurStatut === "valide";

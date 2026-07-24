@@ -17,6 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { LIVREUR_NAV_ITEMS } from "@/lib/constants/livreur-nav";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { useToast } from "@/context/ToastContext";
+import { useUiChrome } from "@/context/UiChromeContext";
 import { Lock } from "lucide-react";
 
 export function BottomNav() {
@@ -27,6 +28,7 @@ export function BottomNav() {
   const [isVendeurMenuOpen, setIsVendeurMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { showToast } = useToast();
+  const { hideBottomNav } = useUiChrome();
 
   const role = profile?.role || "guest";
   const badges = useBadgeCounts(profile?.id, role);
@@ -66,7 +68,7 @@ export function BottomNav() {
     pathname.startsWith('/livreur/kyc') && (statutLoading || !dossierDejaSoumis);
 
   const shouldHide =
-    hideOnPaths.some(path => pathname.startsWith(path)) || isLivreurKycWizardActif;
+    hideOnPaths.some(path => pathname.startsWith(path)) || isLivreurKycWizardActif || hideBottomNav;
   if (shouldHide) return null;
 
   if (loading) return null;

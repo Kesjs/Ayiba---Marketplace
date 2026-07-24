@@ -2,7 +2,6 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Link from 'next/link'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
@@ -200,7 +199,7 @@ function CatalogueContent() {
                   : "flex flex-col gap-6"
                 }>
                   {products.map((product) => (
-                    <Link key={product.id} href={`/produits/${product.id}`} className="block">
+                    <div key={product.id} className="block">
                       <ProductCardModern
                         image={product.photos[0] || '/images/hero-illustration.png'}
                         category={product.categorie?.nom || 'Divers'}
@@ -211,8 +210,9 @@ function CatalogueContent() {
                         oldPrice={product.prix_promo ? product.prix : undefined}
                         onAddToCart={() => handleAddToCart(product)}
                         onToggleFavorite={() => showToast('Favori ajouté', 'success')}
+                        onClick={() => router.push(`/produits/${product.id}`)}
                       />
-                    </Link>
+                    </div>
                   ))}
                 </div>
               ) : (

@@ -20,6 +20,7 @@ interface DashboardLayoutProps {
   personalized?: boolean; // active "Bonjour {prénom} "
   backHref?: string;   // affiche un bouton retour à la place du titre/greeting
   backLabel?: string;  // libellé du bouton retour (par défaut "Retour")
+  fullHeight?: boolean; // verrouille la page sur la hauteur de l'écran (ex: messagerie) au lieu de laisser la page défiler
 }
 
 // Même mapping que la redirection de la home publique (app/page.tsx) :
@@ -62,6 +63,7 @@ export function DashboardLayout({
   personalized = false,
   backHref,
   backLabel,
+  fullHeight = false,
 }: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
@@ -96,7 +98,11 @@ export function DashboardLayout({
         logoHref={ROLE_HOME[role]}
       />
 
-      <main className={`flex-1 min-w-0 transition-all duration-300 ${isCollapsed ? "lg:pl-20" : "lg:pl-64"}`}>
+      <main
+        className={`flex-1 min-w-0 transition-all duration-300 ${isCollapsed ? "lg:pl-20" : "lg:pl-64"} ${
+          fullHeight ? "flex flex-col h-dvh overflow-hidden" : ""
+        }`}
+      >
         <DashboardHeader
           boutiqueName={boutiqueName}
           title={title || "Tableau de bord"}
@@ -114,8 +120,20 @@ export function DashboardLayout({
           onLogout={handleLogout}
         />
 
-<div className="p-5 sm:p-6 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0">
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700 min-w-0">
+        <div
+          className={
+            fullHeight
+              ? "flex-1 min-h-0 flex flex-col p-5 sm:p-6 md:p-8 lg:p-10 pb-3 lg:pb-6 max-w-7xl mx-auto min-w-0 w-full"
+              : "p-5 sm:p-6 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0"
+          }
+        >
+          <div
+            className={
+              fullHeight
+                ? "flex-1 min-h-0 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-700 min-w-0"
+                : "animate-in fade-in slide-in-from-bottom-4 duration-700 min-w-0"
+            }
+          >
             {children}
           </div>
         </div>

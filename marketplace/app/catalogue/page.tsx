@@ -208,6 +208,11 @@ function CatalogueContent() {
                         reviewCount={0}
                         price={product.prix_promo ?? product.prix}
                         oldPrice={product.prix_promo ? product.prix : undefined}
+                        sellerName={product.vendeur?.nom_boutique || undefined}
+                        location={product.vendeur?.quartier || product.vendeur?.commune || undefined}
+                        stock={product.stock}
+                        createdAt={product.created_at}
+                        photosCount={product.photos.length}
                         onAddToCart={() => handleAddToCart(product)}
                         onToggleFavorite={() => showToast('Favori ajouté', 'success')}
                         onClick={() => router.push(`/produits/${product.id}`)}

@@ -33,6 +33,7 @@ interface ArticleRow {
   statut: string;
   actif: boolean;
   categorie_id: string | null;
+  created_at: string;
   categories: CategorieRef | CategorieRef[] | null;
   article_images: ArticleImage[];
 }
@@ -104,6 +105,13 @@ function getStatutCategorie(item: ArticleRow): StatutFilter | "desactive" {
   return "publie";
 }
 
+const NOUVEAU_SEUIL_JOURS = 7;
+
+function estNouveau(createdAt: string): boolean {
+  const jours = (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24);
+  return jours >= 0 && jours <= NOUVEAU_SEUIL_JOURS;
+}
+
 const ARTICLE_BADGE_DOTS: Record<string, string> = {
   neutral: "bg-gray-400",
   pending: "bg-amber-500",
@@ -167,6 +175,19 @@ function VendeurArticleCard({
           <div className="w-full h-full flex items-center justify-center text-gray-300">
             <PackageX size={24} />
           </div>
+        )}
+
+        {item.actif && estNouveau(item.created_at) && (
+          <span className="absolute top-2 left-2 bg-gray-950 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">
+            Nouveau
+          </span>
+        )}
+
+        {item.article_images.length > 1 && (
+          <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+            <i className="ti ti-photo text-[11px]" />
+            {item.article_images.length}
+          </span>
         )}
 
         <div className="absolute top-2 right-2 flex flex-col gap-1.5">
@@ -241,9 +262,16 @@ function VendeurArticleRow({
       </div>
 
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest truncate">
-          {categorieLabel}
-        </p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest truncate">
+            {categorieLabel}
+          </p>
+          {item.actif && estNouveau(item.created_at) && (
+            <span className="shrink-0 bg-gray-950 text-white text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full">
+              Nouveau
+            </span>
+          )}
+        </div>
         <p className="text-sm text-gray-800 font-semibold truncate">{item.nom}</p>
         <div className="flex items-center gap-2 mt-0.5">
           <p className="text-sm font-black text-gray-900 whitespace-nowrap">
@@ -251,6 +279,15 @@ function VendeurArticleRow({
           </p>
           <span className="text-gray-300">·</span>
           <span className="text-[11px] text-gray-400">{item.stock} en stock</span>
+          {item.article_images.length > 1 && (
+            <>
+              <span className="text-gray-300">·</span>
+              <span className="text-[11px] text-gray-400 flex items-center gap-0.5">
+                <i className="ti ti-photo text-[11px]" />
+                {item.article_images.length}
+              </span>
+            </>
+          )}
         </div>
         <div className="mt-1">
           <StatusBadge statut={item.statut} stock={item.stock} actif={item.actif} />
@@ -332,7 +369,7 @@ export default function MesArticlesPage() {
 
     const { data, error } = await supabase
       .from("articles")
-      .select("id, nom, description, prix, stock, statut, actif, categorie_id, categories(nom), article_images(id, image_url, ordre)")
+      .select("id, nom, description, prix, stock, statut, actif, categorie_id, created_at, categories(nom), article_images(id, image_url, ordre)")
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false });
 

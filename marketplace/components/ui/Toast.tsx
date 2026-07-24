@@ -22,33 +22,28 @@ export function Toast() {
   const { toasts, removeToast } = useToast();
 
   return (
-    <div className="fixed top-4 md:top-8 left-1/2 -translate-x-1/2 md:left-auto md:right-8 z-[100] flex flex-col gap-3 w-[90%] max-w-sm md:w-auto">
+    <div className="fixed bottom-20 lg:bottom-8 inset-x-0 lg:inset-x-auto lg:right-8 z-[100] flex flex-col items-center gap-2 px-4 w-full lg:w-auto pointer-events-none">
       <AnimatePresence>
         {toasts.map((toast) => {
           const Icon = variantIcons[toast.variant];
           return (
             <motion.div
               key={toast.id}
-              initial={{ opacity: 0, y: -20, scale: 0.9 }}
+              initial={{ opacity: 0, y: 16, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-              layout
+              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
               className={`
-                bg-white border rounded-2xl p-4 flex items-start gap-3 shadow-xl shadow-black/10
+                pointer-events-auto bg-white border rounded-full pl-3 pr-2 py-2 flex items-center gap-2 shadow-lg shadow-black/10 max-w-[92vw] lg:max-w-sm
                 ${variantColors[toast.variant]}
               `}
             >
-              <div className="mt-0.5">
-                <Icon size={20} strokeWidth={2.5} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold leading-tight">{toast.message}</p>
-              </div>
+              <Icon size={16} strokeWidth={2.5} className="shrink-0" />
+              <p className="text-xs font-bold leading-tight truncate">{toast.message}</p>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="text-gray-400 hover:text-gray-600 transition-colors p-1"
+                className="text-gray-400 hover:text-gray-600 transition-colors shrink-0 p-1 -mr-1"
               >
-                <X size={16} />
+                <X size={13} />
               </button>
             </motion.div>
           );

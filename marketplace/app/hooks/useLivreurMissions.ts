@@ -11,6 +11,7 @@ export interface MissionCommande {
   frais_livraison: number | null;
   adresse_livraison: string | null;
   commune: string | null;
+  client_id: string | null;
   nom_client: string | null;
   telephone_client: string | null;
   livreur_confirme: boolean;
@@ -44,6 +45,7 @@ interface RawCommandeRow {
   frais_livraison: number | null;
   adresse_livraison: string | null;
   commune: string | null;
+  client_id: string | null;
   nom_client: string | null;
   telephone_client: string | null;
   livreur_confirme: boolean;
@@ -55,7 +57,7 @@ interface RawCommandeRow {
 
 const SELECT_MISSION = `
   id, numero, statut, montant_total, frais_livraison, adresse_livraison, commune,
-  nom_client, telephone_client, livreur_confirme, created_at, updated_at,
+  client_id, nom_client, telephone_client, livreur_confirme, created_at, updated_at,
   vendeur:vendeurs ( nom_boutique, quartier ),
   commande_articles ( quantite )
 `;
@@ -69,6 +71,7 @@ function mapRow(row: RawCommandeRow): MissionCommande {
     frais_livraison: row.frais_livraison,
     adresse_livraison: row.adresse_livraison,
     commune: row.commune,
+    client_id: row.client_id,
     nom_client: row.nom_client,
     telephone_client: row.telephone_client,
     livreur_confirme: row.livreur_confirme,

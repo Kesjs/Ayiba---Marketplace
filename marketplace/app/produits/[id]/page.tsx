@@ -709,6 +709,11 @@ export default function ProductDetailPage() {
                     reviewCount={p.reviewCount}
                     price={p.prix}
                     oldPrice={p.ancien_prix ?? undefined}
+                    sellerName={p.vendeurNom}
+                    location={p.vendeurLocation || undefined}
+                    stock={p.stock ?? undefined}
+                    createdAt={p.createdAt}
+                    photosCount={p.photos.length}
                     onAddToCart={() => {
                       addItem({ id: p.id, nom: p.nom, prix: p.prix, vendeur_id: p.vendeur_id, photos: p.photos })
                       showToast('Produit ajouté au panier', 'success')

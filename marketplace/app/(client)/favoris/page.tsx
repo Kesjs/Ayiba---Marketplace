@@ -139,6 +139,11 @@ export default function FavorisPage() {
                   reviewCount={product.reviewCount}
                   price={product.prix}
                   oldPrice={product.ancien_prix ?? undefined}
+                  sellerName={product.vendeurNom}
+                  location={product.vendeurLocation || undefined}
+                  stock={product.stock ?? undefined}
+                  createdAt={product.createdAt}
+                  photosCount={product.photos.length}
                   isFavorite={favoriteIds.has(product.id)}
                   onAddToCart={() => handleAddToCart(product)}
                   onToggleFavorite={() => handleToggleFavorite(product.id)}

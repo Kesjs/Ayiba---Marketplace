@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, MessageCircle, ArrowLeft, MapPin } from "lucide-react";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { Button } from "@/components/ui/Button";
+import { AuthModal } from "@/components/ui/AuthModal";
 import { getBoutiqueParId, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
+import { useUser } from "@/lib/hooks/useUser";
 
 function prixAffiche(a: ArticlePublic) {
   return a.prix_promo ?? a.prix;
@@ -22,14 +24,17 @@ function ancienPrixAffiche(a: ArticlePublic) {
 
 export default function BoutiqueDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const boutiqueId = params.id as string;
   const { addItem } = useCart();
   const { showToast } = useToast();
+  const { user } = useUser();
 
   const [store, setStore] = useState<BoutiquePublique | null>(null);
   const [storeProducts, setStoreProducts] = useState<ArticlePublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   useEffect(() => {
     if (!boutiqueId) return;
@@ -71,6 +76,15 @@ export default function BoutiqueDetailPage() {
       photos: product.photos,
     });
     showToast("Produit ajouté au panier", "success");
+  };
+
+  const handleContact = () => {
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    if (!store) return;
+    router.push(`/messages?vendeur=${store.id}`);
   };
 
   if (loading) {
@@ -145,12 +159,10 @@ export default function BoutiqueDetailPage() {
             )}
           </div>
 
-          <Link href={`/messages?vendeur=${store.id}`} className="shrink-0">
-            <Button variant="outline">
-              <MessageCircle size={16} className="mr-2" />
-              Contacter
-            </Button>
-          </Link>
+          <Button variant="outline" onClick={handleContact} className="shrink-0">
+            <MessageCircle size={16} className="mr-2" />
+            Contacter
+          </Button>
         </div>
 
         <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-5 md:mb-6">
@@ -183,6 +195,12 @@ export default function BoutiqueDetailPage() {
       </main>
 
       <Footer />
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        intendedRole={null}
+      />
     </div>
   );
 }

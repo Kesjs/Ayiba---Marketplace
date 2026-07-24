@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, MessageCircle, ArrowLeft, MapPin } from "lucide-react";
 import { Navbar } from "@/components/ui/Navbar";
@@ -22,6 +22,7 @@ function ancienPrixAffiche(a: ArticlePublic) {
 
 export default function BoutiqueDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const boutiqueId = params.id as string;
   const { addItem } = useCart();
   const { showToast } = useToast();
@@ -164,7 +165,7 @@ export default function BoutiqueDetailPage() {
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {storeProducts.map((product) => (
-              <Link key={product.id} href={`/produits/${product.id}`} className="block">
+              <div key={product.id} className="block">
                 <ProductCardModern
                   image={product.photos[0] || "/images/hero-illustration.png"}
                   category={product.categorie?.nom || "Divers"}
@@ -175,8 +176,9 @@ export default function BoutiqueDetailPage() {
                   oldPrice={ancienPrixAffiche(product)}
                   onAddToCart={() => handleAddToCart(product)}
                   onToggleFavorite={() => showToast("Favori ajouté", "success")}
+                  onClick={() => router.push(`/produits/${product.id}`)}
                 />
-              </Link>
+              </div>
             ))}
           </div>
         )}

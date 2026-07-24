@@ -6,10 +6,10 @@ type SupabaseClient = ReturnType<typeof createClient>;
 // Sélection commune utilisée par explorer/, recherche/ et produits/[id]
 // pour charger un article "carte produit" en un seul aller-retour.
 export const ARTICLE_CARD_SELECT = `
-  id, nom, description, prix, prix_promo, categorie_id, vendeur_id, vues, created_at,
+  id, nom, description, prix, prix_promo, categorie_id, vendeur_id, vues, created_at, stock,
   categories ( nom, slug ),
   article_images ( image_url, ordre ),
-  vendeurs ( nom_boutique )
+  vendeurs ( nom_boutique, quartier, commune )
 `;
 
 interface CategorieRef {
@@ -19,6 +19,8 @@ interface CategorieRef {
 
 interface VendeurRef {
   nom_boutique: string | null;
+  quartier: string | null;
+  commune: string | null;
 }
 
 export interface ArticleImageRow {
@@ -36,6 +38,7 @@ export interface ArticleCardRow {
   vendeur_id: string;
   vues: number | null;
   created_at: string;
+  stock: number | null;
   categories: CategorieRef | CategorieRef[] | null;
   article_images: ArticleImageRow[] | null;
   vendeurs: VendeurRef | VendeurRef[] | null;
@@ -51,6 +54,9 @@ export interface ArticleCard {
   categorieLabel: string;
   vendeur_id: string;
   vendeurNom: string;
+  vendeurLocation: string | null;
+  stock: number | null;
+  createdAt: string;
   photos: string[];
   rating: number;
   reviewCount: number;
@@ -133,6 +139,9 @@ export function mapArticleRow(row: ArticleCardRow, ratings: Map<string, RatingIn
     categorieLabel: getCategorieLabel(cat?.slug, cat?.nom || "Divers"),
     vendeur_id: row.vendeur_id,
     vendeurNom: vendeur?.nom_boutique || "Boutique Ayiba",
+    vendeurLocation: vendeur?.quartier || vendeur?.commune || null,
+    stock: row.stock,
+    createdAt: row.created_at,
     photos: getPhotos(row.article_images),
     rating: r?.rating || 0,
     reviewCount: r?.count || 0,

@@ -200,6 +200,7 @@ export default function BoutiqueDetailPage() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         intendedRole={null}
+        redirectTo={`/messages?vendeur=${store.id}`}
       />
     </div>
   );

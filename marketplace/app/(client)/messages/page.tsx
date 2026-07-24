@@ -112,7 +112,11 @@ function MessagesContent() {
   };
 
   return (
-    <div className="flex flex-col h-dvh overflow-hidden bg-gray-50/30">
+    <div
+      className={`fixed inset-x-0 top-0 z-40 flex flex-col overflow-hidden bg-gray-50/30 md:static md:z-auto md:h-dvh ${
+        selectedId ? "bottom-0" : "bottom-24 md:bottom-0"
+      }`}
+    >
       <ClientDashboardHeader
         title="Messages"
         avatarUrl={profile?.avatar_url}

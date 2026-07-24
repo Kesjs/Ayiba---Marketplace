@@ -348,7 +348,7 @@ function ExplorerContent() {
               ) : products.length > 0 ? (
                 <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                   {products.map((product) => (
-                    <Link key={product.id} href={`/produits/${product.id}`} className="block">
+                    <div key={product.id} className="block">
                       <ProductCardModern
                         image={product.photos[0]}
                         category={product.categorieLabel}
@@ -360,8 +360,9 @@ function ExplorerContent() {
                         isFavorite={favoriteIds.has(product.id)}
                         onAddToCart={() => handleAddToCart(product)}
                         onToggleFavorite={() => handleToggleFavorite(product.id)}
+                        onClick={() => router.push(`/produits/${product.id}`)}
                       />
-                    </Link>
+                    </div>
                   ))}
                 </div>
               ) : (

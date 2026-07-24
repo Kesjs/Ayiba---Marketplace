@@ -4,11 +4,11 @@ import 'leaflet/dist/leaflet.css'
 
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { UiChromeProvider } from "@/context/UiChromeContext";
 import NextTopLoader from 'nextjs-toploader';
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
-import { BottomNav } from "@/components/ui/BottomNav";
+import { AppShell } from "@/components/layout/AppShell";
 import { Toast } from "@/components/ui/Toast";
-import { PageTransition } from "@/components/ui/PageTransition";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -72,14 +72,11 @@ export default function RootLayout({
         />
         <CartProvider>
           <ToastProvider>
-            <main className="flex-1 pb-24 lg:pb-0">
-              <PageTransition>
-                {children}
-              </PageTransition>
-            </main>
-            <BottomNav />
-            <Toast />
-            <ScrollToTop />
+            <UiChromeProvider>
+              <AppShell>{children}</AppShell>
+              <Toast />
+              <ScrollToTop />
+            </UiChromeProvider>
           </ToastProvider>
         </CartProvider>
       </body>

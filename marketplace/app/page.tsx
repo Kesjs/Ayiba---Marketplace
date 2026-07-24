@@ -486,7 +486,7 @@ export default function Home() {
                 >
                   {flashDealsProducts.map((product) => (
                     <motion.div key={product.id} variants={gridItem}>
-                      <Link href={`/produits/${product.id}`} className="block">
+                      <div className="block">
                         <ProductCardModern
                           image={product.photos[0] || '/images/hero-illustration.png'}
                           category={product.categorie?.nom || 'Divers'}
@@ -497,8 +497,9 @@ export default function Home() {
                           oldPrice={ancienPrixAffiche(product)}
                           onAddToCart={() => handleAddToCart(product)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
+                          onClick={() => router.push(`/produits/${product.id}`)}
                         />
-                      </Link>
+                      </div>
                     </motion.div>
                   ))}
                 </motion.div>
@@ -574,7 +575,7 @@ export default function Home() {
                 >
                   {productsToShow.map((product) => (
                     <motion.div key={product.id} variants={gridItem}>
-                      <Link href={`/produits/${product.id}`} className="block">
+                      <div className="block">
                         <ProductCardModern
                           image={product.photos[0] || '/images/hero-illustration.png'}
                           category={product.categorie?.nom || 'Divers'}
@@ -585,8 +586,9 @@ export default function Home() {
                           oldPrice={ancienPrixAffiche(product)}
                           onAddToCart={() => handleAddToCart(product)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
+                          onClick={() => router.push(`/produits/${product.id}`)}
                         />
-                      </Link>
+                      </div>
                     </motion.div>
                   ))}
                 </motion.div>
@@ -697,7 +699,7 @@ export default function Home() {
                 >
                   {produitsDuMoment.map((product) => (
                     <motion.div key={product.id} variants={gridItem}>
-                      <Link href={`/produits/${product.id}`} className="block">
+                      <div className="block">
                         <ProductCardModern
                           image={product.photos[0] || '/images/hero-illustration.png'}
                           category={product.categorie?.nom || 'Divers'}
@@ -708,8 +710,9 @@ export default function Home() {
                           oldPrice={ancienPrixAffiche(product)}
                           onAddToCart={() => handleAddToCart(product)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
+                          onClick={() => router.push(`/produits/${product.id}`)}
                         />
-                      </Link>
+                      </div>
                     </motion.div>
                   ))}
                 </motion.div>

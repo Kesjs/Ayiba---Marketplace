@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useVendeurMessages } from "@/lib/hooks/useVendeurMessages";
+import { useUiChrome } from "@/context/UiChromeContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { Send, User, ArrowLeft, Phone, RotateCcw } from "lucide-react";
@@ -33,6 +34,7 @@ function VendeurMessagesContent() {
   const [filtreListe, setFiltreListe] = useState<"toutes" | "non_lus">("toutes");
   const bottomRef = useRef<HTMLDivElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
+  const { setHideBottomNav } = useUiChrome();
 
   useEffect(() => {
     if (clientParam) {
@@ -72,6 +74,12 @@ function VendeurMessagesContent() {
     lastMessageIdRef.current = null;
   }, [selectedId]);
 
+  // Cache la bottom nav globale quand une conversation est ouverte (mobile)
+  useEffect(() => {
+    setHideBottomNav(!!selectedId);
+    return () => setHideBottomNav(false);
+  }, [selectedId, setHideBottomNav]);
+
   const handleSend = async () => {
     if (!selectedId || !texte.trim()) return;
     const contenu = texte;
@@ -96,7 +104,11 @@ function VendeurMessagesContent() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 min-h-0 flex">
+        <div
+          className={`bg-white lg:rounded-3xl lg:border lg:border-gray-100 lg:shadow-sm overflow-hidden flex-1 min-h-0 flex ${
+            selectedId ? "fixed inset-0 z-40 lg:static lg:z-auto" : ""
+          }`}
+        >
           {/* Liste des conversations */}
           <div
             className={`w-full sm:w-80 flex-shrink-0 border-r border-gray-100 flex flex-col ${

@@ -80,9 +80,9 @@ function LivreurMessagesContent() {
   };
 
   return (
-    <DashboardLayout role="livreur" title="Messages">
+    <DashboardLayout role="livreur" title="Messages" fullHeight>
       {error && (
-        <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 flex items-center justify-between">
+        <div className="mb-3 flex-shrink-0 rounded-2xl bg-red-50 border border-red-100 p-4 flex items-center justify-between">
           <p className="text-sm text-red-600 font-medium">{error}</p>
           <button
             onClick={refresh}
@@ -96,7 +96,7 @@ function LivreurMessagesContent() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-[calc(100dvh-220px)] min-h-[400px] flex">
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden flex-1 min-h-0 flex">
           {/* Liste des conversations */}
           <div
             className={`w-full sm:w-80 flex-shrink-0 border-r border-gray-100 flex flex-col ${
@@ -205,6 +205,9 @@ function LivreurMessagesContent() {
                     <ArrowLeft size={20} />
                   </button>
                   <div className="flex-1 min-w-0">
+                    <p className="hidden sm:block text-xs text-gray-400 font-medium mb-0.5 truncate">
+                      Messages / {conversation.partner?.full_name || "Utilisateur"}
+                    </p>
                     <p className="font-bold text-gray-900 truncate">{conversation.partner?.full_name || "Utilisateur"}</p>
                   </div>
                   {conversation.partner?.phone && (

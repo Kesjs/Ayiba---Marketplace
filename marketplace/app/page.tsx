@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
+import { AuthModal } from "@/components/ui/AuthModal";
 import { useRouter } from "next/navigation";
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
@@ -20,6 +21,8 @@ import { useUser } from "@/lib/hooks/useUser";
 import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
+import { createClient } from "@/lib/supabase/client";
+import { toggleFavorite, fetchFavoriteIds } from "@/lib/catalogue";
 import { motion, AnimatePresence, useScroll, useTransform, Variants } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
 
@@ -122,12 +125,15 @@ export default function Home() {
   const { user, profile, loading: userLoading } = useUser();
   const { addItem } = useCart();
   const { showToast } = useToast();
+  const supabase = createClient();
 
   const [articles, setArticles] = useState<ArticlePublic[]>([]);
   const [categories, setCategories] = useState<{ id: string; nom: string; slug: string }[]>([]);
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState("Tout");
@@ -203,6 +209,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    fetchFavoriteIds(supabase, user.id).then(setFavoriteIds);
+  }, [supabase, user, articles.length]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       const diff = flashEndTime - Date.now();
       if (diff <= 0) {
@@ -244,9 +258,24 @@ export default function Home() {
     showToast("Produit ajouté au panier", "success");
   };
 
-  const handleToggleFavorite = (productId: string) => {
-    // TODO: Implement favorites logic
-    showToast("Favori ajouté", "success");
+  const handleToggleFavorite = async (productId: string) => {
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    const isFav = favoriteIds.has(productId);
+    try {
+      const nowFav = await toggleFavorite(supabase, user.id, productId, isFav);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (nowFav) next.add(productId);
+        else next.delete(productId);
+        return next;
+      });
+      showToast(nowFav ? "Ajouté aux favoris" : "Retiré des favoris", "success");
+    } catch (error: any) {
+      showToast(error?.message || "Impossible de mettre à jour les favoris", "error");
+    }
   };
 
   // Écran de transition pendant la redirection (évite le flash de la home publique)
@@ -496,6 +525,7 @@ export default function Home() {
                           price={prixAffiche(product)}
                           oldPrice={ancienPrixAffiche(product)}
                           onAddToCart={() => handleAddToCart(product)}
+                          isFavorite={favoriteIds.has(product.id)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
                           onClick={() => router.push(`/produits/${product.id}`)}
                         />
@@ -585,6 +615,7 @@ export default function Home() {
                           price={prixAffiche(product)}
                           oldPrice={ancienPrixAffiche(product)}
                           onAddToCart={() => handleAddToCart(product)}
+                          isFavorite={favoriteIds.has(product.id)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
                           onClick={() => router.push(`/produits/${product.id}`)}
                         />
@@ -709,6 +740,7 @@ export default function Home() {
                           price={prixAffiche(product)}
                           oldPrice={ancienPrixAffiche(product)}
                           onAddToCart={() => handleAddToCart(product)}
+                          isFavorite={favoriteIds.has(product.id)}
                           onToggleFavorite={() => handleToggleFavorite(product.id)}
                           onClick={() => router.push(`/produits/${product.id}`)}
                         />
@@ -957,6 +989,12 @@ export default function Home() {
           }
         }
       `}</style>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        intendedRole={null}
+      />
     </div>
   );
 }

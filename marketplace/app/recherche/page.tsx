@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
@@ -207,7 +206,7 @@ function SearchResults() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
           {products.map((product) => (
-            <Link key={product.id} href={`/produits/${product.id}`} className="block">
+            <div key={product.id} className="block">
               <ProductCardModern
                 image={product.photos[0]}
                 category={product.categorieLabel}
@@ -219,8 +218,9 @@ function SearchResults() {
                 isFavorite={favoriteIds.has(product.id)}
                 onAddToCart={() => handleAddToCart(product)}
                 onToggleFavorite={() => handleToggleFavorite(product.id)}
+                onClick={() => router.push(`/produits/${product.id}`)}
               />
-            </Link>
+            </div>
           ))}
         </div>
       )}

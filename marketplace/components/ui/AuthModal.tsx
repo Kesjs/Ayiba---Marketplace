@@ -10,6 +10,11 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   intendedRole?: "vendeur" | "livreur" | null;
+  // Optionnel : où renvoyer l'utilisateur après connexion/inscription
+  // réussie, à la place du dashboard par défaut de son rôle. Utile quand
+  // la modale est ouverte depuis une action précise (ex: "Contacter" une
+  // boutique) qu'on veut reprendre juste après l'auth.
+  redirectTo?: string | null;
 }
 
 type Mode =
@@ -110,7 +115,7 @@ function getMailProviderLink(email: string): { name: string; url: string } | nul
   return null;
 }
 
-export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthModalProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const emailInputRef = useRef<HTMLInputElement>(null);
@@ -278,7 +283,7 @@ export function AuthModal({ isOpen, onClose, intendedRole }: AuthModalProps) {
         }
 
         onClose();
-        router.push(intendedRole ? `/${intendedRole}/kyc` : "/catalogue?welcome=1");
+        router.push(intendedRole ? `/${intendedRole}/kyc` : redirectTo || "/catalogue?welcome=1");
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(false);
@@ -294,7 +299,9 @@ const { data: userData } = await supabase
 
 onClose();
 
-if (userData?.role === "vendeur") {
+if (redirectTo) {
+  router.push(redirectTo);
+} else if (userData?.role === "vendeur") {
   router.push("/vendeur/dashboard");
 } else if (userData?.role === "livreur") {
   router.push("/livreur/missions");

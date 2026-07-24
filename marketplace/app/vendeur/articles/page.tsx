@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Plus, Search, Trash2, Edit3, X, Loader2, PackageX, AlertCircle, RefreshCw,
-  LayoutGrid, List
+  LayoutGrid, List, Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/client";
 import { StatusBadge as SharedStatusBadge } from "@/components/ui/StatusBadge";
 
 interface ArticleImage {
+  id: string;
   image_url: string;
   ordre: number | null;
 }
@@ -57,6 +58,30 @@ function extractStoragePath(url: string): string | null {
   const idx = url.indexOf(marker);
   if (idx === -1) return null;
   return url.slice(idx + marker.length);
+}
+
+const MAX_PHOTOS = 5;
+const MIN_DIMENSION = 600;
+
+interface EditPhotoEntry {
+  file: File;
+  preview: string;
+}
+
+function checkImageDimensions(file: File): Promise<{ ok: boolean; width: number; height: number }> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({ ok: img.width >= MIN_DIMENSION && img.height >= MIN_DIMENSION, width: img.width, height: img.height });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({ ok: false, width: 0, height: 0 });
+    };
+    img.src = url;
+  });
 }
 
 function getCategorieLabel(cat: ArticleRow["categories"]): string {
@@ -169,7 +194,7 @@ function VendeurArticleCard({
           {categorieLabel}
         </p>
 
-        <p className="text-xs text-gray-600 font-medium truncate">{item.nom}</p>
+        <p className="text-xs text-gray-600 font-medium line-clamp-2 min-h-[2.2em]">{item.nom}</p>
 
         <div className="flex items-center gap-1.5">
           <span className="text-[10px] text-gray-400">{item.stock} en stock</span>
@@ -282,6 +307,13 @@ export default function MesArticlesPage() {
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
+  const [editExistingPhotos, setEditExistingPhotos] = useState<ArticleImage[]>([]);
+  const [editRemovedPhotoIds, setEditRemovedPhotoIds] = useState<string[]>([]);
+  const [editNewPhotos, setEditNewPhotos] = useState<EditPhotoEntry[]>([]);
+  const [editPhotoError, setEditPhotoError] = useState<string | null>(null);
+  const [editUploadingPhoto, setEditUploadingPhoto] = useState(false);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
   const [deletingArticle, setDeletingArticle] = useState<ArticleRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -300,7 +332,7 @@ export default function MesArticlesPage() {
 
     const { data, error } = await supabase
       .from("articles")
-      .select("id, nom, description, prix, stock, statut, actif, categorie_id, categories(nom), article_images(image_url, ordre)")
+      .select("id, nom, description, prix, stock, statut, actif, categorie_id, categories(nom), article_images(id, image_url, ordre)")
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -373,6 +405,16 @@ export default function MesArticlesPage() {
       prix: String(article.prix),
       stock: String(article.stock),
     });
+
+    // Nettoie d'éventuelles prévisualisations laissées par une précédente
+    // ouverture du modal sans sauvegarde.
+    editNewPhotos.forEach((p) => URL.revokeObjectURL(p.preview));
+    setEditNewPhotos([]);
+    setEditRemovedPhotoIds([]);
+    setEditPhotoError(null);
+    setEditExistingPhotos(
+      [...(article.article_images ?? [])].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
+    );
   };
 
   const handleEditFieldChange = (
@@ -418,64 +460,203 @@ export default function MesArticlesPage() {
     editForm.description.trim() !== (article.description ?? "") ||
     editForm.categorieId !== (article.categorie_id ?? "");
 
+  const isPhotosChanged = () => editRemovedPhotoIds.length > 0 || editNewPhotos.length > 0;
+
+  const editRemainingSlots = () =>
+    MAX_PHOTOS - (editExistingPhotos.length - editRemovedPhotoIds.length) - editNewPhotos.length;
+
+  const handleEditFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    setEditPhotoError(null);
+    if (files.length === 0) return;
+
+    const remaining = editRemainingSlots();
+    if (files.length > remaining) {
+      setEditPhotoError(
+        remaining > 0
+          ? `Tu peux ajouter ${remaining} photo${remaining > 1 ? "s" : ""} de plus maximum.`
+          : `Tu as déjà atteint la limite de ${MAX_PHOTOS} photos — retire-en une avant d'en ajouter une autre.`
+      );
+    }
+
+    setEditUploadingPhoto(true);
+    const candidats = files.slice(0, Math.max(remaining, 0));
+
+    for (const file of candidats) {
+      if (!file.type.startsWith("image/")) {
+        setEditPhotoError("Seules les images sont acceptées (JPG, PNG).");
+        continue;
+      }
+      if (file.size > 5 * 1024 * 1024) {
+        setEditPhotoError(`"${file.name}" dépasse 5 Mo — compresse-la ou choisis-en une autre.`);
+        continue;
+      }
+      const { ok, width, height } = await checkImageDimensions(file);
+      if (!ok) {
+        setEditPhotoError(
+          `"${file.name}" est trop petite (${width}×${height}px) — utilise une photo d'au moins ${MIN_DIMENSION}×${MIN_DIMENSION}px.`
+        );
+        continue;
+      }
+      const preview = URL.createObjectURL(file);
+      setEditNewPhotos((prev) => [...prev, { file, preview }]);
+    }
+
+    setEditUploadingPhoto(false);
+    if (editFileInputRef.current) editFileInputRef.current.value = "";
+  };
+
+  const removeExistingEditPhoto = (id: string) => {
+    setEditRemovedPhotoIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+  };
+
+  const removeNewEditPhoto = (index: number) => {
+    setEditNewPhotos((prev) => {
+      URL.revokeObjectURL(prev[index].preview);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
   const handleSaveEdit = async () => {
     if (!editingArticle) return;
     setEditError(null);
+    setEditPhotoError(null);
     if (!validateEditForm()) return;
 
-    const prix = Number(editForm.prix);
-    const stock = Number(editForm.stock);
-    const contentChanged = isContentChange(editingArticle);
-
-    const payload: Record<string, any> = {
-      nom: editForm.nom.trim(),
-      description: editForm.description.trim(),
-      categorie_id: editForm.categorieId,
-      prix,
-      stock,
-    };
-    if (contentChanged) {
-      payload.statut = "en_attente";
-      payload.actif = false;
-      payload.raison_rejet = null;
-    }
-
-    setIsSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("articles")
-      .update(payload)
-      .eq("id", editingArticle.id);
-    setIsSaving(false);
-
-    if (error) {
-      setEditError(`Échec de l'enregistrement : ${error.message}`);
+    const survivingExisting = editExistingPhotos.filter(
+      (p) => !editRemovedPhotoIds.includes(p.id)
+    );
+    if (survivingExisting.length + editNewPhotos.length === 0) {
+      setEditPhotoError("Garde au moins une photo — un article sans photo ne peut pas être publié.");
       return;
     }
 
-    const nouvelleCategorie = categories.find((c) => c.id === editForm.categorieId);
+    const prix = Number(editForm.prix);
+    const stock = Number(editForm.stock);
+    const contentChanged = isContentChange(editingArticle) || isPhotosChanged();
 
-    setArticles((prev) =>
-      prev.map((a) =>
-        a.id === editingArticle.id
-          ? {
-              ...a,
-              nom: editForm.nom.trim(),
-              description: editForm.description.trim(),
-              categorie_id: editForm.categorieId,
-              categories: nouvelleCategorie ? { nom: nouvelleCategorie.nom } : a.categories,
-              prix,
-              stock,
-              ...(contentChanged ? { statut: "en_attente", actif: false } : {}),
-            }
-          : a
-      )
-    );
-    setEditingArticle(null);
-    showToast(
-      contentChanged ? "Article mis à jour — renvoyé en vérification" : "Article mis à jour",
-      "success"
-    );
+    setIsSaving(true);
+    const supabase = createClient();
+    const uploadedPaths: string[] = [];
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("Ta session a expiré — reconnecte-toi puis réessaie.");
+      }
+
+      // 1. Upload des nouvelles photos d'abord — si l'une échoue, rien n'a
+      // encore été modifié en base.
+      const nouvellesPhotosUrls: { url: string }[] = [];
+      for (let i = 0; i < editNewPhotos.length; i++) {
+        const photo = editNewPhotos[i];
+        const ext = photo.file.name.split(".").pop() || "jpg";
+        const path = `${user.id}/${Date.now()}-${i}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+        const { error: uploadErr } = await supabase.storage
+          .from("articles-photos")
+          .upload(path, photo.file, { upsert: true });
+        if (uploadErr) {
+          throw new Error(`Échec de l'envoi de la photo ${i + 1} : ${uploadErr.message}`);
+        }
+        uploadedPaths.push(path);
+        const { data: urlData } = supabase.storage.from("articles-photos").getPublicUrl(path);
+        nouvellesPhotosUrls.push({ url: urlData.publicUrl });
+      }
+
+      // 2. Supprimer les photos retirées (fichier storage + ligne en base)
+      if (editRemovedPhotoIds.length > 0) {
+        const pathsToRemove = editExistingPhotos
+          .filter((p) => editRemovedPhotoIds.includes(p.id))
+          .map((p) => extractStoragePath(p.image_url))
+          .filter((p): p is string => Boolean(p));
+
+        if (pathsToRemove.length > 0) {
+          const { error: storageError } = await supabase.storage
+            .from("articles-photos")
+            .remove(pathsToRemove);
+          if (storageError) {
+            console.warn("Nettoyage du storage échoué :", storageError.message);
+          }
+        }
+
+        const { error: deleteImagesError } = await supabase
+          .from("article_images")
+          .delete()
+          .in("id", editRemovedPhotoIds);
+        if (deleteImagesError) {
+          throw new Error(`Échec de la suppression des photos retirées : ${deleteImagesError.message}`);
+        }
+      }
+
+      // 3. Réordonner les photos restantes puis insérer les nouvelles, pour
+      // que l'ordre en base corresponde à ce qui était affiché dans le modal.
+      for (let i = 0; i < survivingExisting.length; i++) {
+        const photo = survivingExisting[i];
+        if (photo.ordre !== i) {
+          const { error: reorderError } = await supabase
+            .from("article_images")
+            .update({ ordre: i })
+            .eq("id", photo.id);
+          if (reorderError) {
+            throw new Error(`Échec de la mise à jour de l'ordre des photos : ${reorderError.message}`);
+          }
+        }
+      }
+
+      if (nouvellesPhotosUrls.length > 0) {
+        const { error: insertImagesError } = await supabase.from("article_images").insert(
+          nouvellesPhotosUrls.map((p, i) => ({
+            article_id: editingArticle.id,
+            image_url: p.url,
+            ordre: survivingExisting.length + i,
+          }))
+        );
+        if (insertImagesError) {
+          throw new Error(`Échec de l'ajout des nouvelles photos : ${insertImagesError.message}`);
+        }
+      }
+
+      // 4. Mettre à jour les informations de l'article
+      const payload: Record<string, any> = {
+        nom: editForm.nom.trim(),
+        description: editForm.description.trim(),
+        categorie_id: editForm.categorieId,
+        prix,
+        stock,
+      };
+      if (contentChanged) {
+        payload.statut = "en_attente";
+        payload.actif = false;
+        payload.raison_rejet = null;
+      }
+
+      const { error: updateError } = await supabase
+        .from("articles")
+        .update(payload)
+        .eq("id", editingArticle.id);
+      if (updateError) {
+        throw new Error(`Échec de l'enregistrement : ${updateError.message}`);
+      }
+
+      setEditingArticle(null);
+      setEditNewPhotos([]);
+      setEditRemovedPhotoIds([]);
+      await loadArticles();
+      showToast(
+        contentChanged ? "Article mis à jour — renvoyé en vérification" : "Article mis à jour",
+        "success"
+      );
+    } catch (err: any) {
+      // Nettoie les photos déjà envoyées si une étape suivante a échoué,
+      // pour éviter des fichiers orphelins dans le storage.
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from("articles-photos").remove(uploadedPaths).catch(() => {});
+      }
+      setEditError(err?.message || "Une erreur est survenue pendant l'enregistrement. Réessaie.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleConfirmDelete = async () => {
@@ -813,12 +994,82 @@ return (
                   </div>
                   <p className="text-[11px] text-gray-400 -mt-2">Mettre le stock à 0 marque l'article comme "Rupture" automatiquement.</p>
 
-                  {editingArticle && isContentChange(editingArticle) && (
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">
+                      Photos ({editExistingPhotos.length - editRemovedPhotoIds.length + editNewPhotos.length}/{MAX_PHOTOS})
+                    </label>
+
+                    <input
+                      ref={editFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleEditFilesSelected}
+                      className="hidden"
+                    />
+
+                    <div className="grid grid-cols-3 gap-2">
+                      {editExistingPhotos
+                        .filter((p) => !editRemovedPhotoIds.includes(p.id))
+                        .map((photo, i) => (
+                          <div key={photo.id} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 group">
+                            <img src={photo.image_url} alt="" className="w-full h-full object-cover" />
+                            {i === 0 && (
+                              <span className="absolute bottom-1.5 left-1.5 bg-white/90 backdrop-blur-sm text-[9px] font-bold text-gray-700 px-1.5 py-0.5 rounded-full">
+                                Principale
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => removeExistingEditPhoto(photo.id)}
+                              className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                              aria-label="Retirer la photo"
+                            >
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+
+                      {editNewPhotos.map((photo, i) => (
+                        <div key={photo.preview} className="relative aspect-square rounded-xl overflow-hidden border border-gray-100 group">
+                          <img src={photo.preview} alt="" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeNewEditPhoto(i)}
+                            className="absolute top-1.5 right-1.5 w-6 h-6 bg-black/60 backdrop-blur-sm text-white rounded-full flex items-center justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                            aria-label="Retirer la photo"
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+
+                      {editRemainingSlots() > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => editFileInputRef.current?.click()}
+                          disabled={editUploadingPhoto}
+                          className="aspect-square rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1 hover:bg-gray-100 hover:border-coral-300 transition-colors disabled:opacity-50"
+                        >
+                          <Upload size={16} className="text-gray-400" />
+                          <span className="text-[10px] font-medium text-gray-500">
+                            {editUploadingPhoto ? "..." : "Ajouter"}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+
+                    {editPhotoError && (
+                      <p className="text-xs text-red-500 mt-2">{editPhotoError}</p>
+                    )}
+                  </div>
+
+                  {editingArticle && (isContentChange(editingArticle) || isPhotosChanged()) && (
                     <div className="flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl p-3">
                       <AlertCircle size={15} className="text-amber-500 shrink-0 mt-0.5" />
                       <p className="text-xs text-amber-700 leading-relaxed">
-                        Le nom, la description ou la catégorie ont changé : l'article sera renvoyé en
-                        vérification et masqué des acheteurs jusqu'à validation.
+                        Le nom, la description, la catégorie ou les photos ont changé : l'article sera
+                        renvoyé en vérification et masqué des acheteurs jusqu'à validation.
                       </p>
                     </div>
                   )}

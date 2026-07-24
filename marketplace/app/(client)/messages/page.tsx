@@ -102,7 +102,7 @@ function MessagesContent() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/30">
+    <div className="flex flex-col h-dvh overflow-hidden bg-gray-50/30">
       <ClientDashboardHeader
         title="Messages"
         avatarUrl={profile?.avatar_url}
@@ -112,7 +112,7 @@ function MessagesContent() {
         onAvatarClick={() => router.push('/profil')}
         logoHref="/accueil"
       />
-      <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
+      <div className="bg-white border-b border-gray-100 flex-shrink-0">
         <div className="flex px-4 gap-1 overflow-x-auto">
           {ONGLETS.map((o) => {
             const actif = onglet === o.id
@@ -170,7 +170,7 @@ function MessagesContent() {
           ))}
         </div>
       ) : (
-        <div className="flex-1 bg-white sm:rounded-3xl sm:border sm:border-gray-100 sm:m-4 overflow-hidden flex h-[calc(100dvh-120px)] sm:h-[calc(100dvh-160px)]">
+        <div className="flex-1 min-h-0 bg-white sm:rounded-3xl sm:border sm:border-gray-100 sm:m-4 overflow-hidden flex">
           <div
             className={`w-full sm:w-80 flex-shrink-0 sm:border-r border-gray-100 flex flex-col ${
               selectedId ? "hidden sm:flex" : "flex"
@@ -273,6 +273,9 @@ function MessagesContent() {
                     <ArrowLeft size={20} />
                   </button>
                   <div className="flex-1 min-w-0">
+                    <p className="hidden sm:block text-xs text-gray-400 font-medium mb-0.5 truncate">
+                      Messages / {ONGLETS.find((o) => o.id === onglet)?.label} / {conversation.partner?.full_name || "Utilisateur"}
+                    </p>
                     <p className="font-bold text-gray-900 truncate">{conversation.partner?.full_name || "Utilisateur"}</p>
                   </div>
                   {conversation.partner?.phone && (

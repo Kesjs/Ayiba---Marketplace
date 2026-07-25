@@ -695,7 +695,10 @@ export default function Home() {
           )}
 
           {/* --- 6. PRODUITS DU MOMENT --- */}
-          {produitsDuMoment.length > 0 && (
+          {/* Caché tant que le catalogue est trop petit pour donner l'impression
+              d'un vrai choix (seuil ~8 articles au total, décidé avec Ken) —
+              avant ça, "Produits du moment" ne fait que répéter tout le catalogue. */}
+          {articles.length >= 8 && produitsDuMoment.length > 0 && (
             <motion.section
               variants={sectionVariants}
               initial="hidden"

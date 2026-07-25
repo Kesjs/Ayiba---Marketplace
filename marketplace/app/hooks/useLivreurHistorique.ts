@@ -7,7 +7,7 @@ export interface HistoriqueMission {
   id: string;
   numero: string;
   statut: string;
-  frais_livraison: number | null;
+  montant_net_livreur: number | null;
   adresse_livraison: string | null;
   commune: string | null;
   nom_client: string | null;
@@ -22,7 +22,7 @@ interface RawRow {
   id: string;
   numero: string;
   statut: string;
-  frais_livraison: number | null;
+  montant_net_livreur: number | null;
   adresse_livraison: string | null;
   commune: string | null;
   nom_client: string | null;
@@ -33,7 +33,7 @@ interface RawRow {
 }
 
 const SELECT_HISTORIQUE = `
-  id, numero, statut, frais_livraison, adresse_livraison, commune,
+  id, numero, statut, montant_net_livreur, adresse_livraison, commune,
   nom_client, created_at, updated_at,
   vendeur:vendeurs ( nom_boutique, quartier ),
   commande_articles ( quantite )
@@ -46,7 +46,7 @@ function mapRow(row: RawRow): HistoriqueMission {
     id: row.id,
     numero: row.numero,
     statut: row.statut,
-    frais_livraison: row.frais_livraison,
+    montant_net_livreur: row.montant_net_livreur,
     adresse_livraison: row.adresse_livraison,
     commune: row.commune,
     nom_client: row.nom_client,
@@ -124,7 +124,7 @@ export function useLivreurHistorique() {
 
   const stats = useMemo(() => {
     const livrees = missions.filter((m) => m.statut === "livree");
-    const gainsTotal = livrees.reduce((sum, m) => sum + (m.frais_livraison ?? 0), 0);
+    const gainsTotal = livrees.reduce((sum, m) => sum + (m.montant_net_livreur ?? 0), 0);
     return {
       totalLivrees: livrees.length,
       totalAnnulees: missions.length - livrees.length,

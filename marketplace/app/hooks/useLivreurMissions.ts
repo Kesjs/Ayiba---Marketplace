@@ -9,6 +9,9 @@ export interface MissionCommande {
   statut: string;
   montant_total: number;
   frais_livraison: number | null;
+  montant_net_livreur: number | null;
+  latitude_livraison: number | null;
+  longitude_livraison: number | null;
   adresse_livraison: string | null;
   commune: string | null;
   client_id: string | null;
@@ -43,6 +46,9 @@ interface RawCommandeRow {
   statut: string;
   montant_total: number;
   frais_livraison: number | null;
+  montant_net_livreur: number | null;
+  latitude_livraison: number | null;
+  longitude_livraison: number | null;
   adresse_livraison: string | null;
   commune: string | null;
   client_id: string | null;
@@ -56,7 +62,8 @@ interface RawCommandeRow {
 }
 
 const SELECT_MISSION = `
-  id, numero, statut, montant_total, frais_livraison, adresse_livraison, commune,
+  id, numero, statut, montant_total, frais_livraison, montant_net_livreur,
+  latitude_livraison, longitude_livraison, adresse_livraison, commune,
   client_id, nom_client, telephone_client, livreur_confirme, created_at, updated_at,
   vendeur:vendeurs ( nom_boutique, quartier ),
   commande_articles ( quantite )
@@ -69,6 +76,9 @@ function mapRow(row: RawCommandeRow): MissionCommande {
     statut: row.statut,
     montant_total: row.montant_total,
     frais_livraison: row.frais_livraison,
+    montant_net_livreur: row.montant_net_livreur,
+    latitude_livraison: row.latitude_livraison,
+    longitude_livraison: row.longitude_livraison,
     adresse_livraison: row.adresse_livraison,
     commune: row.commune,
     client_id: row.client_id,
@@ -127,17 +137,18 @@ export function useLivreurMissions() {
       const debutJournee = new Date();
       debutJournee.setHours(0, 0, 0, 0);
 
+      // Gains = net livreur (après commission), tiré de paiements_livreur —
+      // c'est la même source que la page Paiements, jamais frais_livraison brut.
       const { data: livreesData, error: livreesError } = await supabase
-        .from("commandes")
-        .select("frais_livraison")
-        .eq("livreur_id", user.id)
-        .eq("statut", "livree")
-        .gte("updated_at", debutJournee.toISOString());
+        .from("paiements_livreur")
+        .select("montant_net, created_at, commandes!inner(livreur_id, updated_at)")
+        .eq("commandes.livreur_id", user.id)
+        .gte("commandes.updated_at", debutJournee.toISOString());
 
       if (livreesError) throw livreesError;
 
       const gains_jour = (livreesData ?? []).reduce(
-        (sum: number, c: { frais_livraison: number | null }) => sum + (c.frais_livraison ?? 0),
+        (sum: number, p: { montant_net: number | null }) => sum + (p.montant_net ?? 0),
         0
       );
       setStats({ gains_jour, livraisons_jour: (livreesData ?? []).length });
@@ -253,6 +264,90 @@ export function useLivreurMissions() {
     [supabase, loadMissions]
   );
 
+  // Signale la position du livreur à l'arrivée chez le client. Purement
+  // informatif côté serveur (ne bloque jamais la validation du QR/code) —
+  // sert juste à l'admin en cas de litige. On ne bloque pas non plus ici si
+  // la géoloc échoue : le livreur peut toujours continuer sa livraison.
+  const [arriveeInfo, setArriveeInfo] = useState<{ distanceKm: number; fiable: boolean } | null>(null);
+
+  const signalerArrivee = useCallback(
+    async (id: string) => {
+      if (!("geolocation" in navigator)) {
+        setError("Géolocalisation non disponible sur cet appareil");
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { data, error: rpcError } = await supabase.rpc("livreur_signaler_arrivee", {
+              p_commande_id: id,
+              p_latitude: position.coords.latitude,
+              p_longitude: position.coords.longitude,
+            });
+            if (rpcError) throw rpcError;
+            setArriveeInfo({ distanceKm: data?.distance_km ?? 0, fiable: !!data?.distance_fiable });
+          } catch (err) {
+            console.error("[useLivreurMissions] signalerArrivee error:", err);
+            setError(err instanceof Error ? err.message : "Erreur lors du signalement d'arrivée");
+          }
+        },
+        (geoErr) => {
+          console.error("[useLivreurMissions] geolocation error:", geoErr);
+          setError("Impossible d'obtenir ta position. Vérifie que la géolocalisation est activée.");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    },
+    [supabase]
+  );
+
+  // Colis non pris : le client était là mais a refusé le colis (distinct de
+  // "indisponible", qui suppose qu'il n'était pas là du tout).
+  const signalerRefusLivraison = useCallback(
+    async (id: string, motif?: string, photoFile?: File) => {
+      try {
+        let photoUrl: string | undefined;
+        if (photoFile) {
+          photoUrl = await uploadLitigePhoto(supabase, photoFile);
+        }
+        const { error: rpcError } = await supabase.rpc("livreur_signaler_refus_livraison", {
+          p_commande_id: id,
+          p_motif: motif ?? null,
+          p_photo_url: photoUrl ?? null,
+        });
+        if (rpcError) throw rpcError;
+        setCodesActifs(null);
+        await loadMissions();
+      } catch (err) {
+        console.error("[useLivreurMissions] signalerRefusLivraison error:", err);
+        setError(err instanceof Error ? err.message : "Erreur lors du signalement");
+      }
+    },
+    [supabase, loadMissions]
+  );
+
+  // Colis endommagé constaté par le livreur avant remise — photo obligatoire,
+  // sert de preuve pour l'admin.
+  const signalerProduitEndommage = useCallback(
+    async (id: string, photoFile: File, description?: string) => {
+      try {
+        const photoUrl = await uploadLitigePhoto(supabase, photoFile);
+        const { error: rpcError } = await supabase.rpc("livreur_signaler_produit_endommage", {
+          p_commande_id: id,
+          p_photo_url: photoUrl,
+          p_description: description ?? null,
+        });
+        if (rpcError) throw rpcError;
+        setCodesActifs(null);
+        await loadMissions();
+      } catch (err) {
+        console.error("[useLivreurMissions] signalerProduitEndommage error:", err);
+        setError(err instanceof Error ? err.message : "Erreur lors du signalement");
+      }
+    },
+    [supabase, loadMissions]
+  );
+
   return {
     loading,
     error,
@@ -261,10 +356,38 @@ export function useLivreurMissions() {
     aConfirmer,
     enCours,
     codesActifs,
+    arriveeInfo,
     loadMissions,
     recupererColis,
     regenererCodes,
     refuserMission,
     signalerClientIndisponible,
+    signalerArrivee,
+    signalerRefusLivraison,
+    signalerProduitEndommage,
   };
+}
+
+// Upload une photo de litige dans le bucket public "litiges-photos", sous un
+// préfixe = auth.uid() (requis par la policy RLS du bucket), et renvoie son URL publique.
+async function uploadLitigePhoto(
+  supabase: ReturnType<typeof createClient>,
+  file: File
+): Promise<string> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Utilisateur non authentifié");
+
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `${user.id}/${Date.now()}.${ext}`;
+
+  const { error: uploadError } = await supabase.storage.from("litiges-photos").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+
+  const { data } = supabase.storage.from("litiges-photos").getPublicUrl(path);
+  return data.publicUrl;
 }

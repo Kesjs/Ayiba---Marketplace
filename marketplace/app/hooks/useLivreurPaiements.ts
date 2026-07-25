@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 export interface GainLivraison {
   id: string;
   numero: string;
-  frais_livraison: number;
+  montant_net_livreur: number;
   commune: string | null;
   updated_at: string;
 }
@@ -14,7 +14,7 @@ export interface GainLivraison {
 interface RawGainRow {
   id: string;
   numero: string;
-  frais_livraison: number | null;
+  montant_net_livreur: number | null;
   commune: string | null;
   updated_at: string;
 }
@@ -51,12 +51,12 @@ export function useLivreurPaiements() {
 
       if (livreurError) throw livreurError;
 
-      // Le gain du livreur, c'est le frais_livraison de chaque commande qu'il a
-      // effectivement livrée — pas de table "paiements" séparée côté livreur,
-      // contrairement au vendeur qui a une commission par transaction.
+      // Le gain du livreur = montant_net_livreur (frais de livraison moins la
+      // commission plateforme, déjà calculé et figé par commande). C'est aussi
+      // ce montant exact qui est versé dans paiements_livreur à la confirmation.
       const { data: gainsData, error: gainsError } = await supabase
         .from("commandes")
-        .select("id, numero, frais_livraison, commune, updated_at")
+        .select("id, numero, montant_net_livreur, commune, updated_at")
         .eq("livreur_id", user.id)
         .eq("statut", "livree")
         .order("updated_at", { ascending: false })
@@ -77,7 +77,7 @@ export function useLivreurPaiements() {
         ((gainsData ?? []) as RawGainRow[]).map((r) => ({
           id: r.id,
           numero: r.numero,
-          frais_livraison: r.frais_livraison ?? 0,
+          montant_net_livreur: r.montant_net_livreur ?? 0,
           commune: r.commune,
           updated_at: r.updated_at,
         }))
@@ -95,7 +95,7 @@ export function useLivreurPaiements() {
     loadData();
   }, [loadData]);
 
-  const totalGagne = gains.reduce((sum, g) => sum + g.frais_livraison, 0);
+  const totalGagne = gains.reduce((sum, g) => sum + g.montant_net_livreur, 0);
 
   const totalRetire = retraits
     .filter((r) => r.statut === "valide" || r.statut === "paye")
@@ -118,7 +118,7 @@ export function useLivreurPaiements() {
         d.getDate() === now.getDate()
       );
     })
-    .reduce((sum, g) => sum + g.frais_livraison, 0);
+    .reduce((sum, g) => sum + g.montant_net_livreur, 0);
 
   const demanderRetrait = useCallback(
     async (montant: number) => {

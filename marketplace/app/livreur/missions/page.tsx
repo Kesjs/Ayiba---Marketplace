@@ -42,11 +42,15 @@ export default function LivreurMissionsPage() {
     aConfirmer,
     enCours,
     codesActifs,
+    arriveeInfo,
     loadMissions,
     recupererColis,
     regenererCodes,
     refuserMission,
     signalerClientIndisponible,
+    signalerArrivee,
+    signalerRefusLivraison,
+    signalerProduitEndommage,
   } = useLivreurMissions();
 
   const [activeTab, setActiveTab] = useState<"a-confirmer" | "en-cours">("a-confirmer");
@@ -96,6 +100,24 @@ export default function LivreurMissionsPage() {
   const handleClientIndisponible = async (id: string) => {
     setActionEnCours(id);
     await signalerClientIndisponible(id);
+    setActionEnCours(null);
+  };
+
+  const handleSignalerArrivee = async (id: string) => {
+    setActionEnCours(id);
+    await signalerArrivee(id);
+    setActionEnCours(null);
+  };
+
+  const handleRefusLivraison = async (id: string, motif: string) => {
+    setActionEnCours(id);
+    await signalerRefusLivraison(id, motif || undefined);
+    setActionEnCours(null);
+  };
+
+  const handleProduitEndommage = async (id: string, photoFile: File, description: string) => {
+    setActionEnCours(id);
+    await signalerProduitEndommage(id, photoFile, description || undefined);
     setActionEnCours(null);
   };
 
@@ -298,8 +320,12 @@ export default function LivreurMissionsPage() {
                         mission={mission}
                         disabled={actionEnCours === mission.id}
                         codes={codesActifs?.commandeId === mission.id ? codesActifs : null}
+                        arriveeInfo={arriveeInfo}
                         onRegenererCodes={() => regenererCodes(mission.id)}
                         onClientIndisponible={() => handleClientIndisponible(mission.id)}
+                        onSignalerArrivee={() => handleSignalerArrivee(mission.id)}
+                        onRefusLivraison={(motif) => handleRefusLivraison(mission.id, motif)}
+                        onProduitEndommage={(photo, desc) => handleProduitEndommage(mission.id, photo, desc)}
                       />
                     </motion.div>
                   ))
@@ -482,16 +508,28 @@ function MissionEnCoursCard({
   mission,
   disabled,
   codes,
+  arriveeInfo,
   onRegenererCodes,
   onClientIndisponible,
+  onSignalerArrivee,
+  onRefusLivraison,
+  onProduitEndommage,
 }: {
   mission: MissionCommande;
   disabled: boolean;
   codes: CodesLivraison | null;
+  arriveeInfo: { distanceKm: number; fiable: boolean } | null;
   onRegenererCodes: () => void;
   onClientIndisponible: () => void;
+  onSignalerArrivee: () => void;
+  onRefusLivraison: (motif: string) => void;
+  onProduitEndommage: (photo: File, description: string) => void;
 }) {
   const router = useRouter();
+  const [panelOuvert, setPanelOuvert] = useState<"refus" | "dommage" | null>(null);
+  const [motifRefus, setMotifRefus] = useState("");
+  const [descriptionDommage, setDescriptionDommage] = useState("");
+  const [photoDommage, setPhotoDommage] = useState<File | null>(null);
   const points = [
     mission.vendeur_quartier
       ? { lat: 6.366, lng: 2.418, label: `${mission.vendeur_nom_boutique ?? "Boutique"} (Retrait)`, type: "pickup" as const }
@@ -585,6 +623,25 @@ function MissionEnCoursCard({
         )}
       </div>
 
+      <div className="mt-4">
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          disabled={disabled}
+          onClick={onSignalerArrivee}
+          className="w-full h-12 rounded-2xl border border-gray-200 text-gray-700 font-bold text-sm flex items-center justify-center gap-2 hover:bg-gray-50 transition-all disabled:opacity-50"
+        >
+          <MapPin size={16} />
+          Je suis arrivé chez le client
+        </motion.button>
+        {arriveeInfo && (
+          <p className="text-xs text-gray-400 text-center mt-2">
+            {arriveeInfo.fiable
+              ? `Position enregistrée — ${arriveeInfo.distanceKm} km de l'adresse indiquée (info admin, ne bloque rien).`
+              : "Position enregistrée. Distance non calculable (adresse sans GPS)."}
+          </p>
+        )}
+      </div>
+
       {/* Confirmation de livraison : ce n'est plus le livreur qui confirme.
           Il affiche son QR + code de secours ; c'est le client qui les
           scanne/saisit depuis son propre compte pour valider la réception. */}
@@ -615,13 +672,91 @@ function MissionEnCoursCard({
           </div>
         )}
 
-        <button
-          disabled={disabled}
-          onClick={onClientIndisponible}
-          className="w-full mt-4 h-12 text-sm font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50"
-        >
-          Client indisponible pour confirmer
-        </button>
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
+            Un problème avec cette livraison ?
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button
+              disabled={disabled}
+              onClick={() => {
+                setPanelOuvert(null);
+                onClientIndisponible();
+              }}
+              className="h-11 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50 border border-gray-100"
+            >
+              Client indisponible
+            </button>
+            <button
+              disabled={disabled}
+              onClick={() => setPanelOuvert(panelOuvert === "refus" ? null : "refus")}
+              className="h-11 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50 border border-gray-100"
+            >
+              Client a refusé
+            </button>
+            <button
+              disabled={disabled}
+              onClick={() => setPanelOuvert(panelOuvert === "dommage" ? null : "dommage")}
+              className="h-11 text-xs font-bold text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50 border border-gray-100"
+            >
+              Colis endommagé
+            </button>
+          </div>
+
+          {panelOuvert === "refus" && (
+            <div className="mt-3 p-4 bg-gray-50 rounded-2xl space-y-3">
+              <textarea
+                value={motifRefus}
+                onChange={(e) => setMotifRefus(e.target.value)}
+                placeholder="Pourquoi le client a-t-il refusé le colis ? (optionnel)"
+                className="w-full h-20 p-3 text-sm rounded-xl border border-gray-200 resize-none"
+              />
+              <button
+                disabled={disabled}
+                onClick={() => {
+                  onRefusLivraison(motifRefus);
+                  setPanelOuvert(null);
+                  setMotifRefus("");
+                }}
+                className="w-full h-11 bg-gray-900 text-white font-bold text-sm rounded-xl disabled:opacity-50"
+              >
+                Confirmer le refus
+              </button>
+            </div>
+          )}
+
+          {panelOuvert === "dommage" && (
+            <div className="mt-3 p-4 bg-gray-50 rounded-2xl space-y-3">
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={(e) => setPhotoDommage(e.target.files?.[0] ?? null)}
+                className="w-full text-xs"
+              />
+              <textarea
+                value={descriptionDommage}
+                onChange={(e) => setDescriptionDommage(e.target.value)}
+                placeholder="Décris le dommage constaté (optionnel)"
+                className="w-full h-20 p-3 text-sm rounded-xl border border-gray-200 resize-none"
+              />
+              <p className="text-[11px] text-gray-400">Une photo est obligatoire pour ce signalement.</p>
+              <button
+                disabled={disabled || !photoDommage}
+                onClick={() => {
+                  if (!photoDommage) return;
+                  onProduitEndommage(photoDommage, descriptionDommage);
+                  setPanelOuvert(null);
+                  setDescriptionDommage("");
+                  setPhotoDommage(null);
+                }}
+                className="w-full h-11 bg-gray-900 text-white font-bold text-sm rounded-xl disabled:opacity-50"
+              >
+                Signaler le colis endommagé
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

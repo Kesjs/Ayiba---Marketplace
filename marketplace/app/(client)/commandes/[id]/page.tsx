@@ -349,6 +349,17 @@ export default function CommandeDetailPage() {
         onConfirmee={() => {
           charger();
         }}
+        userId={userId}
+        livreurId={commande.livreur_id}
+        livreurNom={commande.livreur?.nom}
+        articles={
+          commande.commande_articles?.map((ca) => ({
+            id: ca.article_id,
+            nom: one(ca.article)?.nom || "Produit",
+          })) || []
+        }
+        avisMap={avisMap}
+        onAvisSaved={(cle, avis) => setAvisMap((prev) => ({ ...prev, [cle]: avis }))}
       />
     </main>
   );

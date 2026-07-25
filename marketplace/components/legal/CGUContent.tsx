@@ -106,7 +106,7 @@ export function CGUContent() {
               </div>
               <h3 className="font-bold text-gray-900 mb-1.5 text-sm">Livreurs</h3>
               <p className="text-xs text-gray-500 leading-relaxed">
-                Assurent le transport sécurisé. Perçoivent 100% des frais de livraison au lancement de la plateforme.
+                Assurent le transport sécurisé. Une commission de 5% est appliquée sur les frais de livraison.
               </p>
             </div>
           </div>

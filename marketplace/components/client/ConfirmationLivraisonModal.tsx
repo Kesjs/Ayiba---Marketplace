@@ -4,12 +4,27 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ScanLine, ShieldAlert, CheckCircle2, Camera, KeyRound } from "lucide-react";
 import { useConfirmationLivraison } from "@/lib/hooks/useConfirmationLivraison";
+import { LaisserAvisCard, type AvisExistant } from "@/components/client/LaisserAvisCard";
+
+interface ArticleACommenter {
+  id: string;
+  nom: string;
+}
 
 interface ConfirmationLivraisonModalProps {
   commandeId: string;
   isOpen: boolean;
   onClose: () => void;
   onConfirmee?: () => void;
+  // Ce qu'il faut pour proposer l'avis tout de suite après la confirmation,
+  // sans attendre que le client retourne sur la page (et sans dupliquer la
+  // logique déjà écrite dans LaisserAvisCard) :
+  userId?: string;
+  livreurId?: string | null;
+  livreurNom?: string | null;
+  articles?: ArticleACommenter[];
+  avisMap?: Record<string, AvisExistant | null>;
+  onAvisSaved?: (cle: string, avis: AvisExistant) => void;
 }
 
 // Scanner QR natif (BarcodeDetector) — pas de dépendance npm supplémentaire.
@@ -29,6 +44,12 @@ export function ConfirmationLivraisonModal({
   isOpen,
   onClose,
   onConfirmee,
+  userId,
+  livreurId,
+  livreurNom,
+  articles = [],
+  avisMap = {},
+  onAvisSaved,
 }: ConfirmationLivraisonModalProps) {
   const { etat, soumettre, reinitialiser } = useConfirmationLivraison(commandeId);
   const barcodeDetectorOk = useBarcodeDetectorDisponible();
@@ -51,6 +72,9 @@ export function ConfirmationLivraisonModal({
     if (etat.etape === "confirmee") {
       arreterCamera();
       onConfirmee?.();
+      // On ne ferme plus le modal automatiquement ici : on laisse le client
+      // voir tout de suite les cartes d'avis ci-dessous, et c'est lui qui
+      // ferme via "Terminé".
     }
   }, [etat.etape, onConfirmee]);
 
@@ -136,14 +160,54 @@ export function ConfirmationLivraisonModal({
           </p>
 
           {etat.etape === "confirmee" && (
-            <div className="flex flex-col items-center gap-3 py-8">
-              <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
-                <CheckCircle2 size={32} className="text-teal-500" />
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col items-center gap-3 pt-2 pb-4">
+                <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center">
+                  <CheckCircle2 size={32} className="text-teal-500" />
+                </div>
+                <p className="font-bold text-gray-900">Livraison confirmée</p>
+                <p className="text-sm text-gray-500 text-center">
+                  Le paiement du vendeur et du livreur va être débloqué.
+                </p>
               </div>
-              <p className="font-bold text-gray-900">Livraison confirmée</p>
-              <p className="text-sm text-gray-500 text-center">
-                Le paiement du vendeur et du livreur va être débloqué.
-              </p>
+
+              {userId && (livreurId || articles.length > 0) && (
+                <div className="border-t border-gray-100 pt-4">
+                  <p className="text-sm font-bold text-gray-900 mb-3">Comment c'était ?</p>
+                  <div className="space-y-3 max-h-[45vh] overflow-y-auto">
+                    {livreurId && livreurNom && (
+                      <LaisserAvisCard
+                        type="livreur"
+                        cibleId={livreurId}
+                        label={livreurNom}
+                        commandeId={commandeId}
+                        userId={userId}
+                        avisExistant={avisMap[`livreur:${livreurId}`] || null}
+                        onSaved={(avis) => onAvisSaved?.(`livreur:${livreurId}`, avis)}
+                      />
+                    )}
+                    {articles.map((article) => (
+                      <LaisserAvisCard
+                        key={article.id}
+                        type="article"
+                        cibleId={article.id}
+                        label={article.nom}
+                        commandeId={commandeId}
+                        userId={userId}
+                        avisExistant={avisMap[`article:${article.id}`] || null}
+                        onSaved={(avis) => onAvisSaved?.(`article:${article.id}`, avis)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <button
+                onClick={onClose}
+                className="w-full h-12 bg-gray-900 text-white font-bold rounded-xl"
+              >
+                Terminé
+              </button>
             </div>
           )}
 

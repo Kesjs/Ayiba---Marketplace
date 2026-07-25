@@ -11,15 +11,18 @@ const footerLinks = {
   vendre: [
     { label: "Devenir vendeur", href: "/devenir-vendeur" },
     { label: "Comment ça marche", href: "/#comment-ca-marche" },
-    { label: "Politique de commission", href: "/cgu" },
+    { label: "Politique de commission", href: "/politique-commission" },
     { label: "Devenir livreur", href: "/devenir-livreur" },
   ],
   aide: [
-    { label: "Centre d'aide", href: "/cgu" },
-    { label: "Nous contacter", href: "mailto:support@ayiba.bj" },
-    { label: "Signaler un problème", href: "mailto:support@ayiba.bj" },
+    { label: "Centre d'aide", href: "/centre-aide" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Nous contacter", href: "/contact" },
+    { label: "Politique de livraison", href: "/politique-livraison" },
+    { label: "Politique de remboursement", href: "/politique-remboursement" },
     { label: "Conditions d'utilisation", href: "/cgu" },
     { label: "Politique de confidentialité", href: "/privacy" },
+    { label: "À propos", href: "/a-propos" },
   ],
 };
 

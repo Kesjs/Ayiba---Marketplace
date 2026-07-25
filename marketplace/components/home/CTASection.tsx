@@ -23,7 +23,7 @@ export function CTASection() {
           Prêt à vendre, livrer ou commander ?
         </h2>
         <p className="text-sm text-coral-800 mb-6 lg:text-base">
-          Rejoins les 500 premiers utilisateurs — Première commande gratuite
+          Rejoins les 500 premiers utilisateurs d'Ayiba
         </p>
         <div className="flex flex-col gap-3 md:flex-row md:justify-center">
           <Button

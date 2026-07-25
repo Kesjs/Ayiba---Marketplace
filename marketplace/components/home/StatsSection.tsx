@@ -27,9 +27,6 @@ export function StatsSection({ sellersCount }: StatsSectionProps) {
             <p className="text-xs text-gray-600 mt-1 lg:text-sm">
               Commandes livrées
             </p>
-            <p className="text-xs text-teal-600 mt-1">
-              +15% cette semaine
-            </p>
           </div>
           <div className="bg-gray-50 rounded p-5 text-center lg:p-8 md:col-span-1 col-span-2">
             <i className="ti ti-star text-lg text-coral-600 mb-1.5 block lg:text-xl" />

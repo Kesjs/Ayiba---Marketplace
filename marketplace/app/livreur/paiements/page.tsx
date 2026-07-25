@@ -11,7 +11,7 @@ import {
   Wallet, Zap, X, ArrowDownToLine, ArrowUpFromLine, Truck,
 } from "lucide-react";
 
-function GainCard({ g }: { g: { id: string; numero: string; frais_livraison: number; commune: string | null; updated_at: string } }) {
+function GainCard({ g }: { g: { id: string; numero: string; montant_net_livreur: number; commune: string | null; updated_at: string } }) {
   return (
     <div className="p-4 flex items-center justify-between">
       <div className="min-w-0">
@@ -21,7 +21,7 @@ function GainCard({ g }: { g: { id: string; numero: string; frais_livraison: num
         </p>
       </div>
       <p className="font-bold text-teal-600 text-sm shrink-0">
-        +{g.frais_livraison.toLocaleString("fr-FR")} F
+        +{g.montant_net_livreur.toLocaleString("fr-FR")} F
       </p>
     </div>
   );

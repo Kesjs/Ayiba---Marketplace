@@ -290,7 +290,10 @@ export interface DisputeRow {
   id: string;
   motif: string;
   statut: string;
+  type: string;
+  photo_url: string | null;
   client_id: string;
+  livreur_id: string | null;
   commande_id: string;
   created_at: string;
 }
@@ -303,7 +306,7 @@ export function useAdminLitiges() {
     setLoading(true);
     const { data } = await supabase
       .from("disputes")
-      .select("id, motif, statut, client_id, commande_id, created_at")
+      .select("id, motif, statut, type, photo_url, client_id, livreur_id, commande_id, created_at")
       .order("created_at", { ascending: false });
     setDisputes(data || []);
     setLoading(false);

@@ -41,7 +41,15 @@ export async function getTemoignagesPublics(limit = 6): Promise<TemoignagePublic
   if (error) throw error;
   if (!avisRows || avisRows.length === 0) return [];
 
-  const avisRetenus = avisRows
+  interface AvisRow {
+    id: string;
+    note: number;
+    commentaire: string | null;
+    utilisateur_id: string;
+    created_at: string;
+  }
+
+  const avisRetenus = (avisRows as AvisRow[])
     .filter((a) => (a.commentaire?.trim().length ?? 0) >= 15)
     .slice(0, limit);
 
@@ -55,7 +63,13 @@ export async function getTemoignagesPublics(limit = 6): Promise<TemoignagePublic
 
   if (usersError) throw usersError;
 
-  const userMap = new Map((users || []).map((u) => [u.id, u]));
+  interface UserRow {
+    id: string;
+    full_name: string | null;
+    avatar_url: string | null;
+  }
+
+  const userMap = new Map((((users as UserRow[]) || [])).map((u) => [u.id, u]));
 
   return avisRetenus.map((a) => {
     const user = userMap.get(a.utilisateur_id);

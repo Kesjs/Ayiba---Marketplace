@@ -16,6 +16,7 @@ import { AuthModal } from "@/components/ui/AuthModal";
 import { useRouter } from "next/navigation";
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
+import { getTemoignagesPublics, type TemoignagePublic } from "@/lib/queries/temoignages";
 import { getCategoryStyle } from "@/lib/constants/category-styles";
 import { useUser } from "@/lib/hooks/useUser";
 import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
@@ -29,32 +30,9 @@ import { HomeSkeleton } from "@/components/ui/Skeleton";
 
 
 
-// Témoignages (à remplacer plus tard par de vrais avis en base — pas de
-// système d'avis clients existant aujourd'hui, décision à prendre séparément
-// comme pour les notes produits/boutiques)
-const TESTIMONIALS = [
-  {
-    name: "Fabrice A.",
-    role: "Client à Cotonou",
-    rating: 5,
-    text: "J'ai enfin confiance pour commander en ligne. L'argent reste bloqué jusqu'à ce que je reçoive mon colis, zéro stress.",
-    avatar: "https://i.pravatar.cc/150?u=testimonial-1",
-  },
-  {
-    name: "Rachidatou B.",
-    role: "Vendeuse — Boutique Chic",
-    rating: 5,
-    text: "Depuis que je suis sur Ayiba, mes ventes ont doublé. La livraison est gérée automatiquement, je me concentre sur mes produits.",
-    avatar: "https://i.pravatar.cc/150?u=testimonial-2",
-  },
-  {
-    name: "Idriss K.",
-    role: "Livreur partenaire",
-    rating: 5,
-    text: "Le code OTP évite les malentendus à la livraison et je suis payé directement sur Mobile Money. Simple et rapide.",
-    avatar: "https://i.pravatar.cc/150?u=testimonial-3",
-  },
-];
+// Les témoignages ne sont plus codés en dur ici : ils viennent de
+// getTemoignagesPublics() (vrais avis clients notés 4-5), chargés dans
+// le useEffect plus bas et stockés dans le state `temoignages`.
 
 // ============================================
 // VARIANTS D'ANIMATION
@@ -130,6 +108,7 @@ export default function Home() {
   const [articles, setArticles] = useState<ArticlePublic[]>([]);
   const [categories, setCategories] = useState<{ id: string; nom: string; slug: string }[]>([]);
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
+  const [temoignages, setTemoignages] = useState<TemoignagePublic[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
@@ -188,15 +167,22 @@ export default function Home() {
       setDataLoading(true);
       setDataError(null);
       try {
-        const [articlesData, categoriesData, boutiquesData] = await Promise.all([
+        const [articlesData, categoriesData, boutiquesData, temoignagesData] = await Promise.all([
           getArticlesPublics(),
           getCategoriesActives(),
           getBoutiquesPopulaires(),
+          getTemoignagesPublics().catch((err) => {
+            // Non bloquant : un souci sur les avis ne doit pas casser le
+            // reste de la home (catalogue, catégories, boutiques).
+            console.error("Erreur chargement témoignages:", err);
+            return [] as TemoignagePublic[];
+          }),
         ]);
         if (cancelled) return;
         setArticles(articlesData);
         setCategories(categoriesData);
         setBoutiques(boutiquesData);
+        setTemoignages(temoignagesData);
       } catch (err) {
         console.error("Erreur chargement page d'accueil:", err);
         if (!cancelled) setDataError("Impossible de charger le catalogue pour le moment.");
@@ -874,7 +860,13 @@ export default function Home() {
             </motion.section>
           )}
 
-          {/* --- 9. TÉMOIGNAGES --- */}
+          {/* --- 9. TÉMOIGNAGES ---
+              Vrais avis clients (note >= 4, commentaire réel), chargés via
+              getTemoignagesPublics(). Pas de moderation manuelle : le filtre
+              note/longueur fait office de garde-fou, donc la home s'actualise
+              toute seule au fur et à mesure que de nouveaux avis arrivent,
+              sans intervention. En dessous de 3 avis exploitables, on assume
+              qu'on n'a pas encore assez de volume plutôt que d'en inventer. */}
           <motion.section
             variants={sectionVariants}
             initial="hidden"
@@ -884,46 +876,71 @@ export default function Home() {
           >
             <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
               <div className="text-center max-w-2xl mx-auto mb-8 md:mb-14">
-                <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight mb-2 md:mb-3">Ils nous font confiance</h2>
-                <p className="text-gray-500 text-xs md:text-base">Ce que disent nos clients, vendeurs et livreurs</p>
+                <h2 className="text-xl md:text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight mb-2 md:mb-3">
+                  {temoignages.length >= 3 ? "Ils nous font confiance" : "Soyez parmi les premiers"}
+                </h2>
+                <p className="text-gray-500 text-xs md:text-base">
+                  {temoignages.length >= 3
+                    ? "Ce que disent nos clients"
+                    : "Ayiba démarre au Bénin — les premiers avis clients apparaîtront ici dès qu'ils arrivent."}
+                </p>
               </div>
 
-              <motion.div
-                variants={lightStagger}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, margin: "-80px" }}
-                className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8"
-              >
-                {TESTIMONIALS.map((t, i) => (
-                  <motion.div
-                    key={i}
-                    variants={lightItem}
-                    className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm flex flex-col"
-                  >
-                    <div className="flex items-center gap-1 mb-4">
-                      {Array.from({ length: 5 }).map((_, s) => (
-                        <Star
-                          key={s}
-                          size={14}
-                          className={s < t.rating ? "fill-amber-400 text-amber-400" : "fill-gray-100 text-gray-100"}
-                        />
-                      ))}
-                    </div>
-                    <p className="text-gray-600 text-sm leading-relaxed font-medium mb-6 flex-1">"{t.text}"</p>
-                    <div className="flex items-center gap-3">
-                      <img src={t.avatar} alt={t.name} className="w-10 h-10 md:w-11 md:h-11 rounded-xl object-cover border-2 border-white shadow-sm shrink-0" />
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-bold text-gray-900">{t.name}</p>
-                          <CheckCircle2 size={13} className="text-teal-500 fill-teal-50" />
-                        </div>
-                        <p className="text-xs text-gray-400 font-medium">{t.role}</p>
+              {temoignages.length >= 3 ? (
+                <motion.div
+                  variants={lightStagger}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, margin: "-80px" }}
+                  className="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8"
+                >
+                  {temoignages.map((t) => (
+                    <motion.div
+                      key={t.id}
+                      variants={lightItem}
+                      className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm flex flex-col"
+                    >
+                      <div className="flex items-center gap-1 mb-4">
+                        {Array.from({ length: 5 }).map((_, s) => (
+                          <Star
+                            key={s}
+                            size={14}
+                            className={s < t.note ? "fill-amber-400 text-amber-400" : "fill-gray-100 text-gray-100"}
+                          />
+                        ))}
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
+                      <p className="text-gray-600 text-sm leading-relaxed font-medium mb-6 flex-1">"{t.commentaire}"</p>
+                      <div className="flex items-center gap-3">
+                        {t.avatarUrl ? (
+                          <img src={t.avatarUrl} alt={t.nomAffiche} className="w-10 h-10 md:w-11 md:h-11 rounded-xl object-cover border-2 border-white shadow-sm shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-teal-50 border-2 border-white shadow-sm shrink-0 flex items-center justify-center text-teal-600 font-bold text-sm">
+                            {t.nomAffiche.charAt(0)}
+                          </div>
+                        )}
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-bold text-gray-900">{t.nomAffiche}</p>
+                            <CheckCircle2 size={13} className="text-teal-500 fill-teal-50" />
+                          </div>
+                          <p className="text-xs text-gray-400 font-medium">Client Ayiba</p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              ) : (
+                <div className="max-w-md mx-auto text-center bg-white rounded-3xl p-8 md:p-10 border border-gray-100 shadow-sm">
+                  <p className="text-gray-600 text-sm md:text-base font-medium mb-6">
+                    Testez Ayiba et laissez le premier avis sur un produit ou un livreur — il apparaîtra ici.
+                  </p>
+                  <Link href="/catalogue">
+                    <Button className="h-11 px-6 text-sm font-bold rounded-xl">
+                      Parcourir le catalogue
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.section>
 

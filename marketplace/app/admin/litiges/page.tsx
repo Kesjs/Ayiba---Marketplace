@@ -13,6 +13,14 @@ const TABS = [
   { key: "résolu", label: "Résolus" },
 ] as const;
 
+const TYPE_LABELS: Record<string, string> = {
+  client_indisponible: "Client indisponible",
+  refus_livraison: "Refus de livraison",
+  produit_endommage: "Colis endommagé",
+  code_incorrect: "Code incorrect (3x)",
+  autre: "Autre",
+};
+
 export default function AdminLitigesPage() {
   const { disputes, loading, changerStatut } = useAdminLitiges();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("ouvert");
@@ -58,7 +66,18 @@ export default function AdminLitigesPage() {
                   {d.statut === "résolu" ? "Résolu" : d.statut === "en_cours" ? "En cours" : "Ouvert"}
                 </StatusBadge>
               </div>
+              <span className="inline-block text-[11px] font-bold px-2 py-0.5 bg-gray-100 text-gray-500 rounded-md mb-3">
+                {TYPE_LABELS[d.type] ?? d.type}
+              </span>
               <p className="text-sm text-gray-600 mb-4">{d.motif}</p>
+              {d.photo_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={d.photo_url}
+                  alt="Photo justificative du litige"
+                  className="w-32 h-32 object-cover rounded-xl border border-gray-100 mb-4"
+                />
+              )}
               {d.statut !== "résolu" && (
                 <div className="flex gap-3">
                   {d.statut === "ouvert" && (

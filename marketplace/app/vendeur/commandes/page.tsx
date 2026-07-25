@@ -25,6 +25,7 @@ import {
   Wallet,
   History,
   ShoppingBag,
+  Archive,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
@@ -56,6 +57,7 @@ interface Commande {
   montant_total: number;
   statut: StatutCommande;
   created_at: string;
+  archivee_vendeur: boolean;
 }
 
 interface ArticleLigne {
@@ -250,6 +252,7 @@ export default function VendeurCommandesPage() {
   const [tri, setTri] = useState<TriOption>("recent");
   const [periode, setPeriode] = useState<PeriodeOption>("tout");
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [afficherArchivees, setAfficherArchivees] = useState(false);
 
   // Résultats de recherche côté serveur (toute l'historique, pas seulement
   // les commandes déjà chargées en mémoire).
@@ -291,7 +294,7 @@ export default function VendeurCommandesPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur"
       )
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false })
@@ -322,7 +325,7 @@ export default function VendeurCommandesPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur"
       )
       .eq("vendeur_id", vendeurId)
       .order("created_at", { ascending: false })
@@ -365,7 +368,7 @@ export default function VendeurCommandesPage() {
       const { data, error } = await supabase
         .from("commandes")
         .select(
-          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at"
+          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur"
         )
         .eq("vendeur_id", vendeurId)
         .or(`nom_client.ilike.%${safeQ}%,numero.ilike.%${safeQ}%`)
@@ -424,12 +427,17 @@ export default function VendeurCommandesPage() {
     return searchResults ?? [];
   }, [commandes, search, searchResults]);
 
+  const archiveFiltered = useMemo(
+    () => searchedCommandes.filter((c) => (afficherArchivees ? c.archivee_vendeur : !c.archivee_vendeur)),
+    [searchedCommandes, afficherArchivees]
+  );
+
   const periodeFiltered = useMemo(() => {
-    if (periode === "tout") return searchedCommandes;
+    if (periode === "tout") return archiveFiltered;
     const jours = periode === "7j" ? 7 : 30;
     const seuil = Date.now() - jours * 24 * 60 * 60 * 1000;
-    return searchedCommandes.filter((c) => new Date(c.created_at).getTime() >= seuil);
-  }, [searchedCommandes, periode]);
+    return archiveFiltered.filter((c) => new Date(c.created_at).getTime() >= seuil);
+  }, [archiveFiltered, periode]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { tous: periodeFiltered.length };
@@ -478,6 +486,44 @@ export default function VendeurCommandesPage() {
   };
 
   // --- Sélection multiple / actions groupées ---
+  const toggleAfficherArchivees = () => {
+    setAfficherArchivees((v) => !v);
+    setFiltre("tous");
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  };
+
+  const applyBulkArchive = async (archiver: boolean) => {
+    const ids = selectedOrders.map((o) => o.id);
+    if (ids.length === 0) return;
+    setBulkUpdating(true);
+    const previous = commandes;
+    setCommandes((prev) =>
+      prev.map((c) => (ids.includes(c.id) ? { ...c, archivee_vendeur: archiver } : c))
+    );
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("commandes")
+      .update({ archivee_vendeur: archiver, updated_at: new Date().toISOString() })
+      .in("id", ids);
+
+    setBulkUpdating(false);
+    if (error) {
+      setCommandes(previous);
+      showToast(archiver ? "Échec de l'archivage" : "Échec de la restauration", "error");
+      return;
+    }
+    showToast(
+      archiver
+        ? `${ids.length} commande(s) archivée(s)`
+        : `${ids.length} commande(s) restaurée(s)`,
+      "success"
+    );
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  };
+
   const toggleSelectionMode = () => {
     setSelectionMode((v) => !v);
     setSelectedIds(new Set());
@@ -678,17 +724,37 @@ export default function VendeurCommandesPage() {
             <p className="text-sm text-gray-500">
               <span className="font-bold text-gray-900">{commandesFiltrees.length}</span> commande
               {commandesFiltrees.length > 1 ? "s" : ""}
-              {counts[STATUTS_COMMANDE.EN_ATTENTE] > 0 && (
+              {!afficherArchivees && counts[STATUTS_COMMANDE.EN_ATTENTE] > 0 && (
                 <>
                   {" · "}
                   <span className="font-bold text-amber-600">{counts[STATUTS_COMMANDE.EN_ATTENTE]} en attente</span>
+                </>
+              )}
+              {afficherArchivees && (
+                <>
+                  {" · "}
+                  <span className="text-gray-400">vue archives</span>
                 </>
               )}
             </p>
             <div className="flex items-center gap-2 shrink-0">
               <button
                 type="button"
-                onClick={() => exportCSV(commandesFiltrees)}
+                onClick={toggleAfficherArchivees}
+                className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-bold transition-colors ${
+                  afficherArchivees ? "bg-gray-900 text-white" : "bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                <Archive size={13} />
+                {afficherArchivees ? "Retour" : "Archivées"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  exportCSV(
+                    selectionMode && selectedIds.size > 0 ? selectedOrders : commandesFiltrees
+                  )
+                }
                 className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-bold bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
               >
                 <Download size={13} />
@@ -707,6 +773,7 @@ export default function VendeurCommandesPage() {
             </div>
           </div>
         )}
+
 
         <div className="w-full min-w-0 flex items-center gap-2 mb-3 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {FILTRES.map((s) => {
@@ -1130,23 +1197,38 @@ export default function VendeurCommandesPage() {
               className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-8 sm:w-[420px] bg-gray-900 text-white rounded-2xl shadow-2xl p-4 z-50 flex items-center gap-3"
             >
               <span className="text-xs font-bold flex-1">{selectedIds.size} sélectionnée(s)</span>
-              {transitionsCommunes.length === 0 ? (
-                <span className="text-[11px] text-gray-400">Aucune action commune</span>
-              ) : (
-                transitionsCommunes.map((next) => (
-                  <button
-                    key={next}
-                    type="button"
-                    disabled={bulkUpdating}
-                    onClick={() => applyBulkStatut(next)}
-                    className={`px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-50 ${
-                      next === STATUTS_COMMANDE.ANNULEE ? "bg-red-500 hover:bg-red-600" : "bg-coral-500 hover:bg-coral-600"
-                    }`}
-                  >
-                    {bulkUpdating ? <Loader2 size={13} className="animate-spin" /> : LABELS_STATUT_COMMANDE[next]}
-                  </button>
-                ))
+              {transitionsCommunes.length === 0 && (
+                <span className="text-[11px] text-gray-400 hidden sm:inline">
+                  Statuts différents — pas de changement groupé
+                </span>
               )}
+              {transitionsCommunes.map((next) => (
+                <button
+                  key={next}
+                  type="button"
+                  disabled={bulkUpdating}
+                  onClick={() => applyBulkStatut(next)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-50 ${
+                    next === STATUTS_COMMANDE.ANNULEE ? "bg-red-500 hover:bg-red-600" : "bg-coral-500 hover:bg-coral-600"
+                  }`}
+                >
+                  {bulkUpdating ? <Loader2 size={13} className="animate-spin" /> : LABELS_STATUT_COMMANDE[next]}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={bulkUpdating}
+                onClick={() => applyBulkArchive(!afficherArchivees)}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 disabled:opacity-50"
+              >
+                {bulkUpdating ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : afficherArchivees ? (
+                  "Désarchiver"
+                ) : (
+                  "Archiver"
+                )}
+              </button>
             </motion.div>
           )}
         </AnimatePresence>

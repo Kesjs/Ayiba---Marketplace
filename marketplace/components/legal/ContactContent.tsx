@@ -16,7 +16,7 @@ const CANAUX = [
     title: "Par WhatsApp",
     desc: "Pour une réponse rapide, du lundi au samedi.",
     action: "Ouvrir WhatsApp",
-    href: "https://wa.me/22900000000",
+    href: "https://wa.me/2290146279139",
     color: "teal",
   },
 ];

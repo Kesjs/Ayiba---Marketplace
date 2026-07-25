@@ -349,7 +349,7 @@ export default function CommandeDetailPage() {
         onConfirmee={() => {
           charger();
         }}
-        userId={userId}
+        userId={userId ?? undefined}
         livreurId={commande.livreur_id}
         livreurNom={commande.livreur?.nom}
         articles={

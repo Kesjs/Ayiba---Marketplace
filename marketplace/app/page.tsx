@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ShieldCheck, Lock, Key, Store, Bike, ArrowRight, BadgeCheck,
+  ShieldCheck, Lock, QrCode, Store, Bike, ArrowRight, BadgeCheck,
   UserCheck, Wallet, Star, MapPin, Clock,
   CheckCircle2, ChevronRight, Search, Zap
 } from "lucide-react";
@@ -351,7 +351,7 @@ export default function Home() {
                     variants={heroItem}
                     className="text-base md:text-lg text-gray-500 mb-8 md:mb-10 max-w-xl leading-relaxed font-medium text-center lg:text-left mx-auto lg:ml-0"
                   >
-                    Trouvez des milliers de produits près de chez vous. Votre argent est bloqué en sécurité jusqu'à ce que vous validiez la réception.
+                    Trouvez des produits près de chez vous. Votre argent est bloqué en sécurité jusqu'à ce que vous validiez la réception.
                   </motion.p>
 
                   <motion.div
@@ -382,9 +382,9 @@ export default function Home() {
                     </div>
                     <div className="flex flex-col lg:flex-row items-center lg:items-center gap-2 lg:gap-3 text-center lg:text-left">
                       <div className="w-9 h-9 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shadow-xs border border-coral-100/50 shrink-0">
-                        <Key size={18} />
+                        <QrCode size={18} />
                       </div>
-                      <p className="text-[11px] lg:text-[13px] font-bold text-gray-700 leading-tight">Validation par OTP</p>
+                      <p className="text-[11px] lg:text-[13px] font-bold text-gray-700 leading-tight">Scan & Code Secret</p>
                     </div>
                     <div className="flex flex-col lg:flex-row items-center lg:items-center gap-2 lg:gap-3 text-center lg:text-left">
                       <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-xs border border-amber-100/50 shrink-0">
@@ -799,9 +799,9 @@ export default function Home() {
                     bg: "bg-amber-50"
                   },
                   {
-                    icon: Key,
-                    title: "Validation par OTP",
-                    desc: "Zéro triche sur la livraison. Vous communiquez votre code secret au livreur seulement quand il est devant vous.",
+                    icon: QrCode,
+                    title: "Scan & Code Secret",
+                    desc: "Le livreur scanne le QR de votre commande à la remise. Pas de scanner ? Vous lui communiquez votre code à 6 chiffres, seulement quand il est devant vous.",
                     color: "text-coral-500",
                     bg: "bg-coral-50"
                   },

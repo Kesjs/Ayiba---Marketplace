@@ -38,7 +38,7 @@ const STEPS = [
     number: "03",
     illustration: "/illustrations/rider-step-3.svg",
     title: "Gains instantanés",
-    desc: "Soyez payé dès que le client valide la réception avec son code OTP unique. Vos gains (100%) sont crédités instantanément sur votre compte Mobile Money.",
+    desc: "Soyez payé dès que le client valide la réception avec son code OTP unique. Vos gains (95%) sont crédités instantanément sur votre compte Mobile Money.",
   },
 ];
 
@@ -66,8 +66,8 @@ const ADVANTAGES = [
 ];
 
 const COMMISSION = [
-  { label: "Part du Livreur", value: "100%", color: "text-teal-600", bg: "bg-teal-50", border: "border-teal-100" },
-  { label: "Frais Ayiba", value: "0%", color: "text-coral-500", bg: "bg-coral-50", border: "border-coral-100" },
+  { label: "Part du Livreur", value: "95%", color: "text-teal-600", bg: "bg-teal-50", border: "border-teal-100" },
+  { label: "Frais Ayiba", value: "5%", color: "text-coral-500", bg: "bg-coral-50", border: "border-coral-100" },
 ];
 
 const FAQS = [
@@ -81,7 +81,7 @@ const FAQS = [
   },
   {
     q: "Comment je reçois mes gains ?",
-    a: "Directement sur votre Mobile Money (MTN, Moov ou Celtiis). Vous touchez 100% de chaque course. Ayiba ne prélève aucun frais au lancement.",
+    a: "Directement sur votre Mobile Money (MTN, Moov ou Celtiis). Vous touchez 95% de chaque course — Ayiba prélève 5% pour assurer la sécurité et la technologie de la plateforme.",
   },
   {
     q: "Est-ce que je peux refuser une course ?",
@@ -175,7 +175,7 @@ export default function DevenirLivreurPage() {
               <div className="flex items-center gap-8 md:gap-12 text-sm text-gray-500">
                 <div className="flex items-center gap-2">
                   <Coins className="w-4 h-4 text-coral-500" />
-                  <span>100% par course</span>
+                  <span>95% par course</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-coral-500" />
@@ -243,7 +243,7 @@ export default function DevenirLivreurPage() {
                 </h2>
                 <p className="text-[14px] text-gray-600 leading-relaxed">
                   Sur chaque livraison réussie, vous touchez la quasi-totalité des frais. 
-                  Ayiba prélève une commission minime pour assurer la sécurité et la technologie.
+                  Ayiba prélève une commission de 5% pour assurer la sécurité et la technologie.
                 </p>
               </div>
               <div className="flex gap-4">

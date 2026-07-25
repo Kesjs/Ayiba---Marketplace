@@ -54,7 +54,7 @@ function MissionRow({ mission }: { mission: HistoriqueMission }) {
           </p>
           {isLivree && (
             <p className="text-sm font-bold text-coral-500">
-              +{(mission.frais_livraison ?? 0).toLocaleString("fr-FR")} F
+              +{(mission.montant_net_livreur ?? 0).toLocaleString("fr-FR")} F
             </p>
           )}
         </div>

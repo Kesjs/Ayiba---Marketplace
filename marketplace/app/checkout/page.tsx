@@ -13,6 +13,7 @@ import { Footer } from '@/components/home/Footer'
 import { Button } from '@/components/ui/Button'
 import { ChipSelect } from '@/components/ui/ChipSelect'
 import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
+import { getDistanceRoutiereKm } from '@/lib/osrm'
 import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import {
   MapPin, ChevronLeft, ShoppingBag, Wallet, ShieldCheck,
@@ -143,8 +144,8 @@ export default function CheckoutPage() {
       })()
 
   // Chantier 2 : dès que l'adresse a au moins une commune, on calcule le
-  // frais réel par vendeur (RPC `calculer_frais_livraison`) — GPS si dispo,
-  // sinon fallback par commune côté serveur.
+  // frais réel par vendeur (RPC `calculer_frais_livraison`) — distance
+  // routière OSRM si GPS des deux côtés, sinon haversine/commune côté serveur.
   useEffect(() => {
     if (!adresseActive?.commune || nbVendeurs === 0) {
       setFraisParVendeur({})
@@ -154,11 +155,34 @@ export default function CheckoutPage() {
     setCalculFraisEnCours(true)
     Promise.all(
       Object.keys(groupesParVendeur).map(async (vendeurId) => {
+        // Distance routière réelle (OSRM) si on a des coordonnées GPS des
+        // deux côtés — sinon la fonction SQL retombe sur haversine/commune
+        // comme avant. Le vendeur n'a pas forcément de GPS renseigné : dans
+        // ce cas p_distance_route_km reste undefined et rien ne change.
+        let distanceRouteKm: number | null = null
+        if (adresseActive.latitude != null && adresseActive.longitude != null) {
+          const { data: vendeurCoords } = await supabase
+            .from('vendeurs')
+            .select('latitude, longitude')
+            .eq('id', vendeurId)
+            .maybeSingle()
+
+          if (vendeurCoords?.latitude != null && vendeurCoords?.longitude != null) {
+            distanceRouteKm = await getDistanceRoutiereKm(
+              vendeurCoords.latitude,
+              vendeurCoords.longitude,
+              adresseActive.latitude,
+              adresseActive.longitude
+            )
+          }
+        }
+
         const { data, error } = await supabase.rpc('calculer_frais_livraison', {
           p_vendeur_id: vendeurId,
           p_latitude: adresseActive.latitude,
           p_longitude: adresseActive.longitude,
           p_commune: adresseActive.commune,
+          p_distance_route_km: distanceRouteKm,
         })
         if (error) throw error
         return [vendeurId, data as FraisLivraison] as const

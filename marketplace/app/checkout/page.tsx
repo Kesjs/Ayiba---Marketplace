@@ -17,6 +17,7 @@ import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import {
   MapPin, ChevronLeft, ShoppingBag, Wallet, ShieldCheck,
   Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, LocateFixed,
+  Route, AlertCircle,
 } from 'lucide-react'
 
 interface Address {
@@ -28,6 +29,12 @@ interface Address {
   latitude: number | null
   longitude: number | null
   est_defaut: boolean
+}
+
+interface FraisLivraison {
+  distance_km: number
+  frais_livraison: number
+  distance_fiable: boolean
 }
 
 const OPTIONS_LABEL = [
@@ -69,6 +76,8 @@ export default function CheckoutPage() {
   const { localiser, loading: localisationEnCours } = useGeolocationAdresse()
 
   const [submitting, setSubmitting] = useState(false)
+  const [fraisParVendeur, setFraisParVendeur] = useState<Record<string, FraisLivraison>>({})
+  const [calculFraisEnCours, setCalculFraisEnCours] = useState(false)
 
   // Redirige proprement si pas connecté ou panier vide — checkout n'a pas
   // sa propre modale d'auth, contrairement au reste du site.
@@ -123,6 +132,57 @@ export default function CheckoutPage() {
     return acc
   }, {})
   const nbVendeurs = Object.keys(groupesParVendeur).length
+
+  // Adresse "active" pour le calcul des frais : celle sélectionnée dans la
+  // liste, ou celle en cours de saisie si le client ajoute une nouvelle adresse.
+  const adresseActive = addingNew
+    ? { commune: nouvelleCommune, latitude: nouvelleLatitude, longitude: nouvelleLongitude }
+    : (() => {
+        const addr = addresses.find((a) => a.id === selectedAddressId)
+        return addr ? { commune: addr.commune, latitude: addr.latitude, longitude: addr.longitude } : null
+      })()
+
+  // Chantier 2 : dès que l'adresse a au moins une commune, on calcule le
+  // frais réel par vendeur (RPC `calculer_frais_livraison`) — GPS si dispo,
+  // sinon fallback par commune côté serveur.
+  useEffect(() => {
+    if (!adresseActive?.commune || nbVendeurs === 0) {
+      setFraisParVendeur({})
+      return
+    }
+    let annule = false
+    setCalculFraisEnCours(true)
+    Promise.all(
+      Object.keys(groupesParVendeur).map(async (vendeurId) => {
+        const { data, error } = await supabase.rpc('calculer_frais_livraison', {
+          p_vendeur_id: vendeurId,
+          p_latitude: adresseActive.latitude,
+          p_longitude: adresseActive.longitude,
+          p_commune: adresseActive.commune,
+        })
+        if (error) throw error
+        return [vendeurId, data as FraisLivraison] as const
+      })
+    )
+      .then((entries) => {
+        if (annule) return
+        setFraisParVendeur(Object.fromEntries(entries))
+      })
+      .catch((err) => {
+        console.error('[checkout] calculer_frais_livraison error:', err)
+      })
+      .finally(() => {
+        if (!annule) setCalculFraisEnCours(false)
+      })
+    return () => {
+      annule = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adresseActive?.commune, adresseActive?.latitude, adresseActive?.longitude, Object.keys(groupesParVendeur).join(',')])
+
+  const totalFraisLivraison = Object.values(fraisParVendeur).reduce((acc, f) => acc + f.frais_livraison, 0)
+  const totalGeneral = total + totalFraisLivraison
+  const estimationSeulement = Object.values(fraisParVendeur).some((f) => !f.distance_fiable)
 
   const handleConfirmer = async () => {
     if (!user) return
@@ -448,16 +508,63 @@ export default function CheckoutPage() {
           </div>
         </div>
 
+        {/* Détail des frais de livraison, par boutique si plusieurs */}
+        {adresseActive?.commune && (
+          <section className="mb-6 space-y-2">
+            {Object.entries(groupesParVendeur).map(([vendeurId], index) => {
+              const frais = fraisParVendeur[vendeurId]
+              return (
+                <motion.div
+                  key={vendeurId}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05, duration: 0.25 }}
+                  className="flex items-center justify-between px-4 py-2.5 rounded-xl bg-teal-50/60 text-sm"
+                >
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Route size={14} className="text-teal-500 shrink-0" />
+                    {nbVendeurs > 1 ? `Livraison boutique ${index + 1}` : 'Frais de livraison'}
+                    {frais && !frais.distance_fiable && (
+                      <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 rounded-full px-2 py-0.5">
+                        estimé
+                      </span>
+                    )}
+                  </div>
+                  {calculFraisEnCours || !frais ? (
+                    <Loader2 size={14} className="animate-spin text-gray-300" />
+                  ) : (
+                    <span className="font-bold text-gray-800">{frais.frais_livraison.toLocaleString('fr-FR')} F</span>
+                  )}
+                </motion.div>
+              )
+            })}
+          </section>
+        )}
+
         {/* Total + confirmation (desktop) */}
         <div className="hidden md:flex items-center justify-between p-5 rounded-2xl bg-gray-50">
           <div>
-            <p className="text-xs text-gray-400">Sous-total articles</p>
-            <p className="text-2xl font-black text-gray-900">{total.toLocaleString('fr-FR')} F</p>
-            <p className="text-[11px] text-gray-400 mt-1">Frais de livraison calculés après confirmation</p>
+            <p className="text-xs text-gray-400">Sous-total articles + livraison</p>
+            <p className="text-2xl font-black text-gray-900">
+              {calculFraisEnCours ? (
+                <Loader2 size={20} className="animate-spin text-gray-300 inline" />
+              ) : (
+                `${totalGeneral.toLocaleString('fr-FR')} F`
+              )}
+            </p>
+            {adresseActive?.commune ? (
+              estimationSeulement && (
+                <p className="text-[11px] text-amber-600 mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> Frais estimés, sans GPS précis
+                </p>
+              )
+            ) : (
+              <p className="text-[11px] text-gray-400 mt-1">Choisis une adresse pour voir le total réel</p>
+            )}
           </div>
           <Button onClick={handleConfirmer} disabled={submitting} className="min-w-[220px]">
             {submitting ? <Loader2 size={16} className="animate-spin" /> : <ShoppingBag size={16} />}
-            {submitting ? 'Création...' : 'Confirmer la commande'}
+            {submitting ? 'Création...' : `Confirmer${totalGeneral > 0 ? ` — ${totalGeneral.toLocaleString('fr-FR')} F` : ''}`}
           </Button>
         </div>
       </main>
@@ -466,8 +573,16 @@ export default function CheckoutPage() {
       <div className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center gap-3">
           <div className="shrink-0">
-            <p className="text-xl font-black text-gray-900 leading-none">{total.toLocaleString('fr-FR')} F</p>
-            <p className="text-[10px] text-gray-400 mt-1">+ livraison</p>
+            <p className="text-xl font-black text-gray-900 leading-none">
+              {calculFraisEnCours ? (
+                <Loader2 size={16} className="animate-spin text-gray-300 inline" />
+              ) : (
+                `${totalGeneral.toLocaleString('fr-FR')} F`
+              )}
+            </p>
+            <p className="text-[10px] text-gray-400 mt-1">
+              {adresseActive?.commune ? (nbVendeurs > 1 ? 'articles + livraisons' : 'articles + livraison') : '+ livraison'}
+            </p>
           </div>
           <button
             onClick={handleConfirmer}

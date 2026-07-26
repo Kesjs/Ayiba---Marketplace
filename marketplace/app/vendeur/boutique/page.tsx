@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useVendeurBoutique, type Horaires, type Jour } from "../../hooks/useVendeurBoutique";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { MobileMoneySelector } from "@/components/boutique/MobileMoneySelector";
-import { Check, Camera, ImagePlus, MapPin, Clock, Store } from "lucide-react";
+import { useGeolocationAdresse } from "@/lib/hooks/useGeolocationAdresse";
+import { Check, Camera, ImagePlus, MapPin, Clock, Store, LocateFixed, Loader2 } from "lucide-react";
 
 // Préfixes (2 chiffres après le 01) par opérateur — Bénin, plan à 10 chiffres depuis nov. 2024
 const PREFIXES_RESEAU: Record<string, string[]> = {
@@ -63,10 +65,13 @@ export default function VendeurBoutiquePage() {
     description: "",
     quartier: "",
     commune: "",
+    latitude: null as number | null,
+    longitude: null as number | null,
     mobile_money_network: "" as "mtn" | "moov" | "celtiis" | "",
     mobile_money_number: "",
     horaires: HORAIRES_DEFAUT,
   });
+  const { localiser, loading: localisationEnCours } = useGeolocationAdresse();
   const [initialForm, setInitialForm] = useState(form);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
@@ -81,6 +86,8 @@ export default function VendeurBoutiquePage() {
         description: boutique.description || "",
         quartier: boutique.quartier || "",
         commune: boutique.commune || "",
+        latitude: boutique.latitude ?? null,
+        longitude: boutique.longitude ?? null,
         mobile_money_network: (boutique.mobile_money_network || "") as "mtn" | "moov" | "celtiis" | "",
         mobile_money_number: boutique.mobile_money_number || "",
         horaires: boutique.horaires || HORAIRES_DEFAUT,
@@ -294,6 +301,55 @@ export default function VendeurBoutiquePage() {
                   />
                 </div>
               </div>
+
+              {/* Position GPS de la boutique — nécessaire pour le futur calcul
+                  des frais de livraison à la distance (vendeur -> client). */}
+              <motion.div
+                animate={{ backgroundColor: form.latitude ? "rgb(240 253 250)" : "rgb(249 250 251)" }}
+                transition={{ duration: 0.3 }}
+                className="mt-4 flex items-center justify-between gap-3 p-4 rounded-2xl border border-gray-100"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <MapPin size={16} className={form.latitude ? "text-teal-600" : "text-gray-400"} />
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={form.latitude ? "avec-position" : "sans-position"}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.15 }}
+                      className="text-sm text-gray-600 truncate"
+                    >
+                      {form.latitude && form.longitude
+                        ? `Position enregistrée (${form.latitude.toFixed(4)}, ${form.longitude.toFixed(4)})`
+                        : "Aucune position GPS enregistrée pour cette boutique"}
+                    </motion.p>
+                  </AnimatePresence>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const resultat = await localiser();
+                      setForm((prev) => ({
+                        ...prev,
+                        latitude: resultat.latitude,
+                        longitude: resultat.longitude,
+                        commune: resultat.communeDetectee || prev.commune,
+                        quartier: resultat.quartierDetecte || prev.quartier,
+                      }));
+                    } catch {
+                      // L'erreur est déjà exposée par le hook (localisation refusée
+                      // ou indisponible) ; rien de plus à faire ici.
+                    }
+                  }}
+                  disabled={localisationEnCours}
+                  className="shrink-0 flex items-center gap-2 h-9 px-4 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-700 hover:border-coral-300 transition-colors disabled:opacity-60"
+                >
+                  {localisationEnCours ? <Loader2 size={14} className="animate-spin" /> : <LocateFixed size={14} />}
+                  {localisationEnCours ? "Localisation..." : "Localiser ma boutique"}
+                </button>
+              </motion.div>
             </div>
 
             {/* Horaires */}

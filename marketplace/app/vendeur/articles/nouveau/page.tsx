@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight, AlertCircle } from "lucide-react";
+import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight, AlertCircle, FileText, Camera } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { StepIndicator } from "@/components/kyc/StepIndicator";
+import { StepIndicator, type WizardStep } from "@/components/kyc/StepIndicator";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { determinerStatutInitial } from "@/lib/articles/moderation";
 
-const STEP_LABELS = ["Informations", "Photos"];
+const WIZARD_STEPS: WizardStep[] = [
+  { label: "Informations", icon: FileText },
+  { label: "Photos", icon: Camera },
+];
 const MAX_PHOTOS = 5;
 const MIN_DIMENSION = 600;
 
@@ -344,7 +347,7 @@ export default function NouveauArticlePage() {
           </button>
         </Link>
         <div className="flex-1 min-w-0">
-          {!success && <StepIndicator currentStep={step} totalSteps={2} stepLabels={STEP_LABELS} />}
+          {!success && <StepIndicator currentStep={step} steps={WIZARD_STEPS} />}
         </div>
       </div>
 

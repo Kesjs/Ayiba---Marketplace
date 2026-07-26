@@ -238,7 +238,23 @@ export function useAdminArticles() {
     await load();
   };
 
-  return { articles, loading, publier, refuser, refresh: load };
+  /** Publie plusieurs articles d'un coup (sélection multiple / "tout confirmer"). */
+  const publierMultiple = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    await supabase.from("articles").update({ statut: "publie", raison_rejet: null, actif: true }).in("id", ids);
+    await Promise.all(ids.map((id) => logAction("article_publie", "article", id)));
+    await load();
+  };
+
+  /** Refuse plusieurs articles d'un coup avec un motif commun. */
+  const refuserMultiple = async (ids: string[], raison: string) => {
+    if (ids.length === 0) return;
+    await supabase.from("articles").update({ statut: "refuse", raison_rejet: raison }).in("id", ids);
+    await Promise.all(ids.map((id) => logAction("article_refuse", "article", id, { raison })));
+    await load();
+  };
+
+  return { articles, loading, publier, refuser, publierMultiple, refuserMultiple, refresh: load };
 }
 
 // ---------- Utilisateurs ----------

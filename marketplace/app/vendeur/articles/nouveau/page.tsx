@@ -50,6 +50,7 @@ export default function NouveauArticlePage() {
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [draftRestored, setDraftRestored] = useState(false);
 
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
@@ -82,6 +83,40 @@ export default function NouveauArticlePage() {
     categorieId: "",
     stock: "1",
   });
+
+  // Filet de sécurité contre les pertes de saisie : si la page se recharge
+  // pour une raison ou une autre (erreur JS, session expirée, connexion
+  // coupée...), le brouillon texte est restauré automatiquement. Les photos
+  // ne sont volontairement pas persistées ici (des File ne se sérialisent
+  // pas) — c'est la seule chose à resélectionner après un rechargement,
+  // plutôt que tout le formulaire.
+  const DRAFT_KEY = "ayiba-nouveau-article-draft";
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.formData) {
+          setFormData(parsed.formData);
+          if (parsed.formData.nom || parsed.formData.description) setDraftRestored(true);
+        }
+        if (parsed?.step) setStep(parsed.step);
+      }
+    } catch {
+      // Brouillon corrompu ou sessionStorage indisponible : on ignore et on
+      // repart d'un formulaire vide plutôt que de bloquer la page.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, step }));
+    } catch {
+      // best-effort — un échec ici ne doit jamais bloquer la saisie
+    }
+  }, [formData, step]);
 
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -276,6 +311,11 @@ export default function NouveauArticlePage() {
 
       setPublishedStatut(statut);
       setSuccess(true);
+      try {
+        sessionStorage.removeItem(DRAFT_KEY);
+      } catch {
+        // best-effort
+      }
     } catch (err: any) {
       // Nettoyage : si on a uploadé des fichiers mais que la suite a échoué,
       // on les retire du Storage pour ne pas laisser de fichiers orphelins.
@@ -335,6 +375,12 @@ export default function NouveauArticlePage() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          {draftRestored && (
+            <div className="flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-2xl px-4 py-3 text-xs font-medium text-teal-700">
+              <Info size={14} className="shrink-0" />
+              Ton brouillon a été récupéré automatiquement.
+            </div>
+          )}
           <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm p-6 md:p-8">
             {step === 1 && (
               <div className="flex flex-col gap-5">
@@ -518,7 +564,17 @@ export default function NouveauArticlePage() {
               {step === 1 ? (
                 <>
                   <Link href="/vendeur/articles" className="shrink-0">
-                    <button type="button" className="h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try {
+                          sessionStorage.removeItem(DRAFT_KEY);
+                        } catch {
+                          // best-effort
+                        }
+                      }}
+                      className="h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                    >
                       Annuler
                     </button>
                   </Link>

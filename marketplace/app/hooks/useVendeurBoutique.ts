@@ -19,6 +19,8 @@ export interface Boutique {
   description: string | null;
   quartier: string | null;
   commune: string | null;
+  latitude: number | null;
+  longitude: number | null;
   mobile_money_network: string | null;
   mobile_money_number: string | null;
   photo_profil_url: string | null;
@@ -32,6 +34,8 @@ export interface BoutiqueFormInput {
   description: string;
   quartier: string;
   commune: string;
+  latitude: number | null;
+  longitude: number | null;
   mobile_money_network: string;
   mobile_money_number: string;
   horaires: Horaires;
@@ -62,7 +66,7 @@ export function useVendeurBoutique() {
       const { data, error: vendeurError } = await supabase
         .from("vendeurs")
         .select(
-          "id, nom_boutique, description, quartier, commune, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
+          "id, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
         )
         .eq("id", user.id)
         .single();
@@ -94,7 +98,7 @@ export function useVendeurBoutique() {
           .update({ ...champs, updated_at: new Date().toISOString() })
           .eq("id", boutique.id)
           .select(
-            "id, nom_boutique, description, quartier, commune, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
+            "id, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
           )
           .single();
 
@@ -137,7 +141,7 @@ export function useVendeurBoutique() {
           .update({ [column]: publicUrl })
           .eq("id", boutique.id)
           .select(
-            "id, nom_boutique, description, quartier, commune, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
+            "id, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
           )
           .single();
         if (updateError) throw updateError;

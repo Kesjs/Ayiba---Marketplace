@@ -148,9 +148,9 @@ export default function VendeurDashboardPage() {
     });
   }
 
-  if (vendeur && vendeur.statut && vendeur.statut !== "valide") {
+  if (vendeur && vendeur.statut !== "valide") {
     attentionItems.push({
-      label: "Vérification KYC à terminer",
+      label: vendeur.statut ? "Vérification KYC à terminer" : "Complète ton dossier KYC pour être visible",
       href: "/vendeur/kyc",
       couleur: "bg-orange-500",
     });

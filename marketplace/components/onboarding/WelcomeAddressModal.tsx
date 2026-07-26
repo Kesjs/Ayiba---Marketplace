@@ -2,12 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { MapPin } from 'lucide-react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { MapPin, Home, Briefcase, MoreHorizontal, LocateFixed, Loader2, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/lib/hooks/useUser'
 import { useToast } from '@/context/ToastContext'
+import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
+import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { ChipSelect } from '@/components/ui/ChipSelect'
+
+const OPTIONS_LABEL = [
+  { value: 'domicile', label: 'Domicile', icon: Home },
+  { value: 'bureau', label: 'Bureau', icon: Briefcase },
+  { value: 'autre', label: 'Autre', icon: MoreHorizontal },
+]
+
+const OPTIONS_COMMUNE = COMMUNES_COUVERTES.map((c) => ({ value: c, label: c }))
 
 /**
  * Mini-étape post-inscription, skippable : proposée une seule fois au client
@@ -21,15 +33,19 @@ export function WelcomeAddressModal() {
   const supabase = createClient()
   const { showToast } = useToast()
   const { profile, loading: userLoading } = useUser()
+  const { localiser, loading: localisationEnCours } = useGeolocationAdresse()
 
   // Capturé une seule fois au montage : on se fiche que le paramètre
   // disparaisse ensuite de l'URL.
   const [wasWelcome] = useState(() => searchParams.get('welcome') === '1')
   const [hasChecked, setHasChecked] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
+  const [label, setLabel] = useState('domicile')
   const [adresse, setAdresse] = useState('')
   const [quartier, setQuartier] = useState('')
   const [commune, setCommune] = useState('')
+  const [latitude, setLatitude] = useState<number | null>(null)
+  const [longitude, setLongitude] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
 
   // Nettoie l'URL tout de suite pour ne pas rouvrir la modale sur un
@@ -72,6 +88,23 @@ export function WelcomeAddressModal() {
 
   const handleSkip = () => setIsOpen(false)
 
+  // CTA principal : géolocalisation du téléphone. Remplit les coordonnées
+  // exactes (le plus important pour le futur calcul des frais de livraison)
+  // et propose une commune/quartier détectés, que l'utilisateur peut
+  // corriger via les chips juste en dessous si besoin.
+  const handleLocaliser = async () => {
+    try {
+      const resultat = await localiser()
+      setLatitude(resultat.latitude)
+      setLongitude(resultat.longitude)
+      if (resultat.communeDetectee) setCommune(resultat.communeDetectee)
+      if (resultat.quartierDetecte) setQuartier(resultat.quartierDetecte)
+      showToast('Position détectée', 'success')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Localisation impossible', 'error')
+    }
+  }
+
   const handleSave = async () => {
     if (!profile || !quartier.trim() || !commune.trim()) {
       showToast('Merci d\u2019indiquer au moins ton quartier et ta commune', 'error')
@@ -82,10 +115,12 @@ export function WelcomeAddressModal() {
     try {
       const { error } = await supabase.from('addresses').insert({
         user_id: profile.id,
-        label: 'domicile',
+        label,
         adresse_complete: adresse.trim(),
         quartier: quartier.trim(),
         commune: commune.trim(),
+        latitude,
+        longitude,
         est_defaut: true,
       })
 
@@ -104,25 +139,49 @@ export function WelcomeAddressModal() {
   if (!isOpen) return null
 
   return (
-    <Modal isOpen={isOpen} onClose={handleSkip} title="Bienvenue sur Ayiba \u{1F44B}">
+    <Modal isOpen={isOpen} onClose={handleSkip} title="Bienvenue sur Ayiba">
       <p className="text-sm text-gray-500 mb-4">
         Ajoute ton adresse pour des livraisons plus rapides. Tu pourras toujours la modifier plus tard depuis ton profil.
       </p>
 
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <input
-          type="text"
-          value={commune}
-          onChange={(e) => setCommune(e.target.value)}
-          placeholder="Commune (ex: Calavi)"
-          className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
-        />
+      <button
+        type="button"
+        onClick={handleLocaliser}
+        disabled={localisationEnCours}
+        className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-coral-50 text-coral-700 font-semibold text-sm hover:bg-coral-100 transition-colors disabled:opacity-60"
+      >
+        {localisationEnCours ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
+        {localisationEnCours ? 'Localisation en cours...' : 'Utiliser ma position actuelle'}
+      </button>
+
+      <AnimatePresence>
+        {latitude !== null && longitude !== null && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginTop: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginTop: 10 }}
+            exit={{ opacity: 0, height: 0, marginTop: 0 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-2 text-xs font-semibold text-teal-700 overflow-hidden"
+          >
+            <CheckCircle2 size={14} />
+            Position enregistrée
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2 mt-4">Nom de l&rsquo;adresse</p>
+      <ChipSelect layoutId="welcome-label" options={OPTIONS_LABEL} value={label} onChange={setLabel} className="mb-4" />
+
+      <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Commune</p>
+      <ChipSelect layoutId="welcome-commune" options={OPTIONS_COMMUNE} value={commune} onChange={setCommune} className="mb-4" />
+
+      <div className="mb-3">
         <input
           type="text"
           value={quartier}
           onChange={(e) => setQuartier(e.target.value)}
           placeholder="Quartier (ex: Godomey)"
-          className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
+          className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
         />
       </div>
 
@@ -134,7 +193,6 @@ export function WelcomeAddressModal() {
             onChange={(e) => setAdresse(e.target.value)}
             placeholder="Rue, précisions (facultatif)"
             rows={2}
-            autoFocus
             className="flex-1 text-sm px-2 py-1.5 focus:outline-none resize-none"
           />
         </div>

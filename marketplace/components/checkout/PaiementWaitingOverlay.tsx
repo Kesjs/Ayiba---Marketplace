@@ -23,6 +23,10 @@ interface PaiementWaitingOverlayProps {
   onTimeout: () => void
   onReessayer: () => void
   onVoirCommande?: () => void
+  // Si fourni, redirige automatiquement vers la commande après ce nombre
+  // de secondes une fois le paiement confirmé (le bouton reste utilisable
+  // pour ne pas attendre).
+  autoRedirectSecondes?: number
 }
 
 export function PaiementWaitingOverlay({
@@ -34,9 +38,31 @@ export function PaiementWaitingOverlay({
   onTimeout,
   onReessayer,
   onVoirCommande,
+  autoRedirectSecondes,
 }: PaiementWaitingOverlayProps) {
   const [secondesRestantes, setSecondesRestantes] = useState(DUREE_TIMEOUT_SECONDES)
+  const [secondesAvantRedirection, setSecondesAvantRedirection] = useState(autoRedirectSecondes ?? 0)
   const logo = LOGO_PAR_RESEAU[reseau]
+
+  // Redirection automatique vers la commande une fois le paiement confirmé,
+  // avec un léger décompte affiché — le bouton "Voir ma commande" reste
+  // cliquable à tout moment pour ne pas forcer l'attente.
+  useEffect(() => {
+    if (statut !== 'succes' || !autoRedirectSecondes || !onVoirCommande) return
+    setSecondesAvantRedirection(autoRedirectSecondes)
+    const interval = setInterval(() => {
+      setSecondesAvantRedirection((s) => {
+        if (s <= 1) {
+          clearInterval(interval)
+          onVoirCommande()
+          return 0
+        }
+        return s - 1
+      })
+    }, 1000)
+    return () => clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statut, autoRedirectSecondes])
 
   useEffect(() => {
     if (statut !== 'attente') return
@@ -109,12 +135,19 @@ export function PaiementWaitingOverlay({
               {montant.toLocaleString('fr-FR')} F réglés — ta commande est en route vers le vendeur.
             </p>
             {onVoirCommande && (
-              <button
-                onClick={onVoirCommande}
-                className="h-12 px-8 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
-              >
-                Voir ma commande
-              </button>
+              <>
+                <button
+                  onClick={onVoirCommande}
+                  className="h-12 px-8 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
+                >
+                  Voir ma commande
+                </button>
+                {!!autoRedirectSecondes && secondesAvantRedirection > 0 && (
+                  <p className="text-xs text-gray-300 mt-4">
+                    Redirection automatique dans {secondesAvantRedirection}s...
+                  </p>
+                )}
+              </>
             )}
           </motion.div>
         )}

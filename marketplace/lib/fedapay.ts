@@ -5,7 +5,7 @@ import { FedaPay, Transaction } from 'fedapay'
  * chaque route API qui parle à FedaPay — jamais côté client (la clé secrète
  * ne doit jamais quitter le serveur).
  *
- * Variables d'environnement requises (server-only, à ajouter sur Vercel) :
+ * Variables d'environnement requises (server-only, à ajouter sur Render) :
  * - FEDAPAY_SECRET_KEY   : clé API secrète (sandbox ou live)
  * - FEDAPAY_ENVIRONMENT  : 'sandbox' ou 'live' (défaut: 'sandbox' tant que le
  *   compte marchand n'est pas approuvé — voir chantier 9)
@@ -21,31 +21,10 @@ export function initFedaPay() {
 
 // Réseau Mobile Money côté Ayiba -> code de méthode de paiement FedaPay
 // (Bénin uniquement pour l'instant, cf. chantier 1 : communes couvertes).
-// Utilisé uniquement en environnement 'live' — voir resoudreMethodeFedaPay.
 export const METHODE_FEDAPAY_PAR_RESEAU: Record<'mtn' | 'moov' | 'celtiis', string> = {
   mtn: 'mtn_open',
   moov: 'moov',
   celtiis: 'sbin',
-}
-
-/**
- * FedaPay a supprimé les serveurs de test spécifiques à chaque opérateur en
- * sandbox : impossible d'y simuler mtn_open/moov/sbin. À la place, ils
- * imposent une méthode unique 'momo_test' pour TOUTE transaction de test,
- * peu importe le réseau choisi par le client dans l'UI.
- *
- * Numéros à utiliser pour tester en sandbox (doc FedaPay) :
- * - 64000001 ou 66000001 -> simule un paiement réussi
- * - N'importe quel autre numéro -> simule un paiement refusé
- *
- * En 'live', on garde bien sûr le vrai code opérateur choisi par le client.
- */
-function resoudreMethodeFedaPay(reseau: 'mtn' | 'moov' | 'celtiis'): string {
-  const environnement = process.env.FEDAPAY_ENVIRONMENT || 'sandbox'
-  if (environnement !== 'live') {
-    return 'momo_test'
-  }
-  return METHODE_FEDAPAY_PAR_RESEAU[reseau]
 }
 
 interface DeclencherPaiementParams {
@@ -93,7 +72,7 @@ export async function declencherPaiementMobileMoney({
   } as any)
 
   const tokenObject = await (transaction as any).generateToken()
-  const methode = resoudreMethodeFedaPay(reseau)
+  const methode = METHODE_FEDAPAY_PAR_RESEAU[reseau]
   await (transaction as any).sendNowWithToken(methode, tokenObject.token)
 
   return { transactionId: String((transaction as any).id) }

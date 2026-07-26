@@ -7,9 +7,10 @@ import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { DocumentUpload } from "./DocumentUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, ShieldCheck, Hourglass, AlertTriangle, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, ShieldCheck, Hourglass, AlertTriangle, X, LocateFixed, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
+import { useGeolocationAdresse } from "@/lib/hooks/useGeolocationAdresse";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 
 const STEP_LABELS = ["Identité", "Document", "Boutique", "Localisation", "Paiement"];
@@ -29,6 +30,8 @@ interface VendeurFormData {
   description: string;
   quartier: string;
   commune: string;
+  latitude: number | null;
+  longitude: number | null;
   mobileMoneyNetwork: "mtn" | "moov" | "celtiis" | null;
   mobileMoneyNumber: string;
 }
@@ -43,6 +46,8 @@ const INITIAL_DATA: VendeurFormData = {
   description: "",
   quartier: "",
   commune: "",
+  latitude: null,
+  longitude: null,
   mobileMoneyNetwork: null,
   mobileMoneyNumber: "",
 };
@@ -136,6 +141,24 @@ export function VendeurKycWizard() {
   // visite de /vendeur/kyc — "Modifier mes informations" repasse en édition.
   const [editMode, setEditMode] = useState(false);
   const { showToast } = useToast();
+  const { localiser, loading: localisationEnCours } = useGeolocationAdresse();
+
+  // Même logique que WelcomeAddressModal côté client : on récupère les
+  // coordonnées GPS exactes (indispensables pour un vrai calcul de frais
+  // de livraison) et on propose commune/quartier détectés en bonus — le
+  // vendeur n'a jamais à saisir de latitude/longitude à la main.
+  const handleLocaliser = async () => {
+    try {
+      const resultat = await localiser();
+      update("latitude", resultat.latitude);
+      update("longitude", resultat.longitude);
+      if (resultat.communeDetectee) update("commune", resultat.communeDetectee);
+      if (resultat.quartierDetecte) update("quartier", resultat.quartierDetecte);
+      showToast("Position détectée", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Localisation impossible", "error");
+    }
+  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -170,6 +193,8 @@ export function VendeurKycWizard() {
               description: vendeur.description ?? prev.description,
               quartier: vendeur.quartier ?? prev.quartier,
               commune: vendeur.commune ?? prev.commune,
+              latitude: vendeur.latitude ?? prev.latitude,
+              longitude: vendeur.longitude ?? prev.longitude,
               mobileMoneyNetwork: vendeur.mobile_money_network ?? prev.mobileMoneyNetwork,
               mobileMoneyNumber: vendeur.mobile_money_number ?? prev.mobileMoneyNumber,
             }));
@@ -332,6 +357,8 @@ export function VendeurKycWizard() {
         description: data.description,
         quartier: data.quartier,
         commune: data.commune,
+        latitude: data.latitude,
+        longitude: data.longitude,
         mobile_money_network: data.mobileMoneyNetwork,
         mobile_money_number: data.mobileMoneyNumber,
         statut: "en_attente",
@@ -646,6 +673,22 @@ export function VendeurKycWizard() {
                         Ça aide les clients proches de toi à te trouver plus facilement.
                       </p>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={handleLocaliser}
+                      disabled={localisationEnCours}
+                      className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-coral-50 text-coral-700 font-semibold text-sm hover:bg-coral-100 transition-colors disabled:opacity-60"
+                    >
+                      {localisationEnCours ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
+                      {localisationEnCours ? "Localisation en cours..." : "Utiliser ma position actuelle"}
+                    </button>
+
+                    {data.latitude !== null && data.longitude !== null && (
+                      <p className="text-xs font-semibold text-teal-700 -mt-2">
+                        Position détectée — aide à un calcul plus précis des frais de livraison
+                      </p>
+                    )}
 
                     <div>
                       <label htmlFor="commune" className="block text-sm font-medium text-gray-700 mb-2">

@@ -7,12 +7,16 @@ import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/lib/hooks/useUser'
 import { useCart } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
 import { Button } from '@/components/ui/Button'
+import { ChipSelect } from '@/components/ui/ChipSelect'
+import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
+import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import {
   MapPin, ChevronLeft, ShoppingBag, Wallet, ShieldCheck,
-  Plus, Minus, Trash2, Loader2,
+  Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, LocateFixed,
 } from 'lucide-react'
 
 interface Address {
@@ -24,6 +28,21 @@ interface Address {
   latitude: number | null
   longitude: number | null
   est_defaut: boolean
+}
+
+const OPTIONS_LABEL = [
+  { value: 'domicile', label: 'Domicile', icon: Home },
+  { value: 'bureau', label: 'Bureau', icon: Briefcase },
+  { value: 'autre', label: 'Autre', icon: MoreHorizontal },
+]
+
+const OPTIONS_COMMUNE = COMMUNES_COUVERTES.map((c) => ({ value: c, label: c }))
+
+// Icône affichée dans la liste de sélection selon le label de l'adresse.
+function iconePourLabel(label: string) {
+  if (label === 'bureau') return Briefcase
+  if (label === 'domicile') return Home
+  return MoreHorizontal
 }
 
 export default function CheckoutPage() {
@@ -40,9 +59,14 @@ export default function CheckoutPage() {
 
   const [nomClient, setNomClient] = useState('')
   const [telephone, setTelephone] = useState('')
+  const [nouveauLabel, setNouveauLabel] = useState('domicile')
   const [nouvelleCommune, setNouvelleCommune] = useState('')
   const [nouveauQuartier, setNouveauQuartier] = useState('')
   const [nouvelleAdresse, setNouvelleAdresse] = useState('')
+  const [nouvelleLatitude, setNouvelleLatitude] = useState<number | null>(null)
+  const [nouvelleLongitude, setNouvelleLongitude] = useState<number | null>(null)
+
+  const { localiser, loading: localisationEnCours } = useGeolocationAdresse()
 
   const [submitting, setSubmitting] = useState(false)
 
@@ -114,8 +138,8 @@ export default function CheckoutPage() {
         adresse_complete: nouvelleAdresse.trim(),
         quartier: nouveauQuartier.trim(),
         commune: nouvelleCommune.trim(),
-        latitude: null,
-        longitude: null,
+        latitude: nouvelleLatitude,
+        longitude: nouvelleLongitude,
       }
     } else {
       const addr = addresses.find((a) => a.id === selectedAddressId)
@@ -138,10 +162,12 @@ export default function CheckoutPage() {
       if (addingNew) {
         await supabase.from('addresses').insert({
           user_id: user.id,
-          label: 'domicile',
+          label: nouveauLabel,
           adresse_complete: adresseFinale.adresse_complete,
           quartier: adresseFinale.quartier,
           commune: adresseFinale.commune,
+          latitude: adresseFinale.latitude,
+          longitude: adresseFinale.longitude,
           est_defaut: addresses.length === 0,
         })
       }
@@ -265,34 +291,49 @@ export default function CheckoutPage() {
             <div className="h-24 rounded-2xl bg-gray-50 animate-pulse" />
           ) : (
             <div className="space-y-3">
-              {addresses.map((addr) => (
-                <label
-                  key={addr.id}
-                  className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-colors ${
-                    !addingNew && selectedAddressId === addr.id
-                      ? 'border-coral-400 bg-coral-50/40'
-                      : 'border-gray-100 hover:border-gray-200'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="address"
-                    checked={!addingNew && selectedAddressId === addr.id}
-                    onChange={() => {
-                      setSelectedAddressId(addr.id)
-                      setAddingNew(false)
-                    }}
-                    className="mt-1"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-900 capitalize">{addr.label}</p>
-                    <p className="text-sm text-gray-500">
-                      {[addr.adresse_complete, addr.quartier, addr.commune].filter(Boolean).join(', ')}
-                    </p>
-                  </div>
-                  <MapPin size={16} className="text-gray-300 mt-1 shrink-0" />
-                </label>
-              ))}
+              {addresses.map((addr, index) => {
+                const IconeAdresse = iconePourLabel(addr.label)
+                return (
+                  <motion.label
+                    key={addr.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04, duration: 0.25 }}
+                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-colors ${
+                      !addingNew && selectedAddressId === addr.id
+                        ? 'border-coral-400 bg-coral-50/40'
+                        : 'border-gray-100 hover:border-gray-200'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="address"
+                      checked={!addingNew && selectedAddressId === addr.id}
+                      onChange={() => {
+                        setSelectedAddressId(addr.id)
+                        setAddingNew(false)
+                      }}
+                      className="mt-1"
+                    />
+                    <div className="w-9 h-9 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
+                      <IconeAdresse size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-gray-900 capitalize">{addr.label}</p>
+                        {addr.est_defaut && (
+                          <span className="text-[10px] font-bold text-coral-600 bg-coral-50 rounded-full px-2 py-0.5">
+                            Par défaut
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        {[addr.quartier, addr.commune].filter(Boolean).join(', ')}
+                      </p>
+                    </div>
+                  </motion.label>
+                )
+              })}
 
               <label
                 className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-colors ${
@@ -308,24 +349,54 @@ export default function CheckoutPage() {
                 />
                 <div className="flex-1">
                   <p className="text-sm font-bold text-gray-900">Nouvelle adresse</p>
-                  {addingNew && (
-                    <div className="mt-3 space-y-3">
-                      <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={nouvelleCommune}
-                          onChange={(e) => setNouvelleCommune(e.target.value)}
-                          placeholder="Commune (ex: Calavi)"
-                          className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
-                        />
-                        <input
-                          type="text"
-                          value={nouveauQuartier}
-                          onChange={(e) => setNouveauQuartier(e.target.value)}
-                          placeholder="Quartier (ex: Godomey)"
-                          className="h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
-                        />
+                  <AnimatePresence initial={false}>
+                    {addingNew && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                      >
+                      <div className="mt-3 space-y-3">
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const resultat = await localiser()
+                            setNouvelleLatitude(resultat.latitude)
+                            setNouvelleLongitude(resultat.longitude)
+                            if (resultat.communeDetectee) setNouvelleCommune(resultat.communeDetectee)
+                            if (resultat.quartierDetecte) setNouveauQuartier(resultat.quartierDetecte)
+                            showToast('Position détectée', 'success')
+                          } catch (err) {
+                            showToast(err instanceof Error ? err.message : 'Localisation impossible', 'error')
+                          }
+                        }}
+                        disabled={localisationEnCours}
+                        className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-coral-50 text-coral-700 font-semibold text-sm hover:bg-coral-100 transition-colors disabled:opacity-60"
+                      >
+                        {localisationEnCours ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
+                        {localisationEnCours ? 'Localisation en cours...' : 'Utiliser ma position actuelle'}
+                      </button>
+
+                      <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Nom de l&rsquo;adresse</p>
+                        <ChipSelect layoutId="checkout-label" options={OPTIONS_LABEL} value={nouveauLabel} onChange={setNouveauLabel} />
                       </div>
+
+                      <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Commune</p>
+                        <ChipSelect layoutId="checkout-commune" options={OPTIONS_COMMUNE} value={nouvelleCommune} onChange={setNouvelleCommune} />
+                      </div>
+
+                      <input
+                        type="text"
+                        value={nouveauQuartier}
+                        onChange={(e) => setNouveauQuartier(e.target.value)}
+                        placeholder="Quartier (ex: Godomey)"
+                        className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
+                      />
                       <textarea
                         value={nouvelleAdresse}
                         onChange={(e) => setNouvelleAdresse(e.target.value)}
@@ -333,8 +404,10 @@ export default function CheckoutPage() {
                         rows={2}
                         className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:border-coral-400 resize-none"
                       />
-                    </div>
-                  )}
+                      </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </label>
             </div>

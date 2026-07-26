@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -96,6 +96,19 @@ function prixAffiche(a: ArticlePublic) {
 }
 function ancienPrixAffiche(a: ArticlePublic) {
   return a.prix_promo ? a.prix : undefined;
+}
+
+// Mélange Fisher-Yates : utilisé pour que la grille catalogue de la home
+// n'affiche pas systématiquement les mêmes articles en tête (ordre
+// d'arrivée). "Produits du moment" et "Ventes flash" gardent volontairement
+// l'ordre chronologique/promo d'origine, qui a un sens produit.
+function melanger<T>(liste: T[]): T[] {
+  const copie = [...liste];
+  for (let i = copie.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copie[i], copie[j]] = [copie[j], copie[i]];
+  }
+  return copie;
 }
 
 export default function Home() {
@@ -217,9 +230,14 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [flashEndTime]);
 
+  // Ordre aléatoire, recalculé seulement quand la liste d'articles change
+  // (nouveau chargement) et non à chaque re-render — sinon les produits
+  // sauteraient dans tous les sens à chaque clic (filtre, "voir plus"...).
+  const articlesMelanges = useMemo(() => melanger(articles), [articles]);
+
   const filteredProducts = activeTab === "Tout"
-    ? articles
-    : articles.filter(a => a.categorie?.nom === activeTab);
+    ? articlesMelanges
+    : articlesMelanges.filter(a => a.categorie?.nom === activeTab);
 
   const productsToShow = filteredProducts.slice(0, visibleProductsCount);
   const hasMoreProducts = visibleProductsCount < filteredProducts.length;

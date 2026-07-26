@@ -23,15 +23,6 @@ interface DashboardLayoutProps {
   fullHeight?: boolean; // verrouille la page sur la hauteur de l'écran (ex: messagerie) au lieu de laisser la page défiler
 }
 
-// Même mapping que la redirection de la home publique (app/page.tsx) :
-// le logo doit ramener au dashboard du rôle, pas à "/" qui rebondirait
-// immédiatement dessus.
-const ROLE_HOME: Record<"admin" | "vendeur" | "livreur", string> = {
-  vendeur: "/vendeur/dashboard",
-  livreur: "/livreur/missions",
-  admin: "/admin/dashboard",
-};
-
 // Liens rapides du menu compte (clic avatar). Chaque rôle n'a pas la même
 // page profil : le vendeur n'en a pas de dédiée (l'info profil vit dans
 // Paramètres), le livreur en a une ("Mon profil"), l'admin n'a que Paramètres.
@@ -95,7 +86,6 @@ export function DashboardLayout({
         userName={displayName}
         isCollapsed={isCollapsed}
         onToggleCollapse={() => setIsCollapsed((c) => !c)}
-        logoHref={ROLE_HOME[role]}
       />
 
       <main
@@ -114,7 +104,6 @@ export function DashboardLayout({
           notifications={badges.notificationsList}
           backHref={backHref}
           backLabel={backLabel}
-          logoHref={ROLE_HOME[role]}
           accountSubtitle={accountSubtitle[role]}
           accountLinks={ROLE_ACCOUNT_LINKS[role]}
           onLogout={handleLogout}

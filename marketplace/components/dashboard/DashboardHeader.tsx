@@ -25,10 +25,6 @@ interface DashboardHeaderProps {
   onBellClick?: () => void;
   backHref?: string;
   backLabel?: string;
-  /** Cible du logo affiché en dessous du breakpoint lg (là où le Sidebar,
-   * qui porte déjà le logo, est masqué). Le dashboard du rôle plutôt que
-   * "/" pour éviter un aller-retour inutile par la home publique. */
-  logoHref?: string;
   /** Sous-titre affiché dans le menu compte (ex: nom de la boutique, "Livreur Ayiba"). */
   accountSubtitle?: string;
   /** Si fourni (et non vide), le clic sur l'avatar ouvre un menu déroulant
@@ -52,7 +48,6 @@ export function DashboardHeader({
   onBellClick,
   backHref,
   backLabel,
-  logoHref = "/",
   accountSubtitle,
   accountLinks,
   onLogout,
@@ -123,9 +118,9 @@ export function DashboardHeader({
           se dupliquaient sur la tranche tablette md-lg). La bande du
           dessous ne porte plus que le contenu (salutation/retour/titre). */}
       <div className="lg:hidden flex items-center justify-between gap-3 px-4 h-12 border-b border-gray-50">
-        <Link href={logoHref} className="flex items-center">
+        <div className="flex items-center">
           <LogoAyiba className="h-6 w-auto" />
-        </Link>
+        </div>
 
         <div className="flex items-center gap-2 shrink-0" ref={topBarRef}>
           <div className="relative">

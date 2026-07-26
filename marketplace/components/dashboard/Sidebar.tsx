@@ -33,13 +33,9 @@ interface SidebarProps {
   userName?: string;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  /** Cible du logo — le dashboard du rôle plutôt que "/", pour éviter un
-   * aller-retour inutile par la home publique (qui redirige de toute façon
-   * vendeur/livreur/admin vers leur dashboard). */
-  logoHref?: string;
 }
 
-export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHref = "/" }: SidebarProps) {
+export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { exitDemoMode } = useUser();
@@ -106,9 +102,13 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
         ${isCollapsed ? "lg:w-20" : "lg:w-64"}
       `}
     >
-      {/* Logo */}
+      {/* Logo — volontairement non cliquable dans les dashboards (admin/
+          vendeur/livreur) : contrairement au site public, sortir du
+          dashboard par erreur en visant la sidebar n'est jamais voulu ici.
+          Seul le Navbar public (espace client) garde un logo qui ramène à
+          l'accueil. */}
       <div className="h-20 flex items-center px-6">
-        <Link href={logoHref} className="flex items-center gap-2 overflow-hidden">
+        <div className="flex items-center gap-2 overflow-hidden">
           {isCollapsed ? (
             <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />
           ) : (
@@ -117,7 +117,7 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, logoHre
               <span className="text-gray-400 font-medium text-sm whitespace-nowrap">| {role}</span>
             </>
           )}
-        </Link>
+        </div>
       </div>
 
       {/* User Profile Summary */}

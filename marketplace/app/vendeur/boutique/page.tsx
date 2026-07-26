@@ -87,6 +87,15 @@ export default function VendeurBoutiquePage() {
       };
       setForm(next);
       setInitialForm(next);
+      // Un numéro déjà enregistré avant la mise à jour du format (ex: ancien
+      // format à 8 chiffres) peut être invalide sans que le vendeur y ait
+      // touché. Sans ça, l'erreur bloque le bouton "Enregistrer" en silence,
+      // sans jamais s'afficher (l'affichage dépend normalement de `touched`,
+      // qui n'est mis à jour qu'à la soumission — impossible si le bouton
+      // est déjà désactivé).
+      if (next.mobile_money_number && validerNumero(next.mobile_money_number, next.mobile_money_network)) {
+        setTouched((prev) => ({ ...prev, mobile_money_number: true }));
+      }
     }
   }, [boutique]);
 
@@ -351,7 +360,10 @@ export default function VendeurBoutiquePage() {
                 selected={form.mobile_money_network}
                 onSelect={(network) => handleChange("mobile_money_network", network)}
                 phoneNumber={form.mobile_money_number}
-                onPhoneChange={(value) => handleChange("mobile_money_number", formaterNumero(value))}
+                onPhoneChange={(value) => {
+                  handleChange("mobile_money_number", formaterNumero(value));
+                  setTouched((prev) => ({ ...prev, mobile_money_number: true }));
+                }}
                 error={errors.mobile_money_number}
                 touched={touched.mobile_money_number}
               />

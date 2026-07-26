@@ -476,9 +476,10 @@ export default function CheckoutPage() {
 
         {/* Contact */}
         <section className="mb-8">
-          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
-            Contact pour la livraison
+          <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-1">
+            Qui réceptionne la commande ?
           </h2>
+          <p className="text-xs text-gray-400 mb-3">Tes coordonnées, pour que le livreur puisse te joindre.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input
               type="text"

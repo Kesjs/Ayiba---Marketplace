@@ -29,7 +29,7 @@ export default function AdminParametresPage() {
   useEffect(() => {
     if (!loading) {
       if (params.commission_pourcentage !== undefined) setCommission(String(params.commission_pourcentage));
-      if (params.frais_base !== undefined) setFraisBase(String(params.frais_base));
+      if (params.frais_base_livraison !== undefined) setFraisBase(String(params.frais_base_livraison));
       if (params.prix_par_km !== undefined) setPrixParKm(String(params.prix_par_km));
       if (params.mode_maintenance !== undefined) setMaintenance(params.mode_maintenance === true || params.mode_maintenance === "true");
     }
@@ -38,7 +38,7 @@ export default function AdminParametresPage() {
   const handleSave = async () => {
     setSaving(true);
     await mettreAJour("commission_pourcentage", Number(commission));
-    await mettreAJour("frais_base", Number(fraisBase));
+    await mettreAJour("frais_base_livraison", Number(fraisBase));
     await mettreAJour("prix_par_km", Number(prixParKm));
     await mettreAJour("mode_maintenance", maintenance);
     setSaving(false);

@@ -1,19 +1,38 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { StepIndicator } from "./StepIndicator";
 import { PhotoUpload } from "./PhotoUpload";
 import { DocumentUpload } from "./DocumentUpload";
 import { MobileMoneySelector } from "./MobileMoneySelector";
-import { ChevronLeft, ChevronRight, ShieldCheck, Hourglass, AlertTriangle, X } from "lucide-react";
+import { RecapSection } from "./RecapSection";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  Hourglass,
+  AlertTriangle,
+  UserRound,
+  FileText,
+  Bike,
+  MapPin,
+  Wallet,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
+import { WizardHeader } from "@/components/ui/WizardHeader";
+import type { WizardStep } from "./StepIndicator";
 
-const STEP_LABELS = ["Identité", "Document", "Véhicule", "Localisation", "Paiement"];
+const WIZARD_STEPS: WizardStep[] = [
+  { label: "Identité", icon: UserRound },
+  { label: "Document", icon: FileText },
+  { label: "Véhicule", icon: Bike },
+  { label: "Localisation", icon: MapPin },
+  { label: "Paiement", icon: Wallet },
+];
 const STORAGE_KEY = "ayiba-livreur-kyc-draft";
 
 const STATUT_CONFIG: Record<string, { dot: string; label: string }> = {
@@ -137,7 +156,7 @@ export function LivreurKycWizard() {
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
-  const totalSteps = 5;
+  const totalSteps = WIZARD_STEPS.length;
 
   const [existingPhotoProfilUrl, setExistingPhotoProfilUrl] = useState<string | null>(null);
   const [existingPhotoCniPath, setExistingPhotoCniPath] = useState<string | null>(null);
@@ -147,6 +166,13 @@ export function LivreurKycWizard() {
   const [editMode, setEditMode] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { showToast } = useToast();
+
+  // Miniature pour le récap : priorité au fichier fraîchement choisi, sinon
+  // l'URL déjà enregistrée en base.
+  const photoProfilApercu = useMemo(
+    () => (data.photoProfil ? URL.createObjectURL(data.photoProfil) : existingPhotoProfilUrl),
+    [data.photoProfil, existingPhotoProfilUrl]
+  );
   // Instantané des champs pris au chargement (dossier déjà soumis), pour
   // détecter si "Modifier mes informations" a vraiment changé quelque chose
   // avant de forcer une resoumission (voir handleSubmit).
@@ -565,30 +591,16 @@ export function LivreurKycWizard() {
         onCancel={() => setShowCancelModal(false)}
       />
 
-      <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-xl border-b border-gray-100 px-4 py-4 md:px-8">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <button
-            onClick={handleCancel}
-            className="shrink-0 w-9 h-9 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors"
-            aria-label="Annuler l'inscription"
-          >
-            <X size={20} />
-          </button>
-          <div className="flex-1 min-w-0">
-            {!isRecap && (
-              <StepIndicator currentStep={step} totalSteps={totalSteps} stepLabels={STEP_LABELS} />
-            )}
-            {isRecap && (
-              <div className="text-center">
-                <span className="text-xs font-bold text-coral-500 uppercase tracking-wide">
-                  Récapitulatif
-                </span>
-              </div>
-            )}
-          </div>
-          {livreurStatut && <StatutIndicator statut={livreurStatut} />}
-        </div>
-      </div>
+      <WizardHeader
+        eyebrow="Premier pas avec Ayiba"
+        title="Devenir livreur vérifié"
+        steps={WIZARD_STEPS}
+        currentStep={step}
+        isRecap={isRecap}
+        onCancel={handleCancel}
+        cancelLabel="Annuler l'inscription"
+        trailing={livreurStatut ? <StatutIndicator statut={livreurStatut} /> : undefined}
+      />
 
       <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8">
         <div className="w-full max-w-2xl flex flex-col gap-4">
@@ -815,7 +827,7 @@ export function LivreurKycWizard() {
                 )}
 
                 {isRecap && (
-                  <div className="flex flex-col gap-5">
+                  <div className="flex flex-col gap-4">
                     <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[28px] p-6 text-white shadow-xl shadow-coral-500/20">
                       <div className="absolute -top-16 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
                       <div className="absolute -bottom-16 -left-8 w-32 h-32 bg-black/10 rounded-full blur-3xl pointer-events-none" />
@@ -830,51 +842,75 @@ export function LivreurKycWizard() {
                       </div>
                     </div>
 
-                    {!data.photoProfil && !existingPhotoProfilUrl && (
-                      <button
-                        onClick={() => goToStep(1)}
-                        className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2 text-center hover:bg-amber-100 transition-colors"
-                      >
-                        Ta photo de profil a été perdue lors d'un rechargement. Touche ici pour la
-                        réajouter.
-                      </button>
-                    )}
+                    <RecapSection
+                      icon={UserRound}
+                      title="Identité"
+                      onEdit={() => goToStep(1)}
+                      rows={[{ label: "Nom", value: data.nomComplet }]}
+                      preview={
+                        photoProfilApercu ? (
+                          <img
+                            src={photoProfilApercu}
+                            alt="Photo de profil"
+                            className="w-14 h-14 rounded-full object-cover border border-gray-100"
+                          />
+                        ) : undefined
+                      }
+                      warning={
+                        !data.photoProfil && !existingPhotoProfilUrl
+                          ? "Ta photo de profil a été perdue lors d'un rechargement. Touche ici pour la réajouter."
+                          : undefined
+                      }
+                    />
 
-                    {!data.photoCni && !existingPhotoCniPath && (
-                      <button
-                        onClick={() => goToStep(2)}
-                        className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-2xl px-3 py-2 text-center hover:bg-amber-100 transition-colors"
-                      >
-                        Ton document d'identité a été perdu lors d'un rechargement. Touche ici pour
-                        le réajouter.
-                      </button>
-                    )}
+                    <RecapSection
+                      icon={FileText}
+                      title="Document d'identité"
+                      onEdit={() => goToStep(2)}
+                      rows={
+                        data.photoCni || existingPhotoCniPath
+                          ? [{ label: "Statut", value: data.photoCni ? "Prêt à envoyer" : "Déjà enregistré" }]
+                          : []
+                      }
+                      warning={
+                        !data.photoCni && !existingPhotoCniPath
+                          ? "Ton document d'identité a été perdu lors d'un rechargement. Touche ici pour le réajouter."
+                          : undefined
+                      }
+                    />
 
-                    <div className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-3 text-sm">
-                      <div className="flex justify-between gap-4">
-                        <span className="text-gray-500 shrink-0">Nom</span>
-                        <span className="font-medium text-gray-900 text-right">{data.nomComplet}</span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span className="text-gray-500 shrink-0">Véhicule</span>
-                        <span className="font-medium text-gray-900 text-right">
-                          {VEHICULE_OPTIONS.find((v) => v.id === data.typeVehicule)?.label}
-                          {needsPlaque && data.plaqueImmatriculation ? ` • ${data.plaqueImmatriculation}` : ""}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span className="text-gray-500 shrink-0">Localisation</span>
-                        <span className="font-medium text-gray-900 text-right">
-                          {data.quartier}, {data.commune}
-                        </span>
-                      </div>
-                      <div className="flex justify-between gap-4">
-                        <span className="text-gray-500 shrink-0">Paiement</span>
-                        <span className="font-medium text-gray-900 text-right">
-                          {data.mobileMoneyNetwork?.toUpperCase()} • {data.mobileMoneyNumber}
-                        </span>
-                      </div>
-                    </div>
+                    <RecapSection
+                      icon={Bike}
+                      title="Véhicule"
+                      onEdit={() => goToStep(3)}
+                      rows={[
+                        {
+                          label: "Type",
+                          value:
+                            (VEHICULE_OPTIONS.find((v) => v.id === data.typeVehicule)?.label ?? "") +
+                            (needsPlaque && data.plaqueImmatriculation ? ` • ${data.plaqueImmatriculation}` : ""),
+                        },
+                      ]}
+                    />
+
+                    <RecapSection
+                      icon={MapPin}
+                      title="Localisation"
+                      onEdit={() => goToStep(4)}
+                      rows={[{ label: "Adresse", value: `${data.quartier}, ${data.commune}` }]}
+                    />
+
+                    <RecapSection
+                      icon={Wallet}
+                      title="Paiement"
+                      onEdit={() => goToStep(5)}
+                      rows={[
+                        {
+                          label: "Réseau",
+                          value: `${data.mobileMoneyNetwork?.toUpperCase() ?? ""} • ${data.mobileMoneyNumber}`,
+                        },
+                      ]}
+                    />
 
                     {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                   </div>

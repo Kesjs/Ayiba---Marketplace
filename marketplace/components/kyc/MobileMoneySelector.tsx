@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check } from "lucide-react";
 
 interface MobileMoneyOption {
   id: "mtn" | "moov" | "celtiis";
@@ -43,7 +44,6 @@ interface MobileMoneySelectorProps {
   touched?: boolean;
 }
 
-
 export function MobileMoneySelector({
   selected,
   onSelect,
@@ -69,12 +69,22 @@ export function MobileMoneySelector({
               key={option.id}
               type="button"
               onClick={() => onSelect(option.id)}
-              className="flex flex-col items-center gap-2 p-3 rounded-xl border border-gray-100 bg-white hover:border-gray-200 transition-all"
+              aria-pressed={isSelected}
+              className={`relative flex flex-col items-center gap-2 p-3 pt-4 rounded-2xl border-2 transition-all ${
+                isSelected
+                  ? "border-coral-500 bg-coral-50/60 shadow-sm shadow-coral-500/10"
+                  : "border-gray-100 bg-white hover:border-gray-200"
+              }`}
             >
+              {isSelected && (
+                <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-coral-500 text-white flex items-center justify-center">
+                  <Check size={10} strokeWidth={3.5} />
+                </span>
+              )}
               <div
-                className={`w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden transition-all ${
+                className={`w-12 h-12 rounded-lg flex items-center justify-center overflow-hidden ${
                   failed ? option.fallbackColor : "bg-white"
-                } ${isSelected ? "ring-2 ring-coral-500 ring-offset-2" : ""}`}
+                }`}
               >
                 {failed ? (
                   <span className={`text-xs font-bold ${option.fallbackTextColor}`}>
@@ -91,7 +101,7 @@ export function MobileMoneySelector({
               </div>
               <span
                 className={`text-[11px] text-center leading-tight ${
-                  isSelected ? "font-semibold text-gray-900" : "font-medium text-gray-600"
+                  isSelected ? "font-bold text-coral-700" : "font-medium text-gray-600"
                 }`}
               >
                 {option.label}

@@ -20,8 +20,14 @@ import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
   Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, LocateFixed,
-  Route, AlertCircle,
+  Route, AlertCircle, Truck,
 } from 'lucide-react'
+import type { WizardStep } from '@/components/kyc/StepIndicator'
+
+const CHECKOUT_STEPS: WizardStep[] = [
+  { label: 'Livraison', icon: Truck },
+  { label: 'Paiement', icon: Wallet },
+]
 
 interface Address {
   id: string
@@ -408,10 +414,12 @@ export default function CheckoutPage() {
         </button>
 
         <div className="mb-6">
+          <p className="text-[11px] font-bold text-coral-500 uppercase tracking-wide mb-3">
+            Ayiba • Dernière étape
+          </p>
           <StepIndicator
-            currentStep={etape === 'livraison' ? 1 : etape === 'paiement' ? 2 : 3}
-            totalSteps={3}
-            stepLabels={['Livraison', 'Paiement', 'Confirmation']}
+            currentStep={etape === 'livraison' ? 1 : 2}
+            steps={CHECKOUT_STEPS}
           />
         </div>
 

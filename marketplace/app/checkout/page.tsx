@@ -12,7 +12,7 @@ import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
 import { Button } from '@/components/ui/Button'
 import { ChipSelect } from '@/components/ui/ChipSelect'
-import { StepIndicator } from '@/components/kyc/StepIndicator'
+import { StepIndicator, type WizardStep } from '@/components/kyc/StepIndicator'
 import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
 import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
@@ -20,8 +20,14 @@ import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
   Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, LocateFixed,
-  Route, AlertCircle,
+  Route, AlertCircle, Truck, CheckCircle2,
 } from 'lucide-react'
+
+const CHECKOUT_STEPS: WizardStep[] = [
+  { label: 'Livraison', icon: Truck },
+  { label: 'Paiement', icon: Wallet },
+  { label: 'Confirmation', icon: CheckCircle2 },
+]
 
 interface Address {
   id: string
@@ -410,8 +416,7 @@ export default function CheckoutPage() {
         <div className="mb-6">
           <StepIndicator
             currentStep={etape === 'livraison' ? 1 : etape === 'paiement' ? 2 : 3}
-            totalSteps={3}
-            stepLabels={['Livraison', 'Paiement', 'Confirmation']}
+            steps={CHECKOUT_STEPS}
           />
         </div>
 

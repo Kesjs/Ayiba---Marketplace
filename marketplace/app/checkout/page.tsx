@@ -15,12 +15,13 @@ import { ChipSelect } from '@/components/ui/ChipSelect'
 import { StepIndicator } from '@/components/kyc/StepIndicator'
 import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
+import { AuthModal } from '@/components/ui/AuthModal'
 import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
 import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
   Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, LocateFixed,
-  Route, AlertCircle, Truck,
+  Route, AlertCircle, Truck, Lock,
 } from 'lucide-react'
 import type { WizardStep } from '@/components/kyc/StepIndicator'
 
@@ -28,6 +29,12 @@ const CHECKOUT_STEPS: WizardStep[] = [
   { label: 'Livraison', icon: Truck },
   { label: 'Paiement', icon: Wallet },
 ]
+
+// Clé sessionStorage pour survivre à un rechargement pendant l'attente de
+// validation Mobile Money (l'utilisateur peut recharger par erreur, ou son
+// navigateur peut recharger la page après le retour de l'app opérateur).
+const CLE_PAIEMENT_EN_COURS = 'ayiba-checkout-paiement-en-cours'
+const DUREE_MAX_REPRISE_MS = 10 * 60 * 1000 // 10 min
 
 interface Address {
   id: string
@@ -102,19 +109,55 @@ export default function CheckoutPage() {
   const [raisonEchec, setRaisonEchec] = useState<string | null>(null)
   const [commandeIds, setCommandeIds] = useState<string[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const redirectionEnvoyeeRef = useRef(false)
 
   useEffect(() => {
-    if (userLoading) return
-    if (!user) {
-      showToast('Connecte-toi pour passer commande', 'info')
-      router.push('/explorer')
-      return
-    }
+    if (userLoading || !user) return
     if (items.length === 0 && etape === 'livraison') {
       router.push('/explorer')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLoading, user, items.length])
+
+  // Reprise après rechargement en plein paiement : si un paiement était en
+  // attente de validation Mobile Money au moment du reload, on le retrouve
+  // et on relance l'overlay + l'écoute Realtime/polling au lieu de perdre
+  // l'utilisateur sur un checkout vide.
+  useEffect(() => {
+    if (!user) return
+    try {
+      const brut = sessionStorage.getItem(CLE_PAIEMENT_EN_COURS)
+      if (!brut) return
+      const sauvegarde = JSON.parse(brut)
+      const expire = !sauvegarde?.paiementCheckoutId || Date.now() - (sauvegarde.savedAt || 0) > DUREE_MAX_REPRISE_MS
+      if (expire) {
+        sessionStorage.removeItem(CLE_PAIEMENT_EN_COURS)
+        return
+      }
+      setAdresseFinale(sauvegarde.adresseFinale)
+      setReseau(sauvegarde.reseau)
+      setTelephoneMomo(sauvegarde.telephoneMomo)
+      setPaiementCheckoutId(sauvegarde.paiementCheckoutId)
+      setEtape('paiement')
+      setStatutPaiement('attente')
+    } catch {
+      sessionStorage.removeItem(CLE_PAIEMENT_EN_COURS)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
+
+  // Empêche une fermeture/rechargement accidentelle pendant l'attente de
+  // validation sur le téléphone (le paiement lui-même n'est pas annulé,
+  // mais l'utilisateur perdrait l'overlay de suivi).
+  useEffect(() => {
+    if (statutPaiement !== 'attente') return
+    const avantFermeture = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', avantFermeture)
+    return () => window.removeEventListener('beforeunload', avantFermeture)
+  }, [statutPaiement])
 
   useEffect(() => {
     if (profile) {
@@ -305,16 +348,27 @@ export default function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paiementCheckoutId, statutPaiement])
 
+  function effacerPaiementPersiste() {
+    try {
+      sessionStorage.removeItem(CLE_PAIEMENT_EN_COURS)
+    } catch {
+      // pas bloquant
+    }
+  }
+
   function appliquerResultatPaiement(row: { statut: string; commande_ids?: string[] | null; raison_echec?: string | null }) {
     if (row.statut === 'paye') {
       if (pollRef.current) clearInterval(pollRef.current)
       setCommandeIds(row.commande_ids || [])
       setStatutPaiement('succes')
+      redirectionEnvoyeeRef.current = false
       clearCart()
+      effacerPaiementPersiste()
     } else if (row.statut === 'echoue') {
       if (pollRef.current) clearInterval(pollRef.current)
       setRaisonEchec(row.raison_echec || null)
       setStatutPaiement('echec')
+      effacerPaiementPersiste()
     }
   }
 
@@ -363,6 +417,21 @@ export default function CheckoutPage() {
       setPaiementCheckoutId(data.paiementCheckoutId)
       setStatutPaiement('attente')
       setRaisonEchec(null)
+
+      try {
+        sessionStorage.setItem(
+          CLE_PAIEMENT_EN_COURS,
+          JSON.stringify({
+            paiementCheckoutId: data.paiementCheckoutId,
+            adresseFinale,
+            reseau,
+            telephoneMomo: telephoneMomo.trim(),
+            savedAt: Date.now(),
+          })
+        )
+      } catch {
+        // pas bloquant si sessionStorage est indisponible
+      }
     } catch (err) {
       console.error('[checkout] initier paiement error:', err)
       showToast(err instanceof Error ? err.message : 'Impossible de démarrer le paiement', 'error')
@@ -375,9 +444,50 @@ export default function CheckoutPage() {
     setStatutPaiement(null)
     setPaiementCheckoutId(null)
     setRaisonEchec(null)
+    effacerPaiementPersiste()
   }
 
-  if (userLoading || !user || (items.length === 0 && etape === 'livraison')) {
+  const allerVersCommande = () => {
+    if (redirectionEnvoyeeRef.current) return
+    redirectionEnvoyeeRef.current = true
+    router.push(commandeIds.length === 1 ? `/commandes/${commandeIds[0]}` : '/commandes')
+  }
+
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="animate-spin text-gray-300" size={28} />
+      </div>
+    )
+  }
+
+  // Un client peut arriver ici depuis l'accueil, une fiche produit, ou
+  // n'importe où après avoir ajouté des articles au panier sans être
+  // connecté (le panier ne nécessite pas d'auth). On le garde sur le
+  // checkout et on ouvre la modale d'auth plutôt que de le renvoyer vers
+  // /explorer — après connexion il revient directement ici.
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <main className="max-w-md mx-auto px-4 py-20 flex flex-col items-center text-center">
+          <div className="w-16 h-16 rounded-2xl bg-coral-50 flex items-center justify-center mb-5">
+            <Lock size={26} className="text-coral-500" />
+          </div>
+          <h1 className="text-lg font-bold text-gray-900 mb-2">Connecte-toi pour continuer</h1>
+          <p className="text-sm text-gray-500">
+            {items.length > 0
+              ? `Ton panier (${items.length} article${items.length > 1 ? 's' : ''}) t'attend — connecte-toi pour finaliser ta commande.`
+              : 'Connecte-toi pour accéder à ton checkout.'}
+          </p>
+        </main>
+        <AuthModal isOpen={true} onClose={() => router.push('/explorer')} redirectTo="/checkout" />
+        <Footer />
+      </div>
+    )
+  }
+
+  if (items.length === 0 && etape === 'livraison') {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="animate-spin text-gray-300" size={28} />
@@ -396,11 +506,13 @@ export default function CheckoutPage() {
           telephone={telephoneMomo}
           montant={totalGeneral}
           raisonEchec={raisonEchec}
-          onTimeout={() => setStatutPaiement('timeout')}
+          onTimeout={() => {
+            setStatutPaiement('timeout')
+            effacerPaiementPersiste()
+          }}
           onReessayer={reessayerPaiement}
-          onVoirCommande={() =>
-            router.push(commandeIds.length === 1 ? `/commandes/${commandeIds[0]}` : '/commandes')
-          }
+          onVoirCommande={allerVersCommande}
+          autoRedirectSecondes={3}
         />
       )}
 

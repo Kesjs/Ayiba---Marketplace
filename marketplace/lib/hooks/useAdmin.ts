@@ -298,7 +298,241 @@ export function useAdminUsers() {
     await load();
   };
 
-  return { users, loading, suspendre, reactiver, refresh: load };
+  const changerRole = async (id: string, role: string) => {
+    await supabase.from("users").update({ role }).eq("id", id);
+    await logAction("role_modifie", "user", id, { nouveau_role: role });
+    await load();
+  };
+
+  return { users, loading, suspendre, reactiver, changerRole, refresh: load };
+}
+
+// ---------- Fiche utilisateur détaillée ----------
+export interface AdminUserDetail extends AdminUser {
+  avatar_url: string | null;
+  note_moyenne: number | null;
+  nb_avis: number | null;
+}
+
+export function useAdminUserDetail(userId: string) {
+  const [user, setUser] = useState<AdminUserDetail | null>(null);
+  const [vendeurProfil, setVendeurProfil] = useState<any | null>(null);
+  const [livreurProfil, setLivreurProfil] = useState<any | null>(null);
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [commandes, setCommandes] = useState<any[]>([]);
+  const [avisRecus, setAvisRecus] = useState<any[]>([]);
+  const [avisLaisses, setAvisLaisses] = useState<any[]>([]);
+  const [disputes, setDisputes] = useState<any[]>([]);
+  const [paiements, setPaiements] = useState<any[]>([]);
+  const [retraits, setRetraits] = useState<any[]>([]);
+  const [actionsLog, setActionsLog] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setNotFound(false);
+
+    const { data: userRow } = await supabase
+      .from("users")
+      .select("id, full_name, email, phone, role, statut, created_at, avatar_url, note_moyenne, nb_avis")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (!userRow) {
+      setUser(null);
+      setNotFound(true);
+      setLoading(false);
+      return;
+    }
+    setUser(userRow as AdminUserDetail);
+
+    const [
+      vendeurRes,
+      livreurRes,
+      addressesRes,
+      logRes,
+      notesRes,
+    ] = await Promise.all([
+      userRow.role === "vendeur" ? supabase.from("vendeurs").select("*").eq("id", userId).maybeSingle() : Promise.resolve({ data: null }),
+      userRow.role === "livreur" ? supabase.from("livreurs").select("*").eq("id", userId).maybeSingle() : Promise.resolve({ data: null }),
+      supabase.from("addresses").select("*").eq("user_id", userId).order("est_defaut", { ascending: false }),
+      supabase.from("admin_actions_log").select("*").eq("cible_id", userId).order("created_at", { ascending: false }).limit(30),
+      supabase.from("admin_notes").select("*, admin:admin_id(full_name)").eq("user_id", userId).order("created_at", { ascending: false }),
+    ]);
+
+    setVendeurProfil(vendeurRes.data || null);
+    setLivreurProfil(livreurRes.data || null);
+    setAddresses(addressesRes.data || []);
+    setActionsLog(logRes.data || []);
+    setNotes(notesRes.data || []);
+
+    // Commandes : selon le rôle, l'utilisateur peut être client, vendeur (via vendeurs.id) ou livreur
+    const commandesQuery =
+      userRow.role === "vendeur"
+        ? supabase.from("commandes").select("id, numero, montant_total, statut, created_at").eq("vendeur_id", userId)
+        : userRow.role === "livreur"
+        ? supabase.from("commandes").select("id, numero, montant_total, statut, created_at").eq("livreur_id", userId)
+        : supabase.from("commandes").select("id, numero, montant_total, statut, created_at").eq("client_id", userId);
+    const { data: commandesData } = await commandesQuery.order("created_at", { ascending: false }).limit(20);
+    setCommandes(commandesData || []);
+
+    let avisRecusData: any[] = [];
+    if (userRow.role === "livreur") {
+      const { data } = await supabase
+        .from("avis")
+        .select("id, note, commentaire, created_at, article_id, livreur_id")
+        .eq("livreur_id", userId)
+        .order("created_at", { ascending: false });
+      avisRecusData = data || [];
+    } else if (userRow.role === "vendeur") {
+      const { data: mesArticles } = await supabase.from("articles").select("id").eq("vendeur_id", userId);
+      const articleIds = (mesArticles || []).map((a: { id: string }) => a.id);
+      if (articleIds.length > 0) {
+        const { data } = await supabase
+          .from("avis")
+          .select("id, note, commentaire, created_at, article_id, livreur_id")
+          .in("article_id", articleIds)
+          .order("created_at", { ascending: false });
+        avisRecusData = data || [];
+      }
+    }
+    setAvisRecus(avisRecusData);
+
+    const { data: avisLaissesData } = await supabase
+      .from("avis")
+      .select("id, note, commentaire, created_at, article_id")
+      .eq("utilisateur_id", userId)
+      .order("created_at", { ascending: false });
+    setAvisLaisses(avisLaissesData || []);
+
+    const { data: disputesData } = await supabase
+      .from("disputes")
+      .select("id, motif, statut, type, created_at, commande_id")
+      .or(`client_id.eq.${userId},livreur_id.eq.${userId}`)
+      .order("created_at", { ascending: false });
+    setDisputes(disputesData || []);
+
+    if (userRow.role === "vendeur") {
+      const { data: paiementsData } = await supabase
+        .from("paiements")
+        .select("id, montant, montant_net, statut, created_at")
+        .eq("vendeur_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setPaiements(paiementsData || []);
+
+      const { data: retraitsData } = await supabase
+        .from("retraits")
+        .select("id, montant, statut, reseau, created_at")
+        .eq("vendeur_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setRetraits(retraitsData || []);
+    } else if (userRow.role === "livreur") {
+      const { data: retraitsData } = await supabase
+        .from("retraits")
+        .select("id, montant, statut, reseau, created_at")
+        .eq("livreur_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setRetraits(retraitsData || []);
+    }
+
+    setLoading(false);
+  }, [userId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const suspendre = async () => {
+    await supabase.from("users").update({ statut: "suspendu" }).eq("id", userId);
+    await logAction("utilisateur_suspendu", "user", userId);
+    await load();
+  };
+
+  const reactiver = async () => {
+    await supabase.from("users").update({ statut: "actif" }).eq("id", userId);
+    await logAction("utilisateur_reactive", "user", userId);
+    await load();
+  };
+
+  const changerRole = async (role: string) => {
+    await supabase.from("users").update({ role }).eq("id", userId);
+    await logAction("role_modifie", "user", userId, { nouveau_role: role });
+    await load();
+  };
+
+  const ajouterNote = async (contenu: string) => {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return;
+    await supabase.from("admin_notes").insert({ user_id: userId, admin_id: auth.user.id, contenu });
+    await load();
+  };
+
+  const supprimerNote = async (noteId: string) => {
+    await supabase.from("admin_notes").delete().eq("id", noteId);
+    await load();
+  };
+
+  const forcerDeconnexion = async (): Promise<string | null> => {
+    try {
+      const res = await fetch("/api/admin/forcer-deconnexion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const json = await res.json();
+      if (!res.ok) return json.error || "Échec de la déconnexion forcée";
+      await load();
+      return null;
+    } catch {
+      return "Erreur réseau";
+    }
+  };
+
+  const reinitialiserMotDePasse = async (): Promise<{ tempPassword?: string; error?: string }> => {
+    try {
+      const res = await fetch("/api/admin/reinitialiser-mot-de-passe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const json = await res.json();
+      if (!res.ok) return { error: json.error || "Échec de la réinitialisation" };
+      await load();
+      return { tempPassword: json.tempPassword };
+    } catch {
+      return { error: "Erreur réseau" };
+    }
+  };
+
+  return {
+    user,
+    vendeurProfil,
+    livreurProfil,
+    addresses,
+    commandes,
+    avisRecus,
+    avisLaisses,
+    disputes,
+    paiements,
+    retraits,
+    actionsLog,
+    notes,
+    loading,
+    notFound,
+    suspendre,
+    reactiver,
+    changerRole,
+    ajouterNote,
+    supprimerNote,
+    forcerDeconnexion,
+    reinitialiserMotDePasse,
+    refresh: load,
+  };
 }
 
 // ---------- Litiges ----------

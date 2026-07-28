@@ -266,6 +266,7 @@ export interface AdminUser {
   role: string;
   statut: string;
   created_at: string;
+  kyc_statut: string | null; // statut vendeurs.statut / livreurs.statut_verification, null si client/admin
 }
 
 export function useAdminUsers() {
@@ -274,11 +275,16 @@ export function useAdminUsers() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from("users")
-      .select("id, full_name, email, phone, role, statut, created_at")
-      .order("created_at", { ascending: false });
-    setUsers(data || []);
+    const [usersRes, vendeursRes, livreursRes] = await Promise.all([
+      supabase.from("users").select("id, full_name, email, phone, role, statut, created_at").order("created_at", { ascending: false }),
+      supabase.from("vendeurs").select("id, statut"),
+      supabase.from("livreurs").select("id, statut_verification"),
+    ]);
+    const kycByUserId = new Map<string, string>();
+    (vendeursRes.data || []).forEach((v: any) => kycByUserId.set(v.id, v.statut));
+    (livreursRes.data || []).forEach((l: any) => kycByUserId.set(l.id, l.statut_verification));
+    const merged = (usersRes.data || []).map((u: any) => ({ ...u, kyc_statut: kycByUserId.get(u.id) ?? null }));
+    setUsers(merged);
     setLoading(false);
   }, []);
 
@@ -327,6 +333,7 @@ export function useAdminUserDetail(userId: string) {
   const [retraits, setRetraits] = useState<any[]>([]);
   const [actionsLog, setActionsLog] = useState<any[]>([]);
   const [notes, setNotes] = useState<any[]>([]);
+  const [messagesAdmin, setMessagesAdmin] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -367,6 +374,19 @@ export function useAdminUserDetail(userId: string) {
     setAddresses(addressesRes.data || []);
     setActionsLog(logRes.data || []);
     setNotes(notesRes.data || []);
+
+    // Fil de discussion admin <-> cet utilisateur (échangé dans les deux sens)
+    const { data: auth } = await supabase.auth.getUser();
+    if (auth.user) {
+      const { data: messagesData } = await supabase
+        .from("messages")
+        .select("id, expediteur_id, destinataire_id, contenu, created_at")
+        .or(
+          `and(expediteur_id.eq.${auth.user.id},destinataire_id.eq.${userId}),and(expediteur_id.eq.${userId},destinataire_id.eq.${auth.user.id})`
+        )
+        .order("created_at", { ascending: true });
+      setMessagesAdmin(messagesData || []);
+    }
 
     // Commandes : selon le rôle, l'utilisateur peut être client, vendeur (via vendeurs.id) ou livreur
     const commandesQuery =
@@ -477,6 +497,20 @@ export function useAdminUserDetail(userId: string) {
     await load();
   };
 
+  const envoyerMessage = async (contenu: string): Promise<string | null> => {
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) return "Non authentifié";
+    const { error } = await supabase.from("messages").insert({
+      expediteur_id: auth.user.id,
+      destinataire_id: userId,
+      contenu,
+    });
+    if (error) return error.message;
+    await logAction("message_envoye_admin", "user", userId);
+    await load();
+    return null;
+  };
+
   const forcerDeconnexion = async (): Promise<string | null> => {
     try {
       const res = await fetch("/api/admin/forcer-deconnexion", {
@@ -522,6 +556,7 @@ export function useAdminUserDetail(userId: string) {
     retraits,
     actionsLog,
     notes,
+    messagesAdmin,
     loading,
     notFound,
     suspendre,
@@ -529,6 +564,7 @@ export function useAdminUserDetail(userId: string) {
     changerRole,
     ajouterNote,
     supprimerNote,
+    envoyerMessage,
     forcerDeconnexion,
     reinitialiserMotDePasse,
     refresh: load,

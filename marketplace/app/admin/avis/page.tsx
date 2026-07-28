@@ -9,7 +9,7 @@ export default function AdminAvisPage() {
   const { avis, loading, supprimer } = useAdminAvis();
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Modération des avis">
+    <DashboardLayout role="admin" title="Modération des avis">
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (

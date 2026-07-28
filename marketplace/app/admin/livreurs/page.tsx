@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { RejectReasonModal } from "@/components/dashboard/RejectReasonModal";
+import { LivreurDetailModal } from "@/components/dashboard/LivreurDetailModal";
 import { useAdminLivreursKyc, LivreurKyc } from "@/lib/hooks/useAdmin";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -19,6 +20,7 @@ export default function AdminLivreursPage() {
   const { livreurs, loading, valider, rejeter } = useAdminLivreursKyc();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("en_attente");
   const [rejectTarget, setRejectTarget] = useState<LivreurKyc | null>(null);
+  const [detailTarget, setDetailTarget] = useState<LivreurKyc | null>(null);
 
   const filtered = livreurs.filter((l) => l.statut_verification === tab);
 
@@ -51,7 +53,11 @@ export default function AdminLivreursPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {filtered.map((l) => (
-            <div key={l.id} className="bg-white rounded-[32px] border border-gray-50 shadow-sm p-6">
+            <div
+              key={l.id}
+              onClick={() => setDetailTarget(l)}
+              className="bg-white rounded-[32px] border border-gray-50 shadow-sm p-6 cursor-pointer hover:border-gray-200 transition-colors"
+            >
               <div className="flex items-start justify-between mb-4">
                 <h3 className="font-bold text-gray-900">{l.nom_complet}</h3>
                 <StatusBadge variant={l.statut_verification === "valide" ? "success" : l.statut_verification === "refuse" ? "error" : "pending"}>
@@ -89,7 +95,7 @@ export default function AdminLivreursPage() {
               )}
 
               {l.statut_verification === "en_attente" && (
-                <div className="flex gap-3">
+                <div className="flex gap-3" onClick={(e) => e.stopPropagation()}>
                   <Button variant="primary" className="flex-1" onClick={() => valider(l.id)}>
                     <CheckCircle2 size={16} /> Valider
                   </Button>
@@ -109,6 +115,8 @@ export default function AdminLivreursPage() {
         onConfirm={async (raison) => { if (rejectTarget) await rejeter(rejectTarget.id, raison); }}
         title={`Refuser ${rejectTarget?.nom_complet || "ce livreur"}`}
       />
+
+      <LivreurDetailModal livreur={detailTarget} onClose={() => setDetailTarget(null)} />
     </DashboardLayout>
   );
 }

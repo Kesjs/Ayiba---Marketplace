@@ -28,7 +28,7 @@ export default function AdminLitigesPage() {
   const filtered = disputes.filter((d) => d.statut === tab);
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Résolution des litiges">
+    <DashboardLayout role="admin" title="Résolution des litiges">
       <div className="flex gap-2 mb-8">
         {TABS.map((t) => (
           <button

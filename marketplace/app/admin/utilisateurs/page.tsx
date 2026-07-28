@@ -110,6 +110,11 @@ function AdminUtilisateursContent() {
               <span className="text-xs font-bold text-gray-500 bg-gray-50 px-3 py-1 rounded-full">
                 {ROLE_LABELS[u.role] || u.role}
               </span>
+              {u.kyc_statut && (
+                <StatusBadge variant={u.kyc_statut === "valide" ? "success" : u.kyc_statut === "refuse" ? "error" : "pending"}>
+                  KYC {u.kyc_statut === "en_attente" ? "en attente" : u.kyc_statut}
+                </StatusBadge>
+              )}
               <StatusBadge variant={u.statut === "actif" ? "success" : "error"}>
                 {u.statut === "actif" ? "Actif" : u.statut === "suspendu" ? "Suspendu" : "Supprimé"}
               </StatusBadge>

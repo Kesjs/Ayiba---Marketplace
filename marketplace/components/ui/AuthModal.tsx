@@ -128,6 +128,11 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
   const [telephone, setTelephone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Erreur spécifique au téléphone, affichée juste sous son champ plutôt que
+  // dans le bloc générique en bas du formulaire (qui se trouve après les
+  // champs mot de passe et prêtait à confusion : l'utilisateur pensait que
+  // c'était son mot de passe qui posait problème).
+  const [phoneError, setPhoneError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
@@ -187,6 +192,7 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
 
   const resetFormFields = () => {
     setError(null);
+    setPhoneError(null);
     setPassword("");
     setConfirmPassword("");
     setNomComplet("");
@@ -200,6 +206,7 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
 
   const handleSubmit = async () => {
     setError(null);
+    setPhoneError(null);
 
     try {
       if (mode === "mot-de-passe-oublie") {
@@ -231,7 +238,7 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
       if (isClientSignup) {
         if (nomComplet.trim().length < 2) return setError("Merci d'indiquer ton nom complet");
         const phoneValidation = validateBeninPhone(telephone);
-        if (!phoneValidation.isValid) return setError(phoneValidation.error || "Numéro de téléphone invalide");
+        if (!phoneValidation.isValid) return setPhoneError(phoneValidation.error || "Numéro de téléphone invalide");
         telephoneFormatted = phoneValidation.formatted;
       }
 
@@ -532,18 +539,31 @@ router.refresh();
                 </div>
 
                 <div className="mb-3">
-                  <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors">
+                  <div
+                    className={`flex items-center border rounded-lg px-3 transition-colors ${
+                      phoneError ? "border-red-300" : "border-gray-200 focus-within:border-coral-400"
+                    }`}
+                  >
                     <Phone size={16} className="text-gray-400 shrink-0" />
                     <span className="text-sm text-gray-400 pl-2 pr-1 border-r border-gray-200 mr-2">+229</span>
                     <input
                       type="tel"
-                      placeholder="01 23 45 67 89"
+                      placeholder="97 00 11 22"
                       value={telephone}
-                      onChange={(e) => setTelephone(e.target.value)}
+                      onChange={(e) => {
+                        setTelephone(e.target.value);
+                        if (phoneError) setPhoneError(null);
+                      }}
                       className="flex-1 h-11 text-sm px-1 focus:outline-none"
                       autoComplete="tel"
                     />
                   </div>
+                  {phoneError && (
+                    <div className="flex items-start gap-2 mt-1.5">
+                      <AlertCircle size={13} className="text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-[12px] text-red-600 leading-relaxed">{phoneError}</p>
+                    </div>
+                  )}
                 </div>
               </>
             )}

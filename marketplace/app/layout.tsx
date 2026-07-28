@@ -7,6 +7,7 @@ import { ToastProvider } from "@/context/ToastContext";
 import { UiChromeProvider } from "@/context/UiChromeContext";
 import NextTopLoader from 'nextjs-toploader';
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { MaintenanceBanner } from "@/components/ui/MaintenanceBanner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Toast } from "@/components/ui/Toast";
 
@@ -70,6 +71,7 @@ export default function RootLayout({
           speed={200}
           shadow="0 0 10px #FF6653,0 0 5px #FF6653"
         />
+        <MaintenanceBanner />
         <CartProvider>
           <ToastProvider>
             <UiChromeProvider>

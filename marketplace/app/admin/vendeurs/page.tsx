@@ -25,7 +25,7 @@ export default function AdminVendeursPage() {
   const filtered = vendeurs.filter((v) => v.statut === tab);
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Validation vendeurs (KYC)">
+    <DashboardLayout role="admin" title="Validation vendeurs (KYC)">
       <div className="flex gap-2 mb-8">
         {TABS.map((t) => (
           <button

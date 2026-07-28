@@ -654,7 +654,7 @@ export function LivreurKycWizard() {
                         type="text"
                         value={data.nomComplet}
                         onChange={(e) => update("nomComplet", e.target.value)}
-                        placeholder="Ex: Ken Erlich Babatounde"
+                        placeholder="Ex: Chidi Koffi Adéyemi"
                         className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
                       />
                     </div>

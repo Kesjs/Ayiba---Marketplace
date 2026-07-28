@@ -7,7 +7,8 @@ import {
   Home, Search, User, Heart, LayoutDashboard, 
   Package, MessageSquare, MapPin, 
   Briefcase, X, Store, Bike,
-  ShoppingBag, Wallet, Settings, LogOut, Menu as MenuIcon, Plus
+  ShoppingBag, Wallet, Settings, LogOut, Menu as MenuIcon, Plus,
+  Users, AlertTriangle
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
@@ -96,8 +97,9 @@ export function BottomNav() {
     ],
     admin: [
       { label: "Admin", icon: LayoutDashboard, href: "/admin/dashboard" },
-      { label: "Modération", icon: Search, href: "/admin/moderation" },
-      { label: "Paramètres", icon: User, href: "/admin/parametres" },
+      { label: "Utilisateurs", icon: Users, href: "/admin/utilisateurs" },
+      { label: "Litiges", icon: AlertTriangle, href: "/admin/litiges" },
+      { label: "Menu", icon: MenuIcon, href: "/admin/menu" },
     ]
   };
 

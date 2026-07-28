@@ -1,23 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { VendeurKyc } from "@/lib/hooks/useAdmin";
+import { LivreurKyc } from "@/lib/hooks/useAdmin";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   MapPin,
   Wallet,
-  Mail,
-  Phone,
+  Bike,
   Calendar,
-  Star,
-  Store,
   X,
   ImageOff,
   Loader2,
 } from "lucide-react";
 
-interface VendeurDetailModalProps {
-  vendeur: VendeurKyc | null;
+interface LivreurDetailModalProps {
+  livreur: LivreurKyc | null;
   onClose: () => void;
 }
 
@@ -26,7 +23,7 @@ function formatDate(iso: string | null) {
   return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
 }
 
-export function VendeurDetailModal({ vendeur, onClose }: VendeurDetailModalProps) {
+export function LivreurDetailModal({ livreur, onClose }: LivreurDetailModalProps) {
   const [cniUrl, setCniUrl] = useState<string | null>(null);
   const [cniLoading, setCniLoading] = useState(false);
   const [cniError, setCniError] = useState<string | null>(null);
@@ -35,7 +32,7 @@ export function VendeurDetailModal({ vendeur, onClose }: VendeurDetailModalProps
     setCniUrl(null);
     setCniError(null);
 
-    if (!vendeur?.photo_cni_path) return;
+    if (!livreur?.photo_cni_path) return;
 
     let cancelled = false;
     setCniLoading(true);
@@ -45,7 +42,7 @@ export function VendeurDetailModal({ vendeur, onClose }: VendeurDetailModalProps
         const res = await fetch("/api/admin/kyc-document-url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ path: vendeur.photo_cni_path }),
+          body: JSON.stringify({ path: livreur.photo_cni_path }),
         });
         const json = await res.json();
         if (cancelled) return;
@@ -61,9 +58,9 @@ export function VendeurDetailModal({ vendeur, onClose }: VendeurDetailModalProps
     return () => {
       cancelled = true;
     };
-  }, [vendeur?.photo_cni_path]);
+  }, [livreur?.photo_cni_path]);
 
-  if (!vendeur) return null;
+  if (!livreur) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -71,13 +68,24 @@ export function VendeurDetailModal({ vendeur, onClose }: VendeurDetailModalProps
 
       <div className="relative bg-white rounded-[28px] w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-xl">
         <div className="sticky top-0 bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between rounded-t-[28px]">
-          <div>
-            <h2 className="font-bold text-gray-900 text-lg">{vendeur.nom_boutique || "Sans nom de boutique"}</h2>
-            <p className="text-sm text-gray-500">{vendeur.nom_complet || "Nom non renseigné"}</p>
+          <div className="flex items-center gap-3">
+            {livreur.photo_profil_url ? (
+              <img
+                src={livreur.photo_profil_url}
+                alt="Photo de profil"
+                className="w-10 h-10 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-xl bg-gray-100" />
+            )}
+            <div>
+              <h2 className="font-bold text-gray-900 text-lg">{livreur.nom_complet || "Nom non renseigné"}</h2>
+              <p className="text-sm text-gray-500">{livreur.type_vehicule || "Véhicule non renseigné"}</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <StatusBadge variant={vendeur.statut === "valide" ? "success" : vendeur.statut === "refuse" ? "error" : "pending"}>
-              {vendeur.statut === "valide" ? "Validé" : vendeur.statut === "refuse" ? "Refusé" : "En attente"}
+            <StatusBadge variant={livreur.statut_verification === "valide" ? "success" : livreur.statut_verification === "refuse" ? "error" : "pending"}>
+              {livreur.statut_verification === "valide" ? "Validé" : livreur.statut_verification === "refuse" ? "Refusé" : "En attente"}
             </StatusBadge>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
               <X size={20} />
@@ -86,34 +94,20 @@ export function VendeurDetailModal({ vendeur, onClose }: VendeurDetailModalProps
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Photo de couverture boutique + photo de profil, si présentes */}
-          {(vendeur.photo_couverture_url || vendeur.photo_profil_url) && (
-            <div className="relative">
-              {vendeur.photo_couverture_url ? (
-                <img
-                  src={vendeur.photo_couverture_url}
-                  alt="Couverture boutique"
-                  className="w-full h-36 object-cover rounded-2xl"
-                />
-              ) : (
-                <div className="w-full h-16 rounded-2xl bg-gray-50" />
-              )}
-              {vendeur.photo_profil_url && (
-                <img
-                  src={vendeur.photo_profil_url}
-                  alt="Photo de profil"
-                  className="absolute left-4 -bottom-6 w-16 h-16 rounded-2xl object-cover border-4 border-white shadow-sm"
-                />
-              )}
-            </div>
+          {/* Photo du véhicule, si présente */}
+          {livreur.photo_vehicule_url && (
+            <img
+              src={livreur.photo_vehicule_url}
+              alt="Véhicule"
+              className="w-full h-36 object-cover rounded-2xl"
+            />
           )}
-          {vendeur.photo_profil_url && <div className="h-2" />}
 
           {/* Pièce d'identité */}
           <div>
             <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Pièce d'identité</h3>
             <div className="rounded-2xl border border-gray-100 bg-gray-50 flex items-center justify-center min-h-[220px] overflow-hidden">
-              {!vendeur.photo_cni_path ? (
+              {!livreur.photo_cni_path ? (
                 <div className="flex flex-col items-center gap-2 text-red-500 py-10">
                   <ImageOff size={28} />
                   <span className="text-sm font-semibold">Aucune pièce d'identité fournie</span>
@@ -141,71 +135,49 @@ export function VendeurDetailModal({ vendeur, onClose }: VendeurDetailModalProps
             )}
           </div>
 
-          {/* Boutique */}
+          {/* Véhicule & localisation */}
           <div>
-            <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Boutique</h3>
+            <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Véhicule & localisation</h3>
             <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-              <div className="flex items-start gap-2 text-sm text-gray-700">
-                <Store size={16} className="text-gray-400 mt-0.5 shrink-0" />
-                <span>{vendeur.description || "Aucune description fournie"}</span>
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <Bike size={16} className="text-gray-400 shrink-0" />
+                {livreur.type_vehicule || "—"}
+                {livreur.plaque_immatriculation ? ` — ${livreur.plaque_immatriculation}` : ""}
               </div>
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <MapPin size={16} className="text-gray-400 shrink-0" />
-                {vendeur.quartier || "—"}, {vendeur.commune || "—"}
+                {livreur.quartier || "—"}, {livreur.commune || "—"}
               </div>
-              {vendeur.en_pause && (
-                <div className="text-xs font-semibold text-amber-600 bg-amber-50 rounded-lg px-2.5 py-1 inline-block">
-                  Boutique actuellement en pause
-                </div>
-              )}
             </div>
           </div>
 
-          {/* Contact */}
+          {/* Paiement */}
           <div>
-            <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Contact</h3>
+            <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Paiement</h3>
             <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm text-gray-700">
-                <Mail size={16} className="text-gray-400 shrink-0" />
-                {vendeur.email || "—"}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <Phone size={16} className="text-gray-400 shrink-0" />
-                {vendeur.phone || "—"}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
                 <Wallet size={16} className="text-gray-400 shrink-0" />
-                {vendeur.mobile_money_network
-                  ? `${vendeur.mobile_money_network.toUpperCase()} — ${vendeur.mobile_money_number}`
+                {livreur.mobile_money_network
+                  ? `${livreur.mobile_money_network.toUpperCase()} — ${livreur.mobile_money_number}`
                   : "Non renseigné"}
               </div>
             </div>
           </div>
 
-          {/* Historique / réputation */}
+          {/* Historique */}
           <div>
             <h3 className="text-xs font-bold uppercase text-gray-400 mb-2">Historique</h3>
             <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <Calendar size={16} className="text-gray-400 shrink-0" />
-                Compte créé le {formatDate(vendeur.compte_cree_le)}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <Calendar size={16} className="text-gray-400 shrink-0" />
-                Demande KYC soumise le {formatDate(vendeur.created_at)}
-              </div>
-              <div className="flex items-center gap-2 text-sm text-gray-700">
-                <Star size={16} className="text-gray-400 shrink-0" />
-                {vendeur.note_moyenne
-                  ? `${vendeur.note_moyenne.toFixed(1)} / 5 (${vendeur.nb_avis || 0} avis)`
-                  : "Aucun avis pour le moment"}
+                Demande KYC soumise le {formatDate(livreur.created_at)}
               </div>
             </div>
           </div>
 
-          {vendeur.raison_rejet && (
+          {livreur.raison_rejet && (
             <div className="bg-red-50 text-red-700 text-sm font-medium p-4 rounded-2xl">
-              Motif du refus : {vendeur.raison_rejet}
+              Motif du refus : {livreur.raison_rejet}
             </div>
           )}
         </div>

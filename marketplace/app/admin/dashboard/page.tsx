@@ -45,7 +45,7 @@ export default function AdminDashboardPage() {
     : [];
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Administration Système">
+    <DashboardLayout role="admin" title="Administration Système">
       {error && (
         <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl text-sm font-medium">
           Erreur de chargement : {error}

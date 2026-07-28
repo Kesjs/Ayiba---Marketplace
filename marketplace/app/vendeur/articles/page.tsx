@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/context/ToastContext";
 import { createClient } from "@/lib/supabase/client";
 import { StatusBadge as SharedStatusBadge } from "@/components/ui/StatusBadge";
+import { getCategoriesFormulaire, type CategorieArbre } from "@/lib/queries/articles";
 
 const TYPES_VARIANTE = [
   { value: "couleur", label: "Couleur" },
@@ -84,6 +85,7 @@ interface ArticleRow {
   nom: string;
   description: string | null;
   prix: number;
+  prix_promo: number | null;
   stock: number | null;
   statut: string;
   actif: boolean;
@@ -405,7 +407,7 @@ export default function MesArticlesPage() {
   const [statutFilter, setStatutFilter] = useState<StatutFilter>("tous");
   const [viewMode, setViewMode] = useState<ViewMode>("grille");
 
-  const [categories, setCategories] = useState<Categorie[]>([]);
+  const [categories, setCategories] = useState<CategorieArbre[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
 
@@ -415,6 +417,34 @@ export default function MesArticlesPage() {
   const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Catégorie/sous-catégorie : formData ne stocke que l'id final (feuille),
+  // parentCategorieId pilote l'affichage du second select.
+  const [editParentCategorieId, setEditParentCategorieId] = useState("");
+  const editCategorieParente = categories.find((c) => c.id === editParentCategorieId) || null;
+  const editADesSousCategories = (editCategorieParente?.sousCategories.length ?? 0) > 0;
+
+  // --- Promotion ---
+  const [editEnPromo, setEditEnPromo] = useState(false);
+  const [editModePromo, setEditModePromo] = useState<"nouveau_prix" | "pourcentage">("nouveau_prix");
+  const [editPourcentagePromo, setEditPourcentagePromo] = useState("");
+  const [editNouveauPrixPromo, setEditNouveauPrixPromo] = useState("");
+
+  const editPrixNumerique = Number(editForm.prix) || 0;
+
+  const editPromoCalcul = (() => {
+    if (!editEnPromo || editPrixNumerique <= 0) return null;
+    if (editModePromo === "pourcentage") {
+      const pct = Number(editPourcentagePromo);
+      if (!editPourcentagePromo || isNaN(pct) || pct <= 0 || pct >= 100) return null;
+      const nouveauPrix = Math.round(editPrixNumerique * (1 - pct / 100));
+      return { nouveauPrix, pourcentage: -Math.round(pct) };
+    }
+    const nouveauPrix = Number(editNouveauPrixPromo);
+    if (!editNouveauPrixPromo || isNaN(nouveauPrix) || nouveauPrix <= 0 || nouveauPrix >= editPrixNumerique) return null;
+    const pourcentage = -Math.round(((editPrixNumerique - nouveauPrix) / editPrixNumerique) * 100);
+    return { nouveauPrix, pourcentage };
+  })();
 
   const [editExistingPhotos, setEditExistingPhotos] = useState<ArticleImage[]>([]);
   const [editRemovedPhotoIds, setEditRemovedPhotoIds] = useState<string[]>([]);
@@ -445,7 +475,7 @@ export default function MesArticlesPage() {
 
     const { data, error } = await supabase
       .from("articles")
-      .select("id, nom, description, prix, stock, statut, actif, categorie_id, created_at, categories(nom), article_images(id, image_url, ordre)")
+      .select("id, nom, description, prix, prix_promo, stock, statut, actif, categorie_id, created_at, categories(nom), article_images(id, image_url, ordre)")
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -462,17 +492,11 @@ export default function MesArticlesPage() {
   const loadCategories = async () => {
     setLoadingCategories(true);
     setCategoriesError(null);
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("categories")
-      .select("id, nom")
-      .eq("active", true)
-      .order("ordre", { ascending: true });
-
-    if (error) {
-      setCategoriesError("Impossible de charger les catégories.");
-    } else {
+    try {
+      const data = await getCategoriesFormulaire();
       setCategories(data ?? []);
+    } catch {
+      setCategoriesError("Impossible de charger les catégories.");
     }
     setLoadingCategories(false);
   };
@@ -520,6 +544,23 @@ export default function MesArticlesPage() {
     });
     setEditStockIllimite(article.stock === null);
 
+    // Catégorie : retrouve le parent correspondant à la sous-catégorie (ou à
+    // la catégorie elle-même si elle n'a pas de sous-catégories) pour que le
+    // sélecteur affiche la bonne valeur dès l'ouverture.
+    const parentDirect = categories.find((c) => c.id === article.categorie_id);
+    const parentAvecSousCategorie = categories.find((c) =>
+      c.sousCategories.some((sc) => sc.id === article.categorie_id)
+    );
+    setEditParentCategorieId(parentDirect?.id ?? parentAvecSousCategorie?.id ?? "");
+
+    // Promo : un article déjà en promo se rouvre avec le nouveau prix
+    // pré-rempli, modifiable directement (le vendeur peut aussi désactiver
+    // la promo ou repasser en mode "%").
+    setEditEnPromo(article.prix_promo != null);
+    setEditModePromo("nouveau_prix");
+    setEditNouveauPrixPromo(article.prix_promo != null ? String(article.prix_promo) : "");
+    setEditPourcentagePromo("");
+
     // Nettoie d'éventuelles prévisualisations laissées par une précédente
     // ouverture du modal sans sauvegarde.
     editNewPhotos.forEach((p) => URL.revokeObjectURL(p.preview));
@@ -561,6 +602,22 @@ export default function MesArticlesPage() {
       });
   };
 
+  // Filet de sécurité : si le modal s'ouvre avant que loadCategories() ait
+  // fini (premier chargement de page), on retrouve le parent dès que
+  // l'arbre de catégories arrive.
+  useEffect(() => {
+    if (!editingArticle || editParentCategorieId || categories.length === 0) return;
+    const parentDirect = categories.find((c) => c.id === editingArticle.categorie_id);
+    if (parentDirect) {
+      setEditParentCategorieId(parentDirect.id);
+      return;
+    }
+    const parentAvecSousCategorie = categories.find((c) =>
+      c.sousCategories.some((sc) => sc.id === editingArticle.categorie_id)
+    );
+    if (parentAvecSousCategorie) setEditParentCategorieId(parentAvecSousCategorie.id);
+  }, [categories, editingArticle, editParentCategorieId]);
+
   const handleEditFieldChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -579,8 +636,10 @@ export default function MesArticlesPage() {
     if (editForm.description.trim().length < 10) {
       errors.description = "Décris ton article en au moins 10 caractères.";
     }
-    if (!editForm.categorieId) {
+    if (!editParentCategorieId) {
       errors.categorieId = "Choisis une catégorie.";
+    } else if (editADesSousCategories && !editForm.categorieId) {
+      errors.categorieId = "Choisis une sous-catégorie.";
     }
 
     const prixNum = Number(editForm.prix);
@@ -595,6 +654,13 @@ export default function MesArticlesPage() {
       if (editForm.stock.trim() === "" || isNaN(stockNum) || stockNum < 0) {
         errors.stock = "Le stock doit être un nombre entier positif ou nul.";
       }
+    }
+
+    if (editEnPromo && !editPromoCalcul) {
+      errors.promo =
+        editModePromo === "pourcentage"
+          ? "Indique un pourcentage de réduction valide (entre 1 et 99)."
+          : "Le nouveau prix doit être positif et inférieur au prix normal.";
     }
 
     setEditFieldErrors(errors);
@@ -849,6 +915,7 @@ export default function MesArticlesPage() {
         description: editForm.description.trim(),
         categorie_id: editForm.categorieId,
         prix,
+        prix_promo: editPromoCalcul ? editPromoCalcul.nouveauPrix : null,
         stock,
       };
       if (contentChanged) {
@@ -1249,9 +1316,18 @@ return (
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">Catégorie</label>
                     <select
-                      name="categorieId"
-                      value={editForm.categorieId}
-                      onChange={handleEditFieldChange}
+                      name="editParentCategorieId"
+                      value={editParentCategorieId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setEditParentCategorieId(id);
+                        const parent = categories.find((c) => c.id === id);
+                        setEditForm((prev) => ({
+                          ...prev,
+                          categorieId: parent && parent.sousCategories.length === 0 ? id : "",
+                        }));
+                        setEditFieldErrors((prev) => ({ ...prev, categorieId: "" }));
+                      }}
                       disabled={loadingCategories}
                       className={`w-full h-12 px-4 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
                         editFieldErrors.categorieId ? "border-red-300 focus:ring-red-100 focus:border-red-400" : "border-gray-200 focus:ring-coral-200 focus:border-coral-400"
@@ -1262,9 +1338,28 @@ return (
                         <option key={c.id} value={c.id}>{c.nom}</option>
                       ))}
                     </select>
-                    {editFieldErrors.categorieId && <p className="text-xs text-red-500 mt-1.5">{editFieldErrors.categorieId}</p>}
                     {categoriesError && <p className="text-xs text-red-500 mt-1.5">{categoriesError}</p>}
                   </div>
+
+                  {editADesSousCategories && (
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">Sous-catégorie</label>
+                      <select
+                        name="categorieId"
+                        value={editForm.categorieId}
+                        onChange={handleEditFieldChange}
+                        className={`w-full h-12 px-4 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+                          editFieldErrors.categorieId ? "border-red-300 focus:ring-red-100 focus:border-red-400" : "border-gray-200 focus:ring-coral-200 focus:border-coral-400"
+                        }`}
+                      >
+                        <option value="">Sélectionner...</option>
+                        {editCategorieParente?.sousCategories.map((sc) => (
+                          <option key={sc.id} value={sc.id}>{sc.nom}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {editFieldErrors.categorieId && <p className="text-xs text-red-500 -mt-2">{editFieldErrors.categorieId}</p>}
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
@@ -1307,6 +1402,84 @@ return (
                     </div>
                   </div>
                   <p className="text-[11px] text-gray-400 -mt-2">Mettre le stock à 0 marque l'article comme "Rupture" automatiquement.</p>
+
+                  <div className="rounded-2xl border border-gray-100 p-4 bg-gray-50/60">
+                    <label className="flex items-center gap-3 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={editEnPromo}
+                        onChange={(e) => setEditEnPromo(e.target.checked)}
+                        className="w-4 h-4 rounded border-gray-300 text-coral-500 focus:ring-coral-200"
+                      />
+                      <span className="text-sm font-semibold text-gray-800">Article en promotion</span>
+                    </label>
+
+                    {editEnPromo && (
+                      <div className="mt-4 space-y-3">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setEditModePromo("pourcentage")}
+                            className={`flex-1 h-9 rounded-lg text-xs font-bold transition-colors ${
+                              editModePromo === "pourcentage" ? "bg-coral-500 text-white" : "bg-white border border-gray-200 text-gray-600"
+                            }`}
+                          >
+                            Je donne le %
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditModePromo("nouveau_prix")}
+                            className={`flex-1 h-9 rounded-lg text-xs font-bold transition-colors ${
+                              editModePromo === "nouveau_prix" ? "bg-coral-500 text-white" : "bg-white border border-gray-200 text-gray-600"
+                            }`}
+                          >
+                            Je donne le nouveau prix
+                          </button>
+                        </div>
+
+                        {editModePromo === "pourcentage" ? (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Pourcentage de réduction (%)</label>
+                            <input
+                              type="number"
+                              min={1}
+                              max={99}
+                              placeholder="15"
+                              value={editPourcentagePromo}
+                              onChange={(e) => setEditPourcentagePromo(e.target.value)}
+                              className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Nouveau prix (FCFA)</label>
+                            <input
+                              type="number"
+                              min={1}
+                              placeholder="4250"
+                              value={editNouveauPrixPromo}
+                              onChange={(e) => setEditNouveauPrixPromo(e.target.value)}
+                              className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                            />
+                          </div>
+                        )}
+
+                        {editFieldErrors.promo && (
+                          <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} /> {editFieldErrors.promo}</p>
+                        )}
+
+                        {editPromoCalcul && (
+                          <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2.5">
+                            <span className="inline-flex items-center justify-center h-6 px-2 rounded-md bg-red-500 text-white text-[11px] font-bold gap-1">
+                              ★ {editPromoCalcul.pourcentage}%
+                            </span>
+                            <span className="text-sm text-gray-400 line-through">{editPrixNumerique.toLocaleString("fr-FR")} FCFA</span>
+                            <span className="text-sm font-bold text-gray-900">{editPromoCalcul.nouveauPrix.toLocaleString("fr-FR")} FCFA</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
 
                   <div>
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 block">

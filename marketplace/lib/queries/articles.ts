@@ -79,13 +79,58 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
     : articles;
 }
 
+/**
+ * Catégories utilisées pour les onglets de la home et les filtres du
+ * catalogue. On n'y affiche que les catégories "feuilles" (celles qu'un
+ * article peut réellement porter) : une catégorie parente qui a des
+ * sous-catégories (ex: "Maison", "Électronique"...) n'est plus assignable
+ * directement à un article et ne doit donc plus apparaître comme filtre,
+ * sous peine de mener vers une liste vide.
+ */
 export async function getCategoriesActives() {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id, nom, slug, icone, couleur")
+    .select("id, nom, slug, icone, couleur, parent_id")
     .eq("active", true)
     .order("ordre", { ascending: true });
   if (error) throw error;
-  return data || [];
+
+  const toutes = data || [];
+  const idsAvecEnfants = new Set(
+    toutes.filter((c) => c.parent_id).map((c) => c.parent_id)
+  );
+  return toutes.filter((c) => !idsAvecEnfants.has(c.id));
+}
+
+export interface CategorieArbre {
+  id: string;
+  nom: string;
+  sousCategories: { id: string; nom: string }[];
+}
+
+/**
+ * Arbre complet des catégories (parents + sous-catégories) pour le
+ * formulaire "Ajouter/Modifier un article" : contrairement à
+ * getCategoriesActives, les catégories parentes doivent apparaître ici,
+ * sinon impossible d'accéder à leurs sous-catégories.
+ */
+export async function getCategoriesFormulaire(): Promise<CategorieArbre[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, nom, parent_id")
+    .eq("active", true)
+    .order("ordre", { ascending: true });
+  if (error) throw error;
+
+  const toutes = data || [];
+  const parents = toutes.filter((c) => !c.parent_id);
+  return parents.map((p) => ({
+    id: p.id,
+    nom: p.nom,
+    sousCategories: toutes
+      .filter((c) => c.parent_id === p.id)
+      .map((c) => ({ id: c.id, nom: c.nom })),
+  }));
 }

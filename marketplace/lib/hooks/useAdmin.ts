@@ -798,6 +798,67 @@ export function useChangerMonMotDePasse() {
   return { changer, saving };
 }
 
+/** Charge et permet de modifier le nom / email de l'admin actuellement connecté. */
+export function useMonProfilAdmin() {
+  const [profil, setProfil] = useState<{ id: string; full_name: string | null; email: string | null } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const { data: auth } = await supabase.auth.getUser();
+    if (!auth.user) {
+      setProfil(null);
+      setLoading(false);
+      return;
+    }
+    const { data } = await supabase
+      .from("users")
+      .select("id, full_name, email")
+      .eq("id", auth.user.id)
+      .single();
+    setProfil(data || { id: auth.user.id, full_name: null, email: auth.user.email || null });
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  /** Met à jour le nom complet (table users) et, si changé, l'email (auth + users). */
+  const mettreAJour = async (fullName: string, email: string): Promise<string | null> => {
+    if (!profil) return "Profil introuvable.";
+    try {
+      const ancienNom = profil.full_name;
+      const ancienEmail = profil.email;
+
+      if (email && email !== ancienEmail) {
+        const { error: authError } = await supabase.auth.updateUser({ email });
+        if (authError) return authError.message;
+      }
+
+      const { error } = await supabase
+        .from("users")
+        .update({ full_name: fullName.trim(), email })
+        .eq("id", profil.id);
+      if (error) return error.message;
+
+      if (fullName.trim() !== ancienNom || email !== ancienEmail) {
+        await logAction("profil_admin_modifie", "users", profil.id, {
+          ancienne_valeur: { full_name: ancienNom, email: ancienEmail },
+          nouvelle_valeur: { full_name: fullName.trim(), email },
+        });
+      }
+
+      await load();
+      return null;
+    } catch (err: any) {
+      return err?.message || "Une erreur est survenue.";
+    }
+  };
+
+  return { profil, loading, mettreAJour, refresh: load };
+}
+
 // ---------- Avis (modération) ----------
 export function useAdminAvis() {
   const [avis, setAvis] = useState<any[]>([]);

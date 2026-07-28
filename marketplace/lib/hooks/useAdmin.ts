@@ -3,6 +3,18 @@ import { createClient } from "@/lib/supabase/client";
 
 const supabase = createClient();
 
+/** Appelle une route serveur /api/admin/* (protégée par requireAdmin) et lève une erreur lisible en cas d'échec. */
+async function appelerApiAdmin(path: string, body: Record<string, unknown>) {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Une erreur est survenue.");
+  return json;
+}
+
 /** Enregistre une action admin dans le journal d'audit. Ne bloque jamais l'action principale si l'écriture échoue. */
 async function logAction(actionType: string, cibleType: string, cibleId: string, details?: Record<string, unknown>) {
   try {
@@ -131,14 +143,12 @@ export function useAdminVendeursKyc() {
   }, [load]);
 
   const valider = async (id: string) => {
-    await supabase.from("vendeurs").update({ statut: "valide", raison_rejet: null, reviewed_at: new Date().toISOString() }).eq("id", id);
-    await logAction("kyc_valide", "vendeur", id);
+    await appelerApiAdmin("/api/admin/moderation-kyc", { type: "vendeur", action: "valider", id });
     await load();
   };
 
   const rejeter = async (id: string, raison: string) => {
-    await supabase.from("vendeurs").update({ statut: "refuse", raison_rejet: raison, reviewed_at: new Date().toISOString() }).eq("id", id);
-    await logAction("kyc_refuse", "vendeur", id, { raison });
+    await appelerApiAdmin("/api/admin/moderation-kyc", { type: "vendeur", action: "rejeter", id, raison });
     await load();
   };
 
@@ -182,14 +192,12 @@ export function useAdminLivreursKyc() {
   }, [load]);
 
   const valider = async (id: string) => {
-    await supabase.from("livreurs").update({ statut_verification: "valide", raison_rejet: null, reviewed_at: new Date().toISOString() }).eq("id", id);
-    await logAction("kyc_valide", "livreur", id);
+    await appelerApiAdmin("/api/admin/moderation-kyc", { type: "livreur", action: "valider", id });
     await load();
   };
 
   const rejeter = async (id: string, raison: string) => {
-    await supabase.from("livreurs").update({ statut_verification: "refuse", raison_rejet: raison, reviewed_at: new Date().toISOString() }).eq("id", id);
-    await logAction("kyc_refuse", "livreur", id, { raison });
+    await appelerApiAdmin("/api/admin/moderation-kyc", { type: "livreur", action: "rejeter", id, raison });
     await load();
   };
 
@@ -293,20 +301,17 @@ export function useAdminUsers() {
   }, [load]);
 
   const suspendre = async (id: string) => {
-    await supabase.from("users").update({ statut: "suspendu" }).eq("id", id);
-    await logAction("utilisateur_suspendu", "user", id);
+    await appelerApiAdmin("/api/admin/utilisateurs", { action: "suspendre", userId: id });
     await load();
   };
 
   const reactiver = async (id: string) => {
-    await supabase.from("users").update({ statut: "actif" }).eq("id", id);
-    await logAction("utilisateur_reactive", "user", id);
+    await appelerApiAdmin("/api/admin/utilisateurs", { action: "reactiver", userId: id });
     await load();
   };
 
   const changerRole = async (id: string, role: string) => {
-    await supabase.from("users").update({ role }).eq("id", id);
-    await logAction("role_modifie", "user", id, { nouveau_role: role });
+    await appelerApiAdmin("/api/admin/utilisateurs", { action: "changer-role", userId: id, role });
     await load();
   };
 
@@ -468,20 +473,17 @@ export function useAdminUserDetail(userId: string) {
   }, [load]);
 
   const suspendre = async () => {
-    await supabase.from("users").update({ statut: "suspendu" }).eq("id", userId);
-    await logAction("utilisateur_suspendu", "user", userId);
+    await appelerApiAdmin("/api/admin/utilisateurs", { action: "suspendre", userId });
     await load();
   };
 
   const reactiver = async () => {
-    await supabase.from("users").update({ statut: "actif" }).eq("id", userId);
-    await logAction("utilisateur_reactive", "user", userId);
+    await appelerApiAdmin("/api/admin/utilisateurs", { action: "reactiver", userId });
     await load();
   };
 
   const changerRole = async (role: string) => {
-    await supabase.from("users").update({ role }).eq("id", userId);
-    await logAction("role_modifie", "user", userId, { nouveau_role: role });
+    await appelerApiAdmin("/api/admin/utilisateurs", { action: "changer-role", userId, role });
     await load();
   };
 

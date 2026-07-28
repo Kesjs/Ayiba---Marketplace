@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { determinerStatutInitial } from "@/lib/articles/moderation";
+import { getCategoriesFormulaire, type CategorieArbre } from "@/lib/queries/articles";
 
 const WIZARD_STEPS: WizardStep[] = [
   { label: "Informations", icon: FileText },
@@ -94,20 +95,14 @@ function NouveauArticleForm() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [draftRestored, setDraftRestored] = useState(false);
 
-  const [categories, setCategories] = useState<Categorie[]>([]);
+  const [categories, setCategories] = useState<CategorieArbre[]>([]);
   const [categoriesError, setCategoriesError] = useState<string | null>(null);
   const [loadingCategories, setLoadingCategories] = useState(true);
 
   useEffect(() => {
     const fetchCategories = async () => {
-      const supabase = createClient();
       try {
-        const { data, error } = await supabase
-          .from("categories")
-          .select("id, nom")
-          .eq("active", true)
-          .order("ordre", { ascending: true });
-        if (error) throw error;
+        const data = await getCategoriesFormulaire();
         setCategories(data ?? []);
       } catch (err: any) {
         setCategoriesError("Impossible de charger les catégories — recharge la page.");
@@ -118,6 +113,13 @@ function NouveauArticleForm() {
     fetchCategories();
   }, []);
 
+  // Sous-catégorie choisie séparément de la catégorie parente : formData ne
+  // stocke que l'id final envoyé en base (sous-catégorie si elle existe,
+  // sinon la catégorie elle-même).
+  const [parentCategorieId, setParentCategorieId] = useState("");
+  const categorieParente = categories.find((c) => c.id === parentCategorieId) || null;
+  const aDesSousCategories = (categorieParente?.sousCategories.length ?? 0) > 0;
+
   const [formData, setFormData] = useState({
     nom: "",
     description: "",
@@ -126,6 +128,31 @@ function NouveauArticleForm() {
     stock: "1",
   });
   const [stockIllimite, setStockIllimite] = useState(false);
+
+  // --- Promotion ---
+  const [enPromo, setEnPromo] = useState(false);
+  const [modePromo, setModePromo] = useState<"nouveau_prix" | "pourcentage">("pourcentage");
+  const [pourcentagePromo, setPourcentagePromo] = useState("");
+  const [nouveauPrixPromo, setNouveauPrixPromo] = useState("");
+
+  const prixNumerique = Number(formData.prix) || 0;
+
+  // Prix promo final et pourcentage affiché, dérivés selon le mode choisi.
+  // Toujours calculés côté plateforme pour éviter toute incohérence saisie
+  // par le vendeur (ex: un % qui ne correspond pas au prix indiqué).
+  const promoCalcul = (() => {
+    if (!enPromo || prixNumerique <= 0) return null;
+    if (modePromo === "pourcentage") {
+      const pct = Number(pourcentagePromo);
+      if (!pourcentagePromo || isNaN(pct) || pct <= 0 || pct >= 100) return null;
+      const nouveauPrix = Math.round(prixNumerique * (1 - pct / 100));
+      return { nouveauPrix, pourcentage: -Math.round(pct) };
+    }
+    const nouveauPrix = Number(nouveauPrixPromo);
+    if (!nouveauPrixPromo || isNaN(nouveauPrix) || nouveauPrix <= 0 || nouveauPrix >= prixNumerique) return null;
+    const pourcentage = -Math.round(((prixNumerique - nouveauPrix) / prixNumerique) * 100);
+    return { nouveauPrix, pourcentage };
+  })();
 
   // Filet de sécurité contre les pertes de saisie : si la page se recharge
   // pour une raison ou une autre (erreur JS, session expirée, connexion
@@ -248,6 +275,24 @@ function NouveauArticleForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dupliquerId]);
 
+  // Une fois l'arbre de catégories chargé, si formData.categorieId est déjà
+  // rempli (brouillon restauré ou duplication) mais que parentCategorieId ne
+  // l'est pas encore, on retrouve le parent correspondant pour que le
+  // sélecteur "Catégorie" affiche la bonne valeur.
+  useEffect(() => {
+    if (!formData.categorieId || parentCategorieId || categories.length === 0) return;
+    const parentDirect = categories.find((c) => c.id === formData.categorieId);
+    if (parentDirect) {
+      setParentCategorieId(parentDirect.id);
+      return;
+    }
+    const parentAvecSousCategorie = categories.find((c) =>
+      c.sousCategories.some((sc) => sc.id === formData.categorieId)
+    );
+    if (parentAvecSousCategorie) setParentCategorieId(parentAvecSousCategorie.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, formData.categorieId]);
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
@@ -271,9 +316,17 @@ function NouveauArticleForm() {
       const stockNum = Number(formData.stock);
       if (isNaN(stockNum) || stockNum < 0) errors.stock = "Le stock doit être un nombre positif.";
     }
-    if (!formData.categorieId) errors.categorieId = "Choisis une catégorie.";
+    if (!parentCategorieId) errors.categorieId = "Choisis une catégorie.";
+    else if (aDesSousCategories && !formData.categorieId) errors.categorieId = "Choisis une sous-catégorie.";
     if (formData.description.trim().length < 10) {
       errors.description = "Décris ton article en au moins 10 caractères pour rassurer les acheteurs.";
+    }
+
+    if (enPromo && !promoCalcul) {
+      errors.promo =
+        modePromo === "pourcentage"
+          ? "Indique un pourcentage de réduction valide (entre 1 et 99)."
+          : "Le nouveau prix doit être positif et inférieur au prix normal.";
     }
 
     setFieldErrors(errors);
@@ -494,6 +547,7 @@ function NouveauArticleForm() {
           nom: formData.nom.trim(),
           description: formData.description.trim(),
           prix: Number(formData.prix),
+          prix_promo: promoCalcul ? promoCalcul.nouveauPrix : null,
           stock: stockIllimite ? null : Number(formData.stock),
           statut,
           raison_rejet: raison ?? null,
@@ -722,9 +776,18 @@ function NouveauArticleForm() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
                     <select
-                      name="categorieId"
-                      value={formData.categorieId}
-                      onChange={handleInputChange}
+                      name="parentCategorieId"
+                      value={parentCategorieId}
+                      onChange={(e) => {
+                        const id = e.target.value;
+                        setParentCategorieId(id);
+                        const parent = categories.find((c) => c.id === id);
+                        setFormData((prev) => ({
+                          ...prev,
+                          categorieId: parent && parent.sousCategories.length === 0 ? id : "",
+                        }));
+                        setFieldErrors((prev) => ({ ...prev, categorieId: "" }));
+                      }}
                       disabled={loadingCategories}
                       className={`w-full h-11 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-shadow ${
                         fieldErrors.categorieId ? "border-red-300 focus:border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-coral-400 focus:ring-coral-100"
@@ -737,9 +800,28 @@ function NouveauArticleForm() {
                         <option key={c.id} value={c.id}>{c.nom}</option>
                       ))}
                     </select>
-                    {fieldErrors.categorieId && <p className="text-xs text-red-500 mt-1.5">{fieldErrors.categorieId}</p>}
                     {categoriesError && <p className="text-xs text-red-500 mt-1.5">{categoriesError}</p>}
                   </div>
+
+                  {aDesSousCategories && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Sous-catégorie</label>
+                      <select
+                        name="categorieId"
+                        value={formData.categorieId}
+                        onChange={handleInputChange}
+                        className={`w-full h-11 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-shadow ${
+                          fieldErrors.categorieId ? "border-red-300 focus:border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-coral-400 focus:ring-coral-100"
+                        }`}
+                      >
+                        <option value="">Sélectionner...</option>
+                        {categorieParente?.sousCategories.map((sc) => (
+                          <option key={sc.id} value={sc.id}>{sc.nom}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {fieldErrors.categorieId && <p className="text-xs text-red-500 -mt-2">{fieldErrors.categorieId}</p>}
                 </div>
 
                 <div>
@@ -756,8 +838,87 @@ function NouveauArticleForm() {
                   />
                   {fieldErrors.description && <p className="text-xs text-red-500 mt-1.5">{fieldErrors.description}</p>}
                 </div>
+
+                <div className="rounded-2xl border border-gray-100 p-4 md:p-5 bg-gray-50/60">
+                  <label className="flex items-center gap-3 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={enPromo}
+                      onChange={(e) => setEnPromo(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-coral-500 focus:ring-coral-200"
+                    />
+                    <span className="text-sm font-semibold text-gray-800">Mettre cet article en promotion</span>
+                  </label>
+
+                  {enPromo && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setModePromo("pourcentage")}
+                          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-colors ${
+                            modePromo === "pourcentage" ? "bg-coral-500 text-white" : "bg-white border border-gray-200 text-gray-600"
+                          }`}
+                        >
+                          Je donne le %
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setModePromo("nouveau_prix")}
+                          className={`flex-1 h-9 rounded-lg text-xs font-bold transition-colors ${
+                            modePromo === "nouveau_prix" ? "bg-coral-500 text-white" : "bg-white border border-gray-200 text-gray-600"
+                          }`}
+                        >
+                          Je donne le nouveau prix
+                        </button>
+                      </div>
+
+                      {modePromo === "pourcentage" ? (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Pourcentage de réduction (%)</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={99}
+                            placeholder="15"
+                            value={pourcentagePromo}
+                            onChange={(e) => setPourcentagePromo(e.target.value)}
+                            className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                          />
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Nouveau prix (FCFA)</label>
+                          <input
+                            type="number"
+                            min={1}
+                            placeholder="4250"
+                            value={nouveauPrixPromo}
+                            onChange={(e) => setNouveauPrixPromo(e.target.value)}
+                            className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                          />
+                        </div>
+                      )}
+
+                      {fieldErrors.promo && (
+                        <p className="text-xs text-red-500 flex items-center gap-1"><AlertCircle size={12} /> {fieldErrors.promo}</p>
+                      )}
+
+                      {promoCalcul && (
+                        <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2.5">
+                          <span className="inline-flex items-center justify-center h-6 px-2 rounded-md bg-red-500 text-white text-[11px] font-bold gap-1">
+                            ★ {promoCalcul.pourcentage}%
+                          </span>
+                          <span className="text-sm text-gray-400 line-through">{prixNumerique.toLocaleString("fr-FR")} FCFA</span>
+                          <span className="text-sm font-bold text-gray-900">{promoCalcul.nouveauPrix.toLocaleString("fr-FR")} FCFA</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
+
 
             {step === 2 && (
               <div className="flex flex-col gap-5">

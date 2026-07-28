@@ -47,7 +47,7 @@ export function MaintenanceBanner() {
       if (cancelled || !data) return;
 
       const map: Record<string, any> = {};
-      data.forEach((row) => (map[row.cle] = row.valeur));
+      data.forEach((row: { cle: string; valeur: unknown }) => (map[row.cle] = row.valeur));
 
       const active = map.maintenance_prevue_active === true || map.maintenance_prevue_active === "true";
       const fin = map.maintenance_prevue_fin;

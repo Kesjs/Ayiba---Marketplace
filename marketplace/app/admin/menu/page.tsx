@@ -74,7 +74,7 @@ const SECTIONS: MenuSection[] = [
 
 export default function AdminMenuPage() {
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Menu">
+    <DashboardLayout role="admin" title="Menu">
       <div className="space-y-8 max-w-xl">
         {SECTIONS.map((section) => (
           <div key={section.titre}>

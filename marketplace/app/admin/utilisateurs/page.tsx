@@ -7,7 +7,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useAdminUsers } from "@/lib/hooks/useAdmin";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { Search, Ban, RotateCcw, ChevronRight } from "lucide-react";
+import { Search, Ban, RotateCcw, ChevronRight, Archive, Users } from "lucide-react";
 
 const ROLE_LABELS: Record<string, string> = {
   client: "Client",
@@ -23,13 +23,22 @@ function AdminUtilisateursContent() {
 
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("tous");
+  // "tous" ici exclut déjà les comptes supprimés (voir vue "archives" plus bas)
   const [statutFilter, setStatutFilter] = useState<string>("tous");
+  // Onglet séparé pour les comptes supprimés/anonymisés (RGPD-like) : ils
+  // n'encombrent plus la vue principale mais restent consultables/restaurables.
+  const [vue, setVue] = useState<"actifs" | "archives">("actifs");
 
   // Permet aux liens externes (ex: carte KPI "Utilisateurs actifs" du dashboard)
   // de présélectionner un filtre via ?statut=actif
   useEffect(() => {
     const statutParam = searchParams.get("statut");
-    if (statutParam) setStatutFilter(statutParam);
+    if (statutParam === "supprime") {
+      setVue("archives");
+    } else if (statutParam) {
+      setVue("actifs");
+      setStatutFilter(statutParam);
+    }
   }, [searchParams]);
 
   const filtered = useMemo(() => {
@@ -40,10 +49,15 @@ function AdminUtilisateursContent() {
         u.email?.toLowerCase().includes(query.toLowerCase()) ||
         u.phone?.includes(query);
       const matchRole = roleFilter === "tous" || u.role === roleFilter;
+      if (vue === "archives") {
+        return matchQuery && matchRole && u.statut === "supprime";
+      }
       const matchStatut = statutFilter === "tous" || u.statut === statutFilter;
-      return matchQuery && matchRole && matchStatut;
+      return matchQuery && matchRole && matchStatut && u.statut !== "supprime";
     });
-  }, [users, query, roleFilter, statutFilter]);
+  }, [users, query, roleFilter, statutFilter, vue]);
+
+  const nbArchives = useMemo(() => users.filter((u) => u.statut === "supprime").length, [users]);
 
   const updateStatutFilter = (value: string) => {
     setStatutFilter(value);
@@ -53,8 +67,32 @@ function AdminUtilisateursContent() {
     router.replace(`/admin/utilisateurs${params.toString() ? `?${params.toString()}` : ""}`, { scroll: false });
   };
 
+  const changerVue = (v: "actifs" | "archives") => {
+    setVue(v);
+    router.replace("/admin/utilisateurs", { scroll: false });
+  };
+
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Gestion des utilisateurs">
+    <DashboardLayout role="admin" title="Gestion des utilisateurs">
+      <div className="flex items-center gap-2 mb-6 bg-gray-100/70 p-1 rounded-2xl w-fit">
+        <button
+          onClick={() => changerVue("actifs")}
+          className={`flex items-center gap-2 px-4 h-10 rounded-xl text-sm font-bold transition-colors ${
+            vue === "actifs" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <Users size={16} /> Utilisateurs
+        </button>
+        <button
+          onClick={() => changerVue("archives")}
+          className={`flex items-center gap-2 px-4 h-10 rounded-xl text-sm font-bold transition-colors ${
+            vue === "archives" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"
+          }`}
+        >
+          <Archive size={16} /> Archives {nbArchives > 0 && `(${nbArchives})`}
+        </button>
+      </div>
+
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -77,16 +115,17 @@ function AdminUtilisateursContent() {
           <option value="livreur">Livreurs</option>
           <option value="admin">Admins</option>
         </select>
-        <select
-          value={statutFilter}
-          onChange={(e) => updateStatutFilter(e.target.value)}
-          className="h-12 px-4 bg-white border border-gray-100 rounded-2xl shadow-sm font-bold text-sm text-gray-600"
-        >
-          <option value="tous">Tous les statuts</option>
-          <option value="actif">Actifs</option>
-          <option value="suspendu">Suspendus</option>
-          <option value="supprime">Supprimés</option>
-        </select>
+        {vue === "actifs" && (
+          <select
+            value={statutFilter}
+            onChange={(e) => updateStatutFilter(e.target.value)}
+            className="h-12 px-4 bg-white border border-gray-100 rounded-2xl shadow-sm font-bold text-sm text-gray-600"
+          >
+            <option value="tous">Tous les statuts</option>
+            <option value="actif">Actifs</option>
+            <option value="suspendu">Suspendus</option>
+          </select>
+        )}
       </div>
 
       {loading ? (
@@ -118,7 +157,20 @@ function AdminUtilisateursContent() {
               <StatusBadge variant={u.statut === "actif" ? "success" : "error"}>
                 {u.statut === "actif" ? "Actif" : u.statut === "suspendu" ? "Suspendu" : "Supprimé"}
               </StatusBadge>
-              {u.role !== "admin" && (
+              {u.role !== "admin" && vue === "archives" && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    reactiver(u.id);
+                  }}
+                  className="p-2 rounded-lg transition-colors bg-teal-50 text-teal-600 hover:bg-teal-100"
+                  title="Restaurer le compte"
+                >
+                  <RotateCcw size={16} />
+                </button>
+              )}
+              {u.role !== "admin" && vue === "actifs" && (
                 <button
                   onClick={(e) => {
                     e.preventDefault();

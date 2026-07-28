@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ShieldCheck, Lock, QrCode, Store, Bike, ArrowRight, BadgeCheck,
-  UserCheck, Wallet, Star, MapPin, Clock,
+  ShieldCheck, QrCode, Store, Bike, ArrowRight, BadgeCheck,
+  Wallet, Star, MapPin, Clock,
   CheckCircle2, ChevronRight, Search, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -376,24 +376,18 @@ export default function Home() {
 
                   <motion.div
                     variants={heroItem}
-                    className="grid grid-cols-3 gap-2 sm:gap-3 max-w-md mx-auto lg:mx-0 lg:max-w-none lg:flex lg:gap-8"
+                    className="grid grid-cols-3 gap-2 sm:gap-3 max-w-md mx-auto lg:mx-0 lg:max-w-none lg:flex lg:gap-4"
                   >
-                    <div className="flex flex-col lg:flex-row items-center lg:items-center gap-2 lg:gap-3 text-center lg:text-left">
-                      <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shadow-xs border border-teal-100/50 shrink-0">
-                        <Lock size={18} />
-                      </div>
+                    <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-amber-50 rounded-xl">
+                      <Wallet size={18} className="text-amber-500" />
                       <p className="text-[11px] lg:text-[13px] font-bold text-gray-700 leading-tight">Paiement Escrow</p>
                     </div>
-                    <div className="flex flex-col lg:flex-row items-center lg:items-center gap-2 lg:gap-3 text-center lg:text-left">
-                      <div className="w-9 h-9 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shadow-xs border border-coral-100/50 shrink-0">
-                        <QrCode size={18} />
-                      </div>
+                    <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-coral-50 rounded-xl">
+                      <QrCode size={18} className="text-coral-500" />
                       <p className="text-[11px] lg:text-[13px] font-bold text-gray-700 leading-tight">Scan & Code Secret</p>
                     </div>
-                    <div className="flex flex-col lg:flex-row items-center lg:items-center gap-2 lg:gap-3 text-center lg:text-left">
-                      <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center text-amber-500 shadow-xs border border-amber-100/50 shrink-0">
-                        <UserCheck size={18} />
-                      </div>
+                    <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-teal-50 rounded-xl">
+                      <ShieldCheck size={18} className="text-teal-600" />
                       <p className="text-[11px] lg:text-[13px] font-bold text-gray-700 leading-tight">Acteurs Vérifiés</p>
                     </div>
                   </motion.div>

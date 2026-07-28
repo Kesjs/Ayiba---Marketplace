@@ -24,7 +24,7 @@ export default function AdminCategoriesPage() {
   };
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Catégories du catalogue">
+    <DashboardLayout role="admin" title="Catégories du catalogue">
       <div className="bg-white rounded-[32px] border border-gray-50 shadow-sm p-6 mb-8">
         <h3 className="font-bold text-gray-900 mb-4">Nouvelle catégorie</h3>
         <div className="flex flex-col sm:flex-row gap-3">

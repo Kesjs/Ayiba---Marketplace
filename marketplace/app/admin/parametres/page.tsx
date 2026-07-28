@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { useAdminParametres, useChangerMonMotDePasse } from "@/lib/hooks/useAdmin";
+import { useAdminParametres, useChangerMonMotDePasse, useMonProfilAdmin } from "@/lib/hooks/useAdmin";
 import { useToast } from "@/context/ToastContext";
 import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { CATEGORIES } from "@/lib/mock-data";
 import {
   Wallet, Route, ShieldAlert, Save, Check, Clock, XCircle, BellRing,
-  FileText, CalendarClock, KeyRound, History,
+  FileText, CalendarClock, KeyRound, History, User,
 } from "lucide-react";
 
 const fadeUp = {
@@ -85,7 +85,15 @@ function fromDatetimeLocal(value: string): string | null {
 export default function AdminParametresPage() {
   const { params, historique, loading, mettreAJourPlusieurs } = useAdminParametres();
   const { changer: changerMotDePasse, saving: savingPassword } = useChangerMonMotDePasse();
+  const { profil, loading: loadingProfil, mettreAJour: mettreAJourProfil } = useMonProfilAdmin();
   const { showToast } = useToast();
+
+  // Profil admin
+  const [profilNom, setProfilNom] = useState("");
+  const [profilEmail, setProfilEmail] = useState("");
+  const [erreurProfil, setErreurProfil] = useState<string | null>(null);
+  const [savingProfil, setSavingProfil] = useState(false);
+  const [profilJustSaved, setProfilJustSaved] = useState(false);
 
   // Commission & livraison
   const [commission, setCommission] = useState("10");
@@ -156,6 +164,12 @@ export default function AdminParametresPage() {
     if (params.maintenance_prevue_message !== undefined) setMaintenancePrevueMessage(String(params.maintenance_prevue_message || ""));
   }, [loading, params]);
 
+  useEffect(() => {
+    if (loadingProfil || !profil) return;
+    setProfilNom(profil.full_name || "");
+    setProfilEmail(profil.email || "");
+  }, [loadingProfil, profil]);
+
   const handleSave = async () => {
     setSaving(true);
     const categorieMap: Record<string, number> = {};
@@ -188,6 +202,28 @@ export default function AdminParametresPage() {
     setJustSaved(true);
     showToast("Paramètres enregistrés", "success");
     setTimeout(() => setJustSaved(false), 2200);
+  };
+
+  const handleSauvegarderProfil = async () => {
+    setErreurProfil(null);
+    if (!profilNom.trim()) {
+      setErreurProfil("Le nom ne peut pas être vide.");
+      return;
+    }
+    if (!profilEmail.trim()) {
+      setErreurProfil("L'email ne peut pas être vide.");
+      return;
+    }
+    setSavingProfil(true);
+    const err = await mettreAJourProfil(profilNom, profilEmail.trim());
+    setSavingProfil(false);
+    if (err) {
+      setErreurProfil(err);
+      return;
+    }
+    setProfilJustSaved(true);
+    showToast("Profil admin mis à jour", "success");
+    setTimeout(() => setProfilJustSaved(false), 2200);
   };
 
   const handleChangerMotDePasse = async () => {
@@ -521,8 +557,50 @@ export default function AdminParametresPage() {
           </Button>
         </Card>
 
-        {/* Sécurité du compte */}
+        {/* Profil admin */}
         <Card custom={6}>
+          <div className="flex items-center gap-2">
+            <User size={16} className="text-gray-500" />
+            <h3 className="text-sm font-bold text-gray-700">Profil admin</h3>
+          </div>
+          <p className="text-xs text-gray-400 -mt-4">Nom et email affichés et utilisés pour la connexion à cet espace admin.</p>
+
+          {erreurProfil && (
+            <p className="text-xs text-red-600 bg-red-50 rounded-xl px-3 py-2">{erreurProfil}</p>
+          )}
+
+          <div>
+            <span className="text-[11px] font-semibold text-gray-500 block mb-1.5">Nom complet</span>
+            <input
+              type="text"
+              value={profilNom}
+              onChange={(e) => setProfilNom(e.target.value)}
+              className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-300/40 transition-shadow"
+            />
+          </div>
+          <div>
+            <span className="text-[11px] font-semibold text-gray-500 block mb-1.5">Email</span>
+            <input
+              type="email"
+              value={profilEmail}
+              onChange={(e) => setProfilEmail(e.target.value)}
+              className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gray-300/40 transition-shadow"
+            />
+            <p className="text-xs text-gray-400 mt-1.5">Changer l'email peut nécessiter une confirmation par lien reçu à la nouvelle adresse.</p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={handleSauvegarderProfil}
+            disabled={savingProfil || loadingProfil}
+            className="w-full"
+          >
+            {profilJustSaved ? <Check size={16} /> : <User size={16} />}
+            {savingProfil ? "Enregistrement..." : profilJustSaved ? "Profil mis à jour" : "Enregistrer le profil"}
+          </Button>
+        </Card>
+
+        {/* Sécurité du compte */}
+        <Card custom={7}>
           <div className="flex items-center gap-2">
             <KeyRound size={16} className="text-gray-500" />
             <h3 className="text-sm font-bold text-gray-700">Sécurité du compte</h3>
@@ -563,7 +641,7 @@ export default function AdminParametresPage() {
         </Card>
 
         {/* Historique des modifications */}
-        <Card custom={7}>
+        <Card custom={8}>
           <div className="flex items-center gap-2">
             <History size={16} className="text-gray-500" />
             <h3 className="text-sm font-bold text-gray-700">Historique des modifications</h3>

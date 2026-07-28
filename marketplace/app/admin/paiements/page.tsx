@@ -28,7 +28,7 @@ export default function AdminPaiementsPage() {
   const filtered = retraits.filter((r) => r.statut === tab);
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Paiements & retraits Mobile Money">
+    <DashboardLayout role="admin" title="Paiements & retraits Mobile Money">
       <div className="flex gap-2 mb-8 flex-wrap">
         {TABS.map((t) => (
           <button

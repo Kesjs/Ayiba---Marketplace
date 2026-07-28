@@ -27,10 +27,10 @@ export default function AdminDashboardPage() {
 
   const kpis = stats
     ? [
-        { label: "Utilisateurs actifs", value: stats.utilisateurs_actifs, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-        { label: "Commandes (24h)", value: stats.commandes_24h, icon: ShoppingBag, color: "text-teal-600", bg: "bg-teal-50" },
-        { label: "Litiges ouverts", value: stats.litiges_ouverts, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50" },
-        { label: "Volume d'affaires (mois)", value: formatFCFA(stats.volume_affaires_mois), icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50" },
+        { label: "Utilisateurs actifs", value: stats.utilisateurs_actifs, icon: Users, color: "text-blue-600", bg: "bg-blue-50", href: "/admin/utilisateurs?statut=actif" },
+        { label: "Commandes (24h)", value: stats.commandes_24h, icon: ShoppingBag, color: "text-teal-600", bg: "bg-teal-50", href: "/admin/commandes" },
+        { label: "Litiges ouverts", value: stats.litiges_ouverts, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50", href: "/admin/litiges" },
+        { label: "Volume d'affaires (mois)", value: formatFCFA(stats.volume_affaires_mois), icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50", href: null },
       ]
     : [];
 
@@ -56,15 +56,29 @@ export default function AdminDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-[32px]" />)
-          : kpis.map((stat, i) => (
-              <div key={i} className="bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm hover:shadow-xl hover:shadow-gray-200/20 transition-all duration-300">
-                <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4`}>
-                  <stat.icon size={24} />
+          : kpis.map((stat, i) => {
+              const CardInner = (
+                <>
+                  <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4`}>
+                    <stat.icon size={24} />
+                  </div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                </>
+              );
+              const cardClass =
+                "bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm hover:shadow-xl hover:shadow-gray-200/20 transition-all duration-300 group";
+              return stat.href ? (
+                <Link key={i} href={stat.href} className={`${cardClass} block relative`}>
+                  {CardInner}
+                  <ArrowUpRight size={16} className="absolute top-6 right-6 text-gray-200 group-hover:text-coral-400 transition-colors" />
+                </Link>
+              ) : (
+                <div key={i} className={cardClass}>
+                  {CardInner}
                 </div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-              </div>
-            ))}
+              );
+            })}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">

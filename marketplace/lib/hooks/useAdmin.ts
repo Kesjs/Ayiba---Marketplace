@@ -708,16 +708,34 @@ export function useAdminCategories() {
 }
 
 // ---------- Paramètres système ----------
+export interface ParametreHistoriqueEntry {
+  id: string;
+  cible_id: string; // = la clé du paramètre modifié
+  details: { ancienne_valeur?: unknown; nouvelle_valeur?: unknown } | null;
+  created_at: string;
+  admin?: { full_name?: string } | null;
+}
+
 export function useAdminParametres() {
   const [params, setParams] = useState<Record<string, any>>({});
+  const [historique, setHistorique] = useState<ParametreHistoriqueEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.from("parametres_systeme").select("*");
+    const [paramsRes, histRes] = await Promise.all([
+      supabase.from("parametres_systeme").select("*"),
+      supabase
+        .from("admin_actions_log")
+        .select("id, cible_id, details, created_at, admin:admin_id(full_name)")
+        .eq("cible_type", "parametre_systeme")
+        .order("created_at", { ascending: false })
+        .limit(20),
+    ]);
     const map: Record<string, any> = {};
-    (data || []).forEach((row: { cle: string; valeur: unknown }) => (map[row.cle] = row.valeur));
+    (paramsRes.data || []).forEach((row: { cle: string; valeur: unknown }) => (map[row.cle] = row.valeur));
     setParams(map);
+    setHistorique((histRes.data as unknown as ParametreHistoriqueEntry[]) || []);
     setLoading(false);
   }, []);
 
@@ -725,16 +743,59 @@ export function useAdminParametres() {
     load();
   }, [load]);
 
+  /** Met à jour un seul paramètre (conservé pour compatibilité). */
   const mettreAJour = async (cle: string, valeur: unknown) => {
+    await mettreAJourPlusieurs([{ cle, valeur }]);
+  };
+
+  /**
+   * Met à jour plusieurs paramètres en une seule opération et journalise
+   * chaque changement réel (valeur différente de l'ancienne) dans
+   * `admin_actions_log`, pour alimenter l'historique affiché à l'admin.
+   */
+  const mettreAJourPlusieurs = async (entries: { cle: string; valeur: unknown }[]) => {
     const { data: auth } = await supabase.auth.getUser();
-    await supabase
-      .from("parametres_systeme")
-      .update({ valeur, updated_at: new Date().toISOString(), updated_by: auth.user?.id })
-      .eq("cle", cle);
+    const now = new Date().toISOString();
+
+    for (const { cle, valeur } of entries) {
+      const ancienneValeur = params[cle];
+      await supabase
+        .from("parametres_systeme")
+        .update({ valeur, updated_at: now, updated_by: auth.user?.id })
+        .eq("cle", cle);
+
+      if (JSON.stringify(ancienneValeur) !== JSON.stringify(valeur)) {
+        await logAction("parametre_modifie", "parametre_systeme", cle, {
+          ancienne_valeur: ancienneValeur ?? null,
+          nouvelle_valeur: valeur,
+        });
+      }
+    }
+
     await load();
   };
 
-  return { params, loading, mettreAJour, refresh: load };
+  return { params, historique, loading, mettreAJour, mettreAJourPlusieurs, refresh: load };
+}
+
+/** Permet à l'utilisateur connecté (ici l'admin) de changer son propre mot de passe. */
+export function useChangerMonMotDePasse() {
+  const [saving, setSaving] = useState(false);
+
+  const changer = async (nouveauMotDePasse: string): Promise<string | null> => {
+    setSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: nouveauMotDePasse });
+      if (error) return error.message;
+      return null;
+    } catch (err: any) {
+      return err?.message || "Une erreur est survenue.";
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return { changer, saving };
 }
 
 // ---------- Avis (modération) ----------

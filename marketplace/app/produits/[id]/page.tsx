@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart, Star, ShoppingBag, MessageCircle, Share2,
   ChevronLeft, ChevronRight, Minus, Plus,
-  Wallet, Key, ShieldCheck, MapPin, Truck,
+  Wallet, QrCode, ShieldCheck, MapPin, Truck,
   CheckCircle2
 } from 'lucide-react'
 import {
@@ -111,6 +111,10 @@ export default function ProductDetailPage() {
   const [similarProducts, setSimilarProducts] = useState<ArticleCard[]>([])
   const [vendeurStats, setVendeurStats] = useState<VendeurStats>({ rating: 0, reviewCount: 0, productCount: 0 })
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  // Où renvoyer l'utilisateur une fois connecté : /checkout après un "Acheter
+  // maintenant" en étant déconnecté, null pour les autres usages (favoris...)
+  // où on veut juste rester sur la page produit.
+  const [authRedirectTo, setAuthRedirectTo] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProduct()
@@ -282,12 +286,22 @@ export default function ProductDetailPage() {
         photos: product.photos
       })
     }
+    // Le panier est stocké en localStorage (indépendant du compte), donc on
+    // peut ajouter l'article avant même la connexion : une fois l'utilisateur
+    // connecté via la modale, il arrive directement sur le checkout avec son
+    // panier intact, au lieu d'être bounce vers /explorer.
+    if (!user) {
+      setAuthRedirectTo('/checkout')
+      setAuthModalOpen(true)
+      return
+    }
     router.push('/checkout')
   }
 
   const handleToggleFavorite = async () => {
     if (!product) return
     if (!user) {
+      setAuthRedirectTo(null)
       setAuthModalOpen(true)
       return
     }
@@ -588,8 +602,8 @@ export default function ProductDetailPage() {
                 <span className="text-[10px] font-bold text-gray-700 leading-tight">Paiement Escrow</span>
               </div>
               <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-coral-50 rounded-xl">
-                <Key size={18} className="text-coral-500" />
-                <span className="text-[10px] font-bold text-gray-700 leading-tight">Validation OTP</span>
+                <QrCode size={18} className="text-coral-500" />
+                <span className="text-[10px] font-bold text-gray-700 leading-tight">Scan & Code Secret</span>
               </div>
               <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-teal-50 rounded-xl">
                 <ShieldCheck size={18} className="text-teal-500" />
@@ -774,6 +788,7 @@ export default function ProductDetailPage() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         intendedRole={null}
+        redirectTo={authRedirectTo}
       />
     </div>
   )

@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight, AlertCircle, FileText, Camera } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StepIndicator, type WizardStep } from "@/components/kyc/StepIndicator";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { determinerStatutInitial } from "@/lib/articles/moderation";
 
@@ -43,7 +43,17 @@ function checkImageDimensions(file: File): Promise<{ ok: boolean; width: number;
 }
 
 export default function NouveauArticlePage() {
+  return (
+    <Suspense fallback={null}>
+      <NouveauArticleForm />
+    </Suspense>
+  );
+}
+
+function NouveauArticleForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const dupliquerId = searchParams.get("dupliquer");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(1);
@@ -86,6 +96,7 @@ export default function NouveauArticlePage() {
     categorieId: "",
     stock: "1",
   });
+  const [stockIllimite, setStockIllimite] = useState(false);
 
   // Filet de sécurité contre les pertes de saisie : si la page se recharge
   // pour une raison ou une autre (erreur JS, session expirée, connexion
@@ -96,6 +107,7 @@ export default function NouveauArticlePage() {
   const DRAFT_KEY = "ayiba-nouveau-article-draft";
 
   useEffect(() => {
+    if (dupliquerId) return; // la duplication prime sur un brouillon local existant
     try {
       const saved = sessionStorage.getItem(DRAFT_KEY);
       if (saved) {
@@ -104,6 +116,7 @@ export default function NouveauArticlePage() {
           setFormData(parsed.formData);
           if (parsed.formData.nom || parsed.formData.description) setDraftRestored(true);
         }
+        if (typeof parsed?.stockIllimite === "boolean") setStockIllimite(parsed.stockIllimite);
         if (parsed?.step) setStep(parsed.step);
       }
     } catch {
@@ -111,21 +124,97 @@ export default function NouveauArticlePage() {
       // repart d'un formulaire vide plutôt que de bloquer la page.
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [dupliquerId]);
 
   useEffect(() => {
     try {
-      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, step }));
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ formData, step, stockIllimite }));
     } catch {
       // best-effort — un échec ici ne doit jamais bloquer la saisie
     }
-  }, [formData, step]);
+  }, [formData, step, stockIllimite]);
 
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Verrou dur contre le double-clic, en plus de `loading`
   const isSubmittingRef = useRef(false);
+
+  const [duplicating, setDuplicating] = useState(false);
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [duplicatedFromNom, setDuplicatedFromNom] = useState<string | null>(null);
+
+  // Duplication d'un article existant : on préremplit le formulaire (texte
+  // + photos déjà en ligne, reconverties en fichiers) à partir d'un article
+  // que le vendeur possède déjà, pour lui éviter de tout ressaisir.
+  useEffect(() => {
+    if (!dupliquerId) return;
+    let cancelled = false;
+
+    const chargerSource = async () => {
+      setDuplicating(true);
+      setDuplicateError(null);
+      const supabase = createClient();
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("Ta session a expiré — reconnecte-toi puis réessaie.");
+
+        const { data: source, error: sourceError } = await supabase
+          .from("articles")
+          .select("nom, description, prix, stock, categorie_id, vendeur_id")
+          .eq("id", dupliquerId)
+          .maybeSingle();
+
+        if (sourceError || !source) throw new Error("Article introuvable.");
+        if (source.vendeur_id !== user.id) throw new Error("Tu ne peux dupliquer que tes propres articles.");
+
+        if (cancelled) return;
+
+        setFormData({
+          nom: source.nom ? `${source.nom} (copie)` : "",
+          description: source.description ?? "",
+          prix: source.prix != null ? String(source.prix) : "",
+          categorieId: source.categorie_id ?? "",
+          stock: source.stock != null ? String(source.stock) : "1",
+        });
+        setStockIllimite(source.stock == null);
+        setDuplicatedFromNom(source.nom ?? null);
+
+        const { data: images } = await supabase
+          .from("article_images")
+          .select("image_url, ordre")
+          .eq("article_id", dupliquerId)
+          .order("ordre", { ascending: true });
+
+        if (images && images.length > 0 && !cancelled) {
+          const chargees: PhotoEntry[] = [];
+          for (const img of images.slice(0, MAX_PHOTOS)) {
+            try {
+              const res = await fetch(img.image_url);
+              const blob = await res.blob();
+              const nomFichier = img.image_url.split("/").pop() || "photo.jpg";
+              const file = new File([blob], nomFichier, { type: blob.type || "image/jpeg" });
+              chargees.push({ file, preview: URL.createObjectURL(blob) });
+            } catch {
+              // Une photo qui ne se recharge pas ne doit pas bloquer toute la
+              // duplication — le vendeur pourra la rajouter manuellement.
+            }
+          }
+          if (!cancelled) setPhotos(chargees);
+        }
+      } catch (err: any) {
+        if (!cancelled) setDuplicateError(err.message || "Impossible de dupliquer cet article.");
+      } finally {
+        if (!cancelled) setDuplicating(false);
+      }
+    };
+
+    chargerSource();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dupliquerId]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -146,8 +235,10 @@ export default function NouveauArticlePage() {
       errors.prix = "Ce prix semble très élevé — vérifie qu'il est correct.";
     }
 
-    const stockNum = Number(formData.stock);
-    if (isNaN(stockNum) || stockNum < 0) errors.stock = "Le stock doit être un nombre positif.";
+    if (!stockIllimite) {
+      const stockNum = Number(formData.stock);
+      if (isNaN(stockNum) || stockNum < 0) errors.stock = "Le stock doit être un nombre positif.";
+    }
     if (!formData.categorieId) errors.categorieId = "Choisis une catégorie.";
     if (formData.description.trim().length < 10) {
       errors.description = "Décris ton article en au moins 10 caractères pour rassurer les acheteurs.";
@@ -287,7 +378,7 @@ export default function NouveauArticlePage() {
           nom: formData.nom.trim(),
           description: formData.description.trim(),
           prix: Number(formData.prix),
-          stock: Number(formData.stock),
+          stock: stockIllimite ? null : Number(formData.stock),
           statut,
           raison_rejet: raison ?? null,
           actif: statut === "publie",
@@ -378,6 +469,24 @@ export default function NouveauArticlePage() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
+          {duplicating && (
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-xs font-medium text-gray-600">
+              <Info size={14} className="shrink-0" />
+              Duplication de l'article en cours...
+            </div>
+          )}
+          {duplicateError && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-2xl px-4 py-3 text-xs font-medium text-red-700">
+              <AlertCircle size={14} className="shrink-0" />
+              {duplicateError}
+            </div>
+          )}
+          {duplicatedFromNom && !duplicating && !duplicateError && (
+            <div className="flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-2xl px-4 py-3 text-xs font-medium text-teal-700">
+              <Info size={14} className="shrink-0" />
+              Dupliqué depuis « {duplicatedFromNom} » — vérifie les infos avant de publier.
+            </div>
+          )}
           {draftRestored && (
             <div className="flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-2xl px-4 py-3 text-xs font-medium text-teal-700">
               <Info size={14} className="shrink-0" />
@@ -437,10 +546,22 @@ export default function NouveauArticlePage() {
                       placeholder="1"
                       value={formData.stock}
                       onChange={handleInputChange}
+                      disabled={stockIllimite}
                       className={`w-full h-11 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-shadow ${
+                        stockIllimite ? "bg-gray-50 text-gray-400" : ""
+                      } ${
                         fieldErrors.stock ? "border-red-300 focus:border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-coral-400 focus:ring-coral-100"
                       }`}
                     />
+                    <label className="flex items-center gap-2 mt-2 text-xs text-gray-600 font-medium">
+                      <input
+                        type="checkbox"
+                        checked={stockIllimite}
+                        onChange={(e) => setStockIllimite(e.target.checked)}
+                        className="rounded border-gray-300 text-coral-500 focus:ring-coral-400"
+                      />
+                      Stock illimité (je ne compte pas)
+                    </label>
                     {fieldErrors.stock && <p className="text-xs text-red-500 mt-1.5">{fieldErrors.stock}</p>}
                   </div>
                   <div>

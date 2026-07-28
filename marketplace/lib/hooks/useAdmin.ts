@@ -45,7 +45,7 @@ export function useAdminOverview() {
     setLoading(true);
     setError(null);
     const [statsRes, commandesRes, disputesRes] = await Promise.all([
-      supabase.from("vue_stats_admin").select("*").single(),
+      supabase.rpc("get_stats_admin"),
       supabase
         .from("commandes")
         .select("id, numero, nom_client, montant_total, statut, created_at")
@@ -60,7 +60,7 @@ export function useAdminOverview() {
     ]);
 
     if (statsRes.error) setError(statsRes.error.message);
-    else setStats(statsRes.data as AdminStats);
+    else setStats((Array.isArray(statsRes.data) ? statsRes.data[0] : statsRes.data) as AdminStats);
 
     setRecentCommandes(commandesRes.data || []);
     setRecentDisputes(disputesRes.data || []);

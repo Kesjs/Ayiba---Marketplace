@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -23,7 +23,77 @@ import {
   History,
   StickyNote,
   Trash2,
+  MessageCircle,
 } from "lucide-react";
+
+function PhotoGallery({ photoCniPath, photoProfilUrl, photoSecondaireUrl, photoSecondaireLabel }: {
+  photoCniPath: string | null;
+  photoProfilUrl: string | null;
+  photoSecondaireUrl: string | null;
+  photoSecondaireLabel: string;
+}) {
+  const [cniUrl, setCniUrl] = useState<string | null>(null);
+  const [cniLoading, setCniLoading] = useState(false);
+  const [cniError, setCniError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCniUrl(null);
+    setCniError(null);
+    if (!photoCniPath) return;
+    let cancelled = false;
+    setCniLoading(true);
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/kyc-document-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path: photoCniPath }),
+        });
+        const json = await res.json();
+        if (cancelled) return;
+        if (!res.ok) setCniError(json.error || "Impossible de charger le document");
+        else setCniUrl(json.url);
+      } catch {
+        if (!cancelled) setCniError("Impossible de charger le document");
+      } finally {
+        if (!cancelled) setCniLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [photoCniPath]);
+
+  const items = [
+    { label: "Pièce d'identité (CNI)", url: cniUrl, loading: cniLoading, error: cniError, missing: !photoCniPath },
+    { label: "Photo de profil", url: photoProfilUrl, loading: false, error: null, missing: !photoProfilUrl },
+    { label: photoSecondaireLabel, url: photoSecondaireUrl, loading: false, error: null, missing: !photoSecondaireUrl },
+  ];
+
+  return (
+    <div className="grid grid-cols-3 gap-3">
+      {items.map((it, i) => (
+        <div key={i}>
+          <div className="aspect-square rounded-2xl bg-gray-50 overflow-hidden flex items-center justify-center">
+            {it.missing ? (
+              <span className="text-[10px] text-gray-300 text-center px-2">Aucune</span>
+            ) : it.loading ? (
+              <span className="text-[10px] text-gray-300">Chargement...</span>
+            ) : it.error ? (
+              <span className="text-[10px] text-red-400 text-center px-2">{it.error}</span>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <a href={it.url!} target="_blank" rel="noopener noreferrer">
+                <img src={it.url!} alt={it.label} className="w-full h-full object-cover" />
+              </a>
+            )}
+          </div>
+          <p className="text-[10px] text-gray-400 font-bold text-center mt-1.5">{it.label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const ROLE_LABELS: Record<string, string> = {
   client: "Client",
@@ -70,6 +140,7 @@ export default function AdminUserDetailPage() {
     retraits,
     actionsLog,
     notes,
+    messagesAdmin,
     loading,
     notFound,
     suspendre,
@@ -77,6 +148,7 @@ export default function AdminUserDetailPage() {
     changerRole,
     ajouterNote,
     supprimerNote,
+    envoyerMessage,
     forcerDeconnexion,
     reinitialiserMotDePasse,
   } = useAdminUserDetail(userId);
@@ -84,6 +156,7 @@ export default function AdminUserDetailPage() {
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [pendingRole, setPendingRole] = useState("");
   const [noteText, setNoteText] = useState("");
+  const [messageText, setMessageText] = useState("");
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -144,6 +217,16 @@ export default function AdminUserDetailPage() {
     setBusy(true);
     await ajouterNote(noteText.trim());
     setNoteText("");
+    setBusy(false);
+  };
+
+  const doEnvoyerMessage = async () => {
+    if (!messageText.trim()) return;
+    setBusy(true);
+    setErrorMsg(null);
+    const err = await envoyerMessage(messageText.trim());
+    if (err) setErrorMsg(err);
+    else setMessageText("");
     setBusy(false);
   };
 
@@ -248,7 +331,13 @@ export default function AdminUserDetailPage() {
         {(vendeurProfil || livreurProfil) && (
           <Section title={vendeurProfil ? "Profil vendeur" : "Profil livreur"} icon={<ShieldCheck size={16} />}>
             {vendeurProfil && (
-              <div className="space-y-2 text-sm">
+              <div className="space-y-4 text-sm">
+                <PhotoGallery
+                  photoCniPath={vendeurProfil.photo_cni_path}
+                  photoProfilUrl={vendeurProfil.photo_profil_url}
+                  photoSecondaireUrl={vendeurProfil.photo_couverture_url}
+                  photoSecondaireLabel="Couverture boutique"
+                />
                 <p><span className="text-gray-400">Boutique : </span><span className="font-bold text-gray-900">{vendeurProfil.nom_boutique || "—"}</span></p>
                 <p><span className="text-gray-400">Statut KYC : </span><StatusBadge variant={vendeurProfil.statut === "valide" ? "success" : vendeurProfil.statut === "refuse" ? "error" : "pending"}>{vendeurProfil.statut || "en attente"}</StatusBadge></p>
                 <p><span className="text-gray-400">Zone : </span>{vendeurProfil.quartier}, {vendeurProfil.commune}</p>
@@ -257,7 +346,13 @@ export default function AdminUserDetailPage() {
               </div>
             )}
             {livreurProfil && (
-              <div className="space-y-2 text-sm">
+              <div className="space-y-4 text-sm">
+                <PhotoGallery
+                  photoCniPath={livreurProfil.photo_cni_path}
+                  photoProfilUrl={livreurProfil.photo_profil_url}
+                  photoSecondaireUrl={livreurProfil.photo_vehicule_url}
+                  photoSecondaireLabel="Véhicule"
+                />
                 <p><span className="text-gray-400">Véhicule : </span><span className="font-bold text-gray-900">{livreurProfil.type_vehicule || "—"}</span></p>
                 <p><span className="text-gray-400">Statut KYC : </span><StatusBadge variant={livreurProfil.statut_verification === "valide" ? "success" : livreurProfil.statut_verification === "refuse" ? "error" : "pending"}>{livreurProfil.statut_verification}</StatusBadge></p>
                 <p><span className="text-gray-400">Zone : </span>{livreurProfil.quartier}, {livreurProfil.commune}</p>
@@ -372,6 +467,44 @@ export default function AdminUserDetailPage() {
             </div>
           </Section>
         )}
+
+        {/* Contacter */}
+        <Section title="Contacter" icon={<MessageCircle size={16} />}>
+          <div className="space-y-3 max-h-64 overflow-y-auto mb-4 pr-1">
+            {messagesAdmin.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucun échange pour l'instant.</p>
+            ) : (
+              messagesAdmin.map((m: any) => {
+                const estAdmin = m.expediteur_id !== userId;
+                return (
+                  <div key={m.id} className={`flex ${estAdmin ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm ${estAdmin ? "bg-gray-900 text-white" : "bg-gray-50 text-gray-800"}`}>
+                      <p>{m.contenu}</p>
+                      <p className={`text-[10px] mt-1 ${estAdmin ? "text-gray-300" : "text-gray-400"}`}>{formatDate(m.created_at)}</p>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && doEnvoyerMessage()}
+              placeholder="Écrire un message à cet utilisateur..."
+              className="flex-1 h-11 px-4 bg-gray-50 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-coral-500/10"
+            />
+            <button
+              disabled={busy || !messageText.trim()}
+              onClick={doEnvoyerMessage}
+              className="px-4 rounded-2xl bg-gray-900 text-white text-xs font-bold disabled:opacity-40"
+            >
+              Envoyer
+            </button>
+          </div>
+        </Section>
 
         {/* Notes internes */}
         <Section title="Notes internes (admin uniquement)" icon={<StickyNote size={16} />}>

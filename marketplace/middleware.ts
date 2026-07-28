@@ -61,9 +61,13 @@ export async function middleware(req: NextRequest) {
   ];
   if (publicRoutes.some((route) => path.startsWith(route))) return res;
 
-  const clientRoutes = ["/commandes", "/messages", "/historique", "/profil", "/favoris"];
-  const vendeurRoutes = ["/vendeur/dashboard", "/vendeur/kyc"];
-  const livreurRoutes = ["/livreur/missions", "/livreur/kyc"];
+  const clientRoutes = ["/commandes", "/messages", "/historique", "/profil", "/favoris", "/checkout"];
+  // Préfixes complets : toute page sous /vendeur ou /livreur est protégée par défaut,
+  // même une page ajoutée plus tard sans penser à la lister ici (c'est ce qui a créé
+  // le trou précédent : boutique/articles/commandes/messages/paiements/parametres
+  // n'étaient pas dans la liste et étaient donc accessibles sans connexion).
+  const vendeurRoutes = ["/vendeur"];
+  const livreurRoutes = ["/livreur"];
   const adminRoutes = ["/admin"];
 
   const isProtectedRoute = [...clientRoutes, ...vendeurRoutes, ...livreurRoutes, ...adminRoutes]

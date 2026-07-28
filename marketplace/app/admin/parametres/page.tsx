@@ -256,7 +256,7 @@ export default function AdminParametresPage() {
 
   if (loading) {
     return (
-      <DashboardLayout role="admin" userName="Admin Ayiba" title="Paramètres système">
+      <DashboardLayout role="admin" title="Paramètres système">
         <div className="space-y-6 max-w-xl">
           <Skeleton className="h-96 rounded-[32px]" />
           <Skeleton className="h-64 rounded-[32px]" />
@@ -266,7 +266,7 @@ export default function AdminParametresPage() {
   }
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Paramètres système">
+    <DashboardLayout role="admin" title="Paramètres système">
       <div className="space-y-6">
         {/* Commission & livraison */}
         <Card custom={0}>

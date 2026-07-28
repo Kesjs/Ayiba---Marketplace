@@ -410,7 +410,12 @@ export function VendeurKycWizard() {
         "Dossier envoyé ! Ton dashboard est accessible dès maintenant — ta boutique restera privée jusqu'à validation (24-48h).",
         "success"
       );
-      router.push("/vendeur/dashboard");
+      // On ne redirige plus directement vers le dashboard : on laisse
+      // d'abord le vendeur atterrir sur l'écran "Dossier en cours de
+      // vérification" (statut en_attente ci-dessous), qui lui propose
+      // ensuite explicitement d'aller au dashboard ou d'attendre.
+      setEditMode(false);
+      setVendeurStatut("en_attente");
     } catch (err: any) {
       setError(err.message || "Une erreur est survenue, réessaie.");
     } finally {

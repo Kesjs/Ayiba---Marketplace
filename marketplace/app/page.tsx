@@ -633,10 +633,10 @@ export default function Home() {
                 </motion.div>
               )}
 
-              {hasMoreProducts && (
+              {filteredProducts.length > 0 && (
                 <div className="mt-10 md:mt-16 text-center">
                   <Button
-                    onClick={() => setVisibleProductsCount(prev => prev + 8)}
+                    onClick={() => router.push(activeTab === "Tout" ? "/catalogue" : `/catalogue?categorie=${encodeURIComponent(activeTab)}`)}
                     variant="outline"
                     className="h-11 md:h-12 px-8 md:px-10 text-sm font-bold rounded-2xl border-gray-200 bg-white hover:bg-gray-50 shadow-sm"
                   >

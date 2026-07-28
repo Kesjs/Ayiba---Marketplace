@@ -22,9 +22,8 @@ export async function GET(request: Request) {
       // `users` n'a pas pu être écrite depuis AuthModal (pas de session à
       // ce moment-là) — on la crée ici avec les métadonnées passées au
       // signUp (nom, téléphone, rôle), une seule fois. On vérifie d'abord
-      // qu'elle n'existe pas déjà : ce callback est aussi emprunté à
-      // chaque connexion Google, un upsert aveugle écraserait le rôle
-      // (vendeur/livreur/admin) d'un compte existant à chaque login.
+      // qu'elle n'existe pas déjà, pour ne jamais écraser le rôle
+      // (vendeur/livreur/admin) d'un compte existant.
       const { data: existingRow } = await supabase
         .from("users")
         .select("id")

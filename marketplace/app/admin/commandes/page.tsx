@@ -51,7 +51,7 @@ export default function AdminCommandesPage() {
   }, [commandes, query, statutFilter]);
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Toutes les commandes">
+    <DashboardLayout role="admin" title="Toutes les commandes">
       <div className="flex flex-col md:flex-row gap-4 mb-8">
         <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />

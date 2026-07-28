@@ -25,7 +25,7 @@ export default function AdminLivreursPage() {
   const filtered = livreurs.filter((l) => l.statut_verification === tab);
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Validation livreurs (KYC)">
+    <DashboardLayout role="admin" title="Validation livreurs (KYC)">
       <div className="flex gap-2 mb-8">
         {TABS.map((t) => (
           <button

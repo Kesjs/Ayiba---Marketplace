@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, Suspense } from "react";
-import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight, AlertCircle, FileText, Camera } from "lucide-react";
+import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight, AlertCircle, FileText, Camera, Layers, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { StepIndicator, type WizardStep } from "@/components/kyc/StepIndicator";
 import Link from "next/link";
@@ -12,9 +12,16 @@ import { determinerStatutInitial } from "@/lib/articles/moderation";
 const WIZARD_STEPS: WizardStep[] = [
   { label: "Informations", icon: FileText },
   { label: "Photos", icon: Camera },
+  { label: "Variantes", icon: Layers },
 ];
 const MAX_PHOTOS = 5;
 const MIN_DIMENSION = 600;
+const TYPES_VARIANTE = [
+  { value: "couleur", label: "Couleur" },
+  { value: "taille", label: "Taille" },
+  { value: "modele", label: "Modèle / gamme" },
+  { value: "format", label: "Format" },
+] as const;
 
 interface PhotoEntry {
   file: File;
@@ -24,6 +31,28 @@ interface PhotoEntry {
 interface Categorie {
   id: string;
   nom: string;
+}
+
+interface VarianteEntry {
+  key: string;
+  type_variante: (typeof TYPES_VARIANTE)[number]["value"];
+  nom_variante: string;
+  prix: string; // vide = hérite du prix de l'article
+  stock: string;
+  stockIllimite: boolean;
+  photo: PhotoEntry | null;
+}
+
+function nouvelleVariante(): VarianteEntry {
+  return {
+    key: Math.random().toString(36).slice(2),
+    type_variante: "couleur",
+    nom_variante: "",
+    prix: "",
+    stock: "",
+    stockIllimite: true,
+    photo: null,
+  };
 }
 
 function checkImageDimensions(file: File): Promise<{ ok: boolean; width: number; height: number }> {
@@ -136,6 +165,9 @@ function NouveauArticleForm() {
 
   const [photos, setPhotos] = useState<PhotoEntry[]>([]);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const [variantes, setVariantes] = useState<VarianteEntry[]>([]);
+  const [varianteErrors, setVarianteErrors] = useState<Record<string, string>>({});
 
   // Verrou dur contre le double-clic, en plus de `loading`
   const isSubmittingRef = useRef(false);
@@ -252,6 +284,14 @@ function NouveauArticleForm() {
     if (validateStep1()) setStep(2);
   };
 
+  const handleNextFromPhotos = () => {
+    if (photos.length === 0) {
+      setPhotoError("Ajoute au moins une photo avant de continuer.");
+      return;
+    }
+    setStep(3);
+  };
+
   const handleFilesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     setPhotoError(null);
@@ -296,6 +336,77 @@ function NouveauArticleForm() {
     });
   };
 
+  const addVariante = () => {
+    if (variantes.length >= 20) return;
+    setVariantes((prev) => [...prev, nouvelleVariante()]);
+  };
+
+  const removeVariante = (key: string) => {
+    setVariantes((prev) => {
+      const target = prev.find((v) => v.key === key);
+      if (target?.photo) URL.revokeObjectURL(target.photo.preview);
+      return prev.filter((v) => v.key !== key);
+    });
+    setVarianteErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const updateVariante = (key: string, patch: Partial<VarianteEntry>) => {
+    setVariantes((prev) => prev.map((v) => (v.key === key ? { ...v, ...patch } : v)));
+    setVarianteErrors((prev) => ({ ...prev, [key]: "" }));
+  };
+
+  const handleVariantePhoto = async (key: string, file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setVarianteErrors((prev) => ({ ...prev, [key]: "Seules les images sont acceptées (JPG, PNG)." }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setVarianteErrors((prev) => ({ ...prev, [key]: "Cette photo dépasse 5 Mo." }));
+      return;
+    }
+    const { ok, width, height } = await checkImageDimensions(file);
+    if (!ok) {
+      setVarianteErrors((prev) => ({
+        ...prev,
+        [key]: `Photo trop petite (${width}×${height}px) — au moins ${MIN_DIMENSION}×${MIN_DIMENSION}px.`,
+      }));
+      return;
+    }
+    const current = variantes.find((v) => v.key === key);
+    if (current?.photo) URL.revokeObjectURL(current.photo.preview);
+    updateVariante(key, { photo: { file, preview: URL.createObjectURL(file) } });
+  };
+
+  const validateVariantes = () => {
+    const errors: Record<string, string> = {};
+    for (const v of variantes) {
+      if (v.nom_variante.trim().length < 1) {
+        errors[v.key] = "Donne un nom à cette variante (ex: Noir, XL, 13 Pro Max).";
+        continue;
+      }
+      if (v.prix.trim() !== "") {
+        const prixNum = Number(v.prix);
+        if (isNaN(prixNum) || prixNum <= 0) {
+          errors[v.key] = "Le prix de la variante doit être un nombre positif, ou laissé vide pour hériter du prix de l'article.";
+          continue;
+        }
+      }
+      if (!v.stockIllimite && v.stock.trim() !== "") {
+        const stockNum = Number(v.stock);
+        if (isNaN(stockNum) || stockNum < 0) {
+          errors[v.key] = "Le stock de la variante doit être un nombre positif.";
+        }
+      }
+    }
+    setVarianteErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -305,6 +416,11 @@ function NouveauArticleForm() {
 
     if (photos.length === 0) {
       setSubmitError("Ajoute au moins une photo avant de publier.");
+      return;
+    }
+
+    if (!validateVariantes()) {
+      setStep(3);
       return;
     }
 
@@ -401,6 +517,45 @@ function NouveauArticleForm() {
 
       if (imagesInsertError) {
         throw new Error(`Article créé mais échec de l'enregistrement des photos : ${imagesInsertError.message}`);
+      }
+
+      // 4. Variantes (optionnel) : upload de la photo de chaque variante puis
+      // insertion des lignes article_variantes rattachées à l'article créé.
+      if (variantes.length > 0) {
+        const variantesPayload = [];
+        for (let i = 0; i < variantes.length; i++) {
+          const v = variantes[i];
+          let photo_url: string | null = null;
+
+          if (v.photo) {
+            const ext = v.photo.file.name.split(".").pop() || "jpg";
+            const path = `${user.id}/variantes/${Date.now()}-${i}-${Math.random().toString(36).slice(2)}.${ext}`;
+            const { error: uploadErr } = await supabase.storage
+              .from("articles-photos")
+              .upload(path, v.photo.file, { upsert: true });
+            if (uploadErr) {
+              throw new Error(`Article créé mais échec de l'envoi de la photo de variante "${v.nom_variante}" : ${uploadErr.message}`);
+            }
+            uploadedPaths.push(path);
+            const { data: urlData } = supabase.storage.from("articles-photos").getPublicUrl(path);
+            photo_url = urlData.publicUrl;
+          }
+
+          variantesPayload.push({
+            article_id: articleCree.id,
+            type_variante: v.type_variante,
+            nom_variante: v.nom_variante.trim(),
+            prix: v.prix.trim() === "" ? null : Number(v.prix),
+            stock: v.stockIllimite || v.stock.trim() === "" ? null : Number(v.stock),
+            photo_url,
+            ordre: i,
+          });
+        }
+
+        const { error: variantesInsertError } = await supabase.from("article_variantes").insert(variantesPayload);
+        if (variantesInsertError) {
+          throw new Error(`Article créé mais échec de l'enregistrement des variantes : ${variantesInsertError.message}`);
+        }
       }
 
       setPublishedStatut(statut);
@@ -675,6 +830,148 @@ function NouveauArticleForm() {
                   </p>
                 </div>
 
+                {submitError && step !== 3 && (
+                  <div className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-2xl p-4">
+                    <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                    <p className="text-xs text-red-700 leading-relaxed">{submitError}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {step === 3 && (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900 mb-1">Variantes (optionnel)</h2>
+                  <p className="text-sm text-gray-500">
+                    Couleur, taille, ou modèle avec un prix différent — laisse vide si ton article
+                    n'a qu'une seule version. Une variante sans prix hérite du prix de l'article.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  {variantes.map((v) => (
+                    <div key={v.key} className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 flex flex-col gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="grid grid-cols-2 gap-3 flex-1">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Type</label>
+                            <select
+                              value={v.type_variante}
+                              onChange={(e) => updateVariante(v.key, { type_variante: e.target.value as VarianteEntry["type_variante"] })}
+                              className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                            >
+                              {TYPES_VARIANTE.map((t) => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1.5">Nom</label>
+                            <input
+                              type="text"
+                              placeholder="Ex: Noir, XL, 13 Pro Max"
+                              value={v.nom_variante}
+                              onChange={(e) => updateVariante(v.key, { nom_variante: e.target.value })}
+                              className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                            />
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeVariante(v.key)}
+                          className="mt-6 shrink-0 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                          aria-label="Retirer cette variante"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Prix (FCFA)</label>
+                          <input
+                            type="number"
+                            placeholder={`Même prix (${formData.prix || "—"})`}
+                            value={v.prix}
+                            onChange={(e) => updateVariante(v.key, { prix: e.target.value })}
+                            className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">Stock</label>
+                          <input
+                            type="number"
+                            min={0}
+                            placeholder="Illimité"
+                            value={v.stock}
+                            onChange={(e) => updateVariante(v.key, { stock: e.target.value })}
+                            disabled={v.stockIllimite}
+                            className={`w-full h-10 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-shadow ${
+                              v.stockIllimite ? "bg-gray-100 text-gray-400" : "border-gray-200 focus:border-coral-400 focus:ring-coral-100"
+                            }`}
+                          />
+                          <label className="flex items-center gap-1.5 mt-1.5 text-[11px] text-gray-500 font-medium">
+                            <input
+                              type="checkbox"
+                              checked={v.stockIllimite}
+                              onChange={(e) => updateVariante(v.key, { stockIllimite: e.target.checked })}
+                              className="rounded border-gray-300 text-coral-500 focus:ring-coral-400"
+                            />
+                            Stock illimité
+                          </label>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {v.photo ? (
+                          <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                            <img src={v.photo.preview} alt="" className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => updateVariante(v.key, { photo: null })}
+                              className="absolute top-0.5 right-0.5 w-5 h-5 bg-black/60 text-white rounded-full flex items-center justify-center"
+                              aria-label="Retirer la photo de la variante"
+                            >
+                              <X size={11} />
+                            </button>
+                          </div>
+                        ) : (
+                          <label className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 bg-white flex items-center justify-center text-gray-400 cursor-pointer hover:border-coral-300 hover:text-coral-400 transition-colors shrink-0">
+                            <Upload size={16} />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => handleVariantePhoto(v.key, e.target.files?.[0] ?? null)}
+                            />
+                          </label>
+                        )}
+                        <p className="text-[11px] text-gray-400 leading-relaxed">
+                          Photo de la variante (optionnel) — affichée en priorité quand cette
+                          variante est sélectionnée par l'acheteur.
+                        </p>
+                      </div>
+
+                      {varianteErrors[v.key] && (
+                        <p className="text-xs text-red-500 flex items-center gap-1">
+                          <AlertCircle size={12} /> {varianteErrors[v.key]}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addVariante}
+                  disabled={variantes.length >= 20}
+                  className="flex items-center justify-center gap-1.5 h-11 rounded-xl border-2 border-dashed border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 hover:border-coral-300 hover:text-coral-500 transition-colors disabled:opacity-50"
+                >
+                  <Plus size={16} />
+                  Ajouter une variante
+                </button>
+
                 {submitError && (
                   <div className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-2xl p-4">
                     <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
@@ -685,7 +982,7 @@ function NouveauArticleForm() {
             )}
 
             <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100">
-              {step === 1 ? (
+              {step === 1 && (
                 <>
                   <Link href="/vendeur/articles" className="shrink-0">
                     <button
@@ -711,11 +1008,31 @@ function NouveauArticleForm() {
                     <ChevronRight size={16} />
                   </button>
                 </>
-              ) : (
+              )}
+              {step === 2 && (
                 <>
                   <button
                     type="button"
                     onClick={() => setStep(1)}
+                    className="h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+                  >
+                    Retour
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextFromPhotos}
+                    className="flex-1 flex items-center justify-center gap-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold transition-colors"
+                  >
+                    Continuer
+                    <ChevronRight size={16} />
+                  </button>
+                </>
+              )}
+              {step === 3 && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
                     className="h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
                   >
                     Retour

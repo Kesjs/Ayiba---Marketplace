@@ -18,7 +18,7 @@ export default function AdminDemandesPage() {
   };
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Demandes de suppression de compte">
+    <DashboardLayout role="admin" title="Demandes de suppression de compte">
       {erreur && (
         <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-2xl text-sm font-medium">{erreur}</div>
       )}

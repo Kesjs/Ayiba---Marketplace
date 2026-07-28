@@ -193,7 +193,8 @@ en_attente → confirmee → preparee → expediee → livree
 
 ## Authentification, rôles et sécurité
 
-- Authentification via Supabase Auth, cookies gérés via `@supabase/ssr`.
+- Authentification via Supabase Auth (email + mot de passe uniquement,
+  pas de connexion sociale type Google), cookies gérés via `@supabase/ssr`.
 - `middleware.ts` protège les routes par préfixe et par rôle
   (`/vendeur/dashboard`, `/livreur/missions`, `/admin/*`, etc.), redirige
   les comptes suspendus vers `/compte-suspendu`.

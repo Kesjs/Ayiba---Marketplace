@@ -77,7 +77,7 @@ export default function AdminModerationPage() {
   };
 
   return (
-    <DashboardLayout role="admin" userName="Admin Ayiba" title="Modération des articles">
+    <DashboardLayout role="admin" title="Modération des articles">
       <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
         <div className="flex gap-2">
           {TABS.map((t) => (

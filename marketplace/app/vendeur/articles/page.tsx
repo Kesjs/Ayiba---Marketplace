@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Plus, Search, Trash2, Edit3, Copy, X, Loader2, PackageX, AlertCircle, RefreshCw,
-  LayoutGrid, List, Upload
+  LayoutGrid, List, Upload, Layers
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -14,6 +14,60 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/context/ToastContext";
 import { createClient } from "@/lib/supabase/client";
 import { StatusBadge as SharedStatusBadge } from "@/components/ui/StatusBadge";
+
+const TYPES_VARIANTE = [
+  { value: "couleur", label: "Couleur" },
+  { value: "taille", label: "Taille" },
+  { value: "modele", label: "Modèle / gamme" },
+  { value: "format", label: "Format" },
+] as const;
+type TypeVariante = (typeof TYPES_VARIANTE)[number]["value"];
+const MAX_VARIANTES = 20;
+
+interface VarianteRow {
+  id: string;
+  type_variante: TypeVariante;
+  nom_variante: string;
+  prix: number | null;
+  stock: number | null;
+  photo_url: string | null;
+  ordre: number | null;
+}
+
+interface EditPhotoEntry {
+  file: File;
+  preview: string;
+}
+
+interface EditVarianteEntry {
+  key: string;
+  dbId: string | null; // null = variante pas encore en base
+  type_variante: TypeVariante;
+  nom_variante: string;
+  prix: string; // vide = hérite du prix de l'article
+  stock: string;
+  stockIllimite: boolean;
+  photo_url: string | null; // photo déjà en base
+  newPhoto: EditPhotoEntry | null; // remplace photo_url si présent
+  photoRemoved: boolean; // retirer la photo existante sans la remplacer
+  removed: boolean; // marquée pour suppression complète à l'enregistrement
+}
+
+function nouvelleEditVariante(): EditVarianteEntry {
+  return {
+    key: Math.random().toString(36).slice(2),
+    dbId: null,
+    type_variante: "couleur",
+    nom_variante: "",
+    prix: "",
+    stock: "",
+    stockIllimite: true,
+    photo_url: null,
+    newPhoto: null,
+    photoRemoved: false,
+    removed: false,
+  };
+}
 
 interface ArticleImage {
   id: string;
@@ -64,11 +118,6 @@ function extractStoragePath(url: string): string | null {
 
 const MAX_PHOTOS = 5;
 const MIN_DIMENSION = 600;
-
-interface EditPhotoEntry {
-  file: File;
-  preview: string;
-}
 
 function checkImageDimensions(file: File): Promise<{ ok: boolean; width: number; height: number }> {
   return new Promise((resolve) => {
@@ -374,6 +423,10 @@ export default function MesArticlesPage() {
   const [editUploadingPhoto, setEditUploadingPhoto] = useState(false);
   const editFileInputRef = useRef<HTMLInputElement>(null);
 
+  const [editVariantes, setEditVariantes] = useState<EditVarianteEntry[]>([]);
+  const [editVariantesLoading, setEditVariantesLoading] = useState(false);
+  const [editVarianteErrors, setEditVarianteErrors] = useState<Record<string, string>>({});
+
   const [deletingArticle, setDeletingArticle] = useState<ArticleRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -476,6 +529,36 @@ export default function MesArticlesPage() {
     setEditExistingPhotos(
       [...(article.article_images ?? [])].sort((a, b) => (a.ordre ?? 0) - (b.ordre ?? 0))
     );
+
+    editVariantes.forEach((v) => v.newPhoto && URL.revokeObjectURL(v.newPhoto.preview));
+    setEditVariantes([]);
+    setEditVarianteErrors({});
+    setEditVariantesLoading(true);
+    const supabase = createClient();
+    supabase
+      .from("article_variantes")
+      .select("id, type_variante, nom_variante, prix, stock, photo_url, ordre")
+      .eq("article_id", article.id)
+      .order("ordre", { ascending: true })
+      .then(({ data }) => {
+        const rows = (data as VarianteRow[] | null) ?? [];
+        setEditVariantes(
+          rows.map((r) => ({
+            key: r.id,
+            dbId: r.id,
+            type_variante: r.type_variante,
+            nom_variante: r.nom_variante,
+            prix: r.prix != null ? String(r.prix) : "",
+            stock: r.stock != null ? String(r.stock) : "",
+            stockIllimite: r.stock == null,
+            photo_url: r.photo_url,
+            newPhoto: null,
+            photoRemoved: false,
+            removed: false,
+          }))
+        );
+        setEditVariantesLoading(false);
+      });
   };
 
   const handleEditFieldChange = (
@@ -580,11 +663,91 @@ export default function MesArticlesPage() {
     });
   };
 
+  const addEditVariante = () => {
+    if (editVariantes.filter((v) => !v.removed).length >= MAX_VARIANTES) return;
+    setEditVariantes((prev) => [...prev, nouvelleEditVariante()]);
+  };
+
+  const removeEditVariante = (key: string) => {
+    setEditVariantes((prev) => {
+      const target = prev.find((v) => v.key === key);
+      if (!target) return prev;
+      // Variante déjà en base : on la marque simplement pour suppression à
+      // l'enregistrement (permet d'annuler en la retirant de la liste
+      // affichée sans perdre la trace de la suppression à effectuer).
+      if (target.dbId) {
+        return prev.map((v) => (v.key === key ? { ...v, removed: true } : v));
+      }
+      if (target.newPhoto) URL.revokeObjectURL(target.newPhoto.preview);
+      return prev.filter((v) => v.key !== key);
+    });
+    setEditVarianteErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
+  const updateEditVariante = (key: string, patch: Partial<EditVarianteEntry>) => {
+    setEditVariantes((prev) => prev.map((v) => (v.key === key ? { ...v, ...patch } : v)));
+    setEditVarianteErrors((prev) => ({ ...prev, [key]: "" }));
+  };
+
+  const handleEditVariantePhoto = async (key: string, file: File | null) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setEditVarianteErrors((prev) => ({ ...prev, [key]: "Seules les images sont acceptées (JPG, PNG)." }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setEditVarianteErrors((prev) => ({ ...prev, [key]: "Cette photo dépasse 5 Mo." }));
+      return;
+    }
+    const { ok, width, height } = await checkImageDimensions(file);
+    if (!ok) {
+      setEditVarianteErrors((prev) => ({
+        ...prev,
+        [key]: `Photo trop petite (${width}×${height}px) — au moins ${MIN_DIMENSION}×${MIN_DIMENSION}px.`,
+      }));
+      return;
+    }
+    const current = editVariantes.find((v) => v.key === key);
+    if (current?.newPhoto) URL.revokeObjectURL(current.newPhoto.preview);
+    updateEditVariante(key, { newPhoto: { file, preview: URL.createObjectURL(file) }, photoRemoved: false });
+  };
+
+  const validateEditVariantes = () => {
+    const errors: Record<string, string> = {};
+    for (const v of editVariantes) {
+      if (v.removed) continue;
+      if (v.nom_variante.trim().length < 1) {
+        errors[v.key] = "Donne un nom à cette variante (ex: Noir, XL, 13 Pro Max).";
+        continue;
+      }
+      if (v.prix.trim() !== "") {
+        const prixNum = Number(v.prix);
+        if (isNaN(prixNum) || prixNum <= 0) {
+          errors[v.key] = "Le prix de la variante doit être un nombre positif, ou laissé vide pour hériter du prix de l'article.";
+          continue;
+        }
+      }
+      if (!v.stockIllimite && v.stock.trim() !== "") {
+        const stockNum = Number(v.stock);
+        if (isNaN(stockNum) || stockNum < 0) {
+          errors[v.key] = "Le stock de la variante doit être un nombre positif.";
+        }
+      }
+    }
+    setEditVarianteErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleSaveEdit = async () => {
     if (!editingArticle) return;
     setEditError(null);
     setEditPhotoError(null);
     if (!validateEditForm()) return;
+    if (!validateEditVariantes()) return;
 
     const survivingExisting = editExistingPhotos.filter(
       (p) => !editRemovedPhotoIds.includes(p.id)
@@ -702,9 +865,83 @@ export default function MesArticlesPage() {
         throw new Error(`Échec de l'enregistrement : ${updateError.message}`);
       }
 
+      // 5. Variantes : suppression de celles marquées, upload des nouvelles
+      // photos, mise à jour des variantes existantes, insertion des nouvelles.
+      const aSupprimer = editVariantes.filter((v) => v.removed && v.dbId);
+      if (aSupprimer.length > 0) {
+        const pathsToRemove = aSupprimer
+          .map((v) => (v.photo_url ? extractStoragePath(v.photo_url) : null))
+          .filter((p): p is string => Boolean(p));
+        if (pathsToRemove.length > 0) {
+          await supabase.storage.from("articles-photos").remove(pathsToRemove).catch(() => {});
+        }
+        const { error: deleteVariantesError } = await supabase
+          .from("article_variantes")
+          .delete()
+          .in("id", aSupprimer.map((v) => v.dbId as string));
+        if (deleteVariantesError) {
+          throw new Error(`Échec de la suppression de variantes : ${deleteVariantesError.message}`);
+        }
+      }
+
+      const aConserver = editVariantes.filter((v) => !v.removed);
+      for (let i = 0; i < aConserver.length; i++) {
+        const v = aConserver[i];
+        let photo_url = v.photo_url;
+
+        if (v.newPhoto) {
+          const ext = v.newPhoto.file.name.split(".").pop() || "jpg";
+          const path = `${user.id}/variantes/${Date.now()}-${i}-${Math.random().toString(36).slice(2)}.${ext}`;
+          const { error: uploadErr } = await supabase.storage
+            .from("articles-photos")
+            .upload(path, v.newPhoto.file, { upsert: true });
+          if (uploadErr) {
+            throw new Error(`Échec de l'envoi de la photo de la variante "${v.nom_variante}" : ${uploadErr.message}`);
+          }
+          uploadedPaths.push(path);
+          if (v.photo_url) {
+            const oldPath = extractStoragePath(v.photo_url);
+            if (oldPath) await supabase.storage.from("articles-photos").remove([oldPath]).catch(() => {});
+          }
+          const { data: urlData } = supabase.storage.from("articles-photos").getPublicUrl(path);
+          photo_url = urlData.publicUrl;
+        } else if (v.photoRemoved && v.photo_url) {
+          const oldPath = extractStoragePath(v.photo_url);
+          if (oldPath) await supabase.storage.from("articles-photos").remove([oldPath]).catch(() => {});
+          photo_url = null;
+        }
+
+        const variantePayload = {
+          type_variante: v.type_variante,
+          nom_variante: v.nom_variante.trim(),
+          prix: v.prix.trim() === "" ? null : Number(v.prix),
+          stock: v.stockIllimite || v.stock.trim() === "" ? null : Number(v.stock),
+          photo_url,
+          ordre: i,
+        };
+
+        if (v.dbId) {
+          const { error: updateVarianteError } = await supabase
+            .from("article_variantes")
+            .update(variantePayload)
+            .eq("id", v.dbId);
+          if (updateVarianteError) {
+            throw new Error(`Échec de la mise à jour de la variante "${v.nom_variante}" : ${updateVarianteError.message}`);
+          }
+        } else {
+          const { error: insertVarianteError } = await supabase
+            .from("article_variantes")
+            .insert({ ...variantePayload, article_id: editingArticle.id });
+          if (insertVarianteError) {
+            throw new Error(`Échec de l'ajout de la variante "${v.nom_variante}" : ${insertVarianteError.message}`);
+          }
+        }
+      }
+
       setEditingArticle(null);
       setEditNewPhotos([]);
       setEditRemovedPhotoIds([]);
+      setEditVariantes([]);
       await loadArticles();
       showToast(
         contentChanged ? "Article mis à jour — renvoyé en vérification" : "Article mis à jour",
@@ -1138,6 +1375,142 @@ return (
 
                     {editPhotoError && (
                       <p className="text-xs text-red-500 mt-2">{editPhotoError}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                      <Layers size={12} /> Variantes (optionnel)
+                    </label>
+
+                    {editVariantesLoading ? (
+                      <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
+                        <Loader2 size={14} className="animate-spin" /> Chargement des variantes...
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {editVariantes
+                          .filter((v) => !v.removed)
+                          .map((v) => (
+                            <div key={v.key} className="rounded-xl border border-gray-100 bg-gray-50/60 p-3 flex flex-col gap-2.5">
+                              <div className="flex items-start gap-2">
+                                <div className="grid grid-cols-2 gap-2 flex-1">
+                                  <select
+                                    value={v.type_variante}
+                                    onChange={(e) => updateEditVariante(v.key, { type_variante: e.target.value as TypeVariante })}
+                                    className="w-full h-9 px-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                                  >
+                                    {TYPES_VARIANTE.map((t) => (
+                                      <option key={t.value} value={t.value}>{t.label}</option>
+                                    ))}
+                                  </select>
+                                  <input
+                                    type="text"
+                                    placeholder="Ex: Noir, XL, 13 Pro Max"
+                                    value={v.nom_variante}
+                                    onChange={(e) => updateEditVariante(v.key, { nom_variante: e.target.value })}
+                                    className="w-full h-9 px-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeEditVariante(v.key)}
+                                  className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                                  aria-label="Retirer cette variante"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <input
+                                  type="number"
+                                  placeholder={`Même prix (${editForm.prix || "—"})`}
+                                  value={v.prix}
+                                  onChange={(e) => updateEditVariante(v.key, { prix: e.target.value })}
+                                  className="w-full h-9 px-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                                />
+                                <div>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    placeholder="Illimité"
+                                    value={v.stock}
+                                    onChange={(e) => updateEditVariante(v.key, { stock: e.target.value })}
+                                    disabled={v.stockIllimite}
+                                    className={`w-full h-9 px-2 rounded-lg border text-xs focus:outline-none focus:ring-2 transition-shadow ${
+                                      v.stockIllimite ? "bg-gray-100 text-gray-400" : "border-gray-200 focus:border-coral-400 focus:ring-coral-100"
+                                    }`}
+                                  />
+                                  <label className="flex items-center gap-1.5 mt-1 text-[10px] text-gray-500 font-medium">
+                                    <input
+                                      type="checkbox"
+                                      checked={v.stockIllimite}
+                                      onChange={(e) => updateEditVariante(v.key, { stockIllimite: e.target.checked })}
+                                      className="rounded border-gray-300 text-coral-500 focus:ring-coral-400"
+                                    />
+                                    Illimité
+                                  </label>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {v.newPhoto ? (
+                                  <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                                    <img src={v.newPhoto.preview} alt="" className="w-full h-full object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => updateEditVariante(v.key, { newPhoto: null })}
+                                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 text-white rounded-full flex items-center justify-center"
+                                      aria-label="Retirer la nouvelle photo"
+                                    >
+                                      <X size={9} />
+                                    </button>
+                                  </div>
+                                ) : v.photo_url && !v.photoRemoved ? (
+                                  <div className="relative w-12 h-12 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                                    <img src={v.photo_url} alt="" className="w-full h-full object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => updateEditVariante(v.key, { photoRemoved: true })}
+                                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 text-white rounded-full flex items-center justify-center"
+                                      aria-label="Retirer la photo"
+                                    >
+                                      <X size={9} />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <label className="w-12 h-12 rounded-lg border-2 border-dashed border-gray-200 bg-white flex items-center justify-center text-gray-400 cursor-pointer hover:border-coral-300 hover:text-coral-400 transition-colors shrink-0">
+                                    <Upload size={13} />
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => handleEditVariantePhoto(v.key, e.target.files?.[0] ?? null)}
+                                    />
+                                  </label>
+                                )}
+                                <p className="text-[10px] text-gray-400 leading-relaxed">Photo (optionnel)</p>
+                              </div>
+
+                              {editVarianteErrors[v.key] && (
+                                <p className="text-[11px] text-red-500 flex items-center gap-1">
+                                  <AlertCircle size={11} /> {editVarianteErrors[v.key]}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+
+                        <button
+                          type="button"
+                          onClick={addEditVariante}
+                          disabled={editVariantes.filter((v) => !v.removed).length >= MAX_VARIANTES}
+                          className="flex items-center justify-center gap-1.5 h-10 rounded-xl border-2 border-dashed border-gray-200 text-xs font-medium text-gray-500 hover:bg-gray-50 hover:border-coral-300 hover:text-coral-500 transition-colors disabled:opacity-50"
+                        >
+                          <Plus size={14} />
+                          Ajouter une variante
+                        </button>
+                      </div>
                     )}
                   </div>
 

@@ -2,12 +2,13 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
-  Plus, Search, Trash2, Edit3, X, Loader2, PackageX, AlertCircle, RefreshCw,
+  Plus, Search, Trash2, Edit3, Copy, X, Loader2, PackageX, AlertCircle, RefreshCw,
   LayoutGrid, List, Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/context/ToastContext";
@@ -29,7 +30,7 @@ interface ArticleRow {
   nom: string;
   description: string | null;
   prix: number;
-  stock: number;
+  stock: number | null;
   statut: string;
   actif: boolean;
   categorie_id: string | null;
@@ -119,7 +120,7 @@ const ARTICLE_BADGE_DOTS: Record<string, string> = {
   success: "bg-teal-500",
 };
 
-function StatusBadge({ statut, stock, actif }: { statut: string; stock: number; actif: boolean }) {
+function StatusBadge({ statut, stock, actif }: { statut: string; stock: number | null; actif: boolean }) {
   let variant: "neutral" | "pending" | "error" | "success" = "success";
   let label = "En ligne";
 
@@ -151,10 +152,12 @@ function VendeurArticleCard({
   item,
   onEdit,
   onDelete,
+  onDuplicate,
 }: {
   item: ArticleRow;
   onEdit: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
   const categorieLabel = getCategorieLabel(item.categories);
   const photo = getPrincipalePhoto(item.article_images);
@@ -201,6 +204,14 @@ function VendeurArticleCard({
           </button>
           <button
             type="button"
+            onClick={onDuplicate}
+            className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform"
+            aria-label="Dupliquer"
+          >
+            <Copy size={13} className="text-gray-600" />
+          </button>
+          <button
+            type="button"
             onClick={onDelete}
             className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform"
             aria-label="Supprimer"
@@ -218,7 +229,7 @@ function VendeurArticleCard({
         <p className="text-xs text-gray-600 font-medium line-clamp-2 min-h-[2.2em]">{item.nom}</p>
 
         <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-gray-400">{item.stock} en stock</span>
+          <span className="text-[10px] text-gray-400">{item.stock === null ? "Illimité" : `${item.stock} en stock`}</span>
         </div>
 
         <div className="flex items-center justify-between mt-0.5 gap-2">
@@ -236,10 +247,12 @@ function VendeurArticleRow({
   item,
   onEdit,
   onDelete,
+  onDuplicate,
 }: {
   item: ArticleRow;
   onEdit: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }) {
   const categorieLabel = getCategorieLabel(item.categories);
   const photo = getPrincipalePhoto(item.article_images);
@@ -278,7 +291,7 @@ function VendeurArticleRow({
             {item.prix.toLocaleString("fr-FR")} <span className="text-[10px] font-bold">FCFA</span>
           </p>
           <span className="text-gray-300">·</span>
-          <span className="text-[11px] text-gray-400">{item.stock} en stock</span>
+          <span className="text-[11px] text-gray-400">{item.stock === null ? "Illimité" : `${item.stock} en stock`}</span>
           {item.article_images.length > 1 && (
             <>
               <span className="text-gray-300">·</span>
@@ -305,6 +318,14 @@ function VendeurArticleRow({
         </button>
         <button
           type="button"
+          onClick={onDuplicate}
+          className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+          aria-label="Dupliquer"
+        >
+          <Copy size={14} className="text-gray-600" />
+        </button>
+        <button
+          type="button"
           onClick={onDelete}
           className="w-8 h-8 bg-gray-50 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
           aria-label="Supprimer"
@@ -326,6 +347,7 @@ const emptyEditForm = {
 
 export default function MesArticlesPage() {
   const { showToast } = useToast();
+  const router = useRouter();
 
   const [articles, setArticles] = useState<ArticleRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -340,6 +362,7 @@ export default function MesArticlesPage() {
 
   const [editingArticle, setEditingArticle] = useState<ArticleRow | null>(null);
   const [editForm, setEditForm] = useState(emptyEditForm);
+  const [editStockIllimite, setEditStockIllimite] = useState(false);
   const [editFieldErrors, setEditFieldErrors] = useState<Record<string, string>>({});
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -440,8 +463,9 @@ export default function MesArticlesPage() {
       description: article.description ?? "",
       categorieId: article.categorie_id ?? "",
       prix: String(article.prix),
-      stock: String(article.stock),
+      stock: article.stock != null ? String(article.stock) : "1",
     });
+    setEditStockIllimite(article.stock === null);
 
     // Nettoie d'éventuelles prévisualisations laissées par une précédente
     // ouverture du modal sans sauvegarde.
@@ -483,9 +507,11 @@ export default function MesArticlesPage() {
       errors.prix = "Ce prix semble très élevé — vérifie qu'il est correct.";
     }
 
-    const stockNum = Number(editForm.stock);
-    if (editForm.stock.trim() === "" || isNaN(stockNum) || stockNum < 0) {
-      errors.stock = "Le stock doit être un nombre entier positif ou nul.";
+    if (!editStockIllimite) {
+      const stockNum = Number(editForm.stock);
+      if (editForm.stock.trim() === "" || isNaN(stockNum) || stockNum < 0) {
+        errors.stock = "Le stock doit être un nombre entier positif ou nul.";
+      }
     }
 
     setEditFieldErrors(errors);
@@ -569,7 +595,7 @@ export default function MesArticlesPage() {
     }
 
     const prix = Number(editForm.prix);
-    const stock = Number(editForm.stock);
+    const stock = editStockIllimite ? null : Number(editForm.stock);
     const contentChanged = isContentChange(editingArticle) || isPhotosChanged();
 
     setIsSaving(true);
@@ -880,6 +906,7 @@ return (
                   <VendeurArticleCard
                     item={item}
                     onEdit={() => openEdit(item)}
+                    onDuplicate={() => router.push(`/vendeur/articles/nouveau?dupliquer=${item.id}`)}
                     onDelete={() => {
                       setDeleteError(null);
                       setDeletingArticle(item);
@@ -914,6 +941,7 @@ return (
                   <VendeurArticleRow
                     item={item}
                     onEdit={() => openEdit(item)}
+                    onDuplicate={() => router.push(`/vendeur/articles/nouveau?dupliquer=${item.id}`)}
                     onDelete={() => {
                       setDeleteError(null);
                       setDeletingArticle(item);
@@ -1022,10 +1050,22 @@ return (
                         name="stock"
                         value={editForm.stock}
                         onChange={handleEditFieldChange}
+                        disabled={editStockIllimite}
                         className={`w-full h-12 px-4 rounded-xl border text-sm font-medium focus:outline-none focus:ring-2 transition-all ${
+                          editStockIllimite ? "bg-gray-50 text-gray-400" : ""
+                        } ${
                           editFieldErrors.stock ? "border-red-300 focus:ring-red-100 focus:border-red-400" : "border-gray-200 focus:ring-coral-200 focus:border-coral-400"
                         }`}
                       />
+                      <label className="flex items-center gap-2 mt-2 text-[11px] text-gray-600 font-medium">
+                        <input
+                          type="checkbox"
+                          checked={editStockIllimite}
+                          onChange={(e) => setEditStockIllimite(e.target.checked)}
+                          className="rounded border-gray-300 text-coral-500 focus:ring-coral-400"
+                        />
+                        Stock illimité
+                      </label>
                       {editFieldErrors.stock && <p className="text-xs text-red-500 mt-1.5">{editFieldErrors.stock}</p>}
                     </div>
                   </div>
@@ -1111,6 +1151,18 @@ return (
                     </div>
                   )}
 
+                  {editingArticle &&
+                    editExistingPhotos.filter((p) => !editRemovedPhotoIds.includes(p.id)).length +
+                      editNewPhotos.length ===
+                      0 && (
+                      <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl p-3">
+                        <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
+                        <p className="text-xs text-red-700 leading-relaxed">
+                          Garde au moins une photo — remets-en une avant de pouvoir enregistrer.
+                        </p>
+                      </div>
+                    )}
+
                   {editError && (
                     <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl p-3">
                       <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
@@ -1118,7 +1170,17 @@ return (
                     </div>
                   )}
 
-                  <Button className="w-full h-12 rounded-xl mt-2 bg-coral-500 hover:bg-coral-600" onClick={handleSaveEdit} disabled={isSaving}>
+                  <Button
+                    className="w-full h-12 rounded-xl mt-2 bg-coral-500 hover:bg-coral-600"
+                    onClick={handleSaveEdit}
+                    disabled={
+                      isSaving ||
+                      (!!editingArticle &&
+                        editExistingPhotos.filter((p) => !editRemovedPhotoIds.includes(p.id)).length +
+                          editNewPhotos.length ===
+                          0)
+                    }
+                  >
                     {isSaving ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Enregistrer"}
                   </Button>
                 </div>

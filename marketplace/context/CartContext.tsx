@@ -9,6 +9,15 @@ interface CartItem {
   quantite: number
   vendeur_id: string
   photos: string[]
+  varianteId?: string | null
+  varianteNom?: string | null
+}
+
+// Un même article avec deux variantes différentes (ex: Noir / Rouge) doit
+// pouvoir cohabiter comme deux lignes distinctes dans le panier — la clé
+// d'identité combine donc article + variante plutôt que l'article seul.
+export function cartKey(item: { id: string; varianteId?: string | null }): string {
+  return item.varianteId ? `${item.id}::${item.varianteId}` : item.id
 }
 
 interface CartContextType {
@@ -17,8 +26,8 @@ interface CartContextType {
   total: number
   itemCount: number
   addItem: (item: Omit<CartItem, 'quantite'>) => void
-  removeItem: (id: string) => void
-  updateQty: (id: string, qty: number) => void
+  removeItem: (key: string) => void
+  updateQty: (key: string, qty: number) => void
   openCart: () => void
   closeCart: () => void
   clearCart: () => void
@@ -45,24 +54,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = (item: Omit<CartItem, 'quantite'>) => {
     setItems(prev => {
-      const existing = prev.find(i => i.id === item.id)
+      const existing = prev.find(i => cartKey(i) === cartKey(item))
       if (existing) {
-        return prev.map(i => i.id === item.id ? { ...i, quantite: i.quantite + 1 } : i)
+        return prev.map(i => cartKey(i) === cartKey(item) ? { ...i, quantite: i.quantite + 1 } : i)
       }
       return [...prev, { ...item, quantite: 1 }]
     })
   }
 
-  const removeItem = (id: string) => {
-    setItems(prev => prev.filter(i => i.id !== id))
+  const removeItem = (key: string) => {
+    setItems(prev => prev.filter(i => cartKey(i) !== key))
   }
 
-  const updateQty = (id: string, qty: number) => {
+  const updateQty = (key: string, qty: number) => {
     if (qty < 1) {
-      removeItem(id)
+      removeItem(key)
       return
     }
-    setItems(prev => prev.map(i => i.id === id ? { ...i, quantite: qty } : i))
+    setItems(prev => prev.map(i => cartKey(i) === key ? { ...i, quantite: qty } : i))
   }
 
   const openCart = () => setIsOpen(true)

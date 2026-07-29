@@ -24,6 +24,8 @@ import {
   StickyNote,
   Trash2,
   MessageCircle,
+  Package,
+  ImageOff,
 } from "lucide-react";
 
 function PhotoGallery({ photoCniPath, photoProfilUrl, photoSecondaireUrl, photoSecondaireLabel }: {
@@ -131,6 +133,7 @@ export default function AdminUserDetailPage() {
     user,
     vendeurProfil,
     livreurProfil,
+    articles,
     addresses,
     commandes,
     avisRecus,
@@ -359,6 +362,50 @@ export default function AdminUserDetailPage() {
                 <p><span className="text-gray-400">Mobile Money : </span>{livreurProfil.mobile_money_network?.toUpperCase()} {livreurProfil.mobile_money_number}</p>
                 <Link href="/admin/livreurs" className="text-coral-500 font-bold text-xs inline-block mt-2">Voir dans la modération KYC →</Link>
               </div>
+            )}
+          </Section>
+        )}
+
+        {/* Articles (vendeur uniquement) */}
+        {user.role === "vendeur" && (
+          <Section title={`Articles (${articles.length})`} icon={<Package size={16} />}>
+            {articles.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucun article publié.</p>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
+                {articles.map((a: any) => {
+                  const photo = [...(a.article_images ?? [])].sort(
+                    (x: any, y: any) => (x.ordre ?? 0) - (y.ordre ?? 0)
+                  )[0];
+                  return (
+                    <Link
+                      key={a.id}
+                      href={`/produits/${a.id}`}
+                      target="_blank"
+                      className="flex items-center gap-3 text-sm hover:bg-gray-50/50 -mx-2 px-2 py-1.5 rounded-xl transition-colors"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-gray-50 overflow-hidden shrink-0 flex items-center justify-center">
+                        {photo ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={photo.image_url} alt={a.nom} className="w-full h-full object-cover" />
+                        ) : (
+                          <ImageOff size={14} className="text-gray-300" />
+                        )}
+                      </div>
+                      <span className="flex-1 min-w-0 font-medium text-gray-900 truncate">{a.nom}</span>
+                      <span className="font-bold text-gray-700 shrink-0">{formatFCFA(a.prix)}</span>
+                      <StatusBadge variant={a.statut === "publie" ? "success" : a.statut === "refuse" ? "error" : "pending"}>
+                        {a.statut === "publie" ? "Publié" : a.statut === "refuse" ? "Refusé" : "En attente"}
+                      </StatusBadge>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
+            {articles.length > 0 && (
+              <Link href="/admin/moderation" className="text-coral-500 font-bold text-xs inline-block mt-3">
+                Gérer dans la modération des articles →
+              </Link>
             )}
           </Section>
         )}

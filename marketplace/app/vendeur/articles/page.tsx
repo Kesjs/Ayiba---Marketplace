@@ -25,6 +25,27 @@ const TYPES_VARIANTE = [
 type TypeVariante = (typeof TYPES_VARIANTE)[number]["value"];
 const MAX_VARIANTES = 20;
 
+// Même logique que le formulaire d'ajout : pour le type "Taille", on propose
+// la bonne liste déroulante (pointures ou S/M/L) selon le slug de la
+// catégorie/sous-catégorie choisie, plutôt qu'un champ libre.
+const TAILLES_VETEMENTS = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const POINTURES_CHAUSSURES = Array.from({ length: 46 - 36 + 1 }, (_, i) => String(36 + i));
+
+const SLUGS_CHAUSSURES = new Set(["mode-chaussures"]);
+const SLUGS_VETEMENTS = new Set([
+  "mode-vetements-homme",
+  "mode-vetements-femme",
+  "mode-vetements-enfant",
+  "bebe-vetements",
+]);
+
+function optionsTaillePour(slug: string | null): string[] | null {
+  if (!slug) return null;
+  if (SLUGS_CHAUSSURES.has(slug)) return POINTURES_CHAUSSURES;
+  if (SLUGS_VETEMENTS.has(slug)) return TAILLES_VETEMENTS;
+  return null;
+}
+
 interface VarianteRow {
   id: string;
   type_variante: TypeVariante;
@@ -423,6 +444,13 @@ export default function MesArticlesPage() {
   const [editParentCategorieId, setEditParentCategorieId] = useState("");
   const editCategorieParente = categories.find((c) => c.id === editParentCategorieId) || null;
   const editADesSousCategories = (editCategorieParente?.sousCategories.length ?? 0) > 0;
+
+  // Slug de la catégorie retenue pour l'article en cours d'édition — sert à
+  // proposer le bon référentiel de tailles (pointures vs S/M/L).
+  const editSlugCategorieChoisie = editADesSousCategories
+    ? editCategorieParente?.sousCategories.find((sc) => sc.id === editForm.categorieId)?.slug ?? null
+    : editCategorieParente?.slug ?? null;
+  const editOptionsTailleActuelles = optionsTaillePour(editSlugCategorieChoisie);
 
   // --- Promotion ---
   const [editEnPromo, setEditEnPromo] = useState(false);
@@ -1577,13 +1605,26 @@ return (
                                       <option key={t.value} value={t.value}>{t.label}</option>
                                     ))}
                                   </select>
-                                  <input
-                                    type="text"
-                                    placeholder="Ex: Noir, XL, 13 Pro Max"
-                                    value={v.nom_variante}
-                                    onChange={(e) => updateEditVariante(v.key, { nom_variante: e.target.value })}
-                                    className="w-full h-9 px-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
-                                  />
+                                  {v.type_variante === "taille" && editOptionsTailleActuelles ? (
+                                    <select
+                                      value={v.nom_variante}
+                                      onChange={(e) => updateEditVariante(v.key, { nom_variante: e.target.value })}
+                                      className="w-full h-9 px-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                                    >
+                                      <option value="">Choisir...</option>
+                                      {editOptionsTailleActuelles.map((taille) => (
+                                        <option key={taille} value={taille}>{taille}</option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <input
+                                      type="text"
+                                      placeholder="Ex: Noir, XL, 13 Pro Max"
+                                      value={v.nom_variante}
+                                      onChange={(e) => updateEditVariante(v.key, { nom_variante: e.target.value })}
+                                      className="w-full h-9 px-2 rounded-lg border border-gray-200 text-xs focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                                    />
+                                  )}
                                 </div>
                                 <button
                                   type="button"

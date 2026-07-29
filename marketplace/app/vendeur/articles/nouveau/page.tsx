@@ -24,6 +24,31 @@ const TYPES_VARIANTE = [
   { value: "format", label: "Format" },
 ] as const;
 
+// Pour le type de variante "Taille", le bon référentiel dépend du produit :
+// une chaussure se choisit en pointure, un vêtement en S/M/L. Plutôt que de
+// laisser un champ libre pour les deux, on propose la bonne liste déroulante
+// selon la catégorie/sous-catégorie choisie par le vendeur, identifiée par
+// son slug (stable, contrairement au libellé affiché).
+const TAILLES_VETEMENTS = ["XS", "S", "M", "L", "XL", "XXL", "XXXL"];
+const POINTURES_CHAUSSURES = Array.from({ length: 46 - 36 + 1 }, (_, i) => String(36 + i));
+
+const SLUGS_CHAUSSURES = new Set(["mode-chaussures"]);
+const SLUGS_VETEMENTS = new Set([
+  "mode-vetements-homme",
+  "mode-vetements-femme",
+  "mode-vetements-enfant",
+  "bebe-vetements",
+]);
+
+/** Renvoie la liste de tailles prédéfinie pertinente pour ce slug de
+ * catégorie, ou null si aucune ne s'applique (le champ reste alors libre). */
+function optionsTaillePour(slug: string | null): string[] | null {
+  if (!slug) return null;
+  if (SLUGS_CHAUSSURES.has(slug)) return POINTURES_CHAUSSURES;
+  if (SLUGS_VETEMENTS.has(slug)) return TAILLES_VETEMENTS;
+  return null;
+}
+
 interface PhotoEntry {
   file: File;
   preview: string;
@@ -128,6 +153,14 @@ function NouveauArticleForm() {
     stock: "1",
   });
   const [stockIllimite, setStockIllimite] = useState(false);
+
+  // Slug de la catégorie réellement retenue pour l'article (la sous-catégorie
+  // si elle existe, sinon la catégorie parente) — sert à proposer le bon
+  // référentiel de tailles (pointures vs S/M/L) à l'étape Variantes.
+  const slugCategorieChoisie = aDesSousCategories
+    ? categorieParente?.sousCategories.find((sc) => sc.id === formData.categorieId)?.slug ?? null
+    : categorieParente?.slug ?? null;
+  const optionsTailleActuelles = optionsTaillePour(slugCategorieChoisie);
 
   // --- Promotion ---
   const [enPromo, setEnPromo] = useState(false);
@@ -1029,13 +1062,26 @@ function NouveauArticleForm() {
                           </div>
                           <div>
                             <label className="block text-xs font-medium text-gray-600 mb-1.5">Nom</label>
-                            <input
-                              type="text"
-                              placeholder="Ex: Noir, XL, 13 Pro Max"
-                              value={v.nom_variante}
-                              onChange={(e) => updateVariante(v.key, { nom_variante: e.target.value })}
-                              className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
-                            />
+                            {v.type_variante === "taille" && optionsTailleActuelles ? (
+                              <select
+                                value={v.nom_variante}
+                                onChange={(e) => updateVariante(v.key, { nom_variante: e.target.value })}
+                                className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                              >
+                                <option value="">Choisir...</option>
+                                {optionsTailleActuelles.map((taille) => (
+                                  <option key={taille} value={taille}>{taille}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder="Ex: Noir, XL, 13 Pro Max"
+                                value={v.nom_variante}
+                                onChange={(e) => updateVariante(v.key, { nom_variante: e.target.value })}
+                                className="w-full h-10 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:border-coral-400 focus:ring-coral-100"
+                              />
+                            )}
                           </div>
                         </div>
                         <button

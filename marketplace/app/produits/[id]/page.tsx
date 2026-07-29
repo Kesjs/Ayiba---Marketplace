@@ -70,6 +70,33 @@ const TYPE_VARIANTE_LABELS: Record<string, string> = {
   format: 'Format',
 }
 
+// Un vendeur peut ajouter ses tailles dans n'importe quel ordre (ex: M avant
+// S). Pour un affichage soigné, on les retrie par échelle logique quand le
+// type de variante est "taille" : numériquement pour des pointures (36, 37,
+// 38...), ou selon l'échelle XS→XXXL pour des tailles lettres. Les autres
+// types de variante (couleur, modèle, format) gardent l'ordre choisi par le
+// vendeur (`ordre`).
+const ORDRE_TAILLES_LETTRES: Record<string, number> = {
+  XS: 0, S: 1, M: 2, L: 3, XL: 4, XXL: 5, XXXL: 6,
+}
+
+function comparerVariantesTaille(a: Variante, b: Variante): number {
+  const numA = Number(a.nom_variante)
+  const numB = Number(b.nom_variante)
+  if (!Number.isNaN(numA) && !Number.isNaN(numB)) return numA - numB
+
+  const rangA = ORDRE_TAILLES_LETTRES[a.nom_variante.trim().toUpperCase()]
+  const rangB = ORDRE_TAILLES_LETTRES[b.nom_variante.trim().toUpperCase()]
+  if (rangA !== undefined && rangB !== undefined) return rangA - rangB
+
+  return (a.ordre ?? 0) - (b.ordre ?? 0)
+}
+
+function trierVariantesPourAffichage(variantes: Variante[]): Variante[] {
+  if (variantes.length === 0 || variantes[0].type_variante !== 'taille') return variantes
+  return [...variantes].sort(comparerVariantesTaille)
+}
+
 // Type dédié à la requête de détail produit (avec le profil vendeur complet).
 // Volontairement indépendant de ArticleCardRow pour éviter une intersection
 // de types sur le champ `vendeurs` (qui a une forme différente dans
@@ -595,7 +622,7 @@ export default function ProductDetailPage() {
                   {TYPE_VARIANTE_LABELS[variantes[0].type_variante] ?? 'Options'}
                 </h3>
                 <div className="flex flex-wrap gap-2">
-                  {variantes.map((v) => {
+                  {trierVariantesPourAffichage(variantes).map((v) => {
                     const enRupture = v.stock !== null && v.stock <= 0
                     const selected = v.id === selectedVarianteId
                     return (

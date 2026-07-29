@@ -3,11 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { RejectReasonModal } from "@/components/dashboard/RejectReasonModal";
+import { ArticleDetailModal } from "@/components/dashboard/ArticleDetailModal";
 import { useAdminArticles, ArticleModeration } from "@/lib/hooks/useAdmin";
 import { Button } from "@/components/ui/Button";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { Skeleton } from "@/components/ui/Skeleton";
-import { CheckCircle2, XCircle, X } from "lucide-react";
+import { CheckCircle2, XCircle, X, ShieldCheck, ShieldQuestion, ImageOff } from "lucide-react";
 
 const TABS = [
   { key: "en_attente", label: "En attente" },
@@ -23,6 +24,7 @@ export default function AdminModerationPage() {
   const { articles, loading, publier, refuser, publierMultiple, refuserMultiple } = useAdminArticles();
   const [tab, setTab] = useState<(typeof TABS)[number]["key"]>("en_attente");
   const [rejectTarget, setRejectTarget] = useState<ArticleModeration | null>(null);
+  const [detailArticle, setDetailArticle] = useState<ArticleModeration | null>(null);
   const [rejectSelectionMode, setRejectSelectionMode] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -115,47 +117,76 @@ export default function AdminModerationPage() {
         </div>
       ) : (
         <div className="bg-white rounded-[32px] border border-gray-50 shadow-sm divide-y divide-gray-50 overflow-hidden">
-          {filtered.map((a) => (
-            <div key={a.id} className="p-6 flex items-center gap-4">
-              {tab === "en_attente" && (
-                <input
-                  type="checkbox"
-                  checked={selected.has(a.id)}
-                  onChange={() => toggleOne(a.id)}
-                  className="w-5 h-5 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500/30 shrink-0 cursor-pointer"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 truncate">{a.nom}</p>
-                <p className="text-sm text-gray-500 truncate">{a.description || "Pas de description"}</p>
-                {a.raison_rejet && (
-                  <p className="text-xs text-red-600 font-medium mt-1">Motif : {a.raison_rejet}</p>
+          {filtered.map((a) => {
+            const photo = [...(a.article_images ?? [])].sort((x, y) => (x.ordre ?? 0) - (y.ordre ?? 0))[0];
+            const vendeurValide = a.vendeur?.statut === "valide";
+            return (
+              <div
+                key={a.id}
+                onClick={() => setDetailArticle(a)}
+                className="p-6 flex items-center gap-4 cursor-pointer hover:bg-gray-50/60 transition-colors"
+              >
+                {tab === "en_attente" && (
+                  <input
+                    type="checkbox"
+                    checked={selected.has(a.id)}
+                    onChange={() => toggleOne(a.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-5 h-5 rounded-md border-gray-300 text-teal-600 focus:ring-teal-500/30 shrink-0 cursor-pointer"
+                  />
+                )}
+                <div className="w-14 h-14 rounded-xl bg-gray-50 overflow-hidden shrink-0 flex items-center justify-center">
+                  {photo ? (
+                    <img src={photo.image_url} alt={a.nom} className="w-full h-full object-cover" />
+                  ) : (
+                    <ImageOff size={18} className="text-gray-300" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 truncate">{a.nom}</p>
+                  <p className="text-sm text-gray-500 truncate">{a.description || "Pas de description"}</p>
+                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                    {/* Statut KYC du vendeur en direct — jamais l'ancien texte
+                        raison_rejet, qui reste figé même après vérification du vendeur. */}
+                    {vendeurValide ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-teal-700">
+                        <ShieldCheck size={12} /> Vendeur vérifié
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">
+                        <ShieldQuestion size={12} /> Vendeur non vérifié
+                      </span>
+                    )}
+                    {a.statut === "refuse" && a.raison_rejet && (
+                      <span className="text-xs text-red-600 font-medium">Motif : {a.raison_rejet}</span>
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm font-bold text-gray-700 shrink-0">{formatFCFA(a.prix)}</p>
+                <StatusBadge variant={a.statut === "publie" ? "success" : a.statut === "refuse" ? "error" : "pending"}>
+                  {a.statut === "publie" ? "Publié" : a.statut === "refuse" ? "Refusé" : "En attente"}
+                </StatusBadge>
+                {a.statut === "en_attente" && (
+                  <div className="flex gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => publier(a.id)}
+                      className="p-2 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
+                      title="Publier"
+                    >
+                      <CheckCircle2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => setRejectTarget(a)}
+                      className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+                      title="Refuser"
+                    >
+                      <XCircle size={18} />
+                    </button>
+                  </div>
                 )}
               </div>
-              <p className="text-sm font-bold text-gray-700 shrink-0">{formatFCFA(a.prix)}</p>
-              <StatusBadge variant={a.statut === "publie" ? "success" : a.statut === "refuse" ? "error" : "pending"}>
-                {a.statut === "publie" ? "Publié" : a.statut === "refuse" ? "Refusé" : "En attente"}
-              </StatusBadge>
-              {a.statut === "en_attente" && (
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => publier(a.id)}
-                    className="p-2 rounded-lg bg-teal-50 text-teal-600 hover:bg-teal-100 transition-colors"
-                    title="Publier"
-                  >
-                    <CheckCircle2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => setRejectTarget(a)}
-                    className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                    title="Refuser"
-                  >
-                    <XCircle size={18} />
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -163,7 +194,7 @@ export default function AdminModerationPage() {
           article "en attente" est sélectionné. Reste fixée en bas pour rester
           accessible même après avoir scrollé la liste. */}
       {tab === "en_attente" && someSelected && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-30 bg-gray-900 text-white rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4">
+        <div className="fixed bottom-24 lg:bottom-6 left-1/2 -translate-x-1/2 z-40 bg-gray-900 text-white rounded-2xl shadow-2xl px-5 py-3 flex items-center gap-4">
           <span className="text-sm font-bold whitespace-nowrap">
             {selected.size} sélectionné{selected.size > 1 ? "s" : ""}
           </span>
@@ -195,6 +226,19 @@ export default function AdminModerationPage() {
           </button>
         </div>
       )}
+
+      <ArticleDetailModal
+        article={detailArticle}
+        onClose={() => setDetailArticle(null)}
+        onPublier={(id) => {
+          publier(id);
+          setDetailArticle(null);
+        }}
+        onRefuser={(a) => {
+          setDetailArticle(null);
+          setRejectTarget(a);
+        }}
+      />
 
       <RejectReasonModal
         isOpen={!!rejectTarget}

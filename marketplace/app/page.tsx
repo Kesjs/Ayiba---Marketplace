@@ -17,7 +17,7 @@ import { useRouter } from "next/navigation";
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { getTemoignagesPublics, type TemoignagePublic } from "@/lib/queries/temoignages";
-import { getCategoryStyle } from "@/lib/constants/category-styles";
+import { resolveCategoryIcon } from "@/lib/constants/category-icons";
 import { useUser } from "@/lib/hooks/useUser";
 import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
 import { useCart } from "@/context/CartContext";
@@ -119,7 +119,7 @@ export default function Home() {
   const supabase = createClient();
 
   const [articles, setArticles] = useState<ArticlePublic[]>([]);
-  const [categories, setCategories] = useState<{ id: string; nom: string; slug: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: string; nom: string; slug: string; icone: string | null; couleur: string | null }[]>([]);
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [temoignages, setTemoignages] = useState<TemoignagePublic[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
@@ -862,7 +862,8 @@ export default function Home() {
                   className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-6"
                 >
                   {categoriesAvecProduits.map((cat) => {
-                    const style = getCategoryStyle(cat.nom);
+                    const Icon = resolveCategoryIcon(cat.icone);
+                    const couleur = cat.couleur || "#9CA3AF";
                     const count = articles.filter(a => a.categorie?.slug === cat.slug).length;
                     return (
                       <motion.div key={cat.id} variants={lightItem}>
@@ -870,8 +871,11 @@ export default function Home() {
                           href={`/catalogue?categorie=${cat.slug}`}
                           className="group flex flex-col items-center text-center p-4 md:p-6 rounded-3xl border border-gray-100 hover:border-coral-100 hover:shadow-lg transition-all duration-300"
                         >
-                          <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl ${style.color} flex items-center justify-center mb-3 md:mb-4 transition-transform duration-300 group-hover:scale-110 shadow-sm`}>
-                            <style.icon size={22} />
+                          <div
+                            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl flex items-center justify-center mb-3 md:mb-4 transition-transform duration-300 group-hover:scale-110 shadow-sm"
+                            style={{ backgroundColor: `${couleur}1a`, color: couleur }}
+                          >
+                            <Icon size={22} />
                           </div>
                           <h3 className="text-xs md:text-sm font-bold text-gray-900 mb-0.5 md:mb-1">{cat.nom}</h3>
                           <p className="text-[10px] md:text-xs text-gray-400 font-medium">{count} produit{count > 1 ? 's' : ''}</p>

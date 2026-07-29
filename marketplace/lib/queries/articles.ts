@@ -115,7 +115,8 @@ export async function getCategoriesActives(): Promise<CategorieActive[]> {
 export interface CategorieArbre {
   id: string;
   nom: string;
-  sousCategories: { id: string; nom: string }[];
+  slug: string;
+  sousCategories: { id: string; nom: string; slug: string }[];
 }
 
 /**
@@ -128,18 +129,23 @@ export interface CategorieArbre {
  * uniquement à la page d'accueil publique (catégories mises en avant côté
  * client). Un vendeur doit toujours pouvoir classer son article dans
  * n'importe quelle catégorie/sous-catégorie existante, active ou non.
+ *
+ * `slug` est renvoyé en plus de `nom` pour permettre au formulaire de
+ * déduire le type de taille pertinent (pointures pour les chaussures,
+ * S/M/L pour les vêtements) sans dépendre du libellé affiché.
  */
 export async function getCategoriesFormulaire(): Promise<CategorieArbre[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("categories")
-    .select("id, nom, parent_id")
+    .select("id, nom, slug, parent_id")
     .order("ordre", { ascending: true });
   if (error) throw error;
 
   interface CategorieBrute {
     id: string;
     nom: string;
+    slug: string;
     parent_id: string | null;
   }
 
@@ -148,8 +154,9 @@ export async function getCategoriesFormulaire(): Promise<CategorieArbre[]> {
   return parents.map((p: CategorieBrute) => ({
     id: p.id,
     nom: p.nom,
+    slug: p.slug,
     sousCategories: toutes
       .filter((c: CategorieBrute) => c.parent_id === p.id)
-      .map((c: CategorieBrute) => ({ id: c.id, nom: c.nom })),
+      .map((c: CategorieBrute) => ({ id: c.id, nom: c.nom, slug: c.slug })),
   }));
 }

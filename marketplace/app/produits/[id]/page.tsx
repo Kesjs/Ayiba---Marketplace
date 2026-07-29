@@ -517,7 +517,8 @@ export default function ProductDetailPage() {
               )}
 
               {discount && (
-                <div className="absolute top-4 left-4 bg-coral-500 text-white rounded-lg px-3 py-1 text-sm font-bold">
+                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-red-600 text-white rounded-full px-3 py-1.5 text-sm font-black shadow-sm">
+                  <Star size={13} className="fill-white text-white" />
                   -{discount}%
                 </div>
               )}

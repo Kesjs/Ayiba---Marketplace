@@ -4,7 +4,7 @@ import { initFedaPay, declencherPaiementMobileMoney } from '@/lib/fedapay'
 
 interface GroupeCommande {
   vendeur_id: string
-  articles: { article_id: string; quantite: number }[]
+  articles: { article_id: string; quantite: number; variante_id?: string | null }[]
   nom_client: string
   telephone_client: string
   adresse_livraison: string

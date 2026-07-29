@@ -15,6 +15,11 @@ import {
   Wallet,
   UserX,
   ArrowUpRight,
+  PiggyBank,
+  RotateCcw,
+  Landmark,
+  ArrowDown,
+  ArrowUp,
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/Skeleton";
 
@@ -31,6 +36,41 @@ export default function AdminDashboardPage() {
         { label: "Commandes (24h)", value: stats.commandes_24h, icon: ShoppingBag, color: "text-teal-600", bg: "bg-teal-50", href: "/admin/commandes" },
         { label: "Litiges ouverts", value: stats.litiges_ouverts, icon: AlertTriangle, color: "text-red-600", bg: "bg-red-50", href: "/admin/litiges" },
         { label: "Volume d'affaires (mois)", value: formatFCFA(stats.volume_affaires_mois), icon: TrendingUp, color: "text-amber-600", bg: "bg-amber-50", href: null },
+      ]
+    : [];
+
+  // Évolution du volume d'affaires vs le mois civil précédent (pas de % si le mois précédent est à 0).
+  const evolutionVolume =
+    stats && stats.volume_affaires_mois_precedent > 0
+      ? ((stats.volume_affaires_mois - stats.volume_affaires_mois_precedent) / stats.volume_affaires_mois_precedent) * 100
+      : null;
+
+  const kpisFinanciers = stats
+    ? [
+        {
+          label: "Revenu net Ayiba (mois)",
+          value: formatFCFA(stats.revenu_net_mois),
+          sub: "Commission perçue sur les commandes réelles",
+          icon: PiggyBank,
+          color: "text-emerald-600",
+          bg: "bg-emerald-50",
+        },
+        {
+          label: "Taux d'annulation (mois)",
+          value: `${stats.taux_annulation_mois}%`,
+          sub: "Commandes annulées + remboursées / total",
+          icon: RotateCcw,
+          color: stats.taux_annulation_mois > 15 ? "text-red-600" : "text-gray-600",
+          bg: stats.taux_annulation_mois > 15 ? "bg-red-50" : "bg-gray-50",
+        },
+        {
+          label: "Retraits versés (total)",
+          value: formatFCFA(stats.retraits_verses_total),
+          sub: "Somme déjà décaissée aux vendeurs/livreurs",
+          icon: Landmark,
+          color: "text-indigo-600",
+          bg: "bg-indigo-50",
+        },
       ]
     : [];
 
@@ -57,13 +97,31 @@ export default function AdminDashboardPage() {
         {loading
           ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-[32px]" />)
           : kpis.map((stat, i) => {
+              const isVolumeCard = stat.label === "Volume d'affaires (mois)";
               const CardInner = (
                 <>
                   <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4`}>
                     <stat.icon size={24} />
                   </div>
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
-                  <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    {isVolumeCard && evolutionVolume !== null && (
+                      <span
+                        className={`inline-flex items-center gap-0.5 text-xs font-bold px-2 py-0.5 rounded-full ${
+                          evolutionVolume >= 0 ? "bg-teal-50 text-teal-700" : "bg-red-50 text-red-600"
+                        }`}
+                      >
+                        {evolutionVolume >= 0 ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                        {Math.abs(Math.round(evolutionVolume))}%
+                      </span>
+                    )}
+                  </div>
+                  {isVolumeCard && (
+                    <p className="text-[11px] text-gray-400 font-medium mt-1">
+                      {evolutionVolume === null ? "Pas de comparaison (mois précédent à 0)" : "vs mois précédent"}
+                    </p>
+                  )}
                 </>
               );
               const cardClass =
@@ -79,6 +137,25 @@ export default function AdminDashboardPage() {
                 </div>
               );
             })}
+      </div>
+
+      {/* Suivi financier */}
+      <div className="mb-12">
+        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">Comment évolue l'argent d'Ayiba</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {loading
+            ? Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-32 rounded-[32px]" />)
+            : kpisFinanciers.map((stat, i) => (
+                <div key={i} className="bg-white p-6 rounded-[32px] border border-gray-50 shadow-sm">
+                  <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center mb-4`}>
+                    <stat.icon size={24} />
+                  </div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
+                  <p className="text-[11px] text-gray-400 font-medium">{stat.sub}</p>
+                </div>
+              ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">

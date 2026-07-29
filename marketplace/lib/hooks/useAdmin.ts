@@ -218,10 +218,19 @@ export interface ArticleModeration {
   nom: string;
   description: string | null;
   prix: number;
+  prix_promo: number | null;
+  stock: number | null;
   statut: string;
   raison_rejet: string | null;
   vendeur_id: string;
   created_at: string;
+  categorie_id: string | null;
+  categories: { nom: string } | null;
+  article_images: { id: string; image_url: string; ordre: number | null }[];
+  // Statut KYC vendeur en direct (jointure live) — à ne jamais confondre avec
+  // raison_rejet, qui est un texte figé au moment de la création de l'article
+  // et qui devient trompeur si le vendeur se fait vérifier après coup.
+  vendeur: { nom_boutique: string | null; nom_complet: string | null; statut: string | null; email: string | null } | null;
 }
 
 export function useAdminArticles() {
@@ -232,9 +241,11 @@ export function useAdminArticles() {
     setLoading(true);
     const { data } = await supabase
       .from("articles")
-      .select("id, nom, description, prix, statut, raison_rejet, vendeur_id, created_at")
+      .select(
+        "id, nom, description, prix, prix_promo, stock, statut, raison_rejet, vendeur_id, created_at, categorie_id, categories(nom), article_images(id, image_url, ordre), vendeur:vendeurs(nom_boutique, nom_complet, statut, email)"
+      )
       .order("created_at", { ascending: false });
-    setArticles(data || []);
+    setArticles((data as any) || []);
     setLoading(false);
   }, []);
 
@@ -337,6 +348,7 @@ export function useAdminUserDetail(userId: string) {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
   const [vendeurProfil, setVendeurProfil] = useState<any | null>(null);
   const [livreurProfil, setLivreurProfil] = useState<any | null>(null);
+  const [articles, setArticles] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [commandes, setCommandes] = useState<any[]>([]);
   const [avisRecus, setAvisRecus] = useState<any[]>([]);
@@ -387,6 +399,19 @@ export function useAdminUserDetail(userId: string) {
     setAddresses(addressesRes.data || []);
     setActionsLog(logRes.data || []);
     setNotes(notesRes.data || []);
+
+    // Articles du vendeur — permet de voir sa liste de produits directement
+    // depuis sa fiche, sans repasser par la modération.
+    if (userRow.role === "vendeur") {
+      const { data: articlesData } = await supabase
+        .from("articles")
+        .select("id, nom, prix, statut, stock, created_at, article_images(image_url, ordre)")
+        .eq("vendeur_id", userId)
+        .order("created_at", { ascending: false });
+      setArticles(articlesData || []);
+    } else {
+      setArticles([]);
+    }
 
     // Fil de discussion admin <-> cet utilisateur (échangé dans les deux sens)
     const { data: auth } = await supabase.auth.getUser();
@@ -557,6 +582,7 @@ export function useAdminUserDetail(userId: string) {
     user,
     vendeurProfil,
     livreurProfil,
+    articles,
     addresses,
     commandes,
     avisRecus,

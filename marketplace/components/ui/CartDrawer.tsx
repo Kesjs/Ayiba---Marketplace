@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { X, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { useCart } from "@/context/CartContext";
+import { useCart, cartKey } from "@/context/CartContext";
 
 export function CartDrawer() {
   const router = useRouter();
@@ -69,7 +69,7 @@ export function CartDrawer() {
           <>
             <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-4">
               {items.map((item) => (
-                <div key={item.id} className="flex gap-3 pb-4 border-b border-gray-50 last:border-0">
+                <div key={cartKey(item)} className="flex gap-3 pb-4 border-b border-gray-50 last:border-0">
                   <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-50 shrink-0">
                     {item.photos?.[0] ? (
                       <img
@@ -86,6 +86,9 @@ export function CartDrawer() {
 
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{item.nom}</p>
+                    {item.varianteNom && (
+                      <p className="text-xs text-gray-500 truncate">{item.varianteNom}</p>
+                    )}
                     <p className="text-sm font-bold text-gray-900 mt-0.5">
                       {item.prix.toLocaleString("fr-FR")} FCFA
                     </p>
@@ -93,14 +96,14 @@ export function CartDrawer() {
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-2 border border-gray-200 rounded-lg">
                         <button
-                          onClick={() => updateQty(item.id, item.quantite - 1)}
+                          onClick={() => updateQty(cartKey(item), item.quantite - 1)}
                           className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-50 rounded-l-lg"
                         >
                           <Minus size={13} />
                         </button>
                         <span className="text-xs font-bold w-4 text-center">{item.quantite}</span>
                         <button
-                          onClick={() => updateQty(item.id, item.quantite + 1)}
+                          onClick={() => updateQty(cartKey(item), item.quantite + 1)}
                           className="w-7 h-7 flex items-center justify-center text-gray-500 hover:bg-gray-50 rounded-r-lg"
                         >
                           <Plus size={13} />
@@ -108,7 +111,7 @@ export function CartDrawer() {
                       </div>
 
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(cartKey(item))}
                         className="text-gray-300 hover:text-red-400 transition-colors"
                         aria-label="Retirer du panier"
                       >

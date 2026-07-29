@@ -991,7 +991,7 @@ function NouveauArticleForm() {
                   </p>
                 </div>
 
-                {submitError && step !== 3 && (
+                {submitError && (
                   <div className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-2xl p-4">
                     <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
                     <p className="text-xs text-red-700 leading-relaxed">{submitError}</p>

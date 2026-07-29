@@ -724,9 +724,16 @@ export function useAdminCategories() {
     load();
   }, [load]);
 
-  const creer = async (nom: string, couleur: string) => {
+  const creer = async (nom: string, couleur: string, icone: string) => {
     const slug = nom.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-    await supabase.from("categories").insert({ nom, slug, couleur, active: true, ordre: categories.length });
+    await supabase.from("categories").insert({ nom, slug, couleur, icone, active: true, ordre: categories.length });
+    await load();
+  };
+
+  /** Modifie l'icône et/ou la couleur d'une catégorie existante — utilisé
+   * pour donner une icône aux catégories créées avant l'ajout du picker. */
+  const mettreAJourStyle = async (id: string, patch: { icone?: string; couleur?: string }) => {
+    await supabase.from("categories").update(patch).eq("id", id);
     await load();
   };
 
@@ -740,7 +747,7 @@ export function useAdminCategories() {
     await load();
   };
 
-  return { categories, loading, creer, toggleActive, supprimer, refresh: load };
+  return { categories, loading, creer, toggleActive, supprimer, mettreAJourStyle, refresh: load };
 }
 
 // ---------- Paramètres système ----------

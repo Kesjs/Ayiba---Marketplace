@@ -87,7 +87,16 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
  * directement à un article et ne doit donc plus apparaître comme filtre,
  * sous peine de mener vers une liste vide.
  */
-export async function getCategoriesActives() {
+export interface CategorieActive {
+  id: string;
+  nom: string;
+  slug: string;
+  icone: string | null;
+  couleur: string | null;
+  parent_id: string | null;
+}
+
+export async function getCategoriesActives(): Promise<CategorieActive[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("categories")
@@ -96,11 +105,11 @@ export async function getCategoriesActives() {
     .order("ordre", { ascending: true });
   if (error) throw error;
 
-  const toutes = data || [];
+  const toutes: CategorieActive[] = data || [];
   const idsAvecEnfants = new Set(
-    toutes.filter((c) => c.parent_id).map((c) => c.parent_id)
+    toutes.filter((c: CategorieActive) => c.parent_id).map((c: CategorieActive) => c.parent_id)
   );
-  return toutes.filter((c) => !idsAvecEnfants.has(c.id));
+  return toutes.filter((c: CategorieActive) => !idsAvecEnfants.has(c.id));
 }
 
 export interface CategorieArbre {
@@ -124,13 +133,19 @@ export async function getCategoriesFormulaire(): Promise<CategorieArbre[]> {
     .order("ordre", { ascending: true });
   if (error) throw error;
 
-  const toutes = data || [];
-  const parents = toutes.filter((c) => !c.parent_id);
-  return parents.map((p) => ({
+  interface CategorieBrute {
+    id: string;
+    nom: string;
+    parent_id: string | null;
+  }
+
+  const toutes: CategorieBrute[] = data || [];
+  const parents = toutes.filter((c: CategorieBrute) => !c.parent_id);
+  return parents.map((p: CategorieBrute) => ({
     id: p.id,
     nom: p.nom,
     sousCategories: toutes
-      .filter((c) => c.parent_id === p.id)
-      .map((c) => ({ id: c.id, nom: c.nom })),
+      .filter((c: CategorieBrute) => c.parent_id === p.id)
+      .map((c: CategorieBrute) => ({ id: c.id, nom: c.nom })),
   }));
 }

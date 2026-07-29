@@ -235,6 +235,15 @@ export default function Home() {
   // sauteraient dans tous les sens à chaque clic (filtre, "voir plus"...).
   const articlesMelanges = useMemo(() => melanger(articles), [articles]);
 
+  // Règle produit : ne jamais afficher une catégorie vide (sans aucun article
+  // publié), que ce soit dans les onglets de filtre ou la grille "Catégories
+  // populaires" — sinon on affiche une catégorie cliquable qui mène à un
+  // état "Aucun produit pour le moment", ce qui est trompeur pour le client.
+  const categoriesAvecProduits = useMemo(
+    () => categories.filter((cat) => articles.some((a) => a.categorie?.slug === cat.slug)),
+    [categories, articles]
+  );
+
   const filteredProducts = activeTab === "Tout"
     ? articlesMelanges
     : articlesMelanges.filter(a => a.categorie?.nom === activeTab);
@@ -577,7 +586,7 @@ export default function Home() {
                 >
                   Tout
                 </button>
-                {categories.map((cat) => (
+                {categoriesAvecProduits.map((cat) => (
                   <button
                     key={cat.id}
                     onClick={() => { setActiveTab(cat.nom); setVisibleProductsCount(8); }}
@@ -831,7 +840,7 @@ export default function Home() {
           </section>
 
           {/* --- 8. CATÉGORIES POPULAIRES --- */}
-          {categories.length > 0 && (
+          {categoriesAvecProduits.length > 0 && (
             <motion.section
               variants={sectionVariants}
               initial="hidden"
@@ -852,7 +861,7 @@ export default function Home() {
                   viewport={{ once: true, margin: "-80px" }}
                   className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-6"
                 >
-                  {categories.map((cat) => {
+                  {categoriesAvecProduits.map((cat) => {
                     const style = getCategoryStyle(cat.nom);
                     const count = articles.filter(a => a.categorie?.slug === cat.slug).length;
                     return (

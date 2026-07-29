@@ -123,13 +123,17 @@ export interface CategorieArbre {
  * formulaire "Ajouter/Modifier un article" : contrairement à
  * getCategoriesActives, les catégories parentes doivent apparaître ici,
  * sinon impossible d'accéder à leurs sous-catégories.
+ *
+ * Volontairement PAS de filtre `active` ici : le champ `active` sert
+ * uniquement à la page d'accueil publique (catégories mises en avant côté
+ * client). Un vendeur doit toujours pouvoir classer son article dans
+ * n'importe quelle catégorie/sous-catégorie existante, active ou non.
  */
 export async function getCategoriesFormulaire(): Promise<CategorieArbre[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("categories")
     .select("id, nom, parent_id")
-    .eq("active", true)
     .order("ordre", { ascending: true });
   if (error) throw error;
 

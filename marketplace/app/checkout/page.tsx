@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useUser } from '@/lib/hooks/useUser'
-import { useCart } from '@/context/CartContext'
+import { useCart, cartKey } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Navbar } from '@/components/ui/Navbar'
@@ -337,7 +337,7 @@ export default function CheckoutPage() {
 
       const groupes = Object.entries(groupesParVendeur).map(([vendeurId, articlesVendeur]) => ({
         vendeur_id: vendeurId,
-        articles: articlesVendeur.map((a) => ({ article_id: a.id, quantite: a.quantite })),
+        articles: articlesVendeur.map((a) => ({ article_id: a.id, quantite: a.quantite, variante_id: a.varianteId ?? null })),
         nom_client: nomClient.trim(),
         telephone_client: telephone.trim(),
         adresse_livraison: adresseLigne,
@@ -437,7 +437,7 @@ export default function CheckoutPage() {
               </h2>
               <div className="space-y-3">
                 {items.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100">
+                  <div key={cartKey(item)} className="flex items-center gap-3 p-3 rounded-2xl border border-gray-100">
                     <img
                       src={item.photos[0] || '/images/hero-illustration.png'}
                       alt={item.nom}
@@ -445,25 +445,28 @@ export default function CheckoutPage() {
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-900 truncate">{item.nom}</p>
+                      {item.varianteNom && (
+                        <p className="text-xs text-gray-400 truncate">{item.varianteNom}</p>
+                      )}
                       <p className="text-sm text-gray-500">{item.prix.toLocaleString('fr-FR')} F</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button
-                        onClick={() => updateQty(item.id, item.quantite - 1)}
+                        onClick={() => updateQty(cartKey(item), item.quantite - 1)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50"
                       >
                         <Minus size={14} />
                       </button>
                       <span className="w-6 text-center text-sm font-bold">{item.quantite}</span>
                       <button
-                        onClick={() => updateQty(item.id, item.quantite + 1)}
+                        onClick={() => updateQty(cartKey(item), item.quantite + 1)}
                         className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50"
                       >
                         <Plus size={14} />
                       </button>
                     </div>
                     <button
-                      onClick={() => removeItem(item.id)}
+                      onClick={() => removeItem(cartKey(item))}
                       className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 shrink-0"
                       aria-label="Retirer"
                     >
@@ -727,8 +730,11 @@ export default function CheckoutPage() {
                   >
                     <div className="pt-3 space-y-2">
                       {items.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between text-sm px-1">
-                          <span className="text-gray-600">{item.quantite}× {item.nom}</span>
+                        <div key={cartKey(item)} className="flex items-center justify-between text-sm px-1">
+                          <span className="text-gray-600">
+                            {item.quantite}× {item.nom}
+                            {item.varianteNom && <span className="text-gray-400"> ({item.varianteNom})</span>}
+                          </span>
                           <span className="font-semibold text-gray-800">{(item.prix * item.quantite).toLocaleString('fr-FR')} F</span>
                         </div>
                       ))}

@@ -44,6 +44,14 @@ export interface AdminStats {
   retraits_a_valider: number;
   demandes_suppression_attente: number;
   montant_en_sequestre: number;
+  // Volume du mois civil précédent (mêmes filtres que volume_affaires_mois), pour calculer l'évolution.
+  volume_affaires_mois_precedent: number;
+  // Commission Ayiba perçue ce mois-ci sur les commandes réelles (hors annulées/remboursées).
+  revenu_net_mois: number;
+  // % de commandes annulées ou remboursées sur le total du mois.
+  taux_annulation_mois: number;
+  // Somme des retraits déjà effectivement versés (statut 'paye'), tous temps confondus.
+  retraits_verses_total: number;
 }
 
 export function useAdminOverview() {

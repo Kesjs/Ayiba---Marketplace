@@ -13,7 +13,6 @@ import { AuthModal } from '@/components/ui/AuthModal'
 import { Footer } from '@/components/home/Footer'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star } from 'lucide-react'
 import {
   Heart, Star, ShoppingBag, MessageCircle, Share2,
   ChevronLeft, ChevronRight, Minus, Plus,
@@ -52,6 +51,23 @@ interface Avis {
   created_at: string
   reviewer_name: string
   reviewer_avatar: string | null
+}
+
+interface Variante {
+  id: string
+  type_variante: string
+  nom_variante: string
+  prix: number | null
+  stock: number | null
+  photo_url: string | null
+  ordre: number | null
+}
+
+const TYPE_VARIANTE_LABELS: Record<string, string> = {
+  couleur: 'Couleur',
+  taille: 'Taille',
+  modele: 'Modèle',
+  format: 'Format',
 }
 
 // Type dédié à la requête de détail produit (avec le profil vendeur complet).
@@ -111,6 +127,9 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<Avis[]>([])
   const [similarProducts, setSimilarProducts] = useState<ArticleCard[]>([])
   const [vendeurStats, setVendeurStats] = useState<VendeurStats>({ rating: 0, reviewCount: 0, productCount: 0 })
+  const [variantes, setVariantes] = useState<Variante[]>([])
+  const [selectedVarianteId, setSelectedVarianteId] = useState<string | null>(null)
+  const [variantesError, setVariantesError] = useState<string | null>(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   // Où renvoyer l'utilisateur une fois connecté : /checkout après un "Acheter
   // maintenant" en étant déconnecté, null pour les autres usages (favoris...)
@@ -121,9 +140,15 @@ export default function ProductDetailPage() {
     fetchProduct()
     setCurrentImageIndex(0)
     setQuantity(1)
+    setSelectedVarianteId(null)
+    setVariantesError(null)
     window.scrollTo(0, 0)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id])
+
+  useEffect(() => {
+    setCurrentImageIndex(0)
+  }, [selectedVarianteId])
 
   useEffect(() => {
     const handleScroll = () => {
@@ -189,6 +214,20 @@ export default function ProductDetailPage() {
       fetchSimilar(articleRow.categorie_id, articleId)
       if (vendeurRow?.id) {
         fetchVendeurStats(supabase, vendeurRow.id).then(setVendeurStats)
+      }
+
+      const { data: variantesData, error: variantesErr } = await supabase
+        .from('article_variantes')
+        .select('id, type_variante, nom_variante, prix, stock, photo_url, ordre')
+        .eq('article_id', articleId)
+        .eq('actif', true)
+        .order('ordre', { ascending: true })
+
+      if (variantesErr) {
+        setVariantesError("Les options de cet article n'ont pas pu être chargées.")
+        setVariantes([])
+      } else {
+        setVariantes((variantesData as Variante[] | null) ?? [])
       }
     } catch (error) {
       console.error('Error fetching product:', error)
@@ -260,33 +299,49 @@ export default function ProductDetailPage() {
     setSimilarProducts(rows.map((r) => mapArticleRow(r, ratings)))
   }
 
-  const handleAddToCart = () => {
-    if (!product) return
+  // Variante sélectionnée (le cas échéant) et valeurs effectives qui en
+  // découlent : une variante avec un prix/stock renseigné prend le dessus
+  // sur ceux de l'article, sinon elle en hérite — même logique que
+  // creer_commande_service côté base de données.
+  const selectedVariante = variantes.find((v) => v.id === selectedVarianteId) ?? null
+  const displayPrix = selectedVariante?.prix ?? product?.prix ?? 0
+  const displayAncienPrix = selectedVariante?.prix != null ? null : product?.ancien_prix ?? null
+  const displayStock = selectedVariante ? selectedVariante.stock : product?.stock ?? null
+  const ruptureStock = displayStock !== null && displayStock <= 0
+
+  const ajouterAuPanier = (): boolean => {
+    if (!product) return false
+    if (variantes.length > 0 && !selectedVarianteId) {
+      showToast('Choisis une option avant de continuer', 'error')
+      return false
+    }
+    if (ruptureStock) {
+      showToast('Cette option est en rupture de stock', 'error')
+      return false
+    }
     for (let i = 0; i < quantity; i++) {
       addItem({
         id: product.id,
         nom: product.nom,
-        prix: product.prix,
+        prix: displayPrix,
         vendeur_id: product.vendeur.id,
-        photos: product.photos
+        photos: product.photos,
+        varianteId: selectedVariante?.id ?? null,
+        varianteNom: selectedVariante?.nom_variante ?? null,
       })
     }
+    return true
+  }
+
+  const handleAddToCart = () => {
+    if (!ajouterAuPanier()) return
     setJustAdded(true)
     showToast(`${quantity} article(s) ajouté(s) au panier`, 'success')
     setTimeout(() => setJustAdded(false), 1500)
   }
 
   const handleBuyNow = () => {
-    if (!product) return
-    for (let i = 0; i < quantity; i++) {
-      addItem({
-        id: product.id,
-        nom: product.nom,
-        prix: product.prix,
-        vendeur_id: product.vendeur.id,
-        photos: product.photos
-      })
-    }
+    if (!ajouterAuPanier()) return
     // Le panier est stocké en localStorage (indépendant du compte), donc on
     // peut ajouter l'article avant même la connexion : une fois l'utilisateur
     // connecté via la modale, il arrive directement sur le checkout avec son
@@ -362,7 +417,17 @@ export default function ProductDetailPage() {
     ? Math.round(((product.ancien_prix - product.prix) / product.ancien_prix) * 100)
     : null
 
-  const totalPrice = product.prix * quantity
+  // La photo de la variante sélectionnée passe en priorité dans la galerie,
+  // sans masquer les autres photos de l'article — l'acheteur peut toujours
+  // les parcourir.
+  const galleryPhotos = selectedVariante?.photo_url
+    ? [selectedVariante.photo_url, ...product.photos.filter((p) => p !== selectedVariante.photo_url)]
+    : product.photos
+
+  const selectionIncomplete = variantes.length > 0 && !selectedVarianteId
+  const achatBloque = selectionIncomplete || ruptureStock
+
+  const totalPrice = displayPrix * quantity
 
   const specs = [
     { label: "Catégorie", value: product.categorieLabel },
@@ -401,26 +466,26 @@ export default function ProductDetailPage() {
               }}
               onTouchEnd={(e) => {
                 const startX = (e.currentTarget as any)._touchStartX
-                if (startX == null || product.photos.length <= 1) return
+                if (startX == null || galleryPhotos.length <= 1) return
                 const deltaX = e.changedTouches[0].clientX - startX
                 if (Math.abs(deltaX) < 40) return // pas un swipe volontaire
                 if (deltaX < 0) {
-                  setCurrentImageIndex((prev) => (prev + 1) % product.photos.length)
+                  setCurrentImageIndex((prev) => (prev + 1) % galleryPhotos.length)
                 } else {
-                  setCurrentImageIndex((prev) => (prev - 1 + product.photos.length) % product.photos.length)
+                  setCurrentImageIndex((prev) => (prev - 1 + galleryPhotos.length) % galleryPhotos.length)
                 }
               }}
             >
               <img
-                src={product.photos[currentImageIndex]}
+                src={galleryPhotos[currentImageIndex] ?? galleryPhotos[0]}
                 alt={product.nom}
                 className="w-full h-full object-cover"
               />
 
-              {product.photos.length > 1 && (
+              {galleryPhotos.length > 1 && (
                 <>
                   <button
-                    onClick={() => setCurrentImageIndex((prev) => (prev - 1 + product.photos.length) % product.photos.length)}
+                    onClick={() => setCurrentImageIndex((prev) => (prev - 1 + galleryPhotos.length) % galleryPhotos.length)}
                     className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center"
                     aria-label="Image précédente"
                   >
@@ -429,7 +494,7 @@ export default function ProductDetailPage() {
                     </span>
                   </button>
                   <button
-                    onClick={() => setCurrentImageIndex((prev) => (prev + 1) % product.photos.length)}
+                    onClick={() => setCurrentImageIndex((prev) => (prev + 1) % galleryPhotos.length)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center"
                     aria-label="Image suivante"
                   >
@@ -438,7 +503,7 @@ export default function ProductDetailPage() {
                     </span>
                   </button>
                   <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                    {product.photos.map((_, i) => (
+                    {galleryPhotos.map((_, i) => (
                       <button
                         key={i}
                         onClick={() => setCurrentImageIndex(i)}
@@ -452,8 +517,7 @@ export default function ProductDetailPage() {
               )}
 
               {discount && (
-                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-red-600 text-white rounded-full px-3 py-1.5 text-sm font-black shadow-sm">
-                  <Star size={13} className="fill-white text-white" />
+                <div className="absolute top-4 left-4 bg-coral-500 text-white rounded-lg px-3 py-1 text-sm font-bold">
                   -{discount}%
                 </div>
               )}
@@ -477,9 +541,9 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            {product.photos.length > 1 && (
+            {galleryPhotos.length > 1 && (
               <div className="flex gap-3 mt-4 overflow-x-auto pb-2 no-scrollbar">
-                {product.photos.map((photo, i) => (
+                {galleryPhotos.map((photo, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
@@ -511,14 +575,55 @@ export default function ProductDetailPage() {
 
             <div className="flex items-baseline gap-3 flex-wrap">
               <span className="text-2xl md:text-3xl font-black text-gray-900">
-                {product.prix.toLocaleString('fr-FR')} <span className="text-base font-bold">FCFA</span>
+                {displayPrix.toLocaleString('fr-FR')} <span className="text-base font-bold">FCFA</span>
               </span>
-              {product.ancien_prix && (
+              {displayAncienPrix && (
                 <span className="text-base md:text-lg text-gray-400 line-through font-medium">
-                  {product.ancien_prix.toLocaleString('fr-FR')} FCFA
+                  {displayAncienPrix.toLocaleString('fr-FR')} FCFA
                 </span>
               )}
             </div>
+
+            {variantesError && (
+              <p className="text-xs text-red-500">{variantesError}</p>
+            )}
+
+            {variantes.length > 0 && (
+              <div>
+                <h3 className="text-sm font-bold text-gray-900 mb-2">
+                  {TYPE_VARIANTE_LABELS[variantes[0].type_variante] ?? 'Options'}
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {variantes.map((v) => {
+                    const enRupture = v.stock !== null && v.stock <= 0
+                    const selected = v.id === selectedVarianteId
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        onClick={() => setSelectedVarianteId(v.id)}
+                        disabled={enRupture}
+                        className={`px-4 h-11 rounded-xl border-2 text-sm font-semibold transition-colors flex items-center gap-2 ${
+                          selected
+                            ? 'border-coral-500 bg-coral-50 text-coral-700'
+                            : enRupture
+                              ? 'border-gray-100 text-gray-300 line-through cursor-not-allowed'
+                              : 'border-gray-200 text-gray-700 hover:border-coral-300'
+                        }`}
+                      >
+                        {v.photo_url && (
+                          <img src={v.photo_url} alt="" className="w-6 h-6 rounded-md object-cover" />
+                        )}
+                        {v.nom_variante}
+                      </button>
+                    )
+                  })}
+                </div>
+                {!selectedVarianteId && (
+                  <p className="text-xs text-gray-400 mt-2">Choisis une option pour continuer.</p>
+                )}
+              </div>
+            )}
 
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 bg-amber-50 px-3 py-1.5 rounded-lg">
@@ -642,18 +747,20 @@ export default function ProductDetailPage() {
             <div className="hidden md:flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleAddToCart}
-                className={`flex-1 h-13 md:h-14 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-colors duration-300 ${
+                disabled={achatBloque}
+                className={`flex-1 h-13 md:h-14 rounded-xl border-2 flex items-center justify-center gap-2 font-bold text-sm transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                   justAdded
                     ? 'border-teal-600 text-teal-600 bg-teal-50'
                     : 'border-gray-900 text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <ShoppingBag size={18} />
-                {justAdded ? 'Ajouté ✓' : 'Ajouter au panier'}
+                {ruptureStock ? 'Rupture de stock' : justAdded ? 'Ajouté ✓' : 'Ajouter au panier'}
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex-1 h-13 md:h-14 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors duration-300"
+                disabled={achatBloque}
+                className="flex-1 h-13 md:h-14 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Acheter maintenant
               </button>
@@ -764,7 +871,8 @@ export default function ProductDetailPage() {
               </div>
               <button
                 onClick={handleAddToCart}
-                className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all ${
+                disabled={achatBloque}
+                className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900 hover:bg-gray-50'
                 }`}
                 aria-label="Ajouter au panier"
@@ -773,9 +881,10 @@ export default function ProductDetailPage() {
               </button>
               <button
                 onClick={handleBuyNow}
-                className="flex-1 h-14 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-base transition-all shadow-md"
+                disabled={achatBloque}
+                className="flex-1 h-14 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-base transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Acheter maintenant
+                {achatBloque && selectionIncomplete ? 'Choisis une option' : 'Acheter maintenant'}
               </button>
             </div>
           </motion.div>

@@ -253,6 +253,21 @@ export function useAdminArticles() {
     load();
   }, [load]);
 
+  // Le statut KYC du vendeur peut changer dans un autre onglet (ex: validation
+  // pendant que la page modération des articles est restée ouverte). On
+  // rafraîchit au retour sur l'onglet pour ne pas afficher un badge périmé.
+  useEffect(() => {
+    const onFocusOuVisible = () => {
+      if (document.visibilityState === "visible") load();
+    };
+    window.addEventListener("focus", onFocusOuVisible);
+    document.addEventListener("visibilitychange", onFocusOuVisible);
+    return () => {
+      window.removeEventListener("focus", onFocusOuVisible);
+      document.removeEventListener("visibilitychange", onFocusOuVisible);
+    };
+  }, [load]);
+
   const publier = async (id: string) => {
     await supabase.from("articles").update({ statut: "publie", raison_rejet: null, actif: true }).eq("id", id);
     await logAction("article_publie", "article", id);

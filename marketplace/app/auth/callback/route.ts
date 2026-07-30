@@ -1,17 +1,33 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import type { EmailOtpType } from "@supabase/supabase-js";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
+  const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
 
-  if (code) {
+  if (code || tokenHash) {
     const supabase = await createClient();
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.exchangeCodeForSession(code);
+
+    // Le flux "recovery" (mot de passe oublié) utilise verifyOtp(token_hash)
+    // plutôt que exchangeCodeForSession(code) : ce dernier dépend d'un
+    // cookie code_verifier posé dans le navigateur qui a fait la demande,
+    // ce qui échoue quasi systématiquement sur mobile (le lien du mail
+    // s'ouvre dans un autre navigateur/contexte que celui d'origine).
+    // verifyOtp ne dépend d'aucun cookie : il fonctionne peu importe où le
+    // lien est ouvert.
+    // ⚠️ Nécessite que le template mail "Reset Password" dans Supabase
+    // (Auth > Email Templates) pointe vers une URL avec token_hash au lieu
+    // de {{ .ConfirmationURL }}, ex. :
+    // {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery
+    const { data, error } =
+      tokenHash && type
+        ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as EmailOtpType })
+        : await supabase.auth.exchangeCodeForSession(code!);
+
+    const user = data.user;
 
     if (!error && user) {
       if (type === "recovery") {

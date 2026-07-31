@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ChevronRight, Globe, ShieldCheck, Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { validatePasswordStrength } from "@/lib/validation";
 import { useToast } from "@/context/ToastContext";
 import { Button } from "@/components/ui/Button";
 
@@ -21,13 +22,6 @@ function translateAuthError(err: any): string {
     return "Trop de tentatives. Réessaie dans quelques instants.";
   }
   return "Une erreur est survenue. Réessaie.";
-}
-
-function validatePasswordStrength(value: string): string | null {
-  if (value.length < 8) return "Le mot de passe doit contenir au moins 8 caractères.";
-  if (!/[A-Z]/.test(value)) return "Le mot de passe doit contenir au moins une majuscule.";
-  if (!/[0-9]/.test(value)) return "Le mot de passe doit contenir au moins un chiffre.";
-  return null;
 }
 
 export default function ParametresPage() {

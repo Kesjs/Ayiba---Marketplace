@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import LogoAyiba from "@/components/ui/LogoAyiba";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -54,7 +55,8 @@ export default function ResetPasswordPage() {
   // Chargement pendant la vérification de session
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="h-[100dvh] overflow-hidden flex flex-col items-center justify-center gap-8 px-4">
+        <LogoAyiba className="h-9 w-auto" />
         <div className="w-8 h-8 border-2 border-gray-200 border-t-coral-500 rounded-full animate-spin" />
       </div>
     );
@@ -63,8 +65,9 @@ export default function ResetPasswordPage() {
   // Lien invalide ou expiré
   if (!sessionValid) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-sm w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+      <div className="h-[100dvh] overflow-hidden flex flex-col items-center justify-center gap-6 px-4">
+        <LogoAyiba className="h-9 w-auto shrink-0" />
+        <div className="max-w-sm w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center max-h-[75dvh] overflow-y-auto">
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
             <ShieldAlert size={28} className="text-red-500" />
           </div>
@@ -86,8 +89,9 @@ export default function ResetPasswordPage() {
   // Succès
   if (done) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-4">
-        <div className="max-w-sm w-full bg-white rounded-2xl border border-teal-100 shadow-sm p-8 text-center">
+      <div className="h-[100dvh] overflow-hidden flex flex-col items-center justify-center gap-6 px-4">
+        <LogoAyiba className="h-9 w-auto shrink-0" />
+        <div className="max-w-sm w-full bg-white rounded-2xl border border-teal-100 shadow-sm p-8 text-center max-h-[75dvh] overflow-y-auto">
           <div className="w-16 h-16 bg-teal-50 rounded-full flex items-center justify-center mx-auto mb-5">
             <CheckCircle2 size={28} className="text-teal-600" />
           </div>
@@ -108,8 +112,9 @@ export default function ResetPasswordPage() {
 
   // Formulaire
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-sm w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8">
+    <div className="h-[100dvh] overflow-hidden flex flex-col items-center justify-center gap-6 px-4">
+      <LogoAyiba className="h-9 w-auto shrink-0" />
+      <div className="max-w-sm w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8 max-h-[75dvh] overflow-y-auto">
         <div className="w-14 h-14 bg-coral-50 rounded-2xl flex items-center justify-center mb-5">
           <Lock size={24} className="text-coral-500" />
         </div>

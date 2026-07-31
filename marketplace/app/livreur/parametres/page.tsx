@@ -31,6 +31,9 @@ import { LegalSheet } from "@/components/legal/LegalSheet";
 import { CGUContent } from "@/components/legal/CGUContent";
 import { useToast } from "@/context/ToastContext";
 import { PrivacyContent } from "@/components/legal/PrivacyContent";
+import { COMMUNES_COUVERTES } from "@/lib/constants/communes";
+import { AdresseAutocomplete } from "@/components/ui/AdresseAutocomplete";
+import type { SuggestionAdresse } from "@/lib/hooks/useAdresseAutocomplete";
 import {
   useLivreurParametres,
   type TypeVehicule,
@@ -326,6 +329,18 @@ export default function LivreurParametresPage() {
 
           {/* Localisation */}
           <SettingsSection icon={MapPin} title="Localisation" delay={0.1}>
+            <SettingsField label="Rechercher une adresse">
+              <AdresseAutocomplete
+                placeholder="Rechercher une adresse (rue, quartier, ville)..."
+                onSelect={(s: SuggestionAdresse) => {
+                  setForm((f) => ({
+                    ...f,
+                    commune: s.commune || f.commune,
+                    quartier: s.quartier || f.quartier,
+                  }));
+                }}
+              />
+            </SettingsField>
             <SettingsField label="Quartier">
               <input
                 type="text"
@@ -336,13 +351,16 @@ export default function LivreurParametresPage() {
               />
             </SettingsField>
             <SettingsField label="Commune">
-              <input
-                type="text"
+              <select
                 value={form.commune}
                 onChange={(e) => setForm((f) => ({ ...f, commune: e.target.value }))}
-                className="settings-input"
-                placeholder="Ex: Calavi"
-              />
+                className="settings-input bg-white"
+              >
+                <option value="">Choisir une commune...</option>
+                {COMMUNES_COUVERTES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
             </SettingsField>
           </SettingsSection>
 

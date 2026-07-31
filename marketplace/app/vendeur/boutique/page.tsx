@@ -125,6 +125,9 @@ export default function VendeurBoutiquePage() {
     if (!form.nom_boutique.trim()) e.nom_boutique = "Le nom de la boutique est obligatoire.";
     const erreurNumero = validerNumero(form.mobile_money_number, form.mobile_money_network);
     if (erreurNumero) e.mobile_money_number = erreurNumero;
+    if (form.latitude === null || form.longitude === null) {
+      e.position = "La position de la boutique est obligatoire — sans elle, les frais de livraison facturés à tes clients sont moins fiables.";
+    }
     return e;
   }, [form]);
 
@@ -328,15 +331,19 @@ export default function VendeurBoutiquePage() {
                 </div>
               </div>
 
-              {/* Position GPS de la boutique — nécessaire pour le futur calcul
-                  des frais de livraison à la distance (vendeur -> client). */}
+              {/* Position GPS de la boutique — utilisée directement par
+                  calculer_frais_livraison pour facturer une distance de
+                  livraison réelle au client ; obligatoire depuis la correction
+                  du bug de sous-facturation sur les livraisons longue distance. */}
               <motion.div
-                animate={{ backgroundColor: form.latitude ? "rgb(240 253 250)" : "rgb(249 250 251)" }}
+                animate={{ backgroundColor: form.latitude ? "rgb(240 253 250)" : "rgb(254 242 242)" }}
                 transition={{ duration: 0.3 }}
-                className="mt-4 flex items-center justify-between gap-3 p-4 rounded-2xl border border-gray-100"
+                className={`mt-4 flex items-center justify-between gap-3 p-4 rounded-2xl border ${
+                  form.latitude ? "border-gray-100" : "border-red-200"
+                }`}
               >
                 <div className="flex items-center gap-2 min-w-0">
-                  <MapPin size={16} className={form.latitude ? "text-teal-600" : "text-gray-400"} />
+                  <MapPin size={16} className={form.latitude ? "text-teal-600" : "text-red-500"} />
                   <AnimatePresence mode="wait">
                     <motion.p
                       key={form.latitude ? "avec-position" : "sans-position"}
@@ -344,11 +351,11 @@ export default function VendeurBoutiquePage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -4 }}
                       transition={{ duration: 0.15 }}
-                      className="text-sm text-gray-600 truncate"
+                      className={`text-sm truncate ${form.latitude ? "text-gray-600" : "text-red-700 font-medium"}`}
                     >
                       {form.latitude && form.longitude
                         ? `Position enregistrée (${form.latitude.toFixed(4)}, ${form.longitude.toFixed(4)})`
-                        : "Aucune position GPS enregistrée pour cette boutique"}
+                        : "Position GPS obligatoire — non enregistrée pour cette boutique"}
                     </motion.p>
                   </AnimatePresence>
                 </div>
@@ -376,6 +383,14 @@ export default function VendeurBoutiquePage() {
                   {localisationEnCours ? "Localisation..." : "Localiser ma boutique"}
                 </button>
               </motion.div>
+              {!form.latitude && (
+                <p className="text-xs text-red-600 -mt-2">
+                  Utilise la recherche d&apos;adresse ci-dessus ou le bouton &quot;Localiser ma boutique&quot;
+                  — tant que la position n&apos;est pas enregistrée, tu ne peux pas enregistrer les
+                  autres modifications de ta boutique, et les frais de livraison facturés à tes
+                  clients restent une estimation par commune plutôt qu&apos;un calcul réel.
+                </p>
+              )}
             </div>
 
             {/* Horaires */}

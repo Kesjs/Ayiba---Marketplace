@@ -12,6 +12,11 @@ import { LogoutConfirmModal } from '@/components/ui/LogoutConfirmModal'
 import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 import { validateBeninPhone } from '@/lib/validation'
+import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
+import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
+import { AdresseAutocomplete } from '@/components/ui/AdresseAutocomplete'
+import type { SuggestionAdresse } from '@/lib/hooks/useAdresseAutocomplete'
+import { LocateFixed, Loader2 } from 'lucide-react'
 
 interface Address {
   id: string
@@ -19,6 +24,8 @@ interface Address {
   adresse_complete: string
   quartier: string
   commune: string
+  latitude: number | null
+  longitude: number | null
   repere: string | null
   est_defaut: boolean
 }
@@ -42,9 +49,12 @@ export default function ProfilPage() {
     adresse_complete: '',
     quartier: '',
     commune: '',
+    latitude: null as number | null,
+    longitude: null as number | null,
     repere: '',
     est_defaut: false
   })
+  const { localiser, loading: localisationEnCours } = useGeolocationAdresse()
   const [addressToDelete, setAddressToDelete] = useState<string | null>(null)
 
   const [showEditModal, setShowEditModal] = useState(false)
@@ -142,6 +152,8 @@ export default function ProfilPage() {
           adresse_complete: newAddress.adresse_complete,
           quartier: newAddress.quartier.trim(),
           commune: newAddress.commune.trim(),
+          latitude: newAddress.latitude,
+          longitude: newAddress.longitude,
           repere: newAddress.repere.trim() || null,
           est_defaut: newAddress.est_defaut
         })
@@ -149,7 +161,7 @@ export default function ProfilPage() {
       if (error) throw error
       showToast('Adresse ajoutée', 'success')
       setShowAddressModal(false)
-      setNewAddress({ label: 'domicile', adresse_complete: '', quartier: '', commune: '', repere: '', est_defaut: false })
+      setNewAddress({ label: 'domicile', adresse_complete: '', quartier: '', commune: '', latitude: null, longitude: null, repere: '', est_defaut: false })
       fetchAddresses()
     } catch (error) {
       console.error('Error adding address:', error)
@@ -440,7 +452,7 @@ export default function ProfilPage() {
           isOpen={showAddressModal}
           onClose={() => {
             setShowAddressModal(false)
-            setNewAddress({ label: 'domicile', adresse_complete: '', quartier: '', commune: '', repere: '', est_defaut: false })
+            setNewAddress({ label: 'domicile', adresse_complete: '', quartier: '', commune: '', latitude: null, longitude: null, repere: '', est_defaut: false })
           }}
           title="Ajouter une adresse"
         >
@@ -458,14 +470,59 @@ export default function ProfilPage() {
               </select>
             </div>
             <div>
+              <label className="block text-sm text-gray-600 mb-2">Rechercher une adresse</label>
+              <AdresseAutocomplete
+                placeholder="Rechercher ton adresse (rue, quartier, ville)..."
+                onSelect={(s: SuggestionAdresse) => {
+                  setNewAddress((prev) => ({
+                    ...prev,
+                    latitude: s.latitude,
+                    longitude: s.longitude,
+                    commune: s.commune || prev.commune,
+                    quartier: s.quartier || prev.quartier,
+                    adresse_complete: s.texte,
+                  }))
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  const resultat = await localiser()
+                  setNewAddress((prev) => ({
+                    ...prev,
+                    latitude: resultat.latitude,
+                    longitude: resultat.longitude,
+                    commune: resultat.communeDetectee || prev.commune,
+                    quartier: resultat.quartierDetecte || prev.quartier,
+                  }))
+                  showToast('Position détectée', 'success')
+                } catch (err) {
+                  showToast(err instanceof Error ? err.message : 'Localisation impossible', 'error')
+                }
+              }}
+              disabled={localisationEnCours}
+              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-coral-50 text-coral-700 font-semibold text-sm hover:bg-coral-100 transition-colors disabled:opacity-60"
+            >
+              {localisationEnCours ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
+              {localisationEnCours ? 'Localisation en cours...' : 'Utiliser ma position actuelle'}
+            </button>
+            <div>
               <label className="block text-sm text-gray-600 mb-2">Commune *</label>
-              <input
-                type="text"
+              <select
                 value={newAddress.commune}
                 onChange={(e) => setNewAddress({ ...newAddress, commune: e.target.value })}
-                placeholder="Ex: Calavi"
-                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
-              />
+                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm bg-white focus:border-coral-400 outline-none"
+              >
+                <option value="">Choisir une commune...</option>
+                {COMMUNES_COUVERTES.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-400 mt-1">
+                Pré-remplie automatiquement via la recherche ou la position — modifiable si besoin.
+              </p>
             </div>
             <div>
               <label className="block text-sm text-gray-600 mb-2">Quartier *</label>

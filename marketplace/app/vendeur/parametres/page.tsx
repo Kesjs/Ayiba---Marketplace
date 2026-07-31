@@ -22,6 +22,7 @@ import {
   Mail,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { validatePasswordStrength } from "@/lib/validation";
 import { useToast } from "@/context/ToastContext";
 import { validateBeninPhone } from "@/lib/validation";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -240,13 +241,6 @@ export default function VendeurParametresPage() {
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
-
-  const validatePasswordStrength = (value: string): string | null => {
-    if (value.length < 8) return "Le mot de passe doit contenir au moins 8 caractères.";
-    if (!/[A-Z]/.test(value)) return "Le mot de passe doit contenir au moins une majuscule.";
-    if (!/[0-9]/.test(value)) return "Le mot de passe doit contenir au moins un chiffre.";
-    return null;
-  };
 
   const handleChangePassword = async () => {
     setPasswordError(null);

@@ -12,6 +12,8 @@ import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { ChipSelect } from '@/components/ui/ChipSelect'
+import { AdresseAutocomplete } from '@/components/ui/AdresseAutocomplete'
+import type { SuggestionAdresse } from '@/lib/hooks/useAdresseAutocomplete'
 
 const OPTIONS_LABEL = [
   { value: 'domicile', label: 'Domicile', icon: Home },
@@ -141,6 +143,19 @@ export function WelcomeAddressModal() {
       <p className="text-sm text-gray-500 mb-4">
         Ajoute ton adresse pour des livraisons plus rapides. Tu pourras toujours la modifier plus tard depuis ton profil.
       </p>
+
+      <div className="mb-3">
+        <AdresseAutocomplete
+          placeholder="Rechercher ton adresse (rue, quartier, ville)..."
+          onSelect={(s: SuggestionAdresse) => {
+            setLatitude(s.latitude)
+            setLongitude(s.longitude)
+            if (s.commune) setCommune(s.commune)
+            if (s.quartier) setQuartier(s.quartier)
+            setAdresse(s.texte)
+          }}
+        />
+      </div>
 
       <button
         type="button"

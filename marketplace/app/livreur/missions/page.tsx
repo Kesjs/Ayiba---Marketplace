@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { getLienNavigationGoogleMaps } from "@/lib/osrm";
 import {
   Truck,
   MapPin,
@@ -537,11 +538,22 @@ function MissionEnCoursCard({
   const [descriptionDommage, setDescriptionDommage] = useState("");
   const [photoDommage, setPhotoDommage] = useState<File | null>(null);
   const points = [
-    mission.vendeur_quartier
-      ? { lat: 6.366, lng: 2.418, label: `${mission.vendeur_nom_boutique ?? "Boutique"} (Retrait)`, type: "pickup" as const }
+    mission.vendeur_latitude !== null && mission.vendeur_longitude !== null
+      ? { lat: mission.vendeur_latitude, lng: mission.vendeur_longitude, label: `${mission.vendeur_nom_boutique ?? "Boutique"} (Retrait)`, type: "pickup" as const }
       : null,
-    { lat: 6.35, lng: 2.39, label: `${mission.adresse_livraison ?? mission.commune ?? "Client"} (Livraison)`, type: "delivery" as const },
+    mission.latitude_livraison !== null && mission.longitude_livraison !== null
+      ? { lat: mission.latitude_livraison, lng: mission.longitude_livraison, label: `${mission.adresse_livraison ?? mission.commune ?? "Client"} (Livraison)`, type: "delivery" as const }
+      : null,
   ].filter(Boolean) as { lat: number; lng: number; label: string; type: "pickup" | "delivery" }[];
+
+  // Cette carte n'apparaît qu'une fois le colis récupéré (stepper : Retrait
+  // fait, "En route" actif) — la destination de navigation est donc
+  // toujours le client, jamais le vendeur.
+  const lienNavigation = getLienNavigationGoogleMaps({
+    latitude: mission.latitude_livraison,
+    longitude: mission.longitude_livraison,
+    adresseTexte: mission.adresse_livraison ?? mission.commune,
+  });
 
   return (
     <div className="bg-white p-5 sm:p-6 md:p-8 rounded-3xl border border-teal-100 shadow-xl shadow-teal-500/5 relative overflow-hidden">
@@ -595,7 +607,11 @@ function MissionEnCoursCard({
       <div className="flex flex-col sm:flex-row gap-4">
         <motion.button
           whileTap={{ scale: 0.97 }}
-          className="flex-1 h-14 bg-teal-500 text-white font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20"
+          disabled={!lienNavigation}
+          onClick={() => {
+            if (lienNavigation) window.open(lienNavigation, "_blank", "noopener,noreferrer");
+          }}
+          className="flex-1 h-14 bg-teal-500 text-white font-bold rounded-2xl flex items-center justify-center gap-3 hover:bg-teal-600 transition-all shadow-lg shadow-teal-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Navigation size={20} />
           Ouvrir GPS

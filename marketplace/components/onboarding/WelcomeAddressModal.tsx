@@ -19,8 +19,6 @@ const OPTIONS_LABEL = [
   { value: 'autre', label: 'Autre', icon: MoreHorizontal },
 ]
 
-const OPTIONS_COMMUNE = COMMUNES_COUVERTES.map((c) => ({ value: c, label: c }))
-
 /**
  * Mini-étape post-inscription, skippable : proposée une seule fois au client
  * fraîchement inscrit (redirigé vers /catalogue?welcome=1), s'il n'a encore
@@ -173,7 +171,16 @@ export function WelcomeAddressModal() {
       <ChipSelect layoutId="welcome-label" options={OPTIONS_LABEL} value={label} onChange={setLabel} className="mb-4" />
 
       <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Commune</p>
-      <ChipSelect layoutId="welcome-commune" options={OPTIONS_COMMUNE} value={commune} onChange={setCommune} className="mb-4" />
+      <select
+        value={commune}
+        onChange={(e) => setCommune(e.target.value)}
+        className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm bg-white mb-4 focus:outline-none focus:border-coral-400"
+      >
+        <option value="">Choisir une commune...</option>
+        {COMMUNES_COUVERTES.map((c) => (
+          <option key={c} value={c}>{c}</option>
+        ))}
+      </select>
 
       <div className="mb-3">
         <input

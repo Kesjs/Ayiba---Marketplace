@@ -922,6 +922,11 @@ export default function CheckoutPage() {
                 ? (nbVendeurs > 1 ? 'articles + livraisons' : 'articles + livraison')
                 : '+ livraison'}
             </p>
+            {etape === 'livraison' && adresseActive?.commune && estimationSeulement && (
+              <p className="text-[10px] text-amber-600 mt-0.5 flex items-center gap-1">
+                <AlertCircle size={10} /> Frais estimés, sans GPS précis
+              </p>
+            )}
           </div>
           {etape === 'livraison' ? (
             <button

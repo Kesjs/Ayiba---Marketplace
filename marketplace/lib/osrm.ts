@@ -1,10 +1,12 @@
-// Distance routière réelle entre deux points GPS, via le serveur de
-// démonstration public d'OSRM (gratuit, sans clé — même logique que
-// Nominatim déjà utilisé pour le reverse-geocoding côté client).
+// Distance routière réelle entre deux points GPS.
 //
-// ⚠️ Le serveur de démo OSRM (router.project-osrm.org) n'est pas garanti
-// en disponibilité ni en volume pour de la prod à grande échelle. En cas
-// d'échec ou de dépassement de trafic, on retombe silencieusement sur le
+// Calculée via OpenRouteService (ORS), appelé côté serveur (voir
+// app/api/distance-routiere/route.ts) pour ne jamais exposer la clé API
+// ORS_API_KEY au navigateur. Ce module reste le point d'entrée côté client
+// (checkout, etc.) — il ne fait qu'appeler notre propre route interne.
+//
+// ⚠️ Le quota gratuit ORS est limité (2000 req/jour, 40/min). En cas
+// d'échec ou de dépassement de quota, on retombe silencieusement sur le
 // haversine/commune déjà géré côté serveur (voir calculer_frais_livraison).
 export async function getDistanceRoutiereKm(
   latVendeur: number,
@@ -13,17 +15,19 @@ export async function getDistanceRoutiereKm(
   lonClient: number
 ): Promise<number | null> {
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${lonVendeur},${latVendeur};${lonClient},${latClient}?overview=false`;
-    const res = await fetch(url);
-    if (!res.ok) return null;
+    const params = new URLSearchParams({
+      latVendeur: String(latVendeur),
+      lonVendeur: String(lonVendeur),
+      latClient: String(latClient),
+      lonClient: String(lonClient),
+    })
+    const res = await fetch(`/api/distance-routiere?${params.toString()}`)
+    if (!res.ok) return null
 
-    const data = await res.json();
-    const distanceMetres = data?.routes?.[0]?.distance;
-    if (typeof distanceMetres !== "number") return null;
-
-    return distanceMetres / 1000;
+    const data = await res.json()
+    return typeof data?.distance_km === 'number' ? data.distance_km : null
   } catch (err) {
-    console.error("[osrm] getDistanceRoutiereKm error:", err);
-    return null;
+    console.error('[osrm] getDistanceRoutiereKm error:', err)
+    return null
   }
 }

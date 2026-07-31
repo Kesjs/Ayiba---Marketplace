@@ -12,14 +12,34 @@ export interface ResultatLocalisation {
 
 // Reconnaît une commune couverte dans la réponse de reverse-geocoding,
 // en comparant plusieurs champs possibles (le découpage administratif
-// OpenStreetMap ne colle pas toujours exactement à nos communes).
-function detecterCommune(address: Record<string, string | undefined>): string | null {
-  const candidats = [address.city, address.town, address.county, address.municipality, address.suburb];
+// OpenStreetMap ne colle pas toujours exactement à nos communes) — et en
+// tolérant les variantes de nom : OSM renvoie le nom administratif complet
+// ("Abomey-Calavi") alors que notre liste utilise le nom courant ("Calavi"),
+// d'où un match par inclusion en repli si le match exact échoue.
+export function detecterCommune(address: Record<string, string | undefined>): string | null {
+  const candidats = [
+    address.city,
+    address.town,
+    address.county,
+    address.municipality,
+    address.suburb,
+    address.state_district,
+  ];
+
   for (const candidat of candidats) {
     if (!candidat) continue;
-    const match = COMMUNES_COUVERTES.find((c) => c.toLowerCase() === candidat.toLowerCase());
-    if (match) return match;
+    const normalise = candidat.toLowerCase().trim();
+    const exact = COMMUNES_COUVERTES.find((c) => c.toLowerCase() === normalise);
+    if (exact) return exact;
   }
+
+  for (const candidat of candidats) {
+    if (!candidat) continue;
+    const normalise = candidat.toLowerCase().trim();
+    const partiel = COMMUNES_COUVERTES.find((c) => normalise.includes(c.toLowerCase()));
+    if (partiel) return partiel;
+  }
+
   return null;
 }
 

@@ -10,6 +10,8 @@ export interface MissionCommande {
   montant_total: number;
   frais_livraison: number | null;
   montant_net_livreur: number | null;
+  prime_prise_en_charge: number | null;
+  distance_prise_en_charge_km: number | null;
   latitude_livraison: number | null;
   longitude_livraison: number | null;
   adresse_livraison: string | null;
@@ -47,6 +49,8 @@ interface RawCommandeRow {
   montant_total: number;
   frais_livraison: number | null;
   montant_net_livreur: number | null;
+  prime_prise_en_charge: number | null;
+  distance_prise_en_charge_km: number | null;
   latitude_livraison: number | null;
   longitude_livraison: number | null;
   adresse_livraison: string | null;
@@ -63,6 +67,7 @@ interface RawCommandeRow {
 
 const SELECT_MISSION = `
   id, numero, statut, montant_total, frais_livraison, montant_net_livreur,
+  prime_prise_en_charge, distance_prise_en_charge_km,
   latitude_livraison, longitude_livraison, adresse_livraison, commune,
   client_id, nom_client, telephone_client, livreur_confirme, created_at, updated_at,
   vendeur:vendeurs ( nom_boutique, quartier ),
@@ -77,6 +82,8 @@ function mapRow(row: RawCommandeRow): MissionCommande {
     montant_total: row.montant_total,
     frais_livraison: row.frais_livraison,
     montant_net_livreur: row.montant_net_livreur,
+    prime_prise_en_charge: row.prime_prise_en_charge,
+    distance_prise_en_charge_km: row.distance_prise_en_charge_km,
     latitude_livraison: row.latitude_livraison,
     longitude_livraison: row.longitude_livraison,
     adresse_livraison: row.adresse_livraison,

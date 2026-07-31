@@ -23,6 +23,8 @@ export interface MissionCommande {
   nb_articles: number;
   vendeur_nom_boutique: string | null;
   vendeur_quartier: string | null;
+  vendeur_latitude: number | null;
+  vendeur_longitude: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +63,7 @@ interface RawCommandeRow {
   livreur_confirme: boolean;
   created_at: string;
   updated_at: string;
-  vendeur: { nom_boutique: string | null; quartier: string | null } | null;
+  vendeur: { nom_boutique: string | null; quartier: string | null; latitude: number | null; longitude: number | null } | null;
   commande_articles: { quantite: number }[] | null;
 }
 
@@ -70,7 +72,7 @@ const SELECT_MISSION = `
   prime_prise_en_charge, distance_prise_en_charge_km,
   latitude_livraison, longitude_livraison, adresse_livraison, commune,
   client_id, nom_client, telephone_client, livreur_confirme, created_at, updated_at,
-  vendeur:vendeurs ( nom_boutique, quartier ),
+  vendeur:vendeurs ( nom_boutique, quartier, latitude, longitude ),
   commande_articles ( quantite )
 `;
 
@@ -95,6 +97,8 @@ function mapRow(row: RawCommandeRow): MissionCommande {
     nb_articles: (row.commande_articles ?? []).reduce((sum, a) => sum + (a.quantite ?? 0), 0),
     vendeur_nom_boutique: row.vendeur?.nom_boutique ?? null,
     vendeur_quartier: row.vendeur?.quartier ?? null,
+    vendeur_latitude: row.vendeur?.latitude ?? null,
+    vendeur_longitude: row.vendeur?.longitude ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

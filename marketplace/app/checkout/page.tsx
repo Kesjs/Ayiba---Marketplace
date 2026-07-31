@@ -16,6 +16,8 @@ import { StepIndicator, type WizardStep } from '@/components/kyc/StepIndicator'
 import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
 import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
+import { AdresseAutocomplete } from '@/components/ui/AdresseAutocomplete'
+import type { SuggestionAdresse } from '@/lib/hooks/useAdresseAutocomplete'
 import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
@@ -55,12 +57,16 @@ const OPTIONS_LABEL = [
   { value: 'autre', label: 'Autre', icon: MoreHorizontal },
 ]
 
-const OPTIONS_COMMUNE = COMMUNES_COUVERTES.map((c) => ({ value: c, label: c }))
-
 function iconePourLabel(label: string) {
   if (label === 'bureau') return Briefcase
   if (label === 'domicile') return Home
   return MoreHorizontal
+}
+
+function stylePourLabel(label: string) {
+  if (label === 'bureau') return 'bg-teal-50 text-teal-600'
+  if (label === 'domicile') return 'bg-coral-50 text-coral-500'
+  return 'bg-gray-100 text-gray-500'
 }
 
 export default function CheckoutPage() {
@@ -489,29 +495,37 @@ export default function CheckoutPage() {
                 <div className="space-y-3">
                   {addresses.map((addr, index) => {
                     const IconeAdresse = iconePourLabel(addr.label)
+                    const estSelectionnee = !addingNew && selectedAddressId === addr.id
                     return (
                       <motion.label
                         key={addr.id}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.04, duration: 0.25 }}
-                        className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-colors ${
-                          !addingNew && selectedAddressId === addr.id
-                            ? 'border-coral-400 bg-coral-50/40'
+                        className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                          estSelectionnee
+                            ? 'border-coral-400 bg-coral-50/40 shadow-sm shadow-coral-100'
                             : 'border-gray-100 hover:border-gray-200'
                         }`}
                       >
                         <input
                           type="radio"
                           name="address"
-                          checked={!addingNew && selectedAddressId === addr.id}
+                          checked={estSelectionnee}
                           onChange={() => {
                             setSelectedAddressId(addr.id)
                             setAddingNew(false)
                           }}
-                          className="mt-1"
+                          className="sr-only"
                         />
-                        <div className="w-9 h-9 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                            estSelectionnee ? 'border-coral-500 bg-coral-500' : 'border-gray-300'
+                          }`}
+                        >
+                          <div className={`w-2 h-2 rounded-full bg-white transition-opacity ${estSelectionnee ? 'opacity-100' : 'opacity-0'}`} />
+                        </div>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${stylePourLabel(addr.label)}`}>
                           <IconeAdresse size={16} />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -532,8 +546,8 @@ export default function CheckoutPage() {
                   })}
 
                   <label
-                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-colors ${
-                      addingNew ? 'border-coral-400 bg-coral-50/40' : 'border-gray-100 hover:border-gray-200'
+                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                      addingNew ? 'border-coral-400 bg-coral-50/40 shadow-sm shadow-coral-100' : 'border-gray-100 hover:border-gray-200'
                     }`}
                   >
                     <input
@@ -541,8 +555,15 @@ export default function CheckoutPage() {
                       name="address"
                       checked={addingNew}
                       onChange={() => setAddingNew(true)}
-                      className="mt-1"
+                      className="sr-only"
                     />
+                    <div
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                        addingNew ? 'border-coral-500 bg-coral-500' : 'border-gray-300'
+                      }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full bg-white transition-opacity ${addingNew ? 'opacity-100' : 'opacity-0'}`} />
+                    </div>
                     <div className="flex-1">
                       <p className="text-sm font-bold text-gray-900">Nouvelle adresse</p>
                       <AnimatePresence initial={false}>
@@ -555,6 +576,17 @@ export default function CheckoutPage() {
                             className="overflow-hidden"
                           >
                           <div className="mt-3 space-y-3">
+                          <AdresseAutocomplete
+                            placeholder="Rechercher ton adresse (rue, quartier, ville)..."
+                            onSelect={(s: SuggestionAdresse) => {
+                              setNouvelleLatitude(s.latitude)
+                              setNouvelleLongitude(s.longitude)
+                              if (s.commune) setNouvelleCommune(s.commune)
+                              if (s.quartier) setNouveauQuartier(s.quartier)
+                              setNouvelleAdresse(s.texte)
+                            }}
+                          />
+
                           <button
                             type="button"
                             onClick={async () => {
@@ -583,7 +615,19 @@ export default function CheckoutPage() {
 
                           <div>
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Commune</p>
-                            <ChipSelect layoutId="checkout-commune" options={OPTIONS_COMMUNE} value={nouvelleCommune} onChange={setNouvelleCommune} />
+                            <select
+                              value={nouvelleCommune}
+                              onChange={(e) => setNouvelleCommune(e.target.value)}
+                              className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm bg-white focus:outline-none focus:border-coral-400"
+                            >
+                              <option value="">Choisir une commune...</option>
+                              {COMMUNES_COUVERTES.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                              ))}
+                            </select>
+                            <p className="text-[11px] text-gray-400 mt-1">
+                              Pré-remplie automatiquement via la recherche ou la position — modifiable si besoin.
+                            </p>
                           </div>
 
                           <input

@@ -20,6 +20,9 @@ import {
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { AdresseAutocomplete } from "@/components/ui/AdresseAutocomplete";
+import type { SuggestionAdresse } from "@/lib/hooks/useAdresseAutocomplete";
+import { COMMUNES_COUVERTES } from "@/lib/constants/communes";
 import { useToast } from "@/context/ToastContext";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
@@ -777,18 +780,29 @@ export function LivreurKycWizard() {
                       </p>
                     </div>
 
+                    <AdresseAutocomplete
+                      placeholder="Rechercher une adresse (rue, quartier, ville)..."
+                      onSelect={(s: SuggestionAdresse) => {
+                        if (s.commune) update("commune", s.commune);
+                        if (s.quartier) update("quartier", s.quartier);
+                      }}
+                    />
+
                     <div>
                       <label htmlFor="commune" className="block text-sm font-medium text-gray-700 mb-2">
                         Commune
                       </label>
-                      <input
+                      <select
                         id="commune"
-                        type="text"
                         value={data.commune}
                         onChange={(e) => update("commune", e.target.value)}
-                        placeholder="Ex: Calavi"
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
-                      />
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
+                      >
+                        <option value="">Choisir une commune...</option>
+                        {COMMUNES_COUVERTES.map((c) => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div>

@@ -26,6 +26,8 @@ import {
   History,
   ShoppingBag,
   Archive,
+  Truck,
+  Navigation,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
@@ -58,7 +60,32 @@ interface Commande {
   statut: StatutCommande;
   created_at: string;
   archivee_vendeur: boolean;
+  livreur_id: string | null;
+  prime_prise_en_charge: number | null;
+  distance_prise_en_charge_km: number | null;
+  livreur: { nom: string | null; telephone: string | null } | null;
 }
+
+interface LivreurDisponible {
+  livreur_id: string;
+  nom_complet: string | null;
+  telephone: string | null;
+  commune: string | null;
+  quartier: string | null;
+  distance_km: number | null;
+  distance_fiable: boolean;
+}
+
+// Statuts à partir desquels le livreur gère lui-même la suite (retrait via
+// code/QR) ou la commande est close : plus de (ré)assignation possible depuis
+// cette page — cohérent avec les gardes de la fonction assigner_livreur_commande.
+const STATUTS_ASSIGNATION_BLOQUEE = new Set<StatutCommande>([
+  STATUTS_COMMANDE.EXPEDIEE,
+  STATUTS_COMMANDE.EN_ATTENTE_VERIFICATION,
+  STATUTS_COMMANDE.LIVREE,
+  STATUTS_COMMANDE.ANNULEE,
+  STATUTS_COMMANDE.REMBOURSEE,
+]);
 
 interface ArticleLigne {
   id: string;
@@ -221,6 +248,17 @@ function ouvrirFacture(order: Commande, articles: ArticleLigne[]) {
   win.document.close();
 }
 
+// Supabase renvoie une relation many-to-one comme un objet OU un tableau à un
+// élément selon le contexte de la requête — on normalise systématiquement.
+function one<T>(rel: T | T[] | null | undefined): T | null {
+  if (Array.isArray(rel)) return rel[0] ?? null;
+  return rel ?? null;
+}
+
+function normaliserCommandeRow(row: any): Commande {
+  return { ...row, livreur: one(row.livreur) } as Commande;
+}
+
 function CommandeRowSkeleton() {
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 sm:px-6 py-4 flex items-center gap-2.5">
@@ -271,6 +309,12 @@ export default function VendeurCommandesPage() {
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  const [assignTarget, setAssignTarget] = useState<Commande | null>(null);
+  const [assignLivreurs, setAssignLivreurs] = useState<LivreurDisponible[] | null>(null);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+
   const offsetRef = useRef(0);
 
   const fetchCommandes = useCallback(async () => {
@@ -294,7 +338,7 @@ export default function VendeurCommandesPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:users!commandes_livreur_id_fkey ( nom, telephone )"
       )
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false })
@@ -306,7 +350,7 @@ export default function VendeurCommandesPage() {
       return;
     }
 
-    const rows = (data as Commande[]) ?? [];
+    const rows = ((data as any[]) ?? []).map(normaliserCommandeRow);
     setCommandes(rows);
     setHasMore(rows.length === PAGE_SIZE);
     offsetRef.current = rows.length;
@@ -325,7 +369,7 @@ export default function VendeurCommandesPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:users!commandes_livreur_id_fkey ( nom, telephone )"
       )
       .eq("vendeur_id", vendeurId)
       .order("created_at", { ascending: false })
@@ -336,7 +380,7 @@ export default function VendeurCommandesPage() {
       showToast("Impossible de charger plus de commandes", "error");
       return;
     }
-    const rows = (data as Commande[]) ?? [];
+    const rows = ((data as any[]) ?? []).map(normaliserCommandeRow);
     setCommandes((prev) => {
       const existingIds = new Set(prev.map((c) => c.id));
       return [...prev, ...rows.filter((r) => !existingIds.has(r.id))];
@@ -368,7 +412,7 @@ export default function VendeurCommandesPage() {
       const { data, error } = await supabase
         .from("commandes")
         .select(
-          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur"
+          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:users!commandes_livreur_id_fkey ( nom, telephone )"
         )
         .eq("vendeur_id", vendeurId)
         .or(`nom_client.ilike.%${safeQ}%,numero.ilike.%${safeQ}%`)
@@ -380,7 +424,7 @@ export default function VendeurCommandesPage() {
         setSearchError("Impossible de lancer la recherche — réessaie.");
         return;
       }
-      setSearchResults((data as Commande[]) ?? []);
+      setSearchResults(((data as any[]) ?? []).map(normaliserCommandeRow));
     }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(handle);
@@ -689,6 +733,75 @@ export default function VendeurCommandesPage() {
     setSelectedIds(new Set());
     setSelectionMode(false);
     showToast(ids.length > 1 ? `${ids.length} commandes annulées` : "Commande annulée", "success");
+  };
+
+  // --- Assignation d'un livreur ---
+  // Liste triée par distance livreur↔vendeur (fonction RPC dédiée) : aide à
+  // choisir un livreur proche sans rien changer au prix affiché au client.
+  const ouvrirAssignation = async (order: Commande) => {
+    setAssignTarget(order);
+    setAssignError(null);
+    setAssignLivreurs(null);
+    setAssignLoading(true);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("livreurs_disponibles_pour_commande", {
+      p_commande_id: order.id,
+    });
+    setAssignLoading(false);
+    if (error) {
+      setAssignError("Impossible de charger les livreurs disponibles.");
+      return;
+    }
+    setAssignLivreurs((data as LivreurDisponible[]) ?? []);
+  };
+
+  const fermerAssignation = () => {
+    if (assigningId) return;
+    setAssignTarget(null);
+    setAssignLivreurs(null);
+    setAssignError(null);
+  };
+
+  // Assigne le livreur ET calcule sa prime de "prise en charge" (distance
+  // livreur↔vendeur), ajoutée à son gain net sans toucher au prix client —
+  // le tout est fait côté base par assigner_livreur_commande.
+  const choisirLivreur = async (livreur: LivreurDisponible) => {
+    if (!assignTarget) return;
+    setAssigningId(livreur.livreur_id);
+    setAssignError(null);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("assigner_livreur_commande", {
+      p_commande_id: assignTarget.id,
+      p_livreur_id: livreur.livreur_id,
+    });
+    setAssigningId(null);
+
+    if (error) {
+      setAssignError(error.message || "Impossible d'assigner ce livreur — réessaie.");
+      return;
+    }
+
+    const resultat = data as { distance_km: number | null; prime_prise_en_charge: number } | null;
+    const commandeId = assignTarget.id;
+    setCommandes((prev) =>
+      prev.map((c) =>
+        c.id === commandeId
+          ? {
+              ...c,
+              livreur_id: livreur.livreur_id,
+              prime_prise_en_charge: resultat?.prime_prise_en_charge ?? null,
+              distance_prise_en_charge_km: resultat?.distance_km ?? null,
+              livreur: { nom: livreur.nom_complet, telephone: livreur.telephone },
+            }
+          : c
+      )
+    );
+    showToast(
+      `${livreur.nom_complet ?? "Livreur"} assigné · +${(resultat?.prime_prise_en_charge ?? 0).toLocaleString("fr-FR")} F prise en charge`,
+      "success"
+    );
+    setAssignTarget(null);
+    setAssignLivreurs(null);
   };
 
   return (
@@ -1063,6 +1176,60 @@ export default function VendeurCommandesPage() {
                                 )}
                               </div>
 
+                              {/* Livraison / assignation livreur */}
+                              <div className="bg-white rounded-2xl border border-gray-100 mb-3 px-3.5 py-2.5">
+                                <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-1.5">
+                                  <Truck size={13} />
+                                  Livraison
+                                </div>
+                                {order.livreur_id ? (
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-semibold text-gray-800 truncate">
+                                        {order.livreur?.nom || "Livreur assigné"}
+                                      </p>
+                                      {order.prime_prise_en_charge != null && (
+                                        <p className="text-[11px] text-teal-600 flex items-center gap-1 mt-0.5">
+                                          <Navigation size={10} />
+                                          {order.distance_prise_en_charge_km != null
+                                            ? `${order.distance_prise_en_charge_km} km du vendeur`
+                                            : "Distance estimée"}{" "}
+                                          · +{order.prime_prise_en_charge.toLocaleString("fr-FR")} F prise en charge
+                                        </p>
+                                      )}
+                                    </div>
+                                    {!STATUTS_ASSIGNATION_BLOQUEE.has(order.statut) && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          ouvrirAssignation(order);
+                                        }}
+                                        className="shrink-0 text-[11px] font-bold text-coral-600 hover:text-coral-700 whitespace-nowrap"
+                                      >
+                                        Changer
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : STATUTS_ASSIGNATION_BLOQUEE.has(order.statut) ? (
+                                  <p className="text-xs text-gray-400">Aucun livreur assigné.</p>
+                                ) : (
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-xs text-gray-400">Aucun livreur assigné</p>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        ouvrirAssignation(order);
+                                      }}
+                                      className="shrink-0 text-[11px] font-bold text-coral-600 hover:text-coral-700 whitespace-nowrap"
+                                    >
+                                      Assigner un livreur
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
                               {/* Historique statut */}
                               {detail && detail !== "loading" && detail.historique.length > 0 && (
                                 <div className="bg-white rounded-2xl border border-gray-100 mb-3 px-3.5 py-2.5">
@@ -1300,6 +1467,101 @@ export default function VendeurCommandesPage() {
                       {isCancelling ? <Loader2 size={18} className="animate-spin" /> : "Oui, annuler"}
                     </button>
                   </div>
+                </motion.div>
+              </div>
+            </>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {assignTarget && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={fermerAssignation}
+                className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60]"
+              />
+              <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
+                <motion.div
+                  initial={{ y: 40, opacity: 0, scale: 0.98 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 40, opacity: 0, scale: 0.98 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                  className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 shadow-2xl max-h-[85vh] overflow-y-auto"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-lg font-bold text-gray-900">Assigner un livreur</h3>
+                    <button
+                      onClick={fermerAssignation}
+                      disabled={!!assigningId}
+                      className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-4">
+                    Commande {assignTarget.numero} · {assignTarget.nom_client ?? "Client"}
+                  </p>
+
+                  {assignError && (
+                    <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl p-3 mb-3">
+                      <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700 leading-relaxed">{assignError}</p>
+                    </div>
+                  )}
+
+                  {assignLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-8 justify-center">
+                      <Loader2 size={15} className="animate-spin" />
+                      Chargement des livreurs disponibles...
+                    </div>
+                  ) : !assignLivreurs || assignLivreurs.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-8 text-center">
+                      Aucun livreur disponible pour le moment (vérifié et pas en pause).
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-gray-400 mb-1">
+                        Triés du plus proche au plus loin de ta boutique — le plus proche coûte moins cher en prime
+                        de prise en charge.
+                      </p>
+                      {assignLivreurs.map((l) => (
+                        <button
+                          key={l.livreur_id}
+                          type="button"
+                          disabled={!!assigningId}
+                          onClick={() => choisirLivreur(l)}
+                          className="w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-2xl border border-gray-100 hover:border-coral-200 hover:bg-coral-50/40 transition-colors disabled:opacity-50 text-left"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {l.nom_complet || "Livreur"}
+                            </p>
+                            <p className="text-[11px] text-gray-400 truncate">
+                              {[l.quartier, l.commune].filter(Boolean).join(", ") || "Zone non renseignée"}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            {assigningId === l.livreur_id ? (
+                              <Loader2 size={16} className="animate-spin text-coral-500" />
+                            ) : (
+                              <>
+                                <p className="text-xs font-bold text-gray-900 flex items-center gap-1 justify-end">
+                                  <Navigation size={11} className="text-gray-400" />
+                                  {l.distance_km != null ? `${l.distance_km} km` : "—"}
+                                </p>
+                                {!l.distance_fiable && (
+                                  <p className="text-[10px] text-amber-500">estimation</p>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </motion.div>
               </div>
             </>

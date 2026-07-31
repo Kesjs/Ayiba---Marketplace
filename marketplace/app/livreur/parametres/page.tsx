@@ -26,6 +26,7 @@ import {
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { createClient } from "@/lib/supabase/client";
+import { validatePasswordStrength } from "@/lib/validation";
 import { LegalSheet } from "@/components/legal/LegalSheet";
 import { CGUContent } from "@/components/legal/CGUContent";
 import { useToast } from "@/context/ToastContext";
@@ -68,13 +69,6 @@ function translateAuthError(err: any): string {
     return "Problème de connexion. Vérifie ta connexion internet.";
   }
   return "Une erreur est survenue. Réessaie.";
-}
-
-function validatePasswordStrength(value: string): string | null {
-  if (value.length < 8) return "Le mot de passe doit contenir au moins 8 caractères.";
-  if (!/[A-Z]/.test(value)) return "Le mot de passe doit contenir au moins une majuscule.";
-  if (!/[0-9]/.test(value)) return "Le mot de passe doit contenir au moins un chiffre.";
-  return null;
 }
 
 const VEHICULES: { value: TypeVehicule; label: string }[] = [

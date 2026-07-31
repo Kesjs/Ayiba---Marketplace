@@ -16,6 +16,7 @@ import { StepIndicator, type WizardStep } from '@/components/kyc/StepIndicator'
 import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
 import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
+import { getDistanceRoutiereKm } from '@/lib/osrm'
 import { AdresseAutocomplete } from '@/components/ui/AdresseAutocomplete'
 import type { SuggestionAdresse } from '@/lib/hooks/useAdresseAutocomplete'
 import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
@@ -96,6 +97,9 @@ export default function CheckoutPage() {
 
   const [fraisParVendeur, setFraisParVendeur] = useState<Record<string, FraisLivraison>>({})
   const [calculFraisEnCours, setCalculFraisEnCours] = useState(false)
+  const [coordsParVendeur, setCoordsParVendeur] = useState<
+    Record<string, { latitude: number | null; longitude: number | null }>
+  >({})
 
   // Étape 2 — Paiement
   const [reseau, setReseau] = useState<'mtn' | 'moov' | 'celtiis' | ''>('')
@@ -169,6 +173,34 @@ export default function CheckoutPage() {
         return addr ? { commune: addr.commune, latitude: addr.latitude, longitude: addr.longitude } : null
       })()
 
+  // Coordonnées GPS des vendeurs présents dans le panier — nécessaires pour
+  // calculer la distance routière réelle (OSRM) vendeur -> client. Rechargé
+  // uniquement quand la liste de vendeurs du panier change.
+  useEffect(() => {
+    const vendeurIds = Object.keys(groupesParVendeur)
+    if (vendeurIds.length === 0) {
+      setCoordsParVendeur({})
+      return
+    }
+    let annule = false
+    supabase
+      .from('vendeurs')
+      .select('id, latitude, longitude')
+      .in('id', vendeurIds)
+      .then(({ data, error }) => {
+        if (annule || error || !data) return
+        setCoordsParVendeur(
+          Object.fromEntries(
+            data.map((v) => [v.id, { latitude: v.latitude, longitude: v.longitude }])
+          )
+        )
+      })
+    return () => {
+      annule = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [Object.keys(groupesParVendeur).join(',')])
+
   // Chantier 2 : dès que l'adresse a au moins une commune, on calcule le
   // frais réel par vendeur (RPC `calculer_frais_livraison`).
   useEffect(() => {
@@ -180,11 +212,31 @@ export default function CheckoutPage() {
     setCalculFraisEnCours(true)
     Promise.all(
       Object.keys(groupesParVendeur).map(async (vendeurId) => {
+        // Distance routière réelle (OSRM) quand on a les 4 coordonnées ;
+        // sinon on laisse p_distance_route_km à null et la fonction Postgres
+        // retombe elle-même sur haversine/commune (voir calculer_frais_livraison).
+        const coordsVendeur = coordsParVendeur[vendeurId]
+        let distanceRouteKm: number | null = null
+        if (
+          coordsVendeur?.latitude != null &&
+          coordsVendeur?.longitude != null &&
+          adresseActive.latitude != null &&
+          adresseActive.longitude != null
+        ) {
+          distanceRouteKm = await getDistanceRoutiereKm(
+            coordsVendeur.latitude,
+            coordsVendeur.longitude,
+            adresseActive.latitude,
+            adresseActive.longitude
+          )
+        }
+
         const { data, error } = await supabase.rpc('calculer_frais_livraison', {
           p_vendeur_id: vendeurId,
           p_latitude: adresseActive.latitude,
           p_longitude: adresseActive.longitude,
           p_commune: adresseActive.commune,
+          p_distance_route_km: distanceRouteKm,
         })
         if (error) throw error
         return [vendeurId, data as FraisLivraison] as const
@@ -204,7 +256,13 @@ export default function CheckoutPage() {
       annule = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [adresseActive?.commune, adresseActive?.latitude, adresseActive?.longitude, Object.keys(groupesParVendeur).join(',')])
+  }, [
+    adresseActive?.commune,
+    adresseActive?.latitude,
+    adresseActive?.longitude,
+    Object.keys(groupesParVendeur).join(','),
+    coordsParVendeur,
+  ])
 
   const totalFraisLivraison = Object.values(fraisParVendeur).reduce((acc, f) => acc + f.frais_livraison, 0)
   const totalGeneral = total + totalFraisLivraison

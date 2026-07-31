@@ -455,9 +455,15 @@ function MissionACConfirmerCard({
             animate={{ scale: 1, opacity: 1 }}
             className="text-xl sm:text-2xl font-bold text-coral-500"
           >
-            {(mission.frais_livraison ?? 0).toLocaleString("fr-FR")} F
+            {(mission.montant_net_livreur ?? mission.frais_livraison ?? 0).toLocaleString("fr-FR")} F
           </motion.p>
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gain de la course</p>
+          {!!mission.prime_prise_en_charge && (
+            <p className="text-[10px] font-medium text-teal-600 mt-0.5">
+              dont {mission.prime_prise_en_charge.toLocaleString("fr-FR")} F prise en charge
+              {mission.distance_prise_en_charge_km != null ? ` (${mission.distance_prise_en_charge_km} km)` : ""}
+            </p>
+          )}
         </div>
       </div>
 

@@ -31,3 +31,32 @@ export async function getDistanceRoutiereKm(
     return null
   }
 }
+
+// Construit un lien de navigation Google Maps vers une destination.
+//
+// ⚠️ Ceci n'est PAS l'API Directions payante utilisée ci-dessus pour le
+// calcul des frais — c'est un simple lien "Google Maps Navigation" gratuit
+// et sans clé API. Il ouvre l'app Google Maps (mobile) ou maps.google.com
+// (web) avec le guidage GPS turn-by-turn déjà lancé vers la destination,
+// en partant de la position actuelle de l'appareil.
+//
+// Priorité aux coordonnées GPS précises (plus fiable) ; on retombe sur
+// l'adresse texte uniquement si elles sont absentes.
+export function getLienNavigationGoogleMaps(
+  destination: { latitude: number | null; longitude: number | null; adresseTexte: string | null }
+): string | null {
+  const { latitude, longitude, adresseTexte } = destination
+  const dest =
+    latitude !== null && longitude !== null
+      ? `${latitude},${longitude}`
+      : adresseTexte
+
+  if (!dest) return null
+
+  const params = new URLSearchParams({
+    api: '1',
+    destination: dest,
+    travelmode: 'driving',
+  })
+  return `https://www.google.com/maps/dir/?${params.toString()}`
+}

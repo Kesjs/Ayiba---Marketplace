@@ -675,7 +675,16 @@ export default function CheckoutPage() {
                             <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Commune</p>
                             <select
                               value={nouvelleCommune}
-                              onChange={(e) => setNouvelleCommune(e.target.value)}
+                              onChange={(e) => {
+                                setNouvelleCommune(e.target.value)
+                                // La commune manuelle et le GPS détecté peuvent ne plus
+                                // correspondre (ex: GPS détecté à Calavi puis commune
+                                // changée à la main vers Péhunco) — on efface les
+                                // coordonnées pour forcer un recalcul honnête en
+                                // estimation "par commune" plutôt qu'un prix silencieusement faux.
+                                setNouvelleLatitude(null)
+                                setNouvelleLongitude(null)
+                              }}
                               className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm bg-white focus:outline-none focus:border-coral-400"
                             >
                               <option value="">Choisir une commune...</option>
@@ -686,6 +695,23 @@ export default function CheckoutPage() {
                             <p className="text-[11px] text-gray-400 mt-1">
                               Pré-remplie automatiquement via la recherche ou la position — modifiable si besoin.
                             </p>
+                            <div
+                              className={`mt-2 flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2.5 py-1 w-fit ${
+                                nouvelleLatitude != null && nouvelleLongitude != null
+                                  ? 'bg-teal-50 text-teal-700'
+                                  : 'bg-amber-50 text-amber-700'
+                              }`}
+                            >
+                              {nouvelleLatitude != null && nouvelleLongitude != null ? (
+                                <>
+                                  <LocateFixed size={12} /> Position GPS précise
+                                </>
+                              ) : (
+                                <>
+                                  <AlertCircle size={12} /> Estimation par commune (moins précis)
+                                </>
+                              )}
+                            </div>
                           </div>
 
                           <input

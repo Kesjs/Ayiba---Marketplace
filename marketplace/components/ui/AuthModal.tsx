@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { validateBeninPhone } from "@/lib/validation";
+import { validateBeninPhone, validatePasswordStrength } from "@/lib/validation";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -61,13 +61,6 @@ const translateError = (err: any): string => {
   }
 
   return "Une erreur est survenue. Veuillez réessayer.";
-};
-
-const validatePasswordStrength = (value: string): { valid: boolean; message: string | null } => {
-  if (value.length < 8) return { valid: false, message: "Le mot de passe doit contenir au moins 8 caractères." };
-  if (!/[A-Z]/.test(value)) return { valid: false, message: "Le mot de passe doit contenir au moins une majuscule." };
-  if (!/[0-9]/.test(value)) return { valid: false, message: "Le mot de passe doit contenir au moins un chiffre." };
-  return { valid: true, message: null };
 };
 
 const getRoleConfig = (role: "vendeur" | "livreur" | null | undefined) => {
@@ -227,8 +220,8 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
       if (!validateEmail(email)) return setError("Adresse email invalide");
 
       if (mode === "inscription") {
-        const { valid, message } = validatePasswordStrength(password);
-        if (!valid) return setError(message!);
+        const strengthError = validatePasswordStrength(password);
+        if (strengthError) return setError(strengthError);
         if (password !== confirmPassword) return setError("Les deux mots de passe ne correspondent pas");
       } else {
         if (password.length < 6) return setError("Le mot de passe doit contenir au moins 6 caractères");

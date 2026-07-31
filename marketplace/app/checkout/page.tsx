@@ -183,18 +183,18 @@ export default function CheckoutPage() {
       return
     }
     let annule = false
-    supabase
-      .from('vendeurs')
-      .select('id, latitude, longitude')
-      .in('id', vendeurIds)
-      .then(({ data, error }) => {
-        if (annule || error || !data) return
-        setCoordsParVendeur(
-          Object.fromEntries(
-            data.map((v) => [v.id, { latitude: v.latitude, longitude: v.longitude }])
-          )
+    ;(async () => {
+      const { data, error }: {
+        data: { id: string; latitude: number | null; longitude: number | null }[] | null
+        error: unknown
+      } = await supabase.from('vendeurs').select('id, latitude, longitude').in('id', vendeurIds)
+      if (annule || error || !data) return
+      setCoordsParVendeur(
+        Object.fromEntries(
+          data.map((v) => [v.id, { latitude: v.latitude, longitude: v.longitude }])
         )
-      })
+      )
+    })()
     return () => {
       annule = true
     }

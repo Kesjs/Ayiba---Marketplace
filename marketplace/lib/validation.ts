@@ -3,6 +3,18 @@
  */
 
 /**
+ * Valide la robustesse d'un mot de passe (règle commune à l'inscription,
+ * au reset de mot de passe et aux pages paramètres vendeur/livreur/client).
+ * @returns null si valide, sinon un message d'erreur à afficher.
+ */
+export function validatePasswordStrength(value: string): string | null {
+  if (value.length < 8) return "Le mot de passe doit contenir au moins 8 caractères."
+  if (!/[A-Z]/.test(value)) return "Le mot de passe doit contenir au moins une majuscule."
+  if (!/[0-9]/.test(value)) return "Le mot de passe doit contenir au moins un chiffre."
+  return null
+}
+
+/**
  * Validates a Benin phone number format
  * @param phone - The phone number to validate (with or without +229 prefix)
  * @returns Object with isValid flag and formatted phone number

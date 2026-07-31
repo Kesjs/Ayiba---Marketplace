@@ -319,7 +319,12 @@ export function VendeurKycWizard() {
       case 3:
         return data.nomBoutique.trim().length > 2 && data.description.trim().length > 5;
       case 4:
-        return data.quartier.trim().length > 1 && data.commune.trim().length > 1;
+        return (
+          data.quartier.trim().length > 1 &&
+          data.commune.trim().length > 1 &&
+          data.latitude !== null &&
+          data.longitude !== null
+        );
       case 5:
         return data.mobileMoneyNetwork !== null && data.mobileMoneyNumber.length === 8;
       default:
@@ -721,6 +726,17 @@ export function VendeurKycWizard() {
                         Position détectée — aide à un calcul plus précis des frais de livraison
                       </p>
                     )}
+
+                    {data.latitude === null &&
+                      data.longitude === null &&
+                      data.quartier.trim().length > 1 &&
+                      data.commune.trim().length > 1 && (
+                        <p className="text-xs font-medium text-amber-700 -mt-2">
+                          Utilise la recherche d&apos;adresse ou &quot;Utiliser ma position actuelle&quot;
+                          ci-dessus pour continuer — ta position exacte est nécessaire pour calculer
+                          des frais de livraison justes vers tes clients.
+                        </p>
+                      )}
 
                     <div>
                       <label htmlFor="commune" className="block text-sm font-medium text-gray-700 mb-2">

@@ -11,18 +11,13 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
 import { Button } from '@/components/ui/Button'
-import { ChipSelect } from '@/components/ui/ChipSelect'
 import { StepIndicator, type WizardStep } from '@/components/kyc/StepIndicator'
 import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
-import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
 import { getDistanceRoutiereKm } from '@/lib/osrm'
-import { AdresseAutocomplete } from '@/components/ui/AdresseAutocomplete'
-import type { SuggestionAdresse } from '@/lib/hooks/useAdresseAutocomplete'
-import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
-  Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, LocateFixed,
+  Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, MapPin,
   Route, AlertCircle, Truck, CheckCircle2,
 } from 'lucide-react'
 
@@ -52,12 +47,6 @@ interface FraisLivraison {
 type Etape = 'livraison' | 'paiement' | 'confirmation'
 type StatutPaiement = 'attente' | 'succes' | 'echec' | 'timeout'
 
-const OPTIONS_LABEL = [
-  { value: 'domicile', label: 'Domicile', icon: Home },
-  { value: 'bureau', label: 'Bureau', icon: Briefcase },
-  { value: 'autre', label: 'Autre', icon: MoreHorizontal },
-]
-
 function iconePourLabel(label: string) {
   if (label === 'bureau') return Briefcase
   if (label === 'domicile') return Home
@@ -82,18 +71,9 @@ export default function CheckoutPage() {
   const [addresses, setAddresses] = useState<Address[]>([])
   const [loadingAddresses, setLoadingAddresses] = useState(true)
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
-  const [addingNew, setAddingNew] = useState(false)
 
   const [nomClient, setNomClient] = useState('')
   const [telephone, setTelephone] = useState('')
-  const [nouveauLabel, setNouveauLabel] = useState('domicile')
-  const [nouvelleCommune, setNouvelleCommune] = useState('')
-  const [nouveauQuartier, setNouveauQuartier] = useState('')
-  const [nouvelleAdresse, setNouvelleAdresse] = useState('')
-  const [nouvelleLatitude, setNouvelleLatitude] = useState<number | null>(null)
-  const [nouvelleLongitude, setNouvelleLongitude] = useState<number | null>(null)
-
-  const { localiser, loading: localisationEnCours } = useGeolocationAdresse()
 
   const [fraisParVendeur, setFraisParVendeur] = useState<Record<string, FraisLivraison>>({})
   const [calculFraisEnCours, setCalculFraisEnCours] = useState(false)
@@ -148,8 +128,6 @@ export default function CheckoutPage() {
       setAddresses(rows)
       if (rows.length > 0) {
         setSelectedAddressId(rows[0].id)
-      } else {
-        setAddingNew(true)
       }
       setLoadingAddresses(false)
     }
@@ -166,12 +144,10 @@ export default function CheckoutPage() {
   }, {})
   const nbVendeurs = Object.keys(groupesParVendeur).length
 
-  const adresseActive = addingNew
-    ? { commune: nouvelleCommune, latitude: nouvelleLatitude, longitude: nouvelleLongitude }
-    : (() => {
-        const addr = addresses.find((a) => a.id === selectedAddressId)
-        return addr ? { commune: addr.commune, latitude: addr.latitude, longitude: addr.longitude } : null
-      })()
+  const adresseActive = (() => {
+    const addr = addresses.find((a) => a.id === selectedAddressId)
+    return addr ? { commune: addr.commune, latitude: addr.latitude, longitude: addr.longitude } : null
+  })()
 
   // Coordonnées GPS des vendeurs présents dans le panier — nécessaires pour
   // calculer la distance routière réelle (OSRM) vendeur -> client. Rechargé
@@ -283,26 +259,10 @@ export default function CheckoutPage() {
     if (!user || passageEnCours) return
     setPassageEnCours(true)
     try {
-      let finale: typeof adresseFinale
-      if (addingNew) {
-        if (!nouvelleCommune.trim() || !nouveauQuartier.trim()) {
-          showToast('Indique au moins ta commune et ton quartier', 'error')
-          return
-        }
-        finale = {
-          adresse_complete: nouvelleAdresse.trim(),
-          quartier: nouveauQuartier.trim(),
-          commune: nouvelleCommune.trim(),
-          latitude: nouvelleLatitude,
-          longitude: nouvelleLongitude,
-        }
-      } else {
-        const addr = addresses.find((a) => a.id === selectedAddressId)
-        if (!addr) {
-          showToast('Choisis une adresse de livraison', 'error')
-          return
-        }
-        finale = addr
+      const addr = addresses.find((a) => a.id === selectedAddressId)
+      if (!addr) {
+        showToast('Choisis une adresse de livraison', 'error')
+        return
       }
 
       if (!nomClient.trim() || !telephone.trim()) {
@@ -310,21 +270,7 @@ export default function CheckoutPage() {
         return
       }
 
-      // Sauvegarde la nouvelle adresse pour la prochaine fois, sans bloquer.
-      if (addingNew) {
-        await supabase.from('addresses').insert({
-          user_id: user.id,
-          label: nouveauLabel,
-          adresse_complete: finale.adresse_complete,
-          quartier: finale.quartier,
-          commune: finale.commune,
-          latitude: finale.latitude,
-          longitude: finale.longitude,
-          est_defaut: addresses.length === 0,
-        })
-      }
-
-      setAdresseFinale(finale)
+      setAdresseFinale(addr)
       setEtape('paiement')
     } finally {
       setPassageEnCours(false)
@@ -543,17 +489,35 @@ export default function CheckoutPage() {
 
             {/* Adresse de livraison */}
             <section className="mb-8">
-              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Adresse de livraison
-              </h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest">
+                  Adresse de livraison
+                </h2>
+                {addresses.length > 0 && (
+                  <button
+                    onClick={() => router.push('/adresses/nouvelle?retour=/checkout')}
+                    className="flex items-center gap-1 text-xs font-semibold text-coral-500 hover:text-coral-600"
+                  >
+                    <Plus size={14} /> Ajouter
+                  </button>
+                )}
+              </div>
 
               {loadingAddresses ? (
                 <div className="h-24 rounded-2xl bg-gray-50 animate-pulse" />
+              ) : addresses.length === 0 ? (
+                <button
+                  onClick={() => router.push('/adresses/nouvelle?retour=/checkout')}
+                  className="w-full flex flex-col items-center gap-2 p-6 rounded-2xl border-2 border-dashed border-gray-200 text-gray-500 hover:border-coral-300 hover:text-coral-600 transition-colors"
+                >
+                  <MapPin size={22} />
+                  <span className="text-sm font-semibold">Ajouter une adresse de livraison</span>
+                </button>
               ) : (
                 <div className="space-y-3">
                   {addresses.map((addr, index) => {
                     const IconeAdresse = iconePourLabel(addr.label)
-                    const estSelectionnee = !addingNew && selectedAddressId === addr.id
+                    const estSelectionnee = selectedAddressId === addr.id
                     return (
                       <motion.label
                         key={addr.id}
@@ -570,10 +534,7 @@ export default function CheckoutPage() {
                           type="radio"
                           name="address"
                           checked={estSelectionnee}
-                          onChange={() => {
-                            setSelectedAddressId(addr.id)
-                            setAddingNew(false)
-                          }}
+                          onChange={() => setSelectedAddressId(addr.id)}
                           className="sr-only"
                         />
                         <div
@@ -598,142 +559,13 @@ export default function CheckoutPage() {
                           <p className="text-sm text-gray-500">
                             {[addr.quartier, addr.commune].filter(Boolean).join(', ')}
                           </p>
+                          {addr.adresse_complete && (
+                            <p className="text-xs text-gray-400 truncate">{addr.adresse_complete}</p>
+                          )}
                         </div>
                       </motion.label>
                     )
                   })}
-
-                  <label
-                    className={`flex items-start gap-3 p-4 rounded-2xl border-2 cursor-pointer transition-all ${
-                      addingNew ? 'border-coral-400 bg-coral-50/40 shadow-sm shadow-coral-100' : 'border-gray-100 hover:border-gray-200'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="address"
-                      checked={addingNew}
-                      onChange={() => setAddingNew(true)}
-                      className="sr-only"
-                    />
-                    <div
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
-                        addingNew ? 'border-coral-500 bg-coral-500' : 'border-gray-300'
-                      }`}
-                    >
-                      <div className={`w-2 h-2 rounded-full bg-white transition-opacity ${addingNew ? 'opacity-100' : 'opacity-0'}`} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-bold text-gray-900">Nouvelle adresse</p>
-                      <AnimatePresence initial={false}>
-                        {addingNew && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
-                            className="overflow-hidden"
-                          >
-                          <div className="mt-3 space-y-3">
-                          <AdresseAutocomplete
-                            placeholder="Rechercher ton adresse (rue, quartier, ville)..."
-                            onSelect={(s: SuggestionAdresse) => {
-                              setNouvelleLatitude(s.latitude)
-                              setNouvelleLongitude(s.longitude)
-                              if (s.commune) setNouvelleCommune(s.commune)
-                              if (s.quartier) setNouveauQuartier(s.quartier)
-                              setNouvelleAdresse(s.texte)
-                            }}
-                          />
-
-                          <button
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                const resultat = await localiser()
-                                setNouvelleLatitude(resultat.latitude)
-                                setNouvelleLongitude(resultat.longitude)
-                                if (resultat.communeDetectee) setNouvelleCommune(resultat.communeDetectee)
-                                if (resultat.quartierDetecte) setNouveauQuartier(resultat.quartierDetecte)
-                                showToast('Position détectée', 'success')
-                              } catch (err) {
-                                showToast(err instanceof Error ? err.message : 'Localisation impossible', 'error')
-                              }
-                            }}
-                            disabled={localisationEnCours}
-                            className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-coral-50 text-coral-700 font-semibold text-sm hover:bg-coral-100 transition-colors disabled:opacity-60"
-                          >
-                            {localisationEnCours ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
-                            {localisationEnCours ? 'Localisation en cours...' : 'Utiliser ma position actuelle'}
-                          </button>
-
-                          <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Nom de l&rsquo;adresse</p>
-                            <ChipSelect layoutId="checkout-label" options={OPTIONS_LABEL} value={nouveauLabel} onChange={setNouveauLabel} />
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Commune</p>
-                            <select
-                              value={nouvelleCommune}
-                              onChange={(e) => {
-                                setNouvelleCommune(e.target.value)
-                                // La commune manuelle et le GPS détecté peuvent ne plus
-                                // correspondre (ex: GPS détecté à Calavi puis commune
-                                // changée à la main vers Péhunco) — on efface les
-                                // coordonnées pour forcer un recalcul honnête en
-                                // estimation "par commune" plutôt qu'un prix silencieusement faux.
-                                setNouvelleLatitude(null)
-                                setNouvelleLongitude(null)
-                              }}
-                              className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm bg-white focus:outline-none focus:border-coral-400"
-                            >
-                              <option value="">Choisir une commune...</option>
-                              {COMMUNES_COUVERTES.map((c) => (
-                                <option key={c} value={c}>{c}</option>
-                              ))}
-                            </select>
-                            <p className="text-[11px] text-gray-400 mt-1">
-                              Pré-remplie automatiquement via la recherche ou la position — modifiable si besoin.
-                            </p>
-                            <div
-                              className={`mt-2 flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2.5 py-1 w-fit ${
-                                nouvelleLatitude != null && nouvelleLongitude != null
-                                  ? 'bg-teal-50 text-teal-700'
-                                  : 'bg-amber-50 text-amber-700'
-                              }`}
-                            >
-                              {nouvelleLatitude != null && nouvelleLongitude != null ? (
-                                <>
-                                  <LocateFixed size={12} /> Position GPS précise
-                                </>
-                              ) : (
-                                <>
-                                  <AlertCircle size={12} /> Estimation par commune (moins précis)
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          <input
-                            type="text"
-                            value={nouveauQuartier}
-                            onChange={(e) => setNouveauQuartier(e.target.value)}
-                            placeholder="Quartier (ex: Godomey)"
-                            className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
-                          />
-                          <textarea
-                            value={nouvelleAdresse}
-                            onChange={(e) => setNouvelleAdresse(e.target.value)}
-                            placeholder="Rue, précisions (facultatif)"
-                            rows={2}
-                            className="w-full text-sm rounded-lg border border-gray-200 px-3 py-2 focus:outline-none focus:border-coral-400 resize-none"
-                          />
-                          </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  </label>
                 </div>
               )}
             </section>

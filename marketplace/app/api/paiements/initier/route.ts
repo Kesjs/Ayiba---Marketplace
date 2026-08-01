@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { initFedaPay, declencherPaiementMobileMoney } from '@/lib/fedapay'
+import { initFedaPay, declencherPaiementMobileMoney, extraireMessageErreurFedaPay } from '@/lib/fedapay'
 
 interface GroupeCommande {
   vendeur_id: string
@@ -126,13 +126,16 @@ export async function POST(req: NextRequest) {
       transactionId,
     })
   } catch (err) {
-    console.error('[paiements/initier] FedaPay error:', err)
+    // On log l'objet brut en entier (pas juste err.message, souvent vide côté
+    // FedaPay) : c'est ce qu'il faut regarder dans les logs Render pour voir
+    // la vraie cause (numéro refusé, méthode indisponible en sandbox, clé API
+    // invalide, etc.).
+    console.error('[paiements/initier] FedaPay error (brut):', err)
+    const messageErreur = extraireMessageErreurFedaPay(err)
+    console.error('[paiements/initier] FedaPay error (message extrait):', messageErreur)
     // On marque l'intention comme échouée pour ne pas la laisser traîner
     // "en_attente" indéfiniment si FedaPay a refusé avant même de créer la transaction.
     await supabase.rpc('echouer_initiation_paiement', { p_paiement_checkout_id: paiementCheckout.id })
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Échec du déclenchement du paiement' },
-      { status: 502 }
-    )
+    return NextResponse.json({ error: messageErreur }, { status: 502 })
   }
 }

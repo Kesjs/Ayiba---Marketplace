@@ -9,7 +9,7 @@ import { useCart, cartKey } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Navbar } from '@/components/ui/Navbar'
-import { Footer } from '@/components/home/Footer'
+import { CheckoutFooter } from '@/components/checkout/CheckoutFooter'
 import { Button } from '@/components/ui/Button'
 import { StepIndicator, type WizardStep } from '@/components/kyc/StepIndicator'
 import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
@@ -830,7 +830,7 @@ export default function CheckoutPage() {
         <Link href="/explorer">Continuer mes achats</Link>
       </div>
 
-      <Footer />
+      <CheckoutFooter />
     </div>
   )
 }

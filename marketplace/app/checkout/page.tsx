@@ -95,6 +95,38 @@ export default function CheckoutPage() {
   const [commandeIds, setCommandeIds] = useState<string[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  // Garde l'ID de paiement en cours dans l'URL (sans navigation ni rechargement
+  // de la page — juste l'historique du navigateur) pour pouvoir le restaurer
+  // si l'utilisateur actualise pendant qu'il attend la confirmation MoMo.
+  function synchroniserUrlPaiement(id: string | null) {
+    const url = new URL(window.location.href)
+    if (id) url.searchParams.set('paiement', id)
+    else url.searchParams.delete('paiement')
+    window.history.replaceState(null, '', url.toString())
+  }
+
+  // Reprise après un refresh : si l'URL contient encore ?paiement=xxx, on
+  // relance l'écran d'attente et on interroge tout de suite le statut actuel
+  // (au cas où le paiement se soit résolu pendant que la page était rechargée).
+  useEffect(() => {
+    const idEnCours = new URLSearchParams(window.location.search).get('paiement')
+    if (!idEnCours) return
+    setPaiementCheckoutId(idEnCours)
+    setStatutPaiement('attente')
+    fetch(`/api/paiements/statut?id=${idEnCours}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return
+        if (data.reseau) setReseau(data.reseau)
+        if (data.telephone) setTelephoneMomo(data.telephone)
+        appliquerResultatPaiement(data)
+      })
+      .catch(() => {
+        // silencieux — le polling normal (démarré par paiementCheckoutId) prendra le relais
+      })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   useEffect(() => {
     if (userLoading) return
     if (!user) {
@@ -329,11 +361,13 @@ export default function CheckoutPage() {
       if (pollRef.current) clearInterval(pollRef.current)
       setCommandeIds(row.commande_ids || [])
       setStatutPaiement('succes')
+      synchroniserUrlPaiement(null)
       clearCart()
     } else if (row.statut === 'echoue') {
       if (pollRef.current) clearInterval(pollRef.current)
       setRaisonEchec(row.raison_echec || null)
       setStatutPaiement('echec')
+      synchroniserUrlPaiement(null)
     }
   }
 
@@ -389,6 +423,7 @@ export default function CheckoutPage() {
       setPaiementCheckoutId(data.paiementCheckoutId)
       setStatutPaiement('attente')
       setRaisonEchec(null)
+      synchroniserUrlPaiement(data.paiementCheckoutId)
     } catch (err) {
       console.error('[checkout] initier paiement error:', err)
       if (err instanceof DOMException && err.name === 'AbortError') {
@@ -413,6 +448,7 @@ export default function CheckoutPage() {
     setStatutPaiement(null)
     setPaiementCheckoutId(null)
     setRaisonEchec(null)
+    synchroniserUrlPaiement(null)
   }
 
   // Bouton Payer à 3 états : guide l'utilisateur sans jamais afficher de message d'erreur pour un simple champ manquant

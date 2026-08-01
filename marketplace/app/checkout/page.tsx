@@ -350,6 +350,11 @@ export default function CheckoutPage() {
 
     setDeclenchementEnCours(true)
     setErreurInitiation(null)
+    // Le serveur peut mettre du temps à se réveiller (cold start Render) —
+    // on laisse 20s avant d'abandonner plutôt que de laisser Safari décider
+    // seul, ce qui donne juste "Load failed" sans explication à l'utilisateur.
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 20000)
     try {
       const adresseLigne = [adresseFinale.adresse_complete, adresseFinale.quartier, adresseFinale.commune]
         .filter(Boolean)
@@ -376,6 +381,7 @@ export default function CheckoutPage() {
           telephone: telephoneMomo.trim(),
           nomClient: nomClient.trim(),
         }),
+        signal: controller.signal,
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Échec du déclenchement du paiement')
@@ -385,8 +391,20 @@ export default function CheckoutPage() {
       setRaisonEchec(null)
     } catch (err) {
       console.error('[checkout] initier paiement error:', err)
-      setErreurInitiation(err instanceof Error ? err.message : 'Impossible de démarrer le paiement')
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        // Le serveur n'a pas répondu à temps (souvent un cold start).
+        setErreurInitiation("Le serveur met trop de temps à répondre. Réessaie dans quelques secondes.")
+      } else if (err instanceof TypeError) {
+        // fetch() échoue avec un TypeError ("Load failed", "Failed to fetch"...)
+        // uniquement quand la requête n'a jamais atteint le serveur : coupure
+        // réseau, wifi/4G instable, etc. — jamais une erreur métier FedaPay.
+        setErreurInitiation("Connexion réseau interrompue. Vérifie ta connexion et réessaie.")
+      } else {
+        // Erreur métier renvoyée par notre API (FedaPay, validation, etc.)
+        setErreurInitiation(err instanceof Error ? err.message : 'Impossible de démarrer le paiement')
+      }
     } finally {
+      clearTimeout(timeoutId)
       setDeclenchementEnCours(false)
     }
   }

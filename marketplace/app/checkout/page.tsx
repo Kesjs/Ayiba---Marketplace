@@ -15,6 +15,7 @@ import { StepIndicator, type WizardStep } from '@/components/kyc/StepIndicator'
 import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
 import { getDistanceRoutiereKm } from '@/lib/osrm'
+import { validateBeninPhone } from '@/lib/validation'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
   Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, MapPin,
@@ -110,8 +111,15 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (profile) {
       setNomClient(profile.full_name || '')
-      setTelephone(profile.phone || '')
-      setTelephoneMomo(profile.phone || '')
+      // profile.phone peut encore contenir d'anciens formats (8 chiffres sans
+      // le préfixe "01", avec ou sans indicatif "+229" déjà collé devant) —
+      // on normalise avant de préremplir, sinon on affiche un "+229" en
+      // double dans le champ Mobile Money (qui ajoute déjà son propre badge
+      // indicatif) et un numéro à 8 chiffres non conforme à la nouvelle
+      // numérotation ARCEP (10 chiffres, préfixe 01) depuis le 30/11/2024.
+      const { isValid, formatted } = validateBeninPhone(profile.phone || '')
+      setTelephone(isValid ? formatted : profile.phone || '')
+      setTelephoneMomo(isValid ? formatted.replace('+229', '') : (profile.phone || '').replace(/\D/g, '').replace(/^229/, ''))
     }
   }, [profile])
 

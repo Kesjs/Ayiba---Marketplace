@@ -7,8 +7,11 @@ import { useToast } from '@/context/ToastContext'
 import { ProductCard } from '@/components/ui/ProductCard'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
+import { AuthModal } from '@/components/ui/AuthModal'
 import { useUser } from '@/lib/hooks/useUser'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
+import { createClient } from '@/lib/supabase/client'
+import { fetchFavoriteIds, toggleFavorite } from '@/lib/catalogue'
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from '@/lib/queries/articles'
 
 function saluerSelonHeure(): string {
@@ -24,6 +27,7 @@ export default function AccueilPage() {
   const { showToast } = useToast()
   const { profile } = useUser()
   const badges = useBadgeCounts(profile?.id, 'client')
+  const supabase = createClient()
 
   const displayName = profile?.full_name || 'Utilisateur'
   const prenom = displayName.split(' ')[0]
@@ -33,6 +37,17 @@ export default function AccueilPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('Tout')
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+
+  useEffect(() => {
+    if (!profile) {
+      setFavoriteIds(new Set())
+      return
+    }
+    fetchFavoriteIds(supabase, profile.id).then(setFavoriteIds)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.id])
 
   const categoryLabels = ['Tout', ...categories.map((c) => c.nom)]
 
@@ -64,6 +79,26 @@ export default function AccueilPage() {
     selectedCategory === 'Tout'
       ? products
       : products.filter((p) => p.categorie?.nom === selectedCategory)
+
+  const handleToggleFavorite = async (productId: string) => {
+    if (!profile) {
+      setAuthModalOpen(true)
+      return
+    }
+    const isFav = favoriteIds.has(productId)
+    try {
+      const nowFav = await toggleFavorite(supabase, profile.id, productId, isFav)
+      setFavoriteIds((prev) => {
+        const next = new Set(prev)
+        if (nowFav) next.add(productId)
+        else next.delete(productId)
+        return next
+      })
+      showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
+    } catch (error: any) {
+      showToast(error?.message || 'Impossible de mettre à jour les favoris', 'error')
+    }
+  }
 
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
@@ -139,13 +174,19 @@ export default function AccueilPage() {
                     })
                     showToast('Produit ajouté au panier !', 'success')
                   }}
-                  onToggleFavorite={() => {}}
+                  isFavorite={favoriteIds.has(product.id)}
+                  onToggleFavorite={() => handleToggleFavorite(product.id)}
                 />
               ))}
             </div>
           )}
         </div>
       </main>
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        intendedRole={null}
+      />
     </div>
   )
 }

@@ -296,7 +296,7 @@ export default function ProfilPage() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-medium text-gray-900">Mes adresses</h3>
             <button
-              onClick={() => setShowAddressModal(true)}
+              onClick={() => router.push('/adresses/nouvelle?retour=/profil')}
               className="text-sm text-coral-400 hover:text-coral-600"
             >
               Ajouter

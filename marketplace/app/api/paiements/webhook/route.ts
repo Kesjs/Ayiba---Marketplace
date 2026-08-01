@@ -64,6 +64,10 @@ export async function POST(req: NextRequest) {
     }
     case 'transaction.declined':
     case 'transaction.canceled': {
+      // On log l'event complet (pas juste le nom) : si FedaPay inclut un jour
+      // un champ de détail (ex. solde insuffisant, PIN incorrect), c'est ici
+      // qu'on le verra pour affiner le message affiché au client.
+      console.info('[paiements/webhook] Transaction refusée/annulée — event brut:', JSON.stringify(event))
       const { error } = await admin.rpc('echouer_paiement_checkout', {
         p_transaction_id: String(transactionId),
         p_raison: event.name,

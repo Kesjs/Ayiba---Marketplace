@@ -42,11 +42,20 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
 
 /** Détecte le réseau à partir des 2 premiers chiffres significatifs du numéro. Retourne null si indéterminé. */
 function detecterReseau(numero: string): "mtn" | "moov" | "celtiis" | null {
-  const chiffres = numero.replace(/\D/g, "");
+  let chiffres = numero.replace(/\D/g, "");
+  // Au cas où l'indicatif pays serait déjà collé au numéro (ex: valeur
+  // reprise telle quelle depuis le profil), on le retire avant détection.
+  if (chiffres.startsWith("229")) chiffres = chiffres.slice(3);
   const sansIndicatifNational = chiffres.startsWith("01") ? chiffres.slice(2) : chiffres;
   const deuxChiffres = sansIndicatifNational.slice(0, 2);
   if (deuxChiffres.length < 2) return null;
   return MOBILE_MONEY_OPTIONS.find((o) => o.prefixes.includes(deuxChiffres))?.id ?? null;
+}
+
+/** Numéro tel qu'il doit s'afficher à côté du badge "+229" — jamais l'indicatif en double. */
+function numeroPourAffichage(numero: string): string {
+  const chiffres = numero.replace(/\D/g, "");
+  return chiffres.startsWith("229") ? chiffres.slice(3) : numero;
 }
 
 interface MobileMoneySelectorProps {
@@ -169,7 +178,7 @@ export function MobileMoneySelector({
           <input
             type="tel"
             inputMode="numeric"
-            value={phoneNumber}
+            value={numeroPourAffichage(phoneNumber)}
             onChange={(e) => onPhoneChange(e.target.value)}
             placeholder="01 97 00 00 00"
             className="flex-1 px-4 py-3 text-sm bg-transparent focus:outline-none"
@@ -186,11 +195,11 @@ export function MobileMoneySelector({
             {typeof montant === "number" ? (
               <>
                 Tu payes <span className="font-bold text-gray-800">{montant.toLocaleString("fr-FR")} F</span> depuis{" "}
-                <span className="font-bold text-gray-800">+229 {phoneNumber}</span>
+                <span className="font-bold text-gray-800">+229 {numeroPourAffichage(phoneNumber)}</span>
               </>
             ) : (
               <>
-                Paiement depuis <span className="font-bold text-gray-800">+229 {phoneNumber}</span>
+                Paiement depuis <span className="font-bold text-gray-800">+229 {numeroPourAffichage(phoneNumber)}</span>
               </>
             )}
           </p>

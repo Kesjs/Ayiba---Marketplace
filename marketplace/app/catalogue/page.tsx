@@ -15,6 +15,7 @@ import { AuthModal } from '@/components/ui/AuthModal'
 import { createClient } from '@/lib/supabase/client'
 import { fetchFavoriteIds, toggleFavorite } from '@/lib/catalogue'
 import { Search, SlidersHorizontal, LayoutGrid, List, X, ChevronDown } from 'lucide-react'
+import type { User } from '@supabase/supabase-js'
 
 function CatalogueContent() {
   const router = useRouter()
@@ -39,7 +40,7 @@ function CatalogueContent() {
 
   // Utilisateur courant (pour l'état des favoris) — page publique, accessible aussi aux invités.
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id ?? null))
+    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => setUserId(data.user?.id ?? null))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

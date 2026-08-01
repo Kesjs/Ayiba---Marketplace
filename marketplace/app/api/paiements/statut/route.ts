@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
   const { data, error } = await supabase
     .from('paiements_checkout')
-    .select('statut, commande_ids, raison_echec')
+    .select('statut, commande_ids, raison_echec, reseau, telephone, montant')
     .eq('id', id)
     .single()
 

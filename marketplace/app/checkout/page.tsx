@@ -90,6 +90,7 @@ export default function CheckoutPage() {
   const [paiementCheckoutId, setPaiementCheckoutId] = useState<string | null>(null)
   const [statutPaiement, setStatutPaiement] = useState<StatutPaiement | null>(null)
   const [raisonEchec, setRaisonEchec] = useState<string | null>(null)
+  const [erreurInitiation, setErreurInitiation] = useState<string | null>(null)
   const [commandeIds, setCommandeIds] = useState<string[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
@@ -340,6 +341,7 @@ export default function CheckoutPage() {
     if (!adresseFinale) return
 
     setDeclenchementEnCours(true)
+    setErreurInitiation(null)
     try {
       const adresseLigne = [adresseFinale.adresse_complete, adresseFinale.quartier, adresseFinale.commune]
         .filter(Boolean)
@@ -375,7 +377,7 @@ export default function CheckoutPage() {
       setRaisonEchec(null)
     } catch (err) {
       console.error('[checkout] initier paiement error:', err)
-      showToast(err instanceof Error ? err.message : 'Impossible de démarrer le paiement', 'error')
+      setErreurInitiation(err instanceof Error ? err.message : 'Impossible de démarrer le paiement')
     } finally {
       setDeclenchementEnCours(false)
     }
@@ -386,6 +388,16 @@ export default function CheckoutPage() {
     setPaiementCheckoutId(null)
     setRaisonEchec(null)
   }
+
+  // Bouton Payer à 3 états : guide l'utilisateur sans jamais afficher de message d'erreur pour un simple champ manquant
+  const paiementDisabled = !reseau || !telephoneMomo.trim() || declenchementEnCours
+  const libellePayer = declenchementEnCours
+    ? 'Connexion...'
+    : !reseau
+    ? 'Choisis un réseau'
+    : !telephoneMomo.trim()
+    ? 'Indique ton numéro'
+    : `Payer ${totalGeneral.toLocaleString('fr-FR')} F`
 
   if (userLoading || !user || (items.length === 0 && etape === 'livraison')) {
     return (
@@ -713,23 +725,45 @@ export default function CheckoutPage() {
               </AnimatePresence>
             </section>
 
-            <section className="mb-8">
+            <section className="mb-6">
               <MobileMoneySelector
                 selected={reseau}
-                onSelect={setReseau}
+                onSelect={(r) => { setReseau(r); setErreurInitiation(null) }}
                 phoneNumber={telephoneMomo}
-                onPhoneChange={setTelephoneMomo}
+                onPhoneChange={(v) => { setTelephoneMomo(v); setErreurInitiation(null) }}
+                montant={totalGeneral}
               />
             </section>
+
+            {erreurInitiation && (
+              <div className="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-red-50">
+                <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold text-red-700">Le paiement n'a pas pu démarrer</p>
+                  <p className="text-xs text-red-600 mt-0.5">{erreurInitiation}</p>
+                </div>
+                <button
+                  onClick={declencherPaiement}
+                  disabled={declenchementEnCours}
+                  className="shrink-0 text-xs font-bold text-coral-600 hover:text-coral-700 px-3 py-1.5 rounded-full border border-coral-200 hover:bg-coral-50 transition-colors disabled:opacity-50"
+                >
+                  Réessayer
+                </button>
+              </div>
+            )}
 
             <div className="hidden md:flex items-center justify-between p-5 rounded-2xl bg-gray-50">
               <div>
                 <p className="text-xs text-gray-400">Total à payer</p>
                 <p className="text-2xl font-black text-gray-900">{totalGeneral.toLocaleString('fr-FR')} F</p>
               </div>
-              <Button onClick={declencherPaiement} disabled={declenchementEnCours} className="min-w-[220px]">
+              <Button
+                onClick={declencherPaiement}
+                disabled={paiementDisabled}
+                className={`min-w-[220px] transition-shadow ${!paiementDisabled ? 'shadow-lg shadow-coral-500/30' : ''}`}
+              >
                 {declenchementEnCours ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
-                {declenchementEnCours ? 'Connexion...' : `Payer ${totalGeneral.toLocaleString('fr-FR')} F`}
+                {libellePayer}
               </Button>
             </div>
           </>
@@ -772,11 +806,13 @@ export default function CheckoutPage() {
           ) : (
             <button
               onClick={declencherPaiement}
-              disabled={declenchementEnCours}
-              className="flex-1 h-13 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-sm transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={paiementDisabled}
+              className={`flex-1 h-13 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-sm transition-all disabled:opacity-50 flex items-center justify-center gap-2 ${
+                !paiementDisabled ? 'shadow-lg shadow-coral-500/30' : 'shadow-md'
+              }`}
             >
               {declenchementEnCours ? <Loader2 size={16} className="animate-spin" /> : null}
-              {declenchementEnCours ? 'Connexion...' : `Payer ${totalGeneral.toLocaleString('fr-FR')} F`}
+              {libellePayer}
             </button>
           )}
         </div>

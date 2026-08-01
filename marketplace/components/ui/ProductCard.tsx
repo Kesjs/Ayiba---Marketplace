@@ -10,6 +10,7 @@ interface ProductCardProps {
   price: number;
   oldPrice?: number;
   variants?: string[];
+  isFavorite?: boolean;
   onAddToCart: () => void;
   onToggleFavorite: () => void;
   onClick?: () => void;
@@ -24,6 +25,7 @@ export function ProductCard({
   price,
   oldPrice,
   variants,
+  isFavorite = false,
   onAddToCart,
   onToggleFavorite,
   onClick,
@@ -63,9 +65,11 @@ export function ProductCard({
             e.preventDefault();
             onToggleFavorite();
           }}
-          className="absolute top-2 right-2 w-7 h-7 bg-white border border-gray-200 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+          className={`absolute top-2 right-2 w-7 h-7 bg-white border rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors ${
+            isFavorite ? "border-red-200" : "border-gray-200"
+          }`}
         >
-          <i className="ti ti-heart text-sm text-gray-600 hover:text-red-500" />
+          <i className={`ti ${isFavorite ? "ti-heart-filled text-red-500" : "ti-heart text-gray-600"} text-sm hover:text-red-500`} />
         </button>
         
         {/* Dots de pagination */}

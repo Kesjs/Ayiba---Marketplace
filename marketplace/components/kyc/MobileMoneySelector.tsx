@@ -90,8 +90,6 @@ export function MobileMoneySelector({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detecte, choisiManuellement]);
 
-  const estAutoDetecte = !choisiManuellement && !!selected && detecte === selected;
-
   const handleSelect = (id: "mtn" | "moov" | "celtiis") => {
     setChoisiManuellement(true);
     onSelect(id);
@@ -122,11 +120,6 @@ export function MobileMoneySelector({
               {isSelected && (
                 <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-coral-500 text-white flex items-center justify-center">
                   <Check size={10} strokeWidth={3.5} />
-                </span>
-              )}
-              {isSelected && estAutoDetecte && (
-                <span className="absolute top-2 left-2 text-[9px] font-bold text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">
-                  détecté
                 </span>
               )}
               <div

@@ -14,6 +14,8 @@ import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { useUser } from "@/lib/hooks/useUser";
+import { createClient } from "@/lib/supabase/client";
+import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
 
 function prixAffiche(a: ArticlePublic) {
   return a.prix_promo ?? a.prix;
@@ -29,12 +31,23 @@ export default function BoutiqueDetailPage() {
   const { addItem } = useCart();
   const { showToast } = useToast();
   const { user } = useUser();
+  const supabase = createClient();
 
   const [store, setStore] = useState<BoutiquePublique | null>(null);
   const [storeProducts, setStoreProducts] = useState<ArticlePublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    fetchFavoriteIds(supabase, user.id).then(setFavoriteIds);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   useEffect(() => {
     if (!boutiqueId) return;
@@ -85,6 +98,26 @@ export default function BoutiqueDetailPage() {
     }
     if (!store) return;
     router.push(`/messages?vendeur=${store.id}`);
+  };
+
+  const handleToggleFavorite = async (productId: string) => {
+    if (!user) {
+      setAuthModalOpen(true);
+      return;
+    }
+    const isFav = favoriteIds.has(productId);
+    try {
+      const nowFav = await toggleFavorite(supabase, user.id, productId, isFav);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (nowFav) next.add(productId);
+        else next.delete(productId);
+        return next;
+      });
+      showToast(nowFav ? "Ajouté aux favoris" : "Retiré des favoris", "success");
+    } catch (error: any) {
+      showToast(error?.message || "Impossible de mettre à jour les favoris", "error");
+    }
   };
 
   if (loading) {
@@ -190,7 +223,8 @@ export default function BoutiqueDetailPage() {
                   createdAt={product.created_at}
                   photosCount={product.photos.length}
                   onAddToCart={() => handleAddToCart(product)}
-                  onToggleFavorite={() => showToast("Favori ajouté", "success")}
+                  isFavorite={favoriteIds.has(product.id)}
+                  onToggleFavorite={() => handleToggleFavorite(product.id)}
                 />
               </Link>
             ))}

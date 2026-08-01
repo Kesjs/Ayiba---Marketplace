@@ -24,6 +24,7 @@ import {
   ArticleCard,
   ArticleCardRow,
   fetchArticleRatings,
+  fetchFavoriteIds,
   fetchVendeurStats,
   mapArticleRow,
   toggleFavorite,
@@ -153,6 +154,7 @@ export default function ProductDetailPage() {
   const [showStickyBar, setShowStickyBar] = useState(false)
   const [reviews, setReviews] = useState<Avis[]>([])
   const [similarProducts, setSimilarProducts] = useState<ArticleCard[]>([])
+  const [similarFavoriteIds, setSimilarFavoriteIds] = useState<Set<string>>(new Set())
   const [vendeurStats, setVendeurStats] = useState<VendeurStats>({ rating: 0, reviewCount: 0, productCount: 0 })
   const [variantes, setVariantes] = useState<Variante[]>([])
   const [selectedVarianteId, setSelectedVarianteId] = useState<string | null>(null)
@@ -324,6 +326,9 @@ export default function ProductDetailPage() {
     const rows = data as unknown as ArticleCardRow[]
     const ratings = await fetchArticleRatings(supabase, rows.map((r) => r.id))
     setSimilarProducts(rows.map((r) => mapArticleRow(r, ratings)))
+    if (user) {
+      fetchFavoriteIds(supabase, user.id).then(setSimilarFavoriteIds)
+    }
   }
 
   // Variante sélectionnée (le cas échéant) et valeurs effectives qui en
@@ -391,6 +396,27 @@ export default function ProductDetailPage() {
     try {
       const nowFav = await toggleFavorite(supabase, user.id, product.id, product.is_favorite)
       setProduct({ ...product, is_favorite: nowFav })
+      showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
+    } catch (error: any) {
+      showToast(error?.message || 'Impossible de mettre à jour les favoris', 'error')
+    }
+  }
+
+  const handleToggleFavoriteSimilar = async (productId: string) => {
+    if (!user) {
+      setAuthRedirectTo(null)
+      setAuthModalOpen(true)
+      return
+    }
+    const isFav = similarFavoriteIds.has(productId)
+    try {
+      const nowFav = await toggleFavorite(supabase, user.id, productId, isFav)
+      setSimilarFavoriteIds((prev) => {
+        const next = new Set(prev)
+        if (nowFav) next.add(productId)
+        else next.delete(productId)
+        return next
+      })
       showToast(nowFav ? 'Ajouté aux favoris' : 'Retiré des favoris', 'success')
     } catch (error: any) {
       showToast(error?.message || 'Impossible de mettre à jour les favoris', 'error')
@@ -869,7 +895,8 @@ export default function ProductDetailPage() {
                       addItem({ id: p.id, nom: p.nom, prix: p.prix, vendeur_id: p.vendeur_id, photos: p.photos })
                       showToast('Produit ajouté au panier', 'success')
                     }}
-                    onToggleFavorite={() => showToast('Favori ajouté', 'success')}
+                    isFavorite={similarFavoriteIds.has(p.id)}
+                    onToggleFavorite={() => handleToggleFavoriteSimilar(p.id)}
                   />
                 </Link>
               ))}

@@ -437,6 +437,11 @@ function MissionACConfirmerCard({
     ? `${mission.vendeur_nom_boutique}${mission.vendeur_quartier ? `, ${mission.vendeur_quartier}` : ""}`
     : "Boutique non renseignée";
   const pointLivraison = mission.adresse_livraison || mission.commune || "Non renseignée";
+  const lienNavigationVendeur = getLienNavigationGoogleMaps({
+    latitude: mission.vendeur_latitude,
+    longitude: mission.vendeur_longitude,
+    adresseTexte: mission.vendeur_nom_boutique,
+  });
 
   return (
     <div className="bg-white p-5 sm:p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg hover:border-gray-200 transition-all group">
@@ -489,6 +494,18 @@ function MissionACConfirmerCard({
           </div>
         </div>
       </div>
+
+      {lienNavigationVendeur && (
+        <a
+          href={lienNavigationVendeur}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mb-3 w-full h-11 rounded-xl border border-teal-200 text-teal-700 font-bold text-sm flex items-center justify-center gap-2 hover:bg-teal-50 transition-all"
+        >
+          <Navigation size={16} />
+          Naviguer vers la boutique
+        </a>
+      )}
 
       <div className="flex gap-3">
         <button

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Check } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Check, ShieldCheck } from "lucide-react";
 
 interface MobileMoneyOption {
   id: "mtn" | "moov" | "celtiis";
@@ -9,6 +9,8 @@ interface MobileMoneyOption {
   logoSrc: string;
   fallbackColor: string;
   fallbackTextColor: string;
+  /** Préfixes (2 chiffres après le "01" national) utilisés pour l'auto-détection — à ajuster si besoin. */
+  prefixes: string[];
 }
 
 const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
@@ -18,6 +20,7 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
     logoSrc: "/logos/mtn.png",
     fallbackColor: "bg-yellow-400",
     fallbackTextColor: "text-black",
+    prefixes: ["61", "62", "66", "67", "69", "90", "91", "92", "93", "94", "95", "96", "97"],
   },
   {
     id: "moov",
@@ -25,6 +28,7 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
     logoSrc: "/logos/moov.jpg",
     fallbackColor: "bg-blue-600",
     fallbackTextColor: "text-white",
+    prefixes: ["60", "63", "64", "65", "68", "98", "99"],
   },
   {
     id: "celtiis",
@@ -32,14 +36,26 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
     logoSrc: "/logos/celtiis.jpg",
     fallbackColor: "bg-orange-500",
     fallbackTextColor: "text-white",
+    prefixes: ["55", "56"],
   },
 ];
+
+/** Détecte le réseau à partir des 2 premiers chiffres significatifs du numéro. Retourne null si indéterminé. */
+function detecterReseau(numero: string): "mtn" | "moov" | "celtiis" | null {
+  const chiffres = numero.replace(/\D/g, "");
+  const sansIndicatifNational = chiffres.startsWith("01") ? chiffres.slice(2) : chiffres;
+  const deuxChiffres = sansIndicatifNational.slice(0, 2);
+  if (deuxChiffres.length < 2) return null;
+  return MOBILE_MONEY_OPTIONS.find((o) => o.prefixes.includes(deuxChiffres))?.id ?? null;
+}
 
 interface MobileMoneySelectorProps {
   selected: "mtn" | "moov" | "celtiis" | "" | null;
   onSelect: (network: "mtn" | "moov" | "celtiis") => void;
   phoneNumber: string;
   onPhoneChange: (value: string) => void;
+  /** Montant total à payer, affiché dans le récap final. */
+  montant?: number;
   error?: string | null;
   touched?: boolean;
 }
@@ -49,10 +65,28 @@ export function MobileMoneySelector({
   onSelect,
   phoneNumber,
   onPhoneChange,
+  montant,
   error,
   touched,
 }: MobileMoneySelectorProps) {
   const [logoFailed, setLogoFailed] = useState<Record<string, boolean>>({});
+  // Tant que l'utilisateur n'a pas choisi lui-même une carte, on laisse l'auto-détection piloter la sélection.
+  const [choisiManuellement, setChoisiManuellement] = useState(false);
+
+  const detecte = useMemo(() => detecterReseau(phoneNumber), [phoneNumber]);
+
+  useEffect(() => {
+    if (choisiManuellement) return;
+    if (detecte && detecte !== selected) onSelect(detecte);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detecte, choisiManuellement]);
+
+  const estAutoDetecte = !choisiManuellement && !!selected && detecte === selected;
+
+  const handleSelect = (id: "mtn" | "moov" | "celtiis") => {
+    setChoisiManuellement(true);
+    onSelect(id);
+  };
 
   return (
     <div className="w-full">
@@ -68,7 +102,7 @@ export function MobileMoneySelector({
             <button
               key={option.id}
               type="button"
-              onClick={() => onSelect(option.id)}
+              onClick={() => handleSelect(option.id)}
               aria-pressed={isSelected}
               className={`relative flex flex-col items-center gap-2 p-3 pt-4 rounded-2xl border-2 transition-all ${
                 isSelected
@@ -79,6 +113,11 @@ export function MobileMoneySelector({
               {isSelected && (
                 <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-coral-500 text-white flex items-center justify-center">
                   <Check size={10} strokeWidth={3.5} />
+                </span>
+              )}
+              {isSelected && estAutoDetecte && (
+                <span className="absolute top-2 left-2 text-[9px] font-bold text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">
+                  détecté
                 </span>
               )}
               <div
@@ -111,32 +150,50 @@ export function MobileMoneySelector({
         })}
       </div>
 
-      {selected && (
-        <div>
-          <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
-            Numéro {MOBILE_MONEY_OPTIONS.find((o) => o.id === selected)?.label}
-          </label>
-          <div
-            className={`flex rounded-2xl overflow-hidden border bg-gray-50 focus-within:ring-2 ${
-              touched && error
-                ? "border-red-200 focus-within:ring-red-200"
-                : "border-gray-100 focus-within:ring-coral-200"
-            }`}
-          >
-            <span className="inline-flex items-center gap-2 px-3 bg-gray-100 border-r border-gray-200 text-sm text-gray-500 font-medium">
-              <span className="text-lg">🇧🇯</span>
-              +229
-            </span>
-            <input
-              type="tel"
-              inputMode="numeric"
-              value={phoneNumber}
-              onChange={(e) => onPhoneChange(e.target.value)}
-              placeholder="01 97 00 00 00"
-              className="flex-1 px-4 py-3 text-sm bg-transparent focus:outline-none"
-            />
-          </div>
-          {touched && error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
+      {/* Toujours visible — jamais d'écran "à moitié vide" en attendant un choix de réseau */}
+      <div className="mb-5">
+        <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
+          {selected ? `Numéro ${MOBILE_MONEY_OPTIONS.find((o) => o.id === selected)?.label}` : "Ton numéro Mobile Money"}
+        </label>
+        <div
+          className={`flex rounded-2xl overflow-hidden border bg-gray-50 focus-within:ring-2 ${
+            touched && error
+              ? "border-red-200 focus-within:ring-red-200"
+              : "border-gray-100 focus-within:ring-coral-200"
+          }`}
+        >
+          <span className="inline-flex items-center gap-2 px-3 bg-gray-100 border-r border-gray-200 text-sm text-gray-500 font-medium">
+            <span className="text-lg">🇧🇯</span>
+            +229
+          </span>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={phoneNumber}
+            onChange={(e) => onPhoneChange(e.target.value)}
+            placeholder="01 97 00 00 00"
+            className="flex-1 px-4 py-3 text-sm bg-transparent focus:outline-none"
+          />
+        </div>
+        {touched && error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
+      </div>
+
+      {/* Récap — comble le vide vertical utilement plutôt que de le laisser vide */}
+      {selected && phoneNumber.trim() && (
+        <div className="flex items-center gap-2.5 p-3.5 rounded-xl bg-teal-50/60">
+          <ShieldCheck size={16} className="text-teal-500 shrink-0" />
+          <p className="text-xs text-gray-600">
+            {typeof montant === "number" ? (
+              <>
+                Tu payes <span className="font-bold text-gray-800">{montant.toLocaleString("fr-FR")} F</span> depuis{" "}
+                <span className="font-bold text-gray-800">+229 {phoneNumber}</span>
+              </>
+            ) : (
+              <>
+                Paiement depuis <span className="font-bold text-gray-800">+229 {phoneNumber}</span>
+              </>
+            )}
+          </p>
         </div>
       )}
     </div>

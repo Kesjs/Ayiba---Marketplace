@@ -345,6 +345,7 @@ export default function VendeurCommandesPage() {
       .range(0, PAGE_SIZE - 1);
 
     if (error) {
+      console.error("[vendeur/commandes] fetchCommandes error:", error);
       setLoadError("Impossible de charger tes commandes — vérifie ta connexion et réessaie.");
       setLoading(false);
       return;

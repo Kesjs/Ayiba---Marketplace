@@ -134,8 +134,8 @@ export default function Home() {
   // Countdown pour les ventes flash — la fenêtre de 3h est un choix produit
   // indépendant des données ; à faire évoluer séparément si un vrai système
   // de promos programmées est décidé.
-  const [flashEndTime, setFlashEndTime] = useState<number>(() => Date.now() + 1000 * 60 * 60 * 3);
-  const [countdown, setCountdown] = useState({ h: 3, m: 0, s: 0 });
+  const [flashEndTime, setFlashEndTime] = useState<number>(() => Date.now() + 1000 * 60 * 60 * 24 * 3);
+  const [countdown, setCountdown] = useState({ h: 72, m: 0, s: 0 });
 
   const heroRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress: heroScrollProgress } = useScroll({
@@ -219,7 +219,7 @@ export default function Home() {
     const interval = setInterval(() => {
       const diff = flashEndTime - Date.now();
       if (diff <= 0) {
-        setFlashEndTime(Date.now() + 1000 * 60 * 60 * 3);
+        setFlashEndTime(Date.now() + 1000 * 60 * 60 * 24 * 3);
         return;
       }
       const h = Math.floor(diff / (1000 * 60 * 60));

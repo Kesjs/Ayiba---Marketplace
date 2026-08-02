@@ -28,6 +28,7 @@ interface CartContextType {
   addItem: (item: Omit<CartItem, 'quantite'>) => void
   removeItem: (key: string) => void
   updateQty: (key: string, qty: number) => void
+  updatePrix: (key: string, prix: number) => void
   openCart: () => void
   closeCart: () => void
   clearCart: () => void
@@ -74,6 +75,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems(prev => prev.map(i => cartKey(i) === key ? { ...i, quantite: qty } : i))
   }
 
+  // Le prix d'un article est capturé au moment de l'ajout au panier et
+  // persiste en localStorage — s'il change en base (promo ajoutée/retirée)
+  // pendant que l'article reste dans le panier, rien ne le met à jour tout
+  // seul. Le checkout appelle ceci après revalidation contre la base, pour
+  // ne jamais faire payer un prix obsolète.
+  const updatePrix = (key: string, prix: number) => {
+    setItems(prev => prev.map(i => cartKey(i) === key ? { ...i, prix } : i))
+  }
+
   const openCart = () => setIsOpen(true)
   const closeCart = () => setIsOpen(false)
   const clearCart = () => setItems([])
@@ -90,6 +100,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       addItem,
       removeItem,
       updateQty,
+      updatePrix,
       openCart,
       closeCart,
       clearCart

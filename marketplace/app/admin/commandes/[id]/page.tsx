@@ -74,8 +74,8 @@ export default function AdminCommandeDetailPage() {
       .select(
         `id, numero, statut, montant_total, frais_livraison, commission, adresse_livraison, commune,
          nom_client, telephone_client, created_at,
-         vendeur:vendeurs ( id, nom_boutique, telephone ),
-         livreur:users!commandes_livreur_id_fkey ( id, nom, telephone ),
+         vendeur:vendeurs ( id, nom_boutique, users ( phone ) ),
+         livreur:livreurs!commandes_livreur_id_fkey ( id, nom_complet, users ( phone ) ),
          commande_articles ( id, quantite, prix_unitaire, total, article:articles ( nom ) ),
          paiements ( id, montant, commission, methode, reference, statut, created_at )`
       )
@@ -83,7 +83,26 @@ export default function AdminCommandeDetailPage() {
       .single();
 
     if (!error && data) {
-      setCommande(data as unknown as CommandeDetailAdmin);
+      // vendeurs/livreurs n'ont pas de colonne telephone en propre — elle vit
+      // sur users (1:1 via id). On remet la forme plate attendue par le
+      // reste du composant (vendeur.telephone, livreur.nom).
+      const raw = data as unknown as {
+        vendeur: { id: string; nom_boutique: string | null; users: { phone: string | null } | { phone: string | null }[] | null } | { id: string; nom_boutique: string | null; users: { phone: string | null } | { phone: string | null }[] | null }[] | null;
+        livreur: { id: string; nom_complet: string | null; users: { phone: string | null } | { phone: string | null }[] | null } | { id: string; nom_complet: string | null; users: { phone: string | null } | { phone: string | null }[] | null }[] | null;
+      } & Omit<CommandeDetailAdmin, "vendeur" | "livreur">;
+
+      const vendeurBrut = one(raw.vendeur);
+      const livreurBrut = one(raw.livreur);
+
+      setCommande({
+        ...raw,
+        vendeur: vendeurBrut
+          ? { id: vendeurBrut.id, nom_boutique: vendeurBrut.nom_boutique, telephone: one(vendeurBrut.users)?.phone ?? null }
+          : null,
+        livreur: livreurBrut
+          ? { id: livreurBrut.id, nom: livreurBrut.nom_complet, telephone: one(livreurBrut.users)?.phone ?? null }
+          : null,
+      });
     }
     setLoading(false);
   }, [params.id]);

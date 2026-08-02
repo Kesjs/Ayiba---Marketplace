@@ -73,15 +73,35 @@ export default function CommandeDetailPage() {
       .from("commandes")
       .select(
         `id, numero, statut, montant_total, frais_livraison, adresse_livraison, commune, created_at, livreur_id,
-         vendeur:vendeurs ( nom_boutique, telephone ),
-         livreur:users!commandes_livreur_id_fkey ( nom, telephone ),
+         vendeur:vendeurs ( nom_boutique, users ( phone ) ),
+         livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users ( phone ) ),
          commande_articles ( article_id, article:articles ( nom ) )`
       )
       .eq("id", params.id)
       .single();
 
     if (!error && data) {
-      setCommande(data as unknown as CommandeDetail);
+      // vendeurs/livreurs n'ont pas de colonne telephone en propre — elle vit
+      // sur users (1:1 via id). On remet ici la forme plate attendue par le
+      // reste du composant (vendeur.telephone, livreur.nom) pour ne rien
+      // changer côté rendu.
+      const raw = data as unknown as {
+        vendeur: { nom_boutique: string | null; users: { phone: string | null } | { phone: string | null }[] | null } | { nom_boutique: string | null; users: { phone: string | null } | { phone: string | null }[] | null }[] | null;
+        livreur: { nom_complet: string | null; users: { phone: string | null } | { phone: string | null }[] | null } | { nom_complet: string | null; users: { phone: string | null } | { phone: string | null }[] | null }[] | null;
+      } & Omit<CommandeDetail, "vendeur" | "livreur">;
+
+      const vendeurBrut = one(raw.vendeur);
+      const livreurBrut = one(raw.livreur);
+
+      setCommande({
+        ...raw,
+        vendeur: vendeurBrut
+          ? { nom_boutique: vendeurBrut.nom_boutique, telephone: one(vendeurBrut.users)?.phone ?? null }
+          : null,
+        livreur: livreurBrut
+          ? { nom: livreurBrut.nom_complet, telephone: one(livreurBrut.users)?.phone ?? null }
+          : null,
+      });
     }
     setLoading(false);
   }, [supabase, params.id]);

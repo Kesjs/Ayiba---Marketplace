@@ -12,7 +12,7 @@ const LOGO_PAR_RESEAU: Record<'mtn' | 'moov' | 'celtiis', { src: string; label: 
   celtiis: { src: '/logos/celtiis.jpg', label: 'Celtiis Cash' },
 }
 
-const DUREE_TIMEOUT_SECONDES = 90
+const DUREE_TIMEOUT_SECONDES = 150
 
 interface PaiementWaitingOverlayProps {
   statut: Statut
@@ -84,8 +84,10 @@ export function PaiementWaitingOverlay({
               Un message {logo.label} va s&rsquo;afficher sur le {telephone}
             </p>
             <p className="text-sm text-gray-400 mb-6">pour confirmer {montant.toLocaleString('fr-FR')} F</p>
-            <p className="text-xs text-gray-300 font-mono">
-              {Math.floor(secondesRestantes / 60)}:{String(secondesRestantes % 60).padStart(2, '0')}
+            <p className="text-xs text-gray-300">
+              {secondesRestantes > 20
+                ? 'Ça peut prendre jusqu\u2019à 2 à 3 minutes selon ton opérateur.'
+                : 'Encore quelques secondes\u2026'}
             </p>
           </motion.div>
         )}

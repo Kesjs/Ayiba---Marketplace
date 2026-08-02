@@ -6,11 +6,8 @@ import { useVendeurBoutique, type Horaires, type Jour } from "../../hooks/useVen
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { MobileMoneySelector } from "@/components/boutique/MobileMoneySelector";
-import { useGeolocationAdresse } from "@/lib/hooks/useGeolocationAdresse";
-import { COMMUNES_COUVERTES } from "@/lib/constants/communes";
-import { AdresseAutocomplete } from "@/components/ui/AdresseAutocomplete";
-import type { SuggestionAdresse } from "@/lib/hooks/useAdresseAutocomplete";
-import { Check, Camera, ImagePlus, MapPin, Clock, Store, LocateFixed, Loader2 } from "lucide-react";
+import { AdresseForm } from "@/components/adresse/AdresseForm";
+import { Check, Camera, ImagePlus, MapPin, Clock, Store } from "lucide-react";
 
 // Préfixes (2 chiffres après le 01) par opérateur — Bénin, plan à 10 chiffres depuis nov. 2024
 const PREFIXES_RESEAU: Record<string, string[]> = {
@@ -74,7 +71,6 @@ export default function VendeurBoutiquePage() {
     mobile_money_number: "",
     horaires: HORAIRES_DEFAUT,
   });
-  const { localiser, loading: localisationEnCours } = useGeolocationAdresse();
   const [initialForm, setInitialForm] = useState(form);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
@@ -287,108 +283,38 @@ export default function VendeurBoutiquePage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
-                  Rechercher l&apos;adresse de la boutique
+                  Adresse de la boutique
                 </label>
-                <AdresseAutocomplete
-                  placeholder="Rechercher une adresse (rue, quartier, ville)..."
-                  onSelect={(s: SuggestionAdresse) => {
+                {/* Position GPS de la boutique — utilisée directement par
+                    calculer_frais_livraison pour facturer une distance de
+                    livraison réelle au client ; obligatoire depuis la correction
+                    du bug de sous-facturation sur les livraisons longue distance. */}
+                <AdresseForm
+                  valeurInitiale={{
+                    adresse_complete: [form.quartier, form.commune].filter(Boolean).join(", "),
+                    quartier: form.quartier,
+                    commune: form.commune,
+                    latitude: form.latitude ?? undefined,
+                    longitude: form.longitude ?? undefined,
+                  }}
+                  onValider={(adresse) => {
                     setForm((prev) => ({
                       ...prev,
-                      latitude: s.latitude,
-                      longitude: s.longitude,
-                      commune: s.commune || prev.commune,
-                      quartier: s.quartier || prev.quartier,
+                      quartier: adresse.quartier,
+                      commune: adresse.commune,
+                      latitude: adresse.latitude,
+                      longitude: adresse.longitude,
                     }));
                   }}
+                  labelBouton="Valider cette adresse"
                 />
               </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
-                    Quartier
-                  </label>
-                  <input
-                    value={form.quartier}
-                    onChange={(e) => handleChange("quartier", e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:ring-2 focus:ring-coral-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase text-gray-500 mb-2">
-                    Commune
-                  </label>
-                  <select
-                    value={form.commune}
-                    onChange={(e) => handleChange("commune", e.target.value)}
-                    className="w-full px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-coral-200"
-                  >
-                    <option value="">Choisir une commune...</option>
-                    {COMMUNES_COUVERTES.map((c) => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Position GPS de la boutique — utilisée directement par
-                  calculer_frais_livraison pour facturer une distance de
-                  livraison réelle au client ; obligatoire depuis la correction
-                  du bug de sous-facturation sur les livraisons longue distance. */}
-              <motion.div
-                animate={{ backgroundColor: form.latitude ? "rgb(240 253 250)" : "rgb(254 242 242)" }}
-                transition={{ duration: 0.3 }}
-                className={`mt-4 flex items-center justify-between gap-3 p-4 rounded-2xl border ${
-                  form.latitude ? "border-gray-100" : "border-red-200"
-                }`}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <MapPin size={16} className={form.latitude ? "text-teal-600" : "text-red-500"} />
-                  <AnimatePresence mode="wait">
-                    <motion.p
-                      key={form.latitude ? "avec-position" : "sans-position"}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -4 }}
-                      transition={{ duration: 0.15 }}
-                      className={`text-sm truncate ${form.latitude ? "text-gray-600" : "text-red-700 font-medium"}`}
-                    >
-                      {form.latitude && form.longitude
-                        ? `Position enregistrée (${form.latitude.toFixed(4)}, ${form.longitude.toFixed(4)})`
-                        : "Position GPS obligatoire — non enregistrée pour cette boutique"}
-                    </motion.p>
-                  </AnimatePresence>
-                </div>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      const resultat = await localiser();
-                      setForm((prev) => ({
-                        ...prev,
-                        latitude: resultat.latitude,
-                        longitude: resultat.longitude,
-                        commune: resultat.communeDetectee || prev.commune,
-                        quartier: resultat.quartierDetecte || prev.quartier,
-                      }));
-                    } catch {
-                      // L'erreur est déjà exposée par le hook (localisation refusée
-                      // ou indisponible) ; rien de plus à faire ici.
-                    }
-                  }}
-                  disabled={localisationEnCours}
-                  className="shrink-0 flex items-center gap-2 h-9 px-4 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-700 hover:border-coral-300 transition-colors disabled:opacity-60"
-                >
-                  {localisationEnCours ? <Loader2 size={14} className="animate-spin" /> : <LocateFixed size={14} />}
-                  {localisationEnCours ? "Localisation..." : "Localiser ma boutique"}
-                </button>
-              </motion.div>
               {!form.latitude && (
                 <p className="text-xs text-red-600 -mt-2">
-                  Utilise la recherche d&apos;adresse ci-dessus ou le bouton &quot;Localiser ma boutique&quot;
-                  — tant que la position n&apos;est pas enregistrée, tu ne peux pas enregistrer les
-                  autres modifications de ta boutique, et les frais de livraison facturés à tes
-                  clients restent une estimation par commune plutôt qu&apos;un calcul réel.
+                  Utilise la recherche d&apos;adresse ci-dessus — tant que la position n&apos;est
+                  pas enregistrée, tu ne peux pas enregistrer les autres modifications de ta
+                  boutique, et les frais de livraison facturés à tes clients restent une estimation
+                  par commune plutôt qu&apos;un calcul réel.
                 </p>
               )}
             </div>

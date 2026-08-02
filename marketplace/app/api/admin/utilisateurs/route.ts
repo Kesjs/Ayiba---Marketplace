@@ -56,6 +56,20 @@ export async function POST(req: NextRequest) {
     }
     const { error } = await admin.from("users").update({ role }).eq("id", userId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+    // Une inscription normale en tant que vendeur crée automatiquement la
+    // ligne vendeurs (trigger handle_new_user, statut = null tant que le KYC
+    // n'est pas soumis). Ce chemin admin contournait ce trigger et laissait
+    // le compte dans un état incohérent (role='vendeur' sans ligne vendeurs)
+    // — on répare ça ici, sans écraser une ligne déjà existante.
+    // (Le cas livreur n'a pas cette réparation : livreurs.nom_complet est
+    // NOT NULL, on n'a pas cette info au moment du changement de rôle — et
+    // LivreurKycWizard tolère déjà une ligne totalement absente via
+    // maybeSingle()+upsert, donc ce n'est pas un problème pratique.)
+    if (role === "vendeur") {
+      await admin.from("vendeurs").upsert({ id: userId, statut: null }, { onConflict: "id", ignoreDuplicates: true });
+    }
+
     await admin.from("admin_actions_log").insert({
       admin_id: adminId,
       action_type: "role_modifie",

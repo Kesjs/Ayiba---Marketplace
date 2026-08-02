@@ -135,6 +135,18 @@ export default function CheckoutPage() {
   const [attentePassiveDepassee, setAttentePassiveDepassee] = useState(false)
   const [erreurInitiation, setErreurInitiation] = useState<string | null>(null)
   const [commandeIds, setCommandeIds] = useState<string[]>([])
+  // Mode test FedaPay (sandbox) : affiché en bandeau pour éviter de chercher
+  // un faux bug alors que c'est le mode sandbox qui bride le réseau choisi
+  // et n'accepte que 2 numéros de test (voir lib/fedapay.ts).
+  const [modeTest, setModeTest] = useState(false)
+  useEffect(() => {
+    fetch('/api/paiements/mode')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setModeTest(!data.live)
+      })
+      .catch(() => {})
+  }, [])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   // Garde l'ID de paiement en cours dans l'URL (sans navigation ni rechargement
@@ -497,6 +509,28 @@ export default function CheckoutPage() {
     synchroniserUrlPaiement(null)
   }
 
+  // Contrairement à reessayerPaiement (utilisé uniquement une fois le
+  // paiement déjà résolu en échec/timeout), celle-ci marque explicitement
+  // l'intention "annule" en base pendant qu'elle est encore "en_attente" —
+  // sinon la ligne reste bloquée et un refresh la republierait telle quelle
+  // (même symptôme que le bug initial : réseau/numéro figés sur le vieil
+  // essai, peu importe ce qu'on choisit ensuite).
+  const annulerPaiement = async () => {
+    if (pollRef.current) clearInterval(pollRef.current)
+    if (paiementCheckoutId) {
+      try {
+        await supabase.rpc('annuler_paiement_checkout', { p_paiement_checkout_id: paiementCheckoutId })
+      } catch {
+        // silencieux — on quitte l'écran d'attente côté client dans tous les cas
+      }
+    }
+    setStatutPaiement(null)
+    setPaiementCheckoutId(null)
+    setRaisonEchec(null)
+    setAttentePassiveDepassee(false)
+    synchroniserUrlPaiement(null)
+  }
+
   // Bouton Payer à 3 états : guide l'utilisateur sans jamais afficher de message d'erreur pour un simple champ manquant
   const paiementDisabled = !reseau || !telephoneMomo.trim() || declenchementEnCours
   const libellePayer = declenchementEnCours
@@ -526,11 +560,13 @@ export default function CheckoutPage() {
           telephone={telephoneMomo}
           montant={totalGeneral}
           raisonEchec={raisonEchec}
+          modeTest={modeTest}
           onTimeout={() => {
             setStatutPaiement('timeout')
             setAttentePassiveDepassee(true)
           }}
           onReessayer={reessayerPaiement}
+          onAnnuler={annulerPaiement}
           onVoirCommande={() =>
             router.push(commandeIds.length === 1 ? `/commandes/${commandeIds[0]}` : '/commandes')
           }
@@ -835,6 +871,12 @@ export default function CheckoutPage() {
                 )}
               </AnimatePresence>
             </section>
+
+            {modeTest && (
+              <div className="mb-4 px-3 py-2 rounded-xl bg-amber-100 text-amber-700 text-xs font-bold text-center">
+                Mode test — aucun argent réel ne sera prélevé
+              </div>
+            )}
 
             <section className="mb-6">
               <MobileMoneySelector

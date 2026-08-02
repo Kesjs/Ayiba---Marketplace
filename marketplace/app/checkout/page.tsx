@@ -64,8 +64,38 @@ export default function CheckoutPage() {
   const router = useRouter()
   const supabase = createClient()
   const { user, profile, loading: userLoading } = useUser()
-  const { items, total, updateQty, removeItem, clearCart } = useCart()
+  const { items, total, updateQty, removeItem, updatePrix, clearCart } = useCart()
   const { showToast } = useToast()
+
+  // Le panier garde le prix capturé au moment de l'ajout (localStorage) — si
+  // une promo a été ajoutée/retirée/modifiée depuis, on paierait un montant
+  // obsolète. On revalide donc systématiquement contre la base au chargement
+  // du checkout, avant même que le client voie un total.
+  useEffect(() => {
+    if (items.length === 0) return
+    let annule = false
+    ;(async () => {
+      const ids = Array.from(new Set(items.map((i) => i.id)))
+      const { data, error } = await supabase.from('articles').select('id, prix, prix_promo').in('id', ids)
+      if (error || !data || annule) return
+      const prixActuelParId = new Map(data.map((a) => [a.id, a.prix_promo ?? a.prix]))
+      let auMoinsUnChangement = false
+      for (const item of items) {
+        const prixActuel = prixActuelParId.get(item.id)
+        if (prixActuel != null && prixActuel !== item.prix) {
+          updatePrix(cartKey(item), prixActuel)
+          auMoinsUnChangement = true
+        }
+      }
+      if (auMoinsUnChangement) {
+        showToast('Le prix de certains articles a été mis à jour', 'info')
+      }
+    })()
+    return () => {
+      annule = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const [etape, setEtape] = useState<Etape>('livraison')
 
@@ -91,6 +121,13 @@ export default function CheckoutPage() {
   const [paiementCheckoutId, setPaiementCheckoutId] = useState<string | null>(null)
   const [statutPaiement, setStatutPaiement] = useState<StatutPaiement | null>(null)
   const [raisonEchec, setRaisonEchec] = useState<string | null>(null)
+  // Le délai de 150s affiché dans l'overlay est purement visuel : la
+  // transaction FedaPay peut aboutir après coup (opérateur lent, réseau
+  // faible). On continue donc à écouter en arrière-plan même une fois
+  // l'écran "Pas de réponse" affiché, pour basculer automatiquement vers le
+  // succès si la confirmation finit par arriver plutôt que de laisser le
+  // client bloqué sur un faux échec.
+  const [attentePassiveDepassee, setAttentePassiveDepassee] = useState(false)
   const [erreurInitiation, setErreurInitiation] = useState<string | null>(null)
   const [commandeIds, setCommandeIds] = useState<string[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -113,6 +150,7 @@ export default function CheckoutPage() {
     if (!idEnCours) return
     setPaiementCheckoutId(idEnCours)
     setStatutPaiement('attente')
+    setEtape('paiement')
     fetch(`/api/paiements/statut?id=${idEnCours}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -134,11 +172,11 @@ export default function CheckoutPage() {
       router.push('/explorer')
       return
     }
-    if (items.length === 0 && etape === 'livraison') {
+    if (items.length === 0 && etape === 'livraison' && !paiementCheckoutId) {
       router.push('/explorer')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user, items.length])
+  }, [userLoading, user, items.length, paiementCheckoutId])
 
   useEffect(() => {
     if (profile) {
@@ -318,9 +356,10 @@ export default function CheckoutPage() {
     }
   }
 
-  // Abonnement Realtime + filet de sécurité (polling) pendant l'attente.
+  // Abonnement Realtime + filet de sécurité (polling) pendant l'attente — et
+  // encore un moment après le faux timeout visuel (voir attentePassiveDepassee).
   useEffect(() => {
-    if (!paiementCheckoutId || statutPaiement !== 'attente') return
+    if (!paiementCheckoutId || (statutPaiement !== 'attente' && !(statutPaiement === 'timeout' && attentePassiveDepassee))) return
 
     const channel = supabase
       .channel(`paiement-checkout-${paiementCheckoutId}`)
@@ -423,6 +462,7 @@ export default function CheckoutPage() {
       setPaiementCheckoutId(data.paiementCheckoutId)
       setStatutPaiement('attente')
       setRaisonEchec(null)
+      setAttentePassiveDepassee(false)
       synchroniserUrlPaiement(data.paiementCheckoutId)
     } catch (err) {
       console.error('[checkout] initier paiement error:', err)
@@ -448,6 +488,7 @@ export default function CheckoutPage() {
     setStatutPaiement(null)
     setPaiementCheckoutId(null)
     setRaisonEchec(null)
+    setAttentePassiveDepassee(false)
     synchroniserUrlPaiement(null)
   }
 
@@ -461,7 +502,7 @@ export default function CheckoutPage() {
     ? 'Indique ton numéro'
     : `Payer ${totalGeneral.toLocaleString('fr-FR')} F`
 
-  if (userLoading || !user || (items.length === 0 && etape === 'livraison')) {
+  if (userLoading || !user || (items.length === 0 && etape === 'livraison' && !paiementCheckoutId)) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="animate-spin text-gray-300" size={28} />
@@ -480,7 +521,10 @@ export default function CheckoutPage() {
           telephone={telephoneMomo}
           montant={totalGeneral}
           raisonEchec={raisonEchec}
-          onTimeout={() => setStatutPaiement('timeout')}
+          onTimeout={() => {
+            setStatutPaiement('timeout')
+            setAttentePassiveDepassee(true)
+          }}
           onReessayer={reessayerPaiement}
           onVoirCommande={() =>
             router.push(commandeIds.length === 1 ? `/commandes/${commandeIds[0]}` : '/commandes')

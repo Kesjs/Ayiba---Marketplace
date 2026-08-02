@@ -20,8 +20,10 @@ interface PaiementWaitingOverlayProps {
   telephone: string
   montant: number
   raisonEchec?: string | null
+  modeTest?: boolean
   onTimeout: () => void
   onReessayer: () => void
+  onAnnuler?: () => void
   onVoirCommande?: () => void
 }
 
@@ -31,8 +33,10 @@ export function PaiementWaitingOverlay({
   telephone,
   montant,
   raisonEchec,
+  modeTest,
   onTimeout,
   onReessayer,
+  onAnnuler,
   onVoirCommande,
 }: PaiementWaitingOverlayProps) {
   const [secondesRestantes, setSecondesRestantes] = useState(DUREE_TIMEOUT_SECONDES)
@@ -66,6 +70,11 @@ export function PaiementWaitingOverlay({
             exit={{ opacity: 0, scale: 0.95 }}
             className="flex flex-col items-center text-center max-w-sm"
           >
+            {modeTest && (
+              <div className="mb-4 px-3 py-1.5 rounded-full bg-amber-100 text-amber-700 text-xs font-bold tracking-wide">
+                Mode test — aucun argent réel prélevé
+              </div>
+            )}
             <div className="relative w-20 h-20 mb-6">
               <div className="absolute inset-0 rounded-2xl bg-gray-50 flex items-center justify-center overflow-hidden">
                 <img src={logo.src} alt={logo.label} className="w-14 h-14 object-contain" />
@@ -84,11 +93,19 @@ export function PaiementWaitingOverlay({
               Un message {logo.label} va s&rsquo;afficher sur le {telephone}
             </p>
             <p className="text-sm text-gray-400 mb-6">pour confirmer {montant.toLocaleString('fr-FR')} F</p>
-            <p className="text-xs text-gray-300">
+            <p className="text-xs text-gray-300 mb-6">
               {secondesRestantes > 20
                 ? 'Ça peut prendre jusqu\u2019à 2 à 3 minutes selon ton opérateur.'
                 : 'Encore quelques secondes\u2026'}
             </p>
+            {onAnnuler && (
+              <button
+                onClick={onAnnuler}
+                className="text-xs font-semibold text-gray-400 hover:text-gray-600 underline underline-offset-2"
+              >
+                Annuler et recommencer
+              </button>
+            )}
           </motion.div>
         )}
 

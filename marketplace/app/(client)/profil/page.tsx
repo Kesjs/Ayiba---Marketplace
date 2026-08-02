@@ -319,10 +319,9 @@ export default function ProfilPage() {
                       )}
                     </div>
                     <p className="text-sm text-gray-600">{address.adresse_complete}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {[address.quartier, address.commune].filter(Boolean).join(', ')}
-                      {address.repere && ` · Repère : ${address.repere}`}
-                    </p>
+                    {address.repere && (
+                      <p className="text-xs text-gray-500 mt-0.5">Repère : {address.repere}</p>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     {!address.est_defaut && (

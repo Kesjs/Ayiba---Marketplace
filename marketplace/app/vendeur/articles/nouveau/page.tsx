@@ -590,6 +590,11 @@ function NouveauArticleForm() {
         .single();
 
       if (insertError || !articleCree) {
+        if (insertError?.code === "23503" && insertError.message?.includes("articles_vendeur_id_fkey")) {
+          throw new Error(
+            "Ton dossier vendeur n'est pas encore validé — termine ou vérifie ton KYC avant de pouvoir publier un article."
+          );
+        }
         throw new Error(insertError?.message || "Échec de la création de l'article.");
       }
 

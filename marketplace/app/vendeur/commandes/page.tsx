@@ -248,6 +248,70 @@ function ouvrirFacture(order: Commande, articles: ArticleLigne[]) {
   win.document.close();
 }
 
+// Même principe que ouvrirFacture (fenêtre imprimable), mais orienté remise
+// au livreur : coordonnées du destinataire + quantités, pas de prix — ce
+// n'est pas un document comptable.
+function ouvrirBonLivraison(order: Commande, articles: ArticleLigne[]) {
+  const win = window.open("", "_blank", "noopener,noreferrer");
+  if (!win) return;
+  const lignes = articles
+    .map(
+      (a) =>
+        `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${escapeHtml(a.nom)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${a.quantite}</td></tr>`
+    )
+    .join("");
+  win.document.write(`
+    <html>
+      <head>
+        <title>Bon de livraison ${escapeHtml(order.numero)}</title>
+        <style>
+          body { font-family: -apple-system, system-ui, sans-serif; padding: 32px; color: #111; }
+          h1 { font-size: 20px; margin-bottom: 4px; }
+          .section { margin-top: 18px; }
+          .label { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; color: #888; margin-bottom: 2px; }
+          .value { font-size: 15px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+          th { text-align: left; padding: 8px; border-bottom: 2px solid #111; font-size: 13px; }
+          .signature { margin-top: 48px; display: flex; justify-content: space-between; }
+          .signature div { width: 45%; border-top: 1px solid #111; padding-top: 6px; font-size: 12px; color: #666; }
+        </style>
+      </head>
+      <body>
+        <h1>Bon de livraison — ${escapeHtml(order.numero)}</h1>
+        <p style="color:#888;font-size:13px;">Ayiba · ${new Date(order.created_at).toLocaleDateString("fr-FR")}</p>
+
+        <div class="section">
+          <div class="label">Destinataire</div>
+          <div class="value">${escapeHtml(order.nom_client ?? "-")}</div>
+          <div class="value">${escapeHtml(order.telephone_client ?? "Téléphone non renseigné")}</div>
+        </div>
+
+        <div class="section">
+          <div class="label">Adresse de livraison</div>
+          <div class="value">${escapeHtml(order.adresse_livraison ?? "-")}</div>
+          ${order.commune ? `<div class="value">${escapeHtml(order.commune)}</div>` : ""}
+        </div>
+
+        <div class="section">
+          <div class="label">Articles à livrer</div>
+          <table>
+            <thead><tr><th>Article</th><th style="text-align:center;">Qté</th></tr></thead>
+            <tbody>${lignes || "<tr><td colspan=2 style='padding:8px;color:#999;'>Aucun détail d'article</td></tr>"}</tbody>
+          </table>
+        </div>
+
+        <div class="signature">
+          <div>Signature vendeur</div>
+          <div>Signature livreur</div>
+        </div>
+
+        <script>window.onload = () => window.print();</script>
+      </body>
+    </html>
+  `);
+  win.document.close();
+}
+
 // Supabase renvoie une relation many-to-one comme un objet OU un tableau à un
 // élément selon le contexte de la requête — on normalise systématiquement.
 function one<T>(rel: T | T[] | null | undefined): T | null {
@@ -256,7 +320,13 @@ function one<T>(rel: T | T[] | null | undefined): T | null {
 }
 
 function normaliserCommandeRow(row: any): Commande {
-  return { ...row, livreur: one(row.livreur) } as Commande;
+  const livreurBrut = one(row.livreur);
+  return {
+    ...row,
+    livreur: livreurBrut
+      ? { nom: livreurBrut.nom_complet, telephone: one(livreurBrut.users)?.phone ?? null }
+      : null,
+  } as Commande;
 }
 
 function CommandeRowSkeleton() {
@@ -338,7 +408,7 @@ export default function VendeurCommandesPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:users!commandes_livreur_id_fkey ( nom, telephone )"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users ( phone ) )"
       )
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false })
@@ -370,7 +440,7 @@ export default function VendeurCommandesPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:users!commandes_livreur_id_fkey ( nom, telephone )"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users ( phone ) )"
       )
       .eq("vendeur_id", vendeurId)
       .order("created_at", { ascending: false })
@@ -413,7 +483,7 @@ export default function VendeurCommandesPage() {
       const { data, error } = await supabase
         .from("commandes")
         .select(
-          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:users!commandes_livreur_id_fkey ( nom, telephone )"
+          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users ( phone ) )"
         )
         .eq("vendeur_id", vendeurId)
         .or(`nom_client.ilike.%${safeQ}%,numero.ilike.%${safeQ}%`)
@@ -1327,6 +1397,13 @@ export default function VendeurCommandesPage() {
                                   className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
                                 >
                                   Générer la facture
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => ouvrirBonLivraison(order, detail && detail !== "loading" ? detail.articles : [])}
+                                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
+                                >
+                                  Bon de livraison
                                 </button>
                               </div>
                             </div>

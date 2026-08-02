@@ -126,6 +126,10 @@ export default function CheckoutPage() {
   const [paiementCheckoutId, setPaiementCheckoutId] = useState<string | null>(null)
   const [statutPaiement, setStatutPaiement] = useState<StatutPaiement | null>(null)
   const [raisonEchec, setRaisonEchec] = useState<string | null>(null)
+  // Montant figé au moment du succès : `totalGeneral` est dérivé du panier,
+  // qui est vidé juste après le succès (clearCart()) — sans ce snapshot,
+  // l'écran "Paiement confirmé" retomberait à 0 F au même rendu.
+  const [montantPaye, setMontantPaye] = useState<number | null>(null)
   // Le délai de 150s affiché dans l'overlay est purement visuel : la
   // transaction FedaPay peut aboutir après coup (opérateur lent, réseau
   // faible). On continue donc à écouter en arrière-plan même une fois
@@ -416,6 +420,7 @@ export default function CheckoutPage() {
     if (row.statut === 'paye') {
       if (pollRef.current) clearInterval(pollRef.current)
       setCommandeIds(row.commande_ids || [])
+      setMontantPaye(totalGeneral)
       setStatutPaiement('succes')
       synchroniserUrlPaiement(null)
       clearCart()
@@ -558,7 +563,7 @@ export default function CheckoutPage() {
           statut={statutPaiement}
           reseau={reseau as 'mtn' | 'moov' | 'celtiis'}
           telephone={telephoneMomo}
-          montant={totalGeneral}
+          montant={montantPaye ?? totalGeneral}
           raisonEchec={raisonEchec}
           modeTest={modeTest}
           onTimeout={() => {
@@ -715,11 +720,12 @@ export default function CheckoutPage() {
                               </span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500">
-                            {[addr.quartier, addr.commune].filter(Boolean).join(', ')}
-                          </p>
-                          {addr.adresse_complete && (
-                            <p className="text-xs text-gray-400 truncate">{addr.adresse_complete}</p>
+                          {addr.adresse_complete ? (
+                            <p className="text-sm text-gray-500 truncate">{addr.adresse_complete}</p>
+                          ) : (
+                            <p className="text-sm text-gray-500">
+                              {[addr.quartier, addr.commune].filter(Boolean).join(', ')}
+                            </p>
                           )}
                         </div>
                       </motion.label>

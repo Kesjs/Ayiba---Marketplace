@@ -306,7 +306,18 @@ function VendeurArticleCard({
 
         <div className="flex items-center justify-between mt-0.5 gap-2">
           <p className="text-base font-black text-gray-900 whitespace-nowrap">
-            {item.prix.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
+            {item.prix_promo != null ? (
+              <>
+                {item.prix_promo.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>{" "}
+                <span className="text-[11px] font-medium text-gray-400 line-through">
+                  {item.prix.toLocaleString("fr-FR")}
+                </span>
+              </>
+            ) : (
+              <>
+                {item.prix.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
+              </>
+            )}
           </p>
           <StatusBadge statut={item.statut} stock={item.stock} actif={item.actif} />
         </div>
@@ -360,7 +371,18 @@ function VendeurArticleRow({
         <p className="text-sm text-gray-800 font-semibold truncate">{item.nom}</p>
         <div className="flex items-center gap-2 mt-0.5">
           <p className="text-sm font-black text-gray-900 whitespace-nowrap">
-            {item.prix.toLocaleString("fr-FR")} <span className="text-[10px] font-bold">FCFA</span>
+            {item.prix_promo != null ? (
+              <>
+                {item.prix_promo.toLocaleString("fr-FR")} <span className="text-[10px] font-bold">FCFA</span>{" "}
+                <span className="text-[10px] font-medium text-gray-400 line-through">
+                  {item.prix.toLocaleString("fr-FR")}
+                </span>
+              </>
+            ) : (
+              <>
+                {item.prix.toLocaleString("fr-FR")} <span className="text-[10px] font-bold">FCFA</span>
+              </>
+            )}
           </p>
           <span className="text-gray-300">·</span>
           <span className="text-[11px] text-gray-400">{item.stock === null ? "Illimité" : `${item.stock} en stock`}</span>

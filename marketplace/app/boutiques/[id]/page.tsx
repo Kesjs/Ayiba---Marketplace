@@ -209,24 +209,24 @@ export default function BoutiqueDetailPage() {
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {storeProducts.map((product) => (
-              <Link key={product.id} href={`/produits/${product.id}`} className="block">
-                <ProductCardModern
-                  image={product.photos[0] || "/images/hero-illustration.png"}
-                  category={product.categorie?.nom || "Divers"}
-                  name={product.nom}
-                  rating={0}
-                  reviewCount={0}
-                  price={prixAffiche(product)}
-                  oldPrice={ancienPrixAffiche(product)}
-                  location={product.vendeur?.quartier || product.vendeur?.commune || undefined}
-                  stock={product.stock}
-                  createdAt={product.created_at}
-                  photosCount={product.photos.length}
-                  onAddToCart={() => handleAddToCart(product)}
-                  isFavorite={favoriteIds.has(product.id)}
-                  onToggleFavorite={() => handleToggleFavorite(product.id)}
-                />
-              </Link>
+              <ProductCardModern
+                key={product.id}
+                image={product.photos[0] || "/images/hero-illustration.png"}
+                category={product.categorie?.nom || "Divers"}
+                name={product.nom}
+                rating={0}
+                reviewCount={0}
+                price={prixAffiche(product)}
+                oldPrice={ancienPrixAffiche(product)}
+                location={product.vendeur?.quartier || product.vendeur?.commune || undefined}
+                stock={product.stock}
+                createdAt={product.created_at}
+                photosCount={product.photos.length}
+                onAddToCart={() => handleAddToCart(product)}
+                isFavorite={favoriteIds.has(product.id)}
+                onToggleFavorite={() => handleToggleFavorite(product.id)}
+                onClick={() => router.push(`/produits/${product.id}`)}
+              />
             ))}
           </div>
         )}

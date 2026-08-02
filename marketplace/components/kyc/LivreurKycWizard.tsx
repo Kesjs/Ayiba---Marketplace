@@ -20,9 +20,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { AdresseAutocomplete } from "@/components/ui/AdresseAutocomplete";
-import type { SuggestionAdresse } from "@/lib/hooks/useAdresseAutocomplete";
-import { COMMUNES_COUVERTES } from "@/lib/constants/communes";
+import { AdresseForm } from "@/components/adresse/AdresseForm";
 import { useToast } from "@/context/ToastContext";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
@@ -62,6 +60,8 @@ interface LivreurFormData {
   plaqueImmatriculation: string;
   quartier: string;
   commune: string;
+  latitude: number | null;
+  longitude: number | null;
   mobileMoneyNetwork: "mtn" | "moov" | "celtiis" | null;
   mobileMoneyNumber: string;
 }
@@ -77,6 +77,8 @@ const INITIAL_DATA: LivreurFormData = {
   plaqueImmatriculation: "",
   quartier: "",
   commune: "",
+  latitude: null,
+  longitude: null,
   mobileMoneyNetwork: null,
   mobileMoneyNumber: "",
 };
@@ -221,6 +223,8 @@ export function LivreurKycWizard() {
               plaqueImmatriculation: livreur.plaque_immatriculation ?? prev.plaqueImmatriculation,
               quartier: livreur.quartier ?? prev.quartier,
               commune: livreur.commune ?? prev.commune,
+              latitude: livreur.latitude ?? prev.latitude,
+              longitude: livreur.longitude ?? prev.longitude,
               mobileMoneyNetwork: livreur.mobile_money_network ?? prev.mobileMoneyNetwork,
               mobileMoneyNumber: livreur.mobile_money_number ?? prev.mobileMoneyNumber,
             }));
@@ -230,6 +234,8 @@ export function LivreurKycWizard() {
               plaqueImmatriculation: livreur.plaque_immatriculation ?? "",
               quartier: livreur.quartier ?? "",
               commune: livreur.commune ?? "",
+              latitude: livreur.latitude ?? null,
+              longitude: livreur.longitude ?? null,
               mobileMoneyNetwork: livreur.mobile_money_network ?? null,
               mobileMoneyNumber: livreur.mobile_money_number ?? "",
             };
@@ -330,7 +336,12 @@ export function LivreurKycWizard() {
         const plaqueOk = needsPlaque ? data.plaqueImmatriculation.trim().length > 2 : true;
         return (data.photoVehicule !== null || existingPhotoVehiculeUrl !== null) && plaqueOk;
       case 4:
-        return data.quartier.trim().length > 1 && data.commune.trim().length > 1;
+        return (
+          data.quartier.trim().length > 1 &&
+          data.commune.trim().length > 1 &&
+          data.latitude !== null &&
+          data.longitude !== null
+        );
       case 5:
         return data.mobileMoneyNetwork !== null && data.mobileMoneyNumber.length === 8;
       default:
@@ -440,6 +451,8 @@ export function LivreurKycWizard() {
         plaque_immatriculation: needsPlaque ? data.plaqueImmatriculation : null,
         quartier: data.quartier,
         commune: data.commune,
+        latitude: data.latitude,
+        longitude: data.longitude,
         mobile_money_network: data.mobileMoneyNetwork,
         mobile_money_number: data.mobileMoneyNumber,
         statut_verification: "en_attente",
@@ -780,44 +793,22 @@ export function LivreurKycWizard() {
                       </p>
                     </div>
 
-                    <AdresseAutocomplete
-                      placeholder="Rechercher une adresse (rue, quartier, ville)..."
-                      onSelect={(s: SuggestionAdresse) => {
-                        if (s.commune) update("commune", s.commune);
-                        if (s.quartier) update("quartier", s.quartier);
+                    <AdresseForm
+                      valeurInitiale={{
+                        adresse_complete: [data.quartier, data.commune].filter(Boolean).join(", "),
+                        quartier: data.quartier,
+                        commune: data.commune,
+                        latitude: data.latitude ?? undefined,
+                        longitude: data.longitude ?? undefined,
                       }}
+                      onValider={(adresse) => {
+                        update("quartier", adresse.quartier);
+                        update("commune", adresse.commune);
+                        update("latitude", adresse.latitude);
+                        update("longitude", adresse.longitude);
+                      }}
+                      labelBouton="Valider cette adresse"
                     />
-
-                    <div>
-                      <label htmlFor="commune" className="block text-sm font-medium text-gray-700 mb-2">
-                        Commune
-                      </label>
-                      <select
-                        id="commune"
-                        value={data.commune}
-                        onChange={(e) => update("commune", e.target.value)}
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
-                      >
-                        <option value="">Choisir une commune...</option>
-                        {COMMUNES_COUVERTES.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="quartier" className="block text-sm font-medium text-gray-700 mb-2">
-                        Quartier
-                      </label>
-                      <input
-                        id="quartier"
-                        type="text"
-                        value={data.quartier}
-                        onChange={(e) => update("quartier", e.target.value)}
-                        placeholder="Ex: Godomey"
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
-                      />
-                    </div>
                   </div>
                 )}
 

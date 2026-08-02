@@ -13,8 +13,6 @@ import {
   ShieldCheck,
   Hourglass,
   AlertTriangle,
-  LocateFixed,
-  Loader2,
   UserRound,
   FileText,
   Store,
@@ -23,10 +21,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
-import { useGeolocationAdresse } from "@/lib/hooks/useGeolocationAdresse";
-import { AdresseAutocomplete } from "@/components/ui/AdresseAutocomplete";
-import type { SuggestionAdresse } from "@/lib/hooks/useAdresseAutocomplete";
-import { COMMUNES_COUVERTES } from "@/lib/constants/communes";
+import { AdresseForm } from "@/components/adresse/AdresseForm";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { WizardHeader } from "@/components/ui/WizardHeader";
 import type { WizardStep } from "./StepIndicator";
@@ -165,7 +160,6 @@ export function VendeurKycWizard() {
   // visite de /vendeur/kyc — "Modifier mes informations" repasse en édition.
   const [editMode, setEditMode] = useState(false);
   const { showToast } = useToast();
-  const { localiser, loading: localisationEnCours } = useGeolocationAdresse();
 
   // Miniature pour le récap : priorité au fichier fraîchement choisi, sinon
   // l'URL déjà enregistrée en base.
@@ -173,23 +167,6 @@ export function VendeurKycWizard() {
     () => (data.photoProfil ? URL.createObjectURL(data.photoProfil) : existingPhotoProfilUrl),
     [data.photoProfil, existingPhotoProfilUrl]
   );
-
-  // Même logique que WelcomeAddressModal côté client : on récupère les
-  // coordonnées GPS exactes (indispensables pour un vrai calcul de frais
-  // de livraison) et on propose commune/quartier détectés en bonus — le
-  // vendeur n'a jamais à saisir de latitude/longitude à la main.
-  const handleLocaliser = async () => {
-    try {
-      const resultat = await localiser();
-      update("latitude", resultat.latitude);
-      update("longitude", resultat.longitude);
-      if (resultat.communeDetectee) update("commune", resultat.communeDetectee);
-      if (resultat.quartierDetecte) update("quartier", resultat.quartierDetecte);
-      showToast("Position détectée", "success");
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : "Localisation impossible", "error");
-    }
-  };
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -701,73 +678,22 @@ export function VendeurKycWizard() {
                       </p>
                     </div>
 
-                    <AdresseAutocomplete
-                      placeholder="Rechercher une adresse (rue, quartier, ville)..."
-                      onSelect={(s: SuggestionAdresse) => {
-                        update("latitude", s.latitude);
-                        update("longitude", s.longitude);
-                        if (s.commune) update("commune", s.commune);
-                        if (s.quartier) update("quartier", s.quartier);
+                    <AdresseForm
+                      valeurInitiale={{
+                        adresse_complete: [data.quartier, data.commune].filter(Boolean).join(", "),
+                        quartier: data.quartier,
+                        commune: data.commune,
+                        latitude: data.latitude ?? undefined,
+                        longitude: data.longitude ?? undefined,
                       }}
+                      onValider={(adresse) => {
+                        update("quartier", adresse.quartier);
+                        update("commune", adresse.commune);
+                        update("latitude", adresse.latitude);
+                        update("longitude", adresse.longitude);
+                      }}
+                      labelBouton="Valider cette adresse"
                     />
-
-                    <button
-                      type="button"
-                      onClick={handleLocaliser}
-                      disabled={localisationEnCours}
-                      className="w-full flex items-center justify-center gap-2 h-11 rounded-xl bg-coral-50 text-coral-700 font-semibold text-sm hover:bg-coral-100 transition-colors disabled:opacity-60"
-                    >
-                      {localisationEnCours ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
-                      {localisationEnCours ? "Localisation en cours..." : "Utiliser ma position actuelle"}
-                    </button>
-
-                    {data.latitude !== null && data.longitude !== null && (
-                      <p className="text-xs font-semibold text-teal-700 -mt-2">
-                        Position détectée — aide à un calcul plus précis des frais de livraison
-                      </p>
-                    )}
-
-                    {data.latitude === null &&
-                      data.longitude === null &&
-                      data.quartier.trim().length > 1 &&
-                      data.commune.trim().length > 1 && (
-                        <p className="text-xs font-medium text-amber-700 -mt-2">
-                          Utilise la recherche d&apos;adresse ou &quot;Utiliser ma position actuelle&quot;
-                          ci-dessus pour continuer — ta position exacte est nécessaire pour calculer
-                          des frais de livraison justes vers tes clients.
-                        </p>
-                      )}
-
-                    <div>
-                      <label htmlFor="commune" className="block text-sm font-medium text-gray-700 mb-2">
-                        Commune
-                      </label>
-                      <select
-                        id="commune"
-                        value={data.commune}
-                        onChange={(e) => update("commune", e.target.value)}
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm bg-white focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
-                      >
-                        <option value="">Choisir une commune...</option>
-                        {COMMUNES_COUVERTES.map((c) => (
-                          <option key={c} value={c}>{c}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="quartier" className="block text-sm font-medium text-gray-700 mb-2">
-                        Quartier
-                      </label>
-                      <input
-                        id="quartier"
-                        type="text"
-                        value={data.quartier}
-                        onChange={(e) => update("quartier", e.target.value)}
-                        placeholder="Ex: Godomey"
-                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
-                      />
-                    </div>
                   </div>
                 )}
 

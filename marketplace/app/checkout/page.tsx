@@ -78,7 +78,9 @@ export default function CheckoutPage() {
       const ids = Array.from(new Set(items.map((i) => i.id)))
       const { data, error } = await supabase.from('articles').select('id, prix, prix_promo').in('id', ids)
       if (error || !data || annule) return
-      const prixActuelParId = new Map(data.map((a) => [a.id, a.prix_promo ?? a.prix]))
+      const prixActuelParId = new Map(
+        data.map((a: { id: string; prix: number; prix_promo: number | null }) => [a.id, a.prix_promo ?? a.prix])
+      )
       let auMoinsUnChangement = false
       for (const item of items) {
         const prixActuel = prixActuelParId.get(item.id)

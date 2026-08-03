@@ -519,7 +519,7 @@ export default function VendeurCommandesPage() {
       .select("nom_boutique, nom_complet, quartier, commune, users ( phone )")
       .eq("id", user.id)
       .single()
-      .then(({ data: vendeurRow }) => {
+      .then(({ data: vendeurRow }: { data: any }) => {
         if (!vendeurRow) return;
         setBoutique({
           nom_boutique: (vendeurRow as any).nom_boutique ?? null,

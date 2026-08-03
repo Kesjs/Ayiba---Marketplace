@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Plus, Search, Trash2, Edit3, Copy, X, Loader2, PackageX, AlertCircle, RefreshCw,
-  LayoutGrid, List, Upload, Layers, Package, ShoppingBag, Clock3, XCircle,
+  LayoutGrid, List, Upload, Layers, Package, ShoppingBag, Clock3, XCircle, Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -112,6 +112,7 @@ interface ArticleRow {
   actif: boolean;
   categorie_id: string | null;
   created_at: string;
+  vues: number | null;
   categories: CategorieRef | CategorieRef[] | null;
   article_images: ArticleImage[];
 }
@@ -235,11 +236,13 @@ function StatusBadge({ statut, stock, actif }: { statut: string; stock: number |
 
 function VendeurArticleCard({
   item,
+  ventes,
   onEdit,
   onDelete,
   onDuplicate,
 }: {
   item: ArticleRow;
+  ventes: number;
   onEdit: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -313,25 +316,38 @@ function VendeurArticleCard({
 
         <p className="text-xs text-gray-600 font-medium line-clamp-2 min-h-[2.2em]">{item.nom}</p>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] text-gray-400">{item.stock === null ? "Illimité" : `${item.stock} en stock`}</span>
+          <span className="text-gray-300 text-[10px]">·</span>
+          <span className="flex items-center gap-0.5 text-[10px] text-gray-400" title="Vues">
+            <Eye size={11} className="shrink-0" />
+            {item.vues ?? 0}
+          </span>
+          <span className="text-gray-300 text-[10px]">·</span>
+          <span className="flex items-center gap-0.5 text-[10px] text-gray-400" title="Ventes">
+            <ShoppingBag size={11} className="shrink-0" />
+            {ventes}
+          </span>
         </div>
 
-        <div className="flex items-center justify-between mt-0.5 gap-2">
-          <p className="text-base font-black text-gray-900 whitespace-nowrap">
-            {item.prix_promo != null ? (
-              <>
-                {item.prix_promo.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>{" "}
-                <span className="text-[11px] font-medium text-gray-400 line-through">
-                  {item.prix.toLocaleString("fr-FR")}
-                </span>
-              </>
-            ) : (
-              <>
-                {item.prix.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
-              </>
-            )}
-          </p>
+        {/* Prix et statut sur des lignes séparées : sur une carte à 2 colonnes,
+            les mettre côte à côte (justify-between + nowrap) fait déborder le
+            badge hors de la carte dès que le prix barré s'ajoute. */}
+        <p className="text-base font-black text-gray-900 mt-0.5 truncate">
+          {item.prix_promo != null ? (
+            <>
+              {item.prix_promo.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>{" "}
+              <span className="text-[11px] font-medium text-gray-400 line-through">
+                {item.prix.toLocaleString("fr-FR")}
+              </span>
+            </>
+          ) : (
+            <>
+              {item.prix.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
+            </>
+          )}
+        </p>
+        <div className="mt-0.5">
           <StatusBadge statut={item.statut} stock={item.stock} actif={item.actif} />
         </div>
       </div>
@@ -341,11 +357,13 @@ function VendeurArticleCard({
 
 function VendeurArticleRow({
   item,
+  ventes,
   onEdit,
   onDelete,
   onDuplicate,
 }: {
   item: ArticleRow;
+  ventes: number;
   onEdit: () => void;
   onDelete: () => void;
   onDuplicate: () => void;
@@ -408,6 +426,17 @@ function VendeurArticleRow({
               </span>
             </>
           )}
+        </div>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="flex items-center gap-0.5 text-[11px] text-gray-400" title="Vues">
+            <Eye size={12} className="shrink-0" />
+            {item.vues ?? 0}
+          </span>
+          <span className="text-gray-300">·</span>
+          <span className="flex items-center gap-0.5 text-[11px] text-gray-400" title="Ventes">
+            <ShoppingBag size={12} className="shrink-0" />
+            {ventes} vendu{ventes > 1 ? "s" : ""}
+          </span>
         </div>
         <div className="mt-1">
           <StatusBadge statut={item.statut} stock={item.stock} actif={item.actif} />
@@ -523,6 +552,9 @@ export default function MesArticlesPage() {
   const [deletingArticle, setDeletingArticle] = useState<ArticleRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  // Ventes livrées par article — calculées côté client depuis commande_articles
+  // (pas de colonne dédiée en base), clé = article_id, valeur = quantité cumulée.
+  const [ventesParArticle, setVentesParArticle] = useState<Record<string, number>>({});
 
   const loadArticles = async () => {
     setLoading(true);
@@ -538,7 +570,7 @@ export default function MesArticlesPage() {
 
     const { data, error } = await supabase
       .from("articles")
-      .select("id, nom, description, prix, prix_promo, stock, statut, actif, categorie_id, created_at, categories(nom), article_images(id, image_url, ordre)")
+      .select("id, nom, description, prix, prix_promo, stock, statut, actif, categorie_id, created_at, vues, categories(nom), article_images(id, image_url, ordre)")
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -550,6 +582,22 @@ export default function MesArticlesPage() {
 
     setArticles((data as unknown as ArticleRow[]) ?? []);
     setLoading(false);
+
+    // Ventes = quantité vendue sur les commandes déjà livrées. Une seule
+    // requête filtrée côté serveur par vendeur_id (RLS l'exige de toute façon).
+    const { data: ventesData } = await supabase
+      .from("commande_articles")
+      .select("article_id, quantite, commandes!inner(statut, vendeur_id)")
+      .eq("commandes.vendeur_id", user.id)
+      .eq("commandes.statut", "livree");
+
+    if (ventesData) {
+      const totals: Record<string, number> = {};
+      for (const row of ventesData as unknown as { article_id: string; quantite: number }[]) {
+        totals[row.article_id] = (totals[row.article_id] ?? 0) + (row.quantite ?? 0);
+      }
+      setVentesParArticle(totals);
+    }
   };
 
   const loadCategories = async () => {
@@ -1295,6 +1343,7 @@ return (
                 >
                   <VendeurArticleCard
                     item={item}
+                    ventes={ventesParArticle[item.id] ?? 0}
                     onEdit={() => openEdit(item)}
                     onDuplicate={() => router.push(`/vendeur/articles/nouveau?dupliquer=${item.id}`)}
                     onDelete={() => {
@@ -1330,6 +1379,7 @@ return (
                 >
                   <VendeurArticleRow
                     item={item}
+                    ventes={ventesParArticle[item.id] ?? 0}
                     onEdit={() => openEdit(item)}
                     onDuplicate={() => router.push(`/vendeur/articles/nouveau?dupliquer=${item.id}`)}
                     onDelete={() => {

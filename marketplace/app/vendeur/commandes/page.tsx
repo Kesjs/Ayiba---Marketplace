@@ -76,6 +76,14 @@ interface LivreurDisponible {
   distance_fiable: boolean;
 }
 
+interface Boutique {
+  nom_boutique: string | null;
+  nom_complet: string | null;
+  quartier: string | null;
+  commune: string | null;
+  telephone: string | null;
+}
+
 // Statuts à partir desquels le livreur gère lui-même la suite (retrait via
 // code/QR) ou la commande est close : plus de (ré)assignation possible depuis
 // cette page — cohérent avec les gardes de la fonction assigner_livreur_commande.
@@ -210,106 +218,204 @@ function exportCSV(orders: Commande[]) {
   URL.revokeObjectURL(url);
 }
 
-function ouvrirFacture(order: Commande, articles: ArticleLigne[]) {
-  // noopener : la fenêtre de facture ne doit pas garder de référence vers
-  // l'onglet vendeur authentifié (window.opener).
-  const win = window.open("", "_blank", "noopener,noreferrer");
-  if (!win) return;
+// Monogramme "AY" en SVG inline (copie de public/favicon.svg) — reste net à
+// toutes les résolutions et n'alourdit pas le document comme un PNG encodé
+// en base64 (logo.png fait plus de 500 Ko).
+const LOGO_SVG = `<svg viewBox="0 0 320 100" width="120" height="37.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M45 25L20 80" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+  <path d="M45 25L70 55V80" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+  <path d="M70 55L95 25" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+  <path d="M30 60C38 64 52 64 60 60" stroke="#D85A30" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="95" cy="13" r="5.5" fill="#1D9E75"/>
+  <text x="115" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="70" font-weight="500" fill="#111827" letter-spacing="-0.02em">iba</text>
+</svg>`;
+
+const STYLE_DOCUMENT = `
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; padding: 32px; color: #111; max-width: 720px; margin: 0 auto; }
+  .entete { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #D85A30; padding-bottom: 16px; margin-bottom: 20px; }
+  .entete .titre-doc { text-align: right; }
+  .entete .titre-doc h1 { font-size: 18px; margin: 0; color: #D85A30; text-transform: uppercase; letter-spacing: 0.04em; }
+  .entete .titre-doc .numero { font-size: 13px; color: #888; margin-top: 2px; }
+  .blocs { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+  .bloc { flex: 1; min-width: 220px; background: #FAFAFA; border-radius: 12px; padding: 14px 16px; }
+  .label { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin-bottom: 4px; }
+  .valeur { font-size: 14px; color: #111; line-height: 1.5; }
+  .valeur .principal { font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { text-align: left; padding: 8px; border-bottom: 2px solid #111; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: #666; }
+  td { padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
+  .total { text-align: right; font-weight: bold; font-size: 17px; margin-top: 16px; color: #D85A30; }
+  .signature { margin-top: 48px; display: flex; justify-content: space-between; }
+  .signature div { width: 45%; border-top: 1px solid #111; padding-top: 6px; font-size: 12px; color: #666; }
+  .pied { margin-top: 32px; text-align: center; font-size: 11px; color: #bbb; }
+`;
+
+function blocBoutique(boutique: Boutique | null) {
+  const nom = boutique?.nom_boutique || boutique?.nom_complet || "Boutique Ayiba";
+  const localisation = [boutique?.quartier, boutique?.commune].filter(Boolean).join(", ");
+  return `
+    <div class="bloc">
+      <div class="label">Vendeur</div>
+      <div class="valeur">
+        <div class="principal">${escapeHtml(nom)}</div>
+        ${localisation ? `<div>${escapeHtml(localisation)}</div>` : ""}
+        ${boutique?.telephone ? `<div>${escapeHtml(boutique.telephone)}</div>` : ""}
+      </div>
+    </div>`;
+}
+
+function blocClient(order: Commande) {
+  return `
+    <div class="bloc">
+      <div class="label">Client</div>
+      <div class="valeur">
+        <div class="principal">${escapeHtml(order.nom_client ?? "-")}</div>
+        <div>${escapeHtml(order.telephone_client ?? "Téléphone non renseigné")}</div>
+        ${order.adresse_livraison ? `<div>${escapeHtml(order.adresse_livraison)}</div>` : ""}
+        ${order.commune ? `<div>${escapeHtml(order.commune)}</div>` : ""}
+      </div>
+    </div>`;
+}
+
+// N'affiche ce bloc que si un livreur a effectivement été assigné à la
+// commande — avant assignation, il n'y a rien de pertinent à montrer.
+function blocLivreur(order: Commande) {
+  if (!order.livreur) return "";
+  return `
+    <div class="bloc">
+      <div class="label">Livreur assigné</div>
+      <div class="valeur">
+        <div class="principal">${escapeHtml(order.livreur.nom ?? "-")}</div>
+        ${order.livreur.telephone ? `<div>${escapeHtml(order.livreur.telephone)}</div>` : ""}
+      </div>
+    </div>`;
+}
+
+// Ouvre un document HTML imprimable dans un nouvel onglet via une URL de
+// Blob (plus fiable que window.open("", "_blank") + document.write, bloqué
+// silencieusement par de nombreux navigateurs mobiles). Si le popup est
+// bloqué malgré tout, on ne télécharge JAMAIS sans demander : on délègue au
+// composant appelant via onPopupBlocked, qui affiche une confirmation.
+function ouvrirDocumentImprimable(
+  html: string,
+  nomFichier: string,
+  showToast: (m: string, v: "success" | "error" | "warning" | "info") => void,
+  onPopupBlocked: (html: string, nomFichier: string) => void
+) {
+  const blob = new Blob([html], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+
+  if (!win) {
+    showToast("Popup bloqué par le navigateur", "warning");
+    onPopupBlocked(html, nomFichier);
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+function ouvrirFacture(
+  order: Commande,
+  articles: ArticleLigne[],
+  boutique: Boutique | null,
+  showToast: (m: string, v: "success" | "error" | "warning" | "info") => void,
+  onPopupBlocked: (html: string, nomFichier: string) => void
+) {
   const lignes = articles
     .map(
       (a) =>
-        `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${escapeHtml(a.nom)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${a.quantite}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatMontant(a.prix_unitaire)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right;">${formatMontant(a.total)}</td></tr>`
+        `<tr><td>${escapeHtml(a.nom)}</td><td style="text-align:center;">${a.quantite}</td><td style="text-align:right;">${formatMontant(a.prix_unitaire)}</td><td style="text-align:right;">${formatMontant(a.total)}</td></tr>`
     )
     .join("");
-  win.document.write(`
+  const html = `
     <html>
       <head>
         <title>Facture ${escapeHtml(order.numero)}</title>
-        <style>
-          body { font-family: -apple-system, system-ui, sans-serif; padding: 32px; color: #111; }
-          h1 { font-size: 20px; margin-bottom: 4px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-          th { text-align: left; padding: 8px; border-bottom: 2px solid #111; font-size: 13px; }
-          .total { text-align: right; font-weight: bold; font-size: 16px; margin-top: 16px; }
-        </style>
+        <style>${STYLE_DOCUMENT}</style>
       </head>
       <body>
-        <h1>Facture — ${escapeHtml(order.numero)}</h1>
-        <p>Client : ${escapeHtml(order.nom_client ?? "-")}<br/>Date : ${new Date(order.created_at).toLocaleDateString("fr-FR")}</p>
+        <div class="entete">
+          ${LOGO_SVG}
+          <div class="titre-doc">
+            <h1>Facture</h1>
+            <div class="numero">${escapeHtml(order.numero)} · ${new Date(order.created_at).toLocaleDateString("fr-FR")}</div>
+          </div>
+        </div>
+
+        <div class="blocs">
+          ${blocBoutique(boutique)}
+          ${blocClient(order)}
+          ${blocLivreur(order)}
+        </div>
+
         <table>
-          <thead><tr><th>Article</th><th>Qté</th><th>P.U.</th><th>Total</th></tr></thead>
-          <tbody>${lignes || "<tr><td colspan=4 style='padding:8px;color:#999;'>Aucun détail d'article</td></tr>"}</tbody>
+          <thead><tr><th>Article</th><th style="text-align:center;">Qté</th><th style="text-align:right;">P.U.</th><th style="text-align:right;">Total</th></tr></thead>
+          <tbody>${lignes || "<tr><td colspan=4 style='color:#999;'>Aucun détail d'article</td></tr>"}</tbody>
         </table>
         <p class="total">Total : ${formatMontant(order.montant_total)}</p>
+
+        <p class="pied">Ayiba Marketplace — document généré automatiquement</p>
         <script>window.onload = () => window.print();</script>
       </body>
     </html>
-  `);
-  win.document.close();
+  `;
+  ouvrirDocumentImprimable(html, `facture_${order.numero}.html`, showToast, onPopupBlocked);
 }
 
 // Même principe que ouvrirFacture (fenêtre imprimable), mais orienté remise
 // au livreur : coordonnées du destinataire + quantités, pas de prix — ce
 // n'est pas un document comptable.
-function ouvrirBonLivraison(order: Commande, articles: ArticleLigne[]) {
-  const win = window.open("", "_blank", "noopener,noreferrer");
-  if (!win) return;
+function ouvrirBonLivraison(
+  order: Commande,
+  articles: ArticleLigne[],
+  boutique: Boutique | null,
+  showToast: (m: string, v: "success" | "error" | "warning" | "info") => void,
+  onPopupBlocked: (html: string, nomFichier: string) => void
+) {
   const lignes = articles
-    .map(
-      (a) =>
-        `<tr><td style="padding:8px;border-bottom:1px solid #eee;">${escapeHtml(a.nom)}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center;">${a.quantite}</td></tr>`
-    )
+    .map((a) => `<tr><td>${escapeHtml(a.nom)}</td><td style="text-align:center;">${a.quantite}</td></tr>`)
     .join("");
-  win.document.write(`
+  const html = `
     <html>
       <head>
         <title>Bon de livraison ${escapeHtml(order.numero)}</title>
-        <style>
-          body { font-family: -apple-system, system-ui, sans-serif; padding: 32px; color: #111; }
-          h1 { font-size: 20px; margin-bottom: 4px; }
-          .section { margin-top: 18px; }
-          .label { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; color: #888; margin-bottom: 2px; }
-          .value { font-size: 15px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-          th { text-align: left; padding: 8px; border-bottom: 2px solid #111; font-size: 13px; }
-          .signature { margin-top: 48px; display: flex; justify-content: space-between; }
-          .signature div { width: 45%; border-top: 1px solid #111; padding-top: 6px; font-size: 12px; color: #666; }
-        </style>
+        <style>${STYLE_DOCUMENT}</style>
       </head>
       <body>
-        <h1>Bon de livraison — ${escapeHtml(order.numero)}</h1>
-        <p style="color:#888;font-size:13px;">Ayiba · ${new Date(order.created_at).toLocaleDateString("fr-FR")}</p>
-
-        <div class="section">
-          <div class="label">Destinataire</div>
-          <div class="value">${escapeHtml(order.nom_client ?? "-")}</div>
-          <div class="value">${escapeHtml(order.telephone_client ?? "Téléphone non renseigné")}</div>
+        <div class="entete">
+          ${LOGO_SVG}
+          <div class="titre-doc">
+            <h1>Bon de livraison</h1>
+            <div class="numero">${escapeHtml(order.numero)} · ${new Date(order.created_at).toLocaleDateString("fr-FR")}</div>
+          </div>
         </div>
 
-        <div class="section">
-          <div class="label">Adresse de livraison</div>
-          <div class="value">${escapeHtml(order.adresse_livraison ?? "-")}</div>
-          ${order.commune ? `<div class="value">${escapeHtml(order.commune)}</div>` : ""}
+        <div class="blocs">
+          ${blocBoutique(boutique)}
+          ${blocClient(order)}
+          ${blocLivreur(order)}
         </div>
 
-        <div class="section">
-          <div class="label">Articles à livrer</div>
-          <table>
-            <thead><tr><th>Article</th><th style="text-align:center;">Qté</th></tr></thead>
-            <tbody>${lignes || "<tr><td colspan=2 style='padding:8px;color:#999;'>Aucun détail d'article</td></tr>"}</tbody>
-          </table>
-        </div>
+        <div class="label" style="margin-bottom:6px;">Articles à livrer</div>
+        <table>
+          <thead><tr><th>Article</th><th style="text-align:center;">Qté</th></tr></thead>
+          <tbody>${lignes || "<tr><td colspan=2 style='color:#999;'>Aucun détail d'article</td></tr>"}</tbody>
+        </table>
 
         <div class="signature">
           <div>Signature vendeur</div>
           <div>Signature livreur</div>
         </div>
 
+        <p class="pied">Ayiba Marketplace — document généré automatiquement</p>
         <script>window.onload = () => window.print();</script>
       </body>
     </html>
-  `);
-  win.document.close();
+  `;
+  ouvrirDocumentImprimable(html, `bon_livraison_${order.numero}.html`, showToast, onPopupBlocked);
 }
 
 // Supabase renvoie une relation many-to-one comme un objet OU un tableau à un
@@ -347,6 +453,8 @@ export default function VendeurCommandesPage() {
   const { showToast } = useToast();
 
   const [vendeurId, setVendeurId] = useState<string | null>(null);
+  const [boutique, setBoutique] = useState<Boutique | null>(null);
+  const [pendingDownload, setPendingDownload] = useState<{ html: string; filename: string } | null>(null);
   const [commandes, setCommandes] = useState<Commande[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -404,6 +512,22 @@ export default function VendeurCommandesPage() {
       return;
     }
     setVendeurId(user.id);
+
+    supabase
+      .from("vendeurs")
+      .select("nom_boutique, nom_complet, quartier, commune, users ( phone )")
+      .eq("id", user.id)
+      .single()
+      .then(({ data: vendeurRow }) => {
+        if (!vendeurRow) return;
+        setBoutique({
+          nom_boutique: (vendeurRow as any).nom_boutique ?? null,
+          nom_complet: (vendeurRow as any).nom_complet ?? null,
+          quartier: (vendeurRow as any).quartier ?? null,
+          commune: (vendeurRow as any).commune ?? null,
+          telephone: one((vendeurRow as any).users)?.phone ?? null,
+        });
+      });
 
     const { data, error } = await supabase
       .from("commandes")
@@ -778,6 +902,24 @@ export default function VendeurCommandesPage() {
     }
     setCommandes((prev) => prev.map((c) => (c.id === order.id ? { ...c, note_vendeur: texte } : c)));
     showToast("Note enregistrée", "success");
+  };
+
+  // Repli déclenché quand le popup du document (facture/bon de livraison) a
+  // été bloqué par le navigateur : on ne télécharge jamais sans confirmation
+  // explicite de l'utilisateur, le pendingDownload alimente le modal ci-dessous.
+  const confirmerTelechargement = () => {
+    if (!pendingDownload) return;
+    const blob = new Blob([pendingDownload.html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = pendingDownload.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setPendingDownload(null);
+    showToast("Document téléchargé", "success");
   };
 
   const handleConfirmCancel = async () => {
@@ -1393,14 +1535,30 @@ export default function VendeurCommandesPage() {
                                 })}
                                 <button
                                   type="button"
-                                  onClick={() => ouvrirFacture(order, detail && detail !== "loading" ? detail.articles : [])}
+                                  onClick={() =>
+                                    ouvrirFacture(
+                                      order,
+                                      detail && detail !== "loading" ? detail.articles : [],
+                                      boutique,
+                                      showToast,
+                                      (html, filename) => setPendingDownload({ html, filename })
+                                    )
+                                  }
                                   className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
                                 >
                                   Générer la facture
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => ouvrirBonLivraison(order, detail && detail !== "loading" ? detail.articles : [])}
+                                  onClick={() =>
+                                    ouvrirBonLivraison(
+                                      order,
+                                      detail && detail !== "loading" ? detail.articles : [],
+                                      boutique,
+                                      showToast,
+                                      (html, filename) => setPendingDownload({ html, filename })
+                                    )
+                                  }
                                   className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
                                 >
                                   Bon de livraison
@@ -1552,7 +1710,55 @@ export default function VendeurCommandesPage() {
         </AnimatePresence>
 
         <AnimatePresence>
-          {assignTarget && (
+          {pendingDownload && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setPendingDownload(null)}
+                className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60]"
+              />
+              <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
+                <motion.div
+                  initial={{ y: 40, opacity: 0, scale: 0.98 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 40, opacity: 0, scale: 0.98 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                  className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 shadow-2xl"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-900">Télécharger le document ?</h3>
+                    <button
+                      onClick={() => setPendingDownload(null)}
+                      className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-6">
+                    Ton navigateur a bloqué l'ouverture de la fenêtre d'aperçu. Tu peux télécharger le fichier{" "}
+                    <strong className="text-gray-900">{pendingDownload.filename}</strong> à la place.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setPendingDownload(null)}
+                      className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={confirmerTelechargement}
+                      className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
+                    >
+                      Télécharger
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            </>
+          )}
+        </AnimatePresence>
             <>
               <motion.div
                 initial={{ opacity: 0 }}

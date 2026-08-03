@@ -74,7 +74,7 @@ export default function CommandeDetailPage() {
       .select(
         `id, numero, statut, montant_total, frais_livraison, adresse_livraison, commune, created_at, livreur_id,
          vendeur:vendeurs ( nom_boutique, users ( phone ) ),
-         livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users ( phone ) ),
+         livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) ),
          commande_articles ( article_id, article:articles ( nom ) )`
       )
       .eq("id", params.id)

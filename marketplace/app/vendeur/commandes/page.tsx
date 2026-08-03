@@ -484,6 +484,7 @@ export default function VendeurCommandesPage() {
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
 
   const [cancelTargets, setCancelTargets] = useState<Commande[] | null>(null);
+  const [cancelMotif, setCancelMotif] = useState("");
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -938,6 +939,11 @@ export default function VendeurCommandesPage() {
 
   const handleConfirmCancel = async () => {
     if (!cancelTargets || cancelTargets.length === 0) return;
+    const motif = cancelMotif.trim();
+    if (!motif) {
+      setCancelError("Indique la raison de l'annulation avant de continuer.");
+      return;
+    }
     setCancelError(null);
     setIsCancelling(true);
 
@@ -945,7 +951,7 @@ export default function VendeurCommandesPage() {
     const supabase = createClient();
     const { error } = await supabase
       .from("commandes")
-      .update({ statut: STATUTS_COMMANDE.ANNULEE, updated_at: new Date().toISOString() })
+      .update({ statut: STATUTS_COMMANDE.ANNULEE, motif_annulation: motif, updated_at: new Date().toISOString() })
       .in("id", ids);
 
     setIsCancelling(false);
@@ -957,6 +963,7 @@ export default function VendeurCommandesPage() {
 
     setCommandes((prev) => prev.map((c) => (ids.includes(c.id) ? { ...c, statut: STATUTS_COMMANDE.ANNULEE } : c)));
     setCancelTargets(null);
+    setCancelMotif("");
     setSelectedIds(new Set());
     setSelectionMode(false);
     showToast(ids.length > 1 ? `${ids.length} commandes annulées` : "Commande annulée", "success");
@@ -1680,7 +1687,7 @@ export default function VendeurCommandesPage() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => !isCancelling && setCancelTargets(null)}
+                onClick={() => !isCancelling && (setCancelTargets(null), setCancelMotif(""), setCancelError(null))}
                 className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60]"
               />
               <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
@@ -1696,7 +1703,7 @@ export default function VendeurCommandesPage() {
                       {cancelTargets.length > 1 ? `Annuler ${cancelTargets.length} commandes ?` : "Annuler la commande ?"}
                     </h3>
                     <button
-                      onClick={() => !isCancelling && setCancelTargets(null)}
+                      onClick={() => !isCancelling && (setCancelTargets(null), setCancelMotif(""), setCancelError(null))}
                       className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0"
                     >
                       <X size={18} />
@@ -1717,6 +1724,21 @@ export default function VendeurCommandesPage() {
                     )}
                   </p>
 
+                  <label className="block mb-4">
+                    <span className="text-xs font-bold text-gray-500 mb-1.5 block">
+                      Raison de l&apos;annulation <span className="text-red-500">*</span>
+                    </span>
+                    <textarea
+                      value={cancelMotif}
+                      onChange={(e) => setCancelMotif(e.target.value)}
+                      placeholder="Ex : rupture de stock, client injoignable, adresse hors zone..."
+                      rows={3}
+                      autoFocus
+                      className="w-full text-sm rounded-xl border border-gray-200 bg-gray-50 p-3 focus:outline-none focus:ring-2 focus:ring-coral-100 resize-none"
+                    />
+                    <span className="text-[11px] text-gray-400 mt-1 block">Visible par l&apos;équipe Ayiba sur la fiche commande.</span>
+                  </label>
+
                   {cancelError && (
                     <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl p-3 mb-4">
                       <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
@@ -1726,7 +1748,7 @@ export default function VendeurCommandesPage() {
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => !isCancelling && setCancelTargets(null)}
+                      onClick={() => !isCancelling && (setCancelTargets(null), setCancelMotif(""), setCancelError(null))}
                       disabled={isCancelling}
                       className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
                     >
@@ -1734,7 +1756,7 @@ export default function VendeurCommandesPage() {
                     </button>
                     <button
                       onClick={handleConfirmCancel}
-                      disabled={isCancelling}
+                      disabled={isCancelling || cancelMotif.trim().length === 0}
                       className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center"
                     >
                       {isCancelling ? <Loader2 size={18} className="animate-spin" /> : "Oui, annuler"}

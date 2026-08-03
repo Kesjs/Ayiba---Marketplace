@@ -8,18 +8,25 @@ import {
   Package, MessageSquare, MapPin, 
   Briefcase, X, Store, Bike,
   ShoppingBag, Wallet, Settings, LogOut, Menu as MenuIcon, Plus,
-  Users, AlertTriangle
+  Users, AlertTriangle, ChevronRight
 } from "lucide-react";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
 import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
 import { createClient } from "@/lib/supabase/client";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useDragControls } from "framer-motion";
 import { LIVREUR_NAV_ITEMS } from "@/lib/constants/livreur-nav";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { useToast } from "@/context/ToastContext";
 import { useUiChrome } from "@/context/UiChromeContext";
 import { Lock } from "lucide-react";
+
+// Seuils pour fermer un tiroir bottom-sheet au glissement vers le bas :
+// soit on a suffisamment tiré (offset), soit le geste était assez rapide
+// (velocity) même sur une courte distance — comme les bottom sheets natifs.
+function shouldCloseOnSwipeDown(info: { offset: { y: number }; velocity: { y: number } }) {
+  return info.offset.y > 120 || info.velocity.y > 500;
+}
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -28,6 +35,8 @@ export function BottomNav() {
   const [isPartnerOpen, setIsPartnerOpen] = useState(false);
   const [isVendeurMenuOpen, setIsVendeurMenuOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const vendeurMenuDragControls = useDragControls();
+  const partnerDragControls = useDragControls();
   const { showToast } = useToast();
   const { hideBottomNav } = useUiChrome();
 
@@ -147,78 +156,97 @@ export function BottomNav() {
               <motion.div
                 initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 28, stiffness: 320 }}
-                className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] shadow-2xl max-h-[85vh] overflow-y-auto"
+                drag="y"
+                dragControls={vendeurMenuDragControls}
+                dragListener={false}
+                dragConstraints={{ top: 0, bottom: 0 }}
+                dragElastic={{ top: 0, bottom: 1 }}
+                onDragEnd={(_, info) => { if (shouldCloseOnSwipeDown(info)) setIsVendeurMenuOpen(false); }}
+                className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] shadow-2xl max-h-[85vh] flex flex-col"
               >
-                <div className="flex justify-center pt-3">
+                <div
+                  onPointerDown={(e) => vendeurMenuDragControls.start(e)}
+                  className="relative flex justify-center pt-3 pb-1 shrink-0 cursor-grab active:cursor-grabbing touch-none"
+                >
                   <div className="w-10 h-1 rounded-full bg-gray-200" />
-                </div>
-
-                <div className="flex items-center justify-between px-6 pt-4 pb-5 border-b border-gray-50">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-full bg-coral-50 text-coral-600 flex items-center justify-center overflow-hidden shrink-0">
-                      {profile?.avatar_url ? (
-                        <img src={profile.avatar_url} alt={vendeurDisplayName} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-sm font-bold">{vendeurInitials}</span>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-base font-bold text-gray-900 truncate">{vendeurDisplayName}</p>
-                      <p className="text-xs text-gray-400 truncate">Vendeur Ayiba</p>
-                    </div>
-                  </div>
                   <button
                     onClick={() => setIsVendeurMenuOpen(false)}
-                    className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0"
+                    className="absolute right-4 top-1 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center"
                     aria-label="Fermer"
                   >
                     <X size={16} />
                   </button>
                 </div>
 
-                <div className="p-6 pt-4 flex flex-col gap-5">
-                  {vendeurMenuGroups.map((group) => (
-                    <div key={group.title}>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-1.5">
-                        {group.title}
-                      </p>
-                      <div className="flex flex-col gap-1">
-                        {group.items.map((item) => (
-                          <Link
-                            key={item.href}
-                            href={item.href}
-                            onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(false); }}
-                            className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className={`w-10 h-10 rounded-xl ${item.iconBg} ${item.iconColor} flex items-center justify-center`}>
-                                <item.icon size={20} />
-                              </div>
-                              <span className="font-bold text-sm text-gray-900">{item.label}</span>
-                            </div>
-                            {!!item.badge && item.badge > 0 && (
-                              <span className="min-w-[20px] h-5 px-1.5 bg-coral-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                                {item.badge > 9 ? "9+" : item.badge}
-                              </span>
-                            )}
-                          </Link>
-                        ))}
+                <div className="overflow-y-auto touch-pan-y">
+                  <Link
+                    href="/vendeur/parametres"
+                    onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(false); }}
+                    className="flex items-center justify-between gap-3 px-6 pt-3 pb-5 border-b border-gray-50 hover:bg-gray-50/60 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 rounded-full bg-coral-50 text-coral-600 flex items-center justify-center overflow-hidden shrink-0">
+                        {profile?.avatar_url ? (
+                          <img src={profile.avatar_url} alt={vendeurDisplayName} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold">{vendeurInitials}</span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-base font-bold text-gray-900 truncate">{vendeurDisplayName}</p>
+                        <p className="text-xs text-gray-400 truncate">Vendeur Ayiba</p>
                       </div>
                     </div>
-                  ))}
+                    <ChevronRight size={18} className="text-gray-300 shrink-0" />
+                  </Link>
 
-                  <button
-                    onClick={() => {
-                      setIsVendeurMenuOpen(false);
-                      setShowLogoutModal(true);
-                    }}
-                    className="flex items-center gap-3 p-3 rounded-2xl hover:bg-red-50 transition-colors text-left border-t border-gray-50 pt-5"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
-                      <LogOut size={20} />
-                    </div>
-                    <span className="font-bold text-sm text-red-600">Déconnexion</span>
-                  </button>
+                  <div className="p-6 pt-4 flex flex-col gap-5">
+                    {vendeurMenuGroups.map((group) => (
+                      <div key={group.title}>
+                        <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-1.5">
+                          {group.title}
+                        </p>
+                        <div className="flex flex-col gap-2">
+                          {group.items.map((item) => (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(false); }}
+                              className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-gray-50/70 hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className={`w-10 h-10 rounded-xl ${item.iconBg} ${item.iconColor} flex items-center justify-center shrink-0`}>
+                                  <item.icon size={20} />
+                                </div>
+                                <span className="font-bold text-sm text-gray-900 truncate">{item.label}</span>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                {!!item.badge && item.badge > 0 && (
+                                  <span className="min-w-[20px] h-5 px-1.5 bg-coral-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                    {item.badge > 9 ? "9+" : item.badge}
+                                  </span>
+                                )}
+                                <ChevronRight size={16} className="text-gray-300" />
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      onClick={() => {
+                        setIsVendeurMenuOpen(false);
+                        setShowLogoutModal(true);
+                      }}
+                      className="flex items-center gap-3 p-3 rounded-2xl hover:bg-red-50 transition-colors text-left border-t border-gray-50 pt-5"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+                        <LogOut size={20} />
+                      </div>
+                      <span className="font-bold text-sm text-red-600">Déconnexion</span>
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </>
@@ -359,19 +387,34 @@ export function BottomNav() {
             />
             <motion.div 
               initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] p-6 shadow-2xl"
+              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              drag="y"
+              dragControls={partnerDragControls}
+              dragListener={false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 1 }}
+              onDragEnd={(_, info) => { if (shouldCloseOnSwipeDown(info)) setIsPartnerOpen(false); }}
+              className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] shadow-2xl"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold">Devenir Partenaire</h3>
-                <button onClick={() => setIsPartnerOpen(false)}><X size={20}/></button>
+              <div
+                onPointerDown={(e) => partnerDragControls.start(e)}
+                className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none"
+              >
+                <div className="w-10 h-1 rounded-full bg-gray-200" />
               </div>
-              <div className="flex flex-col gap-3">
-                <Link href="/devenir-vendeur" onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-coral-50 rounded-2xl text-coral-600 font-bold">
-                  <Store /> Ouvrir ma boutique
-                </Link>
-                <Link href="/devenir-livreur" onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-teal-50 rounded-2xl text-teal-600 font-bold">
-                  <Bike /> Devenir livreur
-                </Link>
+              <div className="p-6 pt-2">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-lg font-bold">Devenir Partenaire</h3>
+                  <button onClick={() => setIsPartnerOpen(false)}><X size={20}/></button>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <Link href="/devenir-vendeur" onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-coral-50 rounded-2xl text-coral-600 font-bold">
+                    <Store /> Ouvrir ma boutique
+                  </Link>
+                  <Link href="/devenir-livreur" onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-teal-50 rounded-2xl text-teal-600 font-bold">
+                    <Bike /> Devenir livreur
+                  </Link>
+                </div>
               </div>
             </motion.div>
           </>

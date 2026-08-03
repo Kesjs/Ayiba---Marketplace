@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import QRCode from "qrcode";
 
 // Génération de la facture en vrai PDF, format "ticket de caisse" (80mm,
 // comme un reçu imprimé) plutôt qu'une page A4 — cohérent avec le rendu
@@ -33,6 +34,12 @@ export interface FactureData {
   livreurTelephone: string | null;
   articles: FactureArticle[];
   montantTotal: number;
+  /** true si vendeurs.statut === 'valide' (KYC validé) */
+  vendeurVerifie: boolean;
+  /** Code HMAC tronqué, généré par lib/pdf/facture-securite.ts */
+  codeSecurite: string;
+  /** URL publique de /verifier/[numero], encodée dans le QR */
+  qrCodeUrl: string;
 }
 
 const PAGE_WIDTH = 226; // ~80mm, largeur standard d'un reçu de caisse
@@ -41,6 +48,7 @@ const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_X * 2;
 
 const CORAL = "#D85A30";
 const TEAL = "#1D9E75";
+const TEAL_LIGHT = "#E1F5EE";
 const DARK = "#111827";
 const GRAY = "#6B7280";
 const LIGHT_GRAY = "#B5BAC2";
@@ -68,6 +76,26 @@ function sectionLabel(doc: PDFKit.PDFDocument, label: string, y: number) {
   return y + doc.heightOfString(label, { width: CONTENT_WIDTH }) + 5;
 }
 
+// Badge pilule "✓ VENDEUR VÉRIFIÉ" — repris du même style/couleur que le
+// badge de confiance déjà affiché sur les fiches produit de l'app (icône
+// ShieldCheck teal), pour que le vendeur validé KYC en base se voit relié
+// à la facture qu'il émet.
+function drawBadgeVerifie(doc: PDFKit.PDFDocument, y: number): number {
+  const label = "✓ VENDEUR VÉRIFIÉ";
+  doc.font("Helvetica-Bold").fontSize(7.5);
+  const textWidth = doc.widthOfString(label, { characterSpacing: 0.4 });
+  const paddingX = 8;
+  const badgeHeight = 15;
+  const badgeWidth = textWidth + paddingX * 2;
+
+  doc.roundedRect(MARGIN_X, y, badgeWidth, badgeHeight, badgeHeight / 2).fill(TEAL_LIGHT);
+  doc
+    .fillColor(TEAL)
+    .text(label, MARGIN_X + paddingX, y + 4, { characterSpacing: 0.4, lineBreak: false });
+
+  return y + badgeHeight;
+}
+
 // Wordmark "Ayiba" en deux tons (corail/anthracite) + point teal en accent —
 // une version simplifiée mais fidèle du logo, dessinée en vecteur (donc
 // nette à toute résolution), sans dépendre d'un fichier image à charger.
@@ -85,7 +113,7 @@ function drawLogo(doc: PDFKit.PDFDocument, y: number) {
   return y + doc.heightOfString("Ayiba", { width: CONTENT_WIDTH });
 }
 
-function draw(doc: PDFKit.PDFDocument, data: FactureData): number {
+function draw(doc: PDFKit.PDFDocument, data: FactureData, qrBuffer: Buffer): number {
   let y = 22;
 
   y = drawLogo(doc, y) + 14;
@@ -111,6 +139,10 @@ function draw(doc: PDFKit.PDFDocument, data: FactureData): number {
     doc.font("Helvetica").fontSize(8.5).fillColor(GRAY);
     doc.text(ligne, MARGIN_X, y, { width: CONTENT_WIDTH });
     y += doc.heightOfString(ligne, { width: CONTENT_WIDTH }) + 2;
+  }
+  if (data.vendeurVerifie) {
+    y += 3;
+    y = drawBadgeVerifie(doc, y);
   }
   y += 8;
 
@@ -185,6 +217,40 @@ function draw(doc: PDFKit.PDFDocument, data: FactureData): number {
   doc.text(totalTexte, MARGIN_X, y, { width: CONTENT_WIDTH, align: "right" });
   y += doc.heightOfString(totalTexte, { width: CONTENT_WIDTH }) + 20;
 
+  y = dashedLine(doc, y) + 18;
+
+  // Authenticité : QR de vérification entouré d'un "cachet" circulaire +
+  // code de sécurité en clair, pour une vérification même sans caméra ni
+  // connexion (comparaison visuelle avec le code affiché sur la page).
+  y = sectionLabel(doc, "AUTHENTICITÉ", y) + 20;
+
+  const qrSize = 76;
+  const cachetRadius = 58;
+  const qrX = MARGIN_X + (CONTENT_WIDTH - qrSize) / 2;
+  const cachetCenterX = qrX + qrSize / 2;
+  const cachetCenterY = y + qrSize / 2;
+
+  doc
+    .circle(cachetCenterX, cachetCenterY, cachetRadius)
+    .lineWidth(1.1)
+    .dash(3, { space: 2 })
+    .strokeColor(CORAL)
+    .stroke()
+    .undash();
+
+  doc.image(qrBuffer, qrX, y, { width: qrSize, height: qrSize });
+  y += qrSize + (cachetRadius - qrSize / 2) + 14;
+
+  doc.font("Helvetica-Bold").fontSize(9).fillColor(DARK);
+  const codeTexte = `CODE : ${data.codeSecurite}`;
+  doc.text(codeTexte, MARGIN_X, y, { width: CONTENT_WIDTH, align: "center", characterSpacing: 0.6 });
+  y += doc.heightOfString(codeTexte, { width: CONTENT_WIDTH }) + 4;
+
+  doc.font("Helvetica").fontSize(7).fillColor(GRAY);
+  const scanTexte = "Scannez le QR ou saisissez le code sur la page de vérification Ayiba";
+  doc.text(scanTexte, MARGIN_X, y, { width: CONTENT_WIDTH, align: "center" });
+  y += doc.heightOfString(scanTexte, { width: CONTENT_WIDTH }) + 20;
+
   y = dashedLine(doc, y) + 16;
 
   // Pied de page
@@ -201,6 +267,16 @@ function draw(doc: PDFKit.PDFDocument, data: FactureData): number {
 }
 
 export async function genererFacturePDF(data: FactureData): Promise<Buffer> {
+  // Le QR est généré une seule fois, en amont (async) : draw() reste
+  // volontairement synchrone pour pouvoir être appelée deux fois à
+  // l'identique (mesure puis rendu final) sans dupliquer l'appel réseau/CPU
+  // de génération du QR.
+  const qrBuffer = await QRCode.toBuffer(data.qrCodeUrl, {
+    errorCorrectionLevel: "M",
+    margin: 1,
+    width: 240,
+  });
+
   // Passe 1 (mesure) : page volontairement très haute, on ne garde que la
   // position finale — le nombre d'articles étant variable, impossible de
   // connaître la hauteur exacte du ticket sans dessiner le contenu une
@@ -210,7 +286,7 @@ export async function genererFacturePDF(data: FactureData): Promise<Buffer> {
     margins: { top: 0, bottom: 0, left: 0, right: 0 },
   });
   mesureDoc.on("data", () => {});
-  const hauteurFinale = draw(mesureDoc, data);
+  const hauteurFinale = draw(mesureDoc, data, qrBuffer);
   mesureDoc.end();
 
   // Passe 2 (finale) : document à la hauteur exacte du contenu, look
@@ -226,7 +302,7 @@ export async function genererFacturePDF(data: FactureData): Promise<Buffer> {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
   });
-  draw(doc, data);
+  draw(doc, data, qrBuffer);
   doc.end();
   return fini;
 }

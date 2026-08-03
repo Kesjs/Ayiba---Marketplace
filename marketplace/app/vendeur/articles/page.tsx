@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Plus, Search, Trash2, Edit3, Copy, X, Loader2, PackageX, AlertCircle, RefreshCw,
-  LayoutGrid, List, Upload, Layers
+  LayoutGrid, List, Upload, Layers, Package, ShoppingBag, Clock3, XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -131,6 +131,19 @@ const STATUT_TABS: { key: StatutFilter; label: string }[] = [
   { key: "rejete", label: "Refusés" },
   { key: "rupture", label: "Rupture" },
 ];
+
+// Carte-stat par statut (icône + couleurs), au-dessus des filtres — chaque
+// carte reste cliquable et fait doublon de fonction avec l'ancien onglet.
+const STATUT_STAT_CARDS: Record<
+  StatutFilter,
+  { icon: typeof Package; iconBg: string; iconColor: string; ring: string }
+> = {
+  tous: { icon: Package, iconBg: "bg-coral-50", iconColor: "text-coral-500", ring: "ring-coral-200" },
+  publie: { icon: ShoppingBag, iconBg: "bg-teal-50", iconColor: "text-teal-600", ring: "ring-teal-200" },
+  en_attente: { icon: Clock3, iconBg: "bg-amber-50", iconColor: "text-amber-600", ring: "ring-amber-200" },
+  rejete: { icon: XCircle, iconBg: "bg-red-50", iconColor: "text-red-500", ring: "ring-red-200" },
+  rupture: { icon: PackageX, iconBg: "bg-gray-100", iconColor: "text-gray-500", ring: "ring-gray-300" },
+};
 
 function extractStoragePath(url: string): string | null {
   const marker = "/articles-photos/";
@@ -1115,75 +1128,98 @@ export default function MesArticlesPage() {
 
 return (
   <DashboardLayout role="vendeur" title="Mes articles" backHref="/vendeur/dashboard" backLabel="Dashboard">
-  <div className="w-full min-w-0 px-5 sm:px-6 md:px-8 lg:px-10 py-6 lg:py-10 max-w-7xl mx-auto">
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4 flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between">
-        <div className="relative flex-1 sm:max-w-md">
+  <div className="w-full min-w-0 px-4 sm:px-6 md:px-8 lg:px-10 py-5 lg:py-10 max-w-7xl mx-auto">
+      <div className="mb-1.5">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Mes articles</h1>
+        <p className="text-sm text-gray-400">Gérez tous vos produits</p>
+      </div>
+
+      {/* Cartes-stats par statut — cliquables, doublent comme filtre */}
+      <div className="grid grid-cols-4 gap-2 sm:gap-3 my-5">
+        {STATUT_TABS.filter((t) => t.key !== "rupture").map((tab) => {
+          const cfg = STATUT_STAT_CARDS[tab.key];
+          const Icon = cfg.icon;
+          const active = statutFilter === tab.key;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onClick={() => setStatutFilter(active ? "tous" : tab.key)}
+              className={`flex flex-col items-center gap-1.5 sm:gap-2 py-3 sm:py-4 rounded-2xl bg-white border transition-all ${
+                active ? `border-transparent ring-2 ${cfg.ring} shadow-sm` : "border-gray-100 hover:bg-gray-50"
+              }`}
+            >
+              <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-full ${cfg.iconBg} ${cfg.iconColor} flex items-center justify-center`}>
+                <Icon size={18} />
+              </div>
+              <p className="text-lg sm:text-2xl font-bold text-gray-900 leading-none">{statutCounts[tab.key]}</p>
+              <p className="text-[10px] sm:text-xs text-gray-500 font-medium text-center leading-tight px-0.5">
+                {tab.label === "En vérification" ? "En attente" : tab.label}
+              </p>
+            </button>
+          );
+        })}
+      </div>
+
+      {statutCounts.rupture > 0 && (
+        <button
+          type="button"
+          onClick={() => setStatutFilter(statutFilter === "rupture" ? "tous" : "rupture")}
+          className={`w-full sm:w-auto inline-flex items-center gap-2 mb-5 px-4 h-9 rounded-full text-xs font-bold transition-colors ${
+            statutFilter === "rupture"
+              ? "bg-gray-900 text-white"
+              : "bg-white border border-gray-100 text-gray-500 hover:bg-gray-50"
+          }`}
+        >
+          <PackageX size={14} />
+          {statutCounts.rupture} en rupture de stock
+        </button>
+      )}
+
+      {/* Recherche + filtre (vue grille/liste) */}
+      <div className="flex items-center gap-2 sm:gap-3 mb-3">
+        <div className="relative flex-1">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher parmi mes articles..."
-            className="w-full h-12 pl-12 pr-4 bg-gray-50 border border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 focus:bg-white transition-all text-sm font-medium"
+            placeholder="Rechercher un article..."
+            className="w-full h-12 pl-12 pr-4 bg-white border border-gray-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 transition-all text-sm font-medium shadow-sm"
           />
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="flex items-center bg-gray-50 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => setViewMode("grille")}
-              aria-label="Vue grille"
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                viewMode === "grille" ? "bg-white shadow-sm text-coral-500" : "text-gray-400"
-              }`}
-            >
-              <LayoutGrid size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode("liste")}
-              aria-label="Vue liste"
-              className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${
-                viewMode === "liste" ? "bg-white shadow-sm text-coral-500" : "text-gray-400"
-              }`}
-            >
-              <List size={16} />
-            </button>
-          </div>
-
-          <Link href="/vendeur/articles/nouveau">
-            <Button className="h-12 px-6 rounded-2xl flex items-center gap-2 justify-center bg-coral-500 hover:bg-coral-600">
-              <Plus size={20} />
-              Ajouter
-            </Button>
-          </Link>
+        <div className="flex items-center gap-1 bg-white border border-gray-100 rounded-2xl p-1 shrink-0 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setViewMode("grille")}
+            aria-label="Vue grille"
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors ${
+              viewMode === "grille" ? "bg-coral-50 text-coral-500" : "text-gray-400"
+            }`}
+          >
+            <LayoutGrid size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("liste")}
+            aria-label="Vue liste"
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors ${
+              viewMode === "liste" ? "bg-coral-50 text-coral-500" : "text-gray-400"
+            }`}
+          >
+            <List size={16} />
+          </button>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-1 -mx-1 px-1">
-        {STATUT_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setStatutFilter(tab.key)}
-            className={`shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-full text-xs font-bold transition-colors ${
-              statutFilter === tab.key
-                ? "bg-coral-500 text-white"
-                : "bg-white border border-gray-100 text-gray-500 hover:bg-gray-50"
-            }`}
-          >
-            {tab.label}
-            <span
-              className={`text-[10px] font-bold rounded-full px-1.5 ${
-                statutFilter === tab.key ? "bg-white/25" : "bg-gray-100"
-              }`}
-            >
-              {statutCounts[tab.key]}
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* Bouton d'ajout pleine largeur — cohérent avec le nouveau layout mobile */}
+      <Link href="/vendeur/articles/nouveau" className="block mb-6">
+        <Button className="w-full h-12 rounded-2xl flex items-center gap-2 justify-center bg-coral-500 hover:bg-coral-600">
+          <Plus size={20} />
+          Ajouter un article
+        </Button>
+      </Link>
 
       {loadError && (
         <div className="bg-red-50 border border-red-100 rounded-3xl p-6 mb-8 flex items-start gap-3">

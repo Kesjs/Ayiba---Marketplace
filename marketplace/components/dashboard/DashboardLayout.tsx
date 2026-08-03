@@ -21,6 +21,11 @@ interface DashboardLayoutProps {
   backHref?: string;   // affiche un bouton retour à la place du titre/greeting
   backLabel?: string;  // libellé du bouton retour (par défaut "Retour")
   fullHeight?: boolean; // verrouille la page sur la hauteur de l'écran (ex: messagerie) au lieu de laisser la page défiler
+  /** Barre de recherche globale dans le header. Par défaut activée pour le
+   * rôle vendeur (sur tous ses écrans) ; peut être désactivée explicitement
+   * page par page si besoin (ex: écrans plein écran comme la messagerie). */
+  searchable?: boolean;
+  searchPlaceholder?: string;
 }
 
 // Liens rapides du menu compte (clic avatar). Chaque rôle n'a pas la même
@@ -55,6 +60,8 @@ export function DashboardLayout({
   backHref,
   backLabel,
   fullHeight = false,
+  searchable,
+  searchPlaceholder = "Rechercher un produit...",
 }: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const router = useRouter();
@@ -63,6 +70,11 @@ export function DashboardLayout({
 
   const displayName = userName || profile?.full_name || "Utilisateur";
   const prenom = displayName.split(" ")[0];
+
+  // Sur demande explicite : la recherche vit sur TOUT le Dashboard vendeur
+  // (chantier 2/3 — point d'entrée nav manquant jusqu'ici). Les autres
+  // rôles restent inchangés sauf activation explicite via la prop.
+  const showSearch = searchable ?? role === "vendeur";
 
   const accountSubtitle: Record<"admin" | "vendeur" | "livreur", string> = {
     vendeur: boutiqueName || "Vendeur Ayiba",
@@ -107,6 +119,8 @@ export function DashboardLayout({
           accountSubtitle={accountSubtitle[role]}
           accountLinks={ROLE_ACCOUNT_LINKS[role]}
           onLogout={handleLogout}
+          showSearch={showSearch}
+          searchPlaceholder={searchPlaceholder}
         />
 
         <div

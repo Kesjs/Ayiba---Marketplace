@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, ArrowLeft } from "lucide-react";
+import { Bell, ArrowLeft, Search, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { NotificationsDropdown, type Notification } from "./NotificationsDropdown";
 import { AccountDropdown, type AccountLink } from "./AccountDropdown";
@@ -32,6 +33,14 @@ interface DashboardHeaderProps {
   accountLinks?: AccountLink[];
   /** Appelé après confirmation dans la modale de déconnexion. */
   onLogout?: () => void | Promise<void>;
+  /** Affiche la barre de recherche globale sous l'identité, présente sur
+   * tous les écrans du rôle concerné (ex: tout le Dashboard vendeur). */
+  showSearch?: boolean;
+  searchPlaceholder?: string;
+  /** Route vers laquelle la recherche redirige (préfixée du `?q=`). */
+  searchHref?: string;
+  /** Si fourni, prend le dessus sur la navigation par défaut vers `searchHref`. */
+  onSearchSubmit?: (query: string) => void;
 }
 
 export function DashboardHeader({
@@ -51,10 +60,27 @@ export function DashboardHeader({
   accountSubtitle,
   accountLinks,
   onLogout,
+  showSearch = false,
+  searchPlaceholder = "Rechercher un produit...",
+  searchHref = "/recherche",
+  onSearchSubmit,
 }: DashboardHeaderProps) {
+  const router = useRouter();
   const [showNotifs, setShowNotifs] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
+
+  function submitSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchValue.trim();
+    if (!q) return;
+    if (onSearchSubmit) {
+      onSearchSubmit(q);
+    } else {
+      router.push(`${searchHref}?q=${encodeURIComponent(q)}`);
+    }
+  }
   // Deux instances (bande unique mobile/tablette, ligne desktop réel)
   // coexistent dans le DOM ; chaque grappe cloche+avatar a son propre
   // conteneur pour le clic-dehors, qui referme les deux menus à la fois.
@@ -189,6 +215,37 @@ export function DashboardHeader({
         )}
       </div>
 
+      {/* --- Barre de recherche, mobile ET tablette (< lg) : présente sur
+          tous les écrans du rôle quand `showSearch` est activé. --- */}
+      {showSearch && (
+        <div className="lg:hidden px-4 pb-3 max-w-7xl mx-auto">
+          <form onSubmit={submitSearch} className="relative">
+            <Search
+              size={17}
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              inputMode="search"
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              placeholder={searchPlaceholder}
+              className="w-full h-11 pl-10 pr-9 bg-gray-50 border border-transparent rounded-2xl text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 focus:bg-white transition-all"
+            />
+            {searchValue && (
+              <button
+                type="button"
+                onClick={() => setSearchValue("")}
+                aria-label="Effacer la recherche"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center text-gray-400 hover:bg-gray-200/60"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </form>
+        </div>
+      )}
+
       {/* --- Desktop réel (>= lg) : inchangé --- */}
       <div className="hidden lg:flex relative items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
         <button
@@ -217,7 +274,24 @@ export function DashboardHeader({
           </h1>
         )}
 
-        <div className="flex items-center gap-2 shrink-0" ref={desktopRef}>
+        <div className="flex items-center gap-3 shrink-0" ref={desktopRef}>
+          {showSearch && (
+            <form onSubmit={submitSearch} className="relative">
+              <Search
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+              />
+              <input
+                type="text"
+                inputMode="search"
+                value={searchValue}
+                onChange={(e) => setSearchValue(e.target.value)}
+                placeholder={searchPlaceholder}
+                className="w-56 xl:w-72 h-10 pl-10 pr-3 bg-gray-50 border border-transparent rounded-full text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 focus:bg-white transition-all"
+              />
+            </form>
+          )}
+
           <div className="relative">
             <button
               onClick={handleBellClick}

@@ -71,10 +71,12 @@ export function DashboardLayout({
   const displayName = userName || profile?.full_name || "Utilisateur";
   const prenom = displayName.split(" ")[0];
 
-  // Sur demande explicite : la recherche vit sur TOUT le Dashboard vendeur
-  // (chantier 2/3 — point d'entrée nav manquant jusqu'ici). Les autres
-  // rôles restent inchangés sauf activation explicite via la prop.
-  const showSearch = searchable ?? role === "vendeur";
+  // Recherche globale du header désactivée par défaut sur tout le Dashboard
+  // vendeur : elle redirigeait vers /recherche (le catalogue public client,
+  // pas une vue scoped au vendeur), et faisait doublon avec la recherche
+  // locale déjà présente sur la page Articles. À réactiver page par page si
+  // un jour une vraie recherche scoped-vendeur est branchée derrière.
+  const showSearch = searchable ?? false;
 
   const accountSubtitle: Record<"admin" | "vendeur" | "livreur", string> = {
     vendeur: boutiqueName || "Vendeur Ayiba",

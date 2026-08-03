@@ -74,12 +74,40 @@ export function BottomNav() {
 
   if (loading) return null;
 
-  const vendeurMenuItems = [
-    { label: "Messages", icon: MessageSquare, href: "/vendeur/messages", badge: badges.messages },
-    { label: "Paiements", icon: Wallet, href: "/vendeur/paiements" },
-    { label: "Boutique", icon: Store, href: "/vendeur/boutique" },
-    { label: "Paramètres", icon: Settings, href: "/vendeur/parametres" },
+  // Regroupé par section (au lieu d'une liste plate) pour un tiroir plus
+  // lisible — même disposition reprise pour le desktop dans AccountDropdown.
+  const vendeurMenuGroups: {
+    title: string;
+    items: { label: string; icon: typeof Store; href: string; badge?: number; iconBg: string; iconColor: string }[];
+  }[] = [
+    {
+      title: "Boutique",
+      items: [
+        { label: "Ma boutique", icon: Store, href: "/vendeur/boutique", iconBg: "bg-teal-50", iconColor: "text-teal-600" },
+        { label: "Paiements", icon: Wallet, href: "/vendeur/paiements", iconBg: "bg-amber-50", iconColor: "text-amber-600" },
+      ],
+    },
+    {
+      title: "Activité",
+      items: [
+        { label: "Messages", icon: MessageSquare, href: "/vendeur/messages", badge: badges.messages, iconBg: "bg-coral-50", iconColor: "text-coral-500" },
+      ],
+    },
+    {
+      title: "Compte",
+      items: [
+        { label: "Paramètres", icon: Settings, href: "/vendeur/parametres", iconBg: "bg-gray-100", iconColor: "text-gray-500" },
+      ],
+    },
   ];
+  const vendeurMenuItems = vendeurMenuGroups.flatMap((g) => g.items);
+  const vendeurDisplayName = profile?.full_name || "Vendeur";
+  const vendeurInitials = vendeurDisplayName
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   const navItems = {
     guest: [
@@ -119,32 +147,64 @@ export function BottomNav() {
               <motion.div
                 initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
                 transition={{ type: "spring", damping: 28, stiffness: 320 }}
-                className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] p-6 shadow-2xl"
+                className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] shadow-2xl max-h-[85vh] overflow-y-auto"
               >
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold">Menu</h3>
-                  <button onClick={() => setIsVendeurMenuOpen(false)}><X size={20} /></button>
+                <div className="flex justify-center pt-3">
+                  <div className="w-10 h-1 rounded-full bg-gray-200" />
                 </div>
-                <div className="flex flex-col gap-2">
-                  {vendeurMenuItems.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(false); }}
-                      className="flex items-center justify-between p-4 rounded-2xl hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gray-50 text-gray-500 flex items-center justify-center">
-                          <item.icon size={20} />
-                        </div>
-                        <span className="font-bold text-sm text-gray-900">{item.label}</span>
-                      </div>
-                      {!!item.badge && item.badge > 0 && (
-                        <span className="min-w-[20px] h-5 px-1.5 bg-coral-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                          {item.badge > 9 ? "9+" : item.badge}
-                        </span>
+
+                <div className="flex items-center justify-between px-6 pt-4 pb-5 border-b border-gray-50">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-12 h-12 rounded-full bg-coral-50 text-coral-600 flex items-center justify-center overflow-hidden shrink-0">
+                      {profile?.avatar_url ? (
+                        <img src={profile.avatar_url} alt={vendeurDisplayName} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-sm font-bold">{vendeurInitials}</span>
                       )}
-                    </Link>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-base font-bold text-gray-900 truncate">{vendeurDisplayName}</p>
+                      <p className="text-xs text-gray-400 truncate">Vendeur Ayiba</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setIsVendeurMenuOpen(false)}
+                    className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center shrink-0"
+                    aria-label="Fermer"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="p-6 pt-4 flex flex-col gap-5">
+                  {vendeurMenuGroups.map((group) => (
+                    <div key={group.title}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 px-1 mb-1.5">
+                        {group.title}
+                      </p>
+                      <div className="flex flex-col gap-1">
+                        {group.items.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => { triggerHaptic(); setIsVendeurMenuOpen(false); }}
+                            className="flex items-center justify-between p-3 rounded-2xl hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-xl ${item.iconBg} ${item.iconColor} flex items-center justify-center`}>
+                                <item.icon size={20} />
+                              </div>
+                              <span className="font-bold text-sm text-gray-900">{item.label}</span>
+                            </div>
+                            {!!item.badge && item.badge > 0 && (
+                              <span className="min-w-[20px] h-5 px-1.5 bg-coral-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                                {item.badge > 9 ? "9+" : item.badge}
+                              </span>
+                            )}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   ))}
 
                   <button
@@ -152,7 +212,7 @@ export function BottomNav() {
                       setIsVendeurMenuOpen(false);
                       setShowLogoutModal(true);
                     }}
-                    className="flex items-center gap-3 p-4 rounded-2xl hover:bg-red-50 transition-colors text-left mt-2 border-t border-gray-50 pt-6"
+                    className="flex items-center gap-3 p-3 rounded-2xl hover:bg-red-50 transition-colors text-left border-t border-gray-50 pt-5"
                   >
                     <div className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
                       <LogOut size={20} />

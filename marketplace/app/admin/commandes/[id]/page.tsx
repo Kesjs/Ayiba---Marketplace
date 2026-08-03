@@ -75,7 +75,7 @@ export default function AdminCommandeDetailPage() {
         `id, numero, statut, montant_total, frais_livraison, commission, adresse_livraison, commune,
          nom_client, telephone_client, created_at,
          vendeur:vendeurs ( id, nom_boutique, users ( phone ) ),
-         livreur:livreurs!commandes_livreur_id_fkey ( id, nom_complet, users ( phone ) ),
+         livreur:livreurs!commandes_livreur_id_fkey ( id, nom_complet, users!livreurs_id_fkey ( phone ) ),
          commande_articles ( id, quantite, prix_unitaire, total, article:articles ( nom ) ),
          paiements ( id, montant, commission, methode, reference, statut, created_at )`
       )

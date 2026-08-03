@@ -43,27 +43,31 @@ export function AccountDropdown({
         </div>
       </div>
 
-      <ul className="py-1">
+      <ul className="py-2 px-2">
         {links.map((link) => (
           <li key={link.href}>
             <Link
               href={link.href}
               onClick={onClose}
-              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <link.icon size={18} className="text-gray-400 shrink-0" />
+              <span className="w-8 h-8 rounded-lg bg-gray-50 text-gray-500 flex items-center justify-center shrink-0">
+                <link.icon size={16} />
+              </span>
               {link.label}
             </Link>
           </li>
         ))}
       </ul>
 
-      <div className="border-t border-gray-100 py-1">
+      <div className="border-t border-gray-100 py-2 px-2">
         <button
           onClick={onLogoutClick}
-          className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
+          className="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-sm font-semibold text-red-500 hover:bg-red-50 transition-colors"
         >
-          <LogOut size={18} className="shrink-0" />
+          <span className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+            <LogOut size={16} />
+          </span>
           Déconnexion
         </button>
       </div>

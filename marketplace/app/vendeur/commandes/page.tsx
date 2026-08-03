@@ -303,7 +303,7 @@ function ouvrirDocumentImprimable(
   showToast: (m: string, v: "success" | "error" | "warning" | "info") => void,
   onPopupBlocked: (html: string, nomFichier: string) => void
 ) {
-  const blob = new Blob([html], { type: "text/html" });
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const win = window.open(url, "_blank", "noopener,noreferrer");
 
@@ -315,54 +315,6 @@ function ouvrirDocumentImprimable(
   }
 
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
-}
-
-function ouvrirFacture(
-  order: Commande,
-  articles: ArticleLigne[],
-  boutique: Boutique | null,
-  showToast: (m: string, v: "success" | "error" | "warning" | "info") => void,
-  onPopupBlocked: (html: string, nomFichier: string) => void
-) {
-  const lignes = articles
-    .map(
-      (a) =>
-        `<tr><td>${escapeHtml(a.nom)}</td><td style="text-align:center;">${a.quantite}</td><td style="text-align:right;">${formatMontant(a.prix_unitaire)}</td><td style="text-align:right;">${formatMontant(a.total)}</td></tr>`
-    )
-    .join("");
-  const html = `
-    <html>
-      <head>
-        <title>Facture ${escapeHtml(order.numero)}</title>
-        <style>${STYLE_DOCUMENT}</style>
-      </head>
-      <body>
-        <div class="entete">
-          ${LOGO_SVG}
-          <div class="titre-doc">
-            <h1>Facture</h1>
-            <div class="numero">${escapeHtml(order.numero)} · ${new Date(order.created_at).toLocaleDateString("fr-FR")}</div>
-          </div>
-        </div>
-
-        <div class="blocs">
-          ${blocBoutique(boutique)}
-          ${blocClient(order)}
-          ${blocLivreur(order)}
-        </div>
-
-        <table>
-          <thead><tr><th>Article</th><th style="text-align:center;">Qté</th><th style="text-align:right;">P.U.</th><th style="text-align:right;">Total</th></tr></thead>
-          <tbody>${lignes || "<tr><td colspan=4 style='color:#999;'>Aucun détail d'article</td></tr>"}</tbody>
-        </table>
-        <p class="total">Total : ${formatMontant(order.montant_total)}</p>
-
-        <p class="pied">Ayiba Marketplace — document généré automatiquement</p>
-        <script>window.onload = () => window.print();</script>
-      </body>
-    </html>
-  `;
-  ouvrirDocumentImprimable(html, `facture_${order.numero}.html`, showToast, onPopupBlocked);
 }
 
 // Même principe que ouvrirFacture (fenêtre imprimable), mais orienté remise
@@ -381,6 +333,7 @@ function ouvrirBonLivraison(
   const html = `
     <html>
       <head>
+        <meta charset="utf-8" />
         <title>Bon de livraison ${escapeHtml(order.numero)}</title>
         <style>${STYLE_DOCUMENT}</style>
       </head>
@@ -410,8 +363,9 @@ function ouvrirBonLivraison(
           <div>Signature livreur</div>
         </div>
 
+        <button class="no-print" onclick="window.print()" style="margin-top:24px; padding:10px 20px; border-radius:10px; border:none; background:#D85A30; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">Imprimer</button>
         <p class="pied">Ayiba Marketplace — document généré automatiquement</p>
-        <script>window.onload = () => window.print();</script>
+        <style>@media print { .no-print { display: none; } }</style>
       </body>
     </html>
   `;
@@ -462,6 +416,7 @@ export default function VendeurCommandesPage() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [generatingFactureId, setGeneratingFactureId] = useState<string | null>(null);
 
   const [search, setSearch] = useState("");
   const [filtre, setFiltre] = useState<FiltreStatut>("tous");
@@ -935,6 +890,34 @@ export default function VendeurCommandesPage() {
     URL.revokeObjectURL(url);
     setPendingDownload(null);
     showToast("Document téléchargé", "success");
+  };
+
+  // Vraie génération PDF côté serveur (voir app/api/vendeur/commandes/[id]/facture) —
+  // remplace l'ancien flux HTML+window.print() : téléchargement direct
+  // déclenché par le clic, donc pas de popup à bloquer/débloquer.
+  const telechargerFacture = async (order: Commande) => {
+    setGeneratingFactureId(order.id);
+    try {
+      const res = await fetch(`/api/vendeur/commandes/${order.id}/facture`);
+      if (!res.ok) {
+        showToast("Impossible de générer la facture — réessaie", "error");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `facture_${order.numero}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("Facture téléchargée", "success");
+    } catch {
+      showToast("Impossible de générer la facture — réessaie", "error");
+    } finally {
+      setGeneratingFactureId(null);
+    }
   };
 
   const handleConfirmCancel = async () => {
@@ -1579,18 +1562,15 @@ export default function VendeurCommandesPage() {
                                 })}
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    ouvrirFacture(
-                                      order,
-                                      detail && detail !== "loading" ? detail.articles : [],
-                                      boutique,
-                                      showToast,
-                                      (html, filename) => setPendingDownload({ html, filename })
-                                    )
-                                  }
-                                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
+                                  disabled={generatingFactureId === order.id}
+                                  onClick={() => telechargerFacture(order)}
+                                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
-                                  Générer la facture
+                                  {generatingFactureId === order.id ? (
+                                    <Loader2 size={13} className="animate-spin" />
+                                  ) : (
+                                    "Générer la facture"
+                                  )}
                                 </button>
                                 <button
                                   type="button"

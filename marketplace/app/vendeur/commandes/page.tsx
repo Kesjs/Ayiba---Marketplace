@@ -408,7 +408,7 @@ export default function VendeurCommandesPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users ( phone ) )"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
       )
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false })
@@ -440,7 +440,7 @@ export default function VendeurCommandesPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users ( phone ) )"
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
       )
       .eq("vendeur_id", vendeurId)
       .order("created_at", { ascending: false })
@@ -483,7 +483,7 @@ export default function VendeurCommandesPage() {
       const { data, error } = await supabase
         .from("commandes")
         .select(
-          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users ( phone ) )"
+          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
         )
         .eq("vendeur_id", vendeurId)
         .or(`nom_client.ilike.%${safeQ}%,numero.ilike.%${safeQ}%`)

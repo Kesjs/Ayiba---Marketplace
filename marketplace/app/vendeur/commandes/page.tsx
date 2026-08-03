@@ -800,6 +800,20 @@ export default function VendeurCommandesPage() {
       setCancelTargets(selectedOrders);
       return;
     }
+    // Même garde que pour l'action individuelle : impossible de confirmer en
+    // masse des commandes qui n'ont pas encore de livreur assigné.
+    if (statut === STATUTS_COMMANDE.CONFIRMEE) {
+      const sansLivreur = selectedOrders.filter((o) => !o.livreur_id);
+      if (sansLivreur.length > 0) {
+        showToast(
+          sansLivreur.length === 1
+            ? `La commande ${sansLivreur[0].numero} n'a pas de livreur assigné`
+            : `${sansLivreur.length} commandes sélectionnées n'ont pas de livreur assigné`,
+          "warning"
+        );
+        return;
+      }
+    }
     const ids = selectedOrders.map((o) => o.id);
     setBulkUpdating(true);
     const previous = commandes;
@@ -1513,20 +1527,43 @@ export default function VendeurCommandesPage() {
                               <div className="flex flex-col sm:flex-row gap-2 w-full">
                                 {prochains.map((next) => {
                                   const isCancel = next === STATUTS_COMMANDE.ANNULEE;
+                                  // On ne peut pas confirmer une commande sans livreur assigné —
+                                  // rien ne le garantissait avant (ni côté DB, ni côté client).
+                                  // Au lieu d'un bouton juste désactivé (sans issue pour le
+                                  // vendeur), on ouvre directement le modal d'assignation.
+                                  const requiertLivreur = next === STATUTS_COMMANDE.CONFIRMEE && !order.livreur_id;
                                   return (
                                     <button
                                       key={next}
                                       type="button"
                                       disabled={updatingId === order.id}
-                                      onClick={() =>
-                                        isCancel ? (setCancelError(null), setCancelTargets([order])) : updateStatut(order.id, next)
-                                      }
+                                      onClick={() => {
+                                        if (isCancel) {
+                                          setCancelError(null);
+                                          setCancelTargets([order]);
+                                        } else if (requiertLivreur) {
+                                          showToast("Assigne d'abord un livreur avant de confirmer", "warning");
+                                          ouvrirAssignation(order);
+                                        } else {
+                                          updateStatut(order.id, next);
+                                        }
+                                      }}
+                                      title={requiertLivreur ? "Assigne d'abord un livreur avant de confirmer" : undefined}
                                       className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
-                                        isCancel ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-coral-500 text-white hover:bg-coral-600"
+                                        isCancel
+                                          ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                          : requiertLivreur
+                                          ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                          : "bg-coral-500 text-white hover:bg-coral-600"
                                       }`}
                                     >
                                       {updatingId === order.id ? (
                                         <Loader2 size={14} className="animate-spin" />
+                                      ) : requiertLivreur ? (
+                                        <>
+                                          <Truck size={13} />
+                                          Assigner un livreur d&apos;abord
+                                        </>
                                       ) : (
                                         `Marquer ${LABELS_STATUT_COMMANDE[next]}`
                                       )}

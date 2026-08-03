@@ -1818,6 +1818,9 @@ export default function VendeurCommandesPage() {
             </>
           )}
         </AnimatePresence>
+
+        <AnimatePresence>
+          {assignTarget && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}

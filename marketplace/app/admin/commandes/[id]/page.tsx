@@ -12,7 +12,7 @@ import {
   PROCHAINS_STATUTS,
   type StatutCommande,
 } from "@/lib/constants/commandes";
-import { ArrowLeft, Package, MapPin, Store, Truck, User, CreditCard } from "lucide-react";
+import { ArrowLeft, Package, MapPin, Store, Truck, User, CreditCard, AlertTriangle, X, Loader2 } from "lucide-react";
 
 const supabase = createClient();
 
@@ -32,6 +32,7 @@ interface CommandeDetailAdmin {
   commune: string | null;
   nom_client: string | null;
   telephone_client: string | null;
+  motif_annulation: string | null;
   created_at: string;
   vendeur: { id: string; nom_boutique: string | null; telephone: string | null } | null;
   livreur: { id: string; nom: string | null; telephone: string | null } | null;
@@ -66,6 +67,7 @@ export default function AdminCommandeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
   const [changementEnCours, setChangementEnCours] = useState<StatutCommande | null>(null);
+  const [motifModal, setMotifModal] = useState<{ statut: StatutCommande; valeur: string } | null>(null);
 
   const charger = useCallback(async () => {
     setLoading(true);
@@ -73,7 +75,7 @@ export default function AdminCommandeDetailPage() {
       .from("commandes")
       .select(
         `id, numero, statut, montant_total, frais_livraison, commission, adresse_livraison, commune,
-         nom_client, telephone_client, created_at,
+         nom_client, telephone_client, motif_annulation, created_at,
          vendeur:vendeurs ( id, nom_boutique, users ( phone ) ),
          livreur:livreurs!commandes_livreur_id_fkey ( id, nom_complet, users!livreurs_id_fkey ( phone ) ),
          commande_articles ( id, quantite, prix_unitaire, total, article:articles ( nom ) ),
@@ -111,7 +113,7 @@ export default function AdminCommandeDetailPage() {
     charger();
   }, [charger]);
 
-  async function changerStatut(nouveauStatut: StatutCommande) {
+  async function changerStatut(nouveauStatut: StatutCommande, motif?: string) {
     if (!commande) return;
     setChangementEnCours(nouveauStatut);
     setErreur(null);
@@ -119,16 +121,25 @@ export default function AdminCommandeDetailPage() {
       const res = await fetch("/api/admin/commandes/changer-statut", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: commande.id, statut: nouveauStatut }),
+        body: JSON.stringify({ id: commande.id, statut: nouveauStatut, motif }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Échec du changement de statut");
+      setMotifModal(null);
       await charger();
     } catch (err) {
       setErreur(err instanceof Error ? err.message : "Une erreur est survenue");
     } finally {
       setChangementEnCours(null);
     }
+  }
+
+  function demanderTransition(s: StatutCommande) {
+    if (s === "annulee") {
+      setMotifModal({ statut: s, valeur: "" });
+      return;
+    }
+    changerStatut(s);
   }
 
   if (loading) {
@@ -174,6 +185,18 @@ export default function AdminCommandeDetailPage() {
               {LABELS_STATUT_COMMANDE[commande.statut] || commande.statut}
             </StatusBadge>
           </div>
+
+          {commande.statut === "annulee" && (
+            <div className="bg-red-50 border border-red-100 rounded-[24px] p-5 flex items-start gap-3">
+              <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-bold text-red-600 uppercase tracking-wide mb-1">Motif de l&apos;annulation</p>
+                <p className="text-sm text-red-800 leading-relaxed">
+                  {commande.motif_annulation || "Aucun motif renseigné (commande annulée avant la mise en place de ce suivi)."}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Articles */}
           <div className="bg-white rounded-[32px] border border-gray-50 shadow-sm overflow-hidden">
@@ -259,7 +282,7 @@ export default function AdminCommandeDetailPage() {
                   <button
                     key={s}
                     disabled={changementEnCours !== null}
-                    onClick={() => changerStatut(s)}
+                    onClick={() => demanderTransition(s)}
                     className="h-11 px-5 rounded-2xl text-sm font-bold border border-gray-200 bg-white hover:bg-gray-50 disabled:opacity-50 transition-colors"
                   >
                     {changementEnCours === s ? "..." : `→ ${LABELS_STATUT_COMMANDE[s]}`}
@@ -338,6 +361,58 @@ export default function AdminCommandeDetailPage() {
           </div>
         </div>
       </div>
+
+      {motifModal && (
+        <>
+          <div
+            className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60]"
+            onClick={() => changementEnCours === null && setMotifModal(null)}
+          />
+          <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
+            <div className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 shadow-2xl">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-gray-900">Annuler la commande ?</h3>
+                <button
+                  onClick={() => changementEnCours === null && setMotifModal(null)}
+                  className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <label className="block mb-4">
+                <span className="text-xs font-bold text-gray-500 mb-1.5 block">
+                  Motif de l&apos;annulation <span className="text-red-500">*</span>
+                </span>
+                <textarea
+                  value={motifModal.valeur}
+                  onChange={(e) => setMotifModal({ ...motifModal, valeur: e.target.value })}
+                  placeholder="Ex : litige client, fraude suspectée, doublon..."
+                  rows={3}
+                  autoFocus
+                  className="w-full text-sm rounded-xl border border-gray-200 bg-gray-50 p-3 focus:outline-none focus:ring-2 focus:ring-coral-100 resize-none"
+                />
+              </label>
+              {erreur && <p className="text-xs text-red-600 font-medium mb-4">{erreur}</p>}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => changementEnCours === null && setMotifModal(null)}
+                  disabled={changementEnCours !== null}
+                  className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Retour
+                </button>
+                <button
+                  onClick={() => changerStatut(motifModal.statut, motifModal.valeur)}
+                  disabled={changementEnCours !== null || motifModal.valeur.trim().length === 0}
+                  className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center"
+                >
+                  {changementEnCours !== null ? <Loader2 size={18} className="animate-spin" /> : "Confirmer l'annulation"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </DashboardLayout>
   );
 }

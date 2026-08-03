@@ -18,9 +18,12 @@ export async function POST(req: NextRequest) {
   if ("error" in guard) return guard.error;
   const { adminId, admin } = guard;
 
-  const { id, statut } = (await req.json()) as { id?: string; statut?: StatutCommande };
+  const { id, statut, motif } = (await req.json()) as { id?: string; statut?: StatutCommande; motif?: string };
   if (!id || !statut) {
     return NextResponse.json({ error: "id et statut requis" }, { status: 400 });
+  }
+  if (statut === "annulee" && !motif?.trim()) {
+    return NextResponse.json({ error: "Un motif d'annulation est requis" }, { status: 400 });
   }
 
   const { data: commande, error: fetchError } = await admin
@@ -42,7 +45,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { error } = await admin.from("commandes").update({ statut }).eq("id", id);
+  const updatePayload: { statut: StatutCommande; motif_annulation?: string } = { statut };
+  if (statut === "annulee") updatePayload.motif_annulation = motif!.trim();
+
+  const { error } = await admin.from("commandes").update(updatePayload).eq("id", id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   await admin.from("admin_actions_log").insert({
@@ -50,7 +56,7 @@ export async function POST(req: NextRequest) {
     action_type: "commande_changement_statut",
     cible_type: "commande",
     cible_id: id,
-    details: { statut_avant: statutActuel, statut_apres: statut },
+    details: { statut_avant: statutActuel, statut_apres: statut, ...(updatePayload.motif_annulation ? { motif_annulation: updatePayload.motif_annulation } : {}) },
   });
 
   return NextResponse.json({ success: true });

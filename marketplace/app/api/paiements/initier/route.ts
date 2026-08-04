@@ -9,6 +9,7 @@ interface GroupeCommande {
   telephone_client: string
   adresse_livraison: string
   commune: string
+  repere_livraison?: string | null
   latitude: number | null
   longitude: number | null
 }

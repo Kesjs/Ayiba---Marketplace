@@ -46,7 +46,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   const { data: commande, error: commandeError } = await supabase
     .from("commandes")
     .select(
-      "id, numero, nom_client, telephone_client, adresse_livraison, commune, montant_total, created_at, vendeur_id, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
+      "id, numero, nom_client, telephone_client, adresse_livraison, commune, repere_livraison, montant_total, created_at, vendeur_id, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
     )
     .eq("id", id)
     .eq("vendeur_id", user.id)
@@ -82,6 +82,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     clientTelephone: commandeRow.telephone_client ?? null,
     clientAdresse: commandeRow.adresse_livraison ?? null,
     clientCommune: commandeRow.commune ?? null,
+    clientRepere: commandeRow.repere_livraison ?? null,
     livreurNom: livreur?.nom_complet ?? null,
     livreurTelephone: one(livreur?.users)?.phone ?? null,
     articles: ((articlesRows as any[]) ?? []).map((r) => ({

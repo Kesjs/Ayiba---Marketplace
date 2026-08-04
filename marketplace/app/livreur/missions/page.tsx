@@ -491,6 +491,9 @@ function MissionACConfirmerCard({
           <div className="min-w-0">
             <p className="text-[10px] font-bold text-coral-600 uppercase tracking-widest mb-0.5">Point de livraison</p>
             <p className="text-sm font-bold text-gray-900 break-words">{pointLivraison}</p>
+            {mission.repere_livraison && (
+              <p className="text-xs font-semibold text-teal-600 mt-0.5 break-words">Repère : {mission.repere_livraison}</p>
+            )}
           </div>
         </div>
       </div>

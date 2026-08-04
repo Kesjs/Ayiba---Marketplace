@@ -30,6 +30,7 @@ interface CommandeDetailAdmin {
   commission: number | null;
   adresse_livraison: string | null;
   commune: string | null;
+  repere_livraison: string | null;
   nom_client: string | null;
   telephone_client: string | null;
   motif_annulation: string | null;
@@ -74,7 +75,7 @@ export default function AdminCommandeDetailPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        `id, numero, statut, montant_total, frais_livraison, commission, adresse_livraison, commune,
+        `id, numero, statut, montant_total, frais_livraison, commission, adresse_livraison, commune, repere_livraison,
          nom_client, telephone_client, motif_annulation, created_at,
          vendeur:vendeurs ( id, nom_boutique, users ( phone ) ),
          livreur:livreurs!commandes_livreur_id_fkey ( id, nom_complet, users!livreurs_id_fkey ( phone ) ),
@@ -311,6 +312,9 @@ export default function AdminCommandeDetailPage() {
                   <p className="text-xs text-gray-400 font-medium">Livraison</p>
                   <p className="text-sm font-bold text-gray-900">{commande.adresse_livraison}</p>
                   {commande.commune && <p className="text-xs text-gray-500">{commande.commune}</p>}
+                  {commande.repere_livraison && (
+                    <p className="text-xs font-semibold text-teal-600 mt-0.5">Repère : {commande.repere_livraison}</p>
+                  )}
                 </div>
               </div>
             )}

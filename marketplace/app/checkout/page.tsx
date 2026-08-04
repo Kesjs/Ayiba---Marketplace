@@ -34,6 +34,7 @@ interface Address {
   adresse_complete: string
   quartier: string
   commune: string
+  repere: string | null
   latitude: number | null
   longitude: number | null
   est_defaut: boolean
@@ -220,7 +221,7 @@ export default function CheckoutPage() {
       setLoadingAddresses(true)
       const { data } = await supabase
         .from('addresses')
-        .select('id, label, adresse_complete, quartier, commune, latitude, longitude, est_defaut')
+        .select('id, label, adresse_complete, quartier, commune, repere, latitude, longitude, est_defaut')
         .eq('user_id', user.id)
         .order('est_defaut', { ascending: false })
 
@@ -351,6 +352,7 @@ export default function CheckoutPage() {
     adresse_complete: string
     quartier: string
     commune: string
+    repere: string | null
     latitude: number | null
     longitude: number | null
   } | null>(null)
@@ -451,9 +453,14 @@ export default function CheckoutPage() {
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 20000)
     try {
-      const adresseLigne = [adresseFinale.adresse_complete, adresseFinale.quartier, adresseFinale.commune]
-        .filter(Boolean)
-        .join(', ')
+      // Le display_name complet de Nominatim (adresse_complete) empile des
+      // objets OSM qui ne sont pas toujours réellement imbriqués (hameau +
+      // quartier + arrondissement voisins mais pas nichés l'un dans l'autre)
+      // — donne une impression de précision qui n'existe pas dans la donnée
+      // source. On se limite à quartier + commune (2 champs distincts, une
+      // seule valeur chacun) ; la vraie précision vient du pin GPS et du
+      // repère, transmis séparément ci-dessous.
+      const adresseLigne = [adresseFinale.quartier, adresseFinale.commune].filter(Boolean).join(', ')
 
       const groupes = Object.entries(groupesParVendeur).map(([vendeurId, articlesVendeur]) => ({
         vendeur_id: vendeurId,
@@ -462,6 +469,7 @@ export default function CheckoutPage() {
         telephone_client: telephone.trim(),
         adresse_livraison: adresseLigne,
         commune: adresseFinale.commune,
+        repere_livraison: adresseFinale.repere,
         latitude: adresseFinale.latitude,
         longitude: adresseFinale.longitude,
       }))

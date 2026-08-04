@@ -55,7 +55,11 @@ const LIGHT_GRAY = "#B5BAC2";
 const DIVIDER = "#D9DCE1";
 
 function formatMontant(v: number) {
-  return new Intl.NumberFormat("fr-FR").format(v) + " F";
+  // Intl.NumberFormat("fr-FR") sépare les milliers avec une espace fine
+  // insécable (U+202F). La police Helvetica standard de pdfkit n'a pas ce
+  // glyphe et affiche un caractère de remplacement (visuellement un "/").
+  // On la remplace par une espace normale, supportée par toutes les polices.
+  return new Intl.NumberFormat("fr-FR").format(v).replace(/[\u202F\u00A0]/g, " ") + " F";
 }
 
 function dashedLine(doc: PDFKit.PDFDocument, y: number) {
@@ -219,27 +223,16 @@ function draw(doc: PDFKit.PDFDocument, data: FactureData, qrBuffer: Buffer): num
 
   y = dashedLine(doc, y) + 18;
 
-  // Authenticité : QR de vérification entouré d'un "cachet" circulaire +
-  // code de sécurité en clair, pour une vérification même sans caméra ni
-  // connexion (comparaison visuelle avec le code affiché sur la page).
+  // Authenticité : QR de vérification + code de sécurité en clair, pour une
+  // vérification même sans caméra ni connexion (comparaison visuelle avec
+  // le code affiché sur la page).
   y = sectionLabel(doc, "AUTHENTICITÉ", y) + 20;
 
   const qrSize = 76;
-  const cachetRadius = 58;
   const qrX = MARGIN_X + (CONTENT_WIDTH - qrSize) / 2;
-  const cachetCenterX = qrX + qrSize / 2;
-  const cachetCenterY = y + qrSize / 2;
-
-  doc
-    .circle(cachetCenterX, cachetCenterY, cachetRadius)
-    .lineWidth(1.1)
-    .dash(3, { space: 2 })
-    .strokeColor(CORAL)
-    .stroke()
-    .undash();
 
   doc.image(qrBuffer, qrX, y, { width: qrSize, height: qrSize });
-  y += qrSize + (cachetRadius - qrSize / 2) + 14;
+  y += qrSize + 14;
 
   doc.font("Helvetica-Bold").fontSize(9).fillColor(DARK);
   const codeTexte = `CODE : ${data.codeSecurite}`;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { genererFacturePDF, type FactureData } from "@/lib/pdf/facture";
+import { genererCodeSecurite } from "@/lib/pdf/facture-securite";
 
 // pdfkit utilise Buffer/fs — incompatible avec le runtime edge, donc on
 // force explicitement le runtime Node.js pour cette route.
@@ -57,7 +58,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const { data: vendeurRow } = await supabase
     .from("vendeurs")
-    .select("nom_boutique, nom_complet, quartier, commune, users ( phone )")
+    .select("nom_boutique, nom_complet, quartier, commune, statut, users ( phone )")
     .eq("id", user.id)
     .single();
 
@@ -90,6 +91,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       total: r.total,
     })),
     montantTotal: commandeRow.montant_total,
+    vendeurVerifie: vendeur?.statut === "valide",
+    codeSecurite: genererCodeSecurite(commandeRow.numero, commandeRow.montant_total, commandeRow.vendeur_id),
+    qrCodeUrl: `${process.env.NEXT_PUBLIC_SITE_URL}/verifier/${commandeRow.numero}`,
   };
 
   const pdfBuffer = await genererFacturePDF(factureData);

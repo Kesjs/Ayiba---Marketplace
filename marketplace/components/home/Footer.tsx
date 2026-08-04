@@ -1,5 +1,11 @@
+"use client";
+
+import { useState } from "react";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import Image from "next/image";
+import { Share, PlusSquare } from "lucide-react";
+import { Modal } from "@/components/ui/Modal";
+import { useInstallApp } from "@/context/InstallAppContext";
 
 const footerLinks = {
   acheter: [
@@ -27,11 +33,16 @@ const footerLinks = {
 };
 
 export function Footer() {
+  const { canInstallNative, isIOS, isStandalone, promptInstall } = useInstallApp();
+  const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const showInstallBanner = !isStandalone && (canInstallNative || isIOS);
+
   return (
     <footer className="py-12 px-4 bg-gray-50 border-t border-gray-100 md:px-8 lg:px-12">
       <div className="max-w-7xl mx-auto">
 
         {/* PWA / App Banner - Section responsive mobile-first */}
+        {showInstallBanner && (
         <div className="mb-16 p-6 md:p-10 bg-white rounded-[32px] border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex-1 text-center md:text-left">
             <div className="inline-flex items-center gap-2 bg-coral-50 text-coral-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-4">
@@ -50,16 +61,14 @@ export function Footer() {
             </div>
             <button
               className="flex items-center gap-3 bg-gray-900 text-white px-6 py-3 rounded-2xl hover:bg-black transition-all duration-300 w-full sm:w-auto justify-center group active:scale-95"
-              onClick={() => {
-                // Simulation d'installation PWA ou instructions
-                alert("Pour installer Ayiba : Cliquez sur le menu de votre navigateur (les 3 points ou l'icône de partage) puis sur 'Ajouter à l'écran d'accueil'.");
-              }}
+              onClick={() => (canInstallNative ? promptInstall() : setShowIOSInstructions(true))}
             >
               <i className="ti ti-device-mobile text-xl group-hover:scale-110 transition-transform" />
               <span className="text-sm font-bold">Installer l'Application</span>
             </button>
           </div>
         </div>
+        )}
 
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-4 lg:gap-16">
 
@@ -159,6 +168,38 @@ export function Footer() {
         </div>
 
       </div>
+      <Modal
+        isOpen={showIOSInstructions}
+        onClose={() => setShowIOSInstructions(false)}
+        title="Installer Ayiba"
+      >
+        <div className="space-y-4 text-sm text-gray-700">
+          <p>Sur iPhone, l&apos;installation se fait en 2 étapes depuis Safari :</p>
+          <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+            <div className="w-7 h-7 rounded-full bg-coral-100 text-coral-600 flex items-center justify-center text-xs font-bold shrink-0">
+              1
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Appuie sur</span>
+              <Share size={16} className="text-coral-500" />
+              <span>(Partager) en bas de l&apos;écran</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+            <div className="w-7 h-7 rounded-full bg-coral-100 text-coral-600 flex items-center justify-center text-xs font-bold shrink-0">
+              2
+            </div>
+            <div className="flex items-center gap-2">
+              <span>Choisis</span>
+              <PlusSquare size={16} className="text-coral-500" />
+              <span>&quot;Sur l&apos;écran d&apos;accueil&quot;</span>
+            </div>
+          </div>
+          <p className="text-xs text-gray-400">
+            L&apos;icône Ayiba apparaîtra alors sur ton écran d&apos;accueil, comme une vraie application.
+          </p>
+        </div>
+      </Modal>
     </footer>
   );
 }

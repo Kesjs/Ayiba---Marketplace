@@ -30,6 +30,7 @@ export interface FactureData {
   clientTelephone: string | null;
   clientAdresse: string | null;
   clientCommune: string | null;
+  clientRepere: string | null;
   livreurNom: string | null;
   livreurTelephone: string | null;
   articles: FactureArticle[];
@@ -162,6 +163,15 @@ function draw(doc: PDFKit.PDFDocument, data: FactureData, qrBuffer: Buffer): num
     doc.font("Helvetica").fontSize(8.5).fillColor(GRAY);
     doc.text(ligne, MARGIN_X, y, { width: CONTENT_WIDTH });
     y += doc.heightOfString(ligne, { width: CONTENT_WIDTH }) + 2;
+  }
+  if (data.clientRepere) {
+    // Mis en avant (gras + teal) : contrairement à l'adresse administrative
+    // ci-dessus, c'est ce repère qui aide réellement à localiser la maison
+    // à Calavi (pas de rues nommées/numérotées dans la zone).
+    const repereTexte = `Repère : ${data.clientRepere}`;
+    doc.font("Helvetica-Bold").fontSize(8.5).fillColor(TEAL);
+    doc.text(repereTexte, MARGIN_X, y, { width: CONTENT_WIDTH });
+    y += doc.heightOfString(repereTexte, { width: CONTENT_WIDTH }) + 2;
   }
   y += 8;
 

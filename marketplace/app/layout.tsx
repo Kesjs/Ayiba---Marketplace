@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { CartProvider } from "@/context/CartContext";
 import { ToastProvider } from "@/context/ToastContext";
 import { UiChromeProvider } from "@/context/UiChromeContext";
+import { InstallAppProvider } from "@/context/InstallAppContext";
 import NextTopLoader from 'nextjs-toploader';
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { MaintenanceBanner } from "@/components/ui/MaintenanceBanner";
@@ -72,6 +73,7 @@ export default function RootLayout({
           shadow="0 0 10px #FF6653,0 0 5px #FF6653"
         />
         <MaintenanceBanner />
+        <InstallAppProvider>
         <CartProvider>
           <ToastProvider>
             <UiChromeProvider>
@@ -81,6 +83,7 @@ export default function RootLayout({
             </UiChromeProvider>
           </ToastProvider>
         </CartProvider>
+        </InstallAppProvider>
       </body>
     </html>
   );

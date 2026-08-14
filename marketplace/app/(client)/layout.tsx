@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   Search, Package, Home, MessageSquare, Menu as MenuIcon,
-  ShoppingCart, LogOut, Minus, Plus, Trash2, ShoppingBag, X,
+  ShoppingCart, LogOut, Minus, Plus, Trash2, ShoppingBag, X, ChevronLeft,
 } from 'lucide-react'
 import { useCart } from '@/context/CartContext'
 import LogoAyiba from '@/components/ui/LogoAyiba'
@@ -42,8 +42,16 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-gray-50">
       <aside className={`hidden bg-white border-r border-gray-100 flex-col shrink-0 lg:flex h-screen sticky top-0 transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="p-4 border-b border-gray-50">
+        <div className="p-4 border-b border-gray-50 flex items-center justify-between">
           <LogoAyiba />
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+            aria-label={sidebarCollapsed ? "Déplier" : "Replier"}
+            title={sidebarCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
+          >
+            <ChevronLeft size={18} className={`transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
+          </button>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           {NAV_ITEMS.map((item) => {

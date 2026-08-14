@@ -107,7 +107,7 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
           dashboard par erreur en visant la sidebar n'est jamais voulu ici.
           Seul le Navbar public (espace client) garde un logo qui ramène à
           l'accueil. */}
-      <div className="h-20 flex items-center px-6">
+      <div className="h-20 flex items-center justify-between px-6">
         <div className="flex items-center gap-2 overflow-hidden">
           {isCollapsed ? (
             <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />
@@ -118,6 +118,14 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
             </>
           )}
         </div>
+        <button
+          onClick={onToggleCollapse}
+          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+          aria-label={isCollapsed ? "Déplier" : "Replier"}
+          title={isCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
+        >
+          <ChevronLeft size={18} className={`transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
+        </button>
       </div>
 
       {/* User Profile Summary */}
@@ -200,13 +208,6 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
         >
           <LogOut size={22} className="group-hover:text-red-500 shrink-0" />
           {!isCollapsed && <span className="font-semibold text-[14px] whitespace-nowrap">Déconnexion</span>}
-        </button>
-
-        <button
-          onClick={onToggleCollapse}
-          className="flex items-center justify-center w-full mt-2 p-2 text-gray-400 hover:text-gray-600"
-        >
-          <ChevronLeft size={20} className={`transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
         </button>
       </div>
 

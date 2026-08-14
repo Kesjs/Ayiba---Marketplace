@@ -3,6 +3,8 @@
  * À utiliser en développement pour identifier les goulets d'étranglement
  */
 
+import React from 'react';
+
 interface PerformanceMark {
   name: string;
   startTime: number;

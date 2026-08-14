@@ -36,29 +36,26 @@ import {
 // DONNÉES
 // ─────────────────────────────────────────────────────────
 
+// Données statiques - préchargées au build time
 const STEPS = [
   {
     number: "01",
     illustration: "/illustrations/rider-step-1.svg",
-    icon: UserCheck,
     title: "Profil vérifié",
     desc: "Inscrivez-vous en 2 minutes. Notre équipe vérifie votre identité et votre véhicule pour garantir la sécurité et le sérieux des livraisons sur Ayiba.",
   },
   {
     number: "02",
     illustration: "/illustrations/rider-step-2.svg",
-    icon: MapPin,
     title: "Missions locales",
     desc: "Recevez des demandes de livraison à proximité. Acceptez les courses qui vous conviennent en un clic via votre application dédiée.",
   },
   {
     number: "03",
     illustration: "/illustrations/rider-step-3.svg",
-    icon: Wallet,
     title: "Gains instantanés",
     desc: "Soyez payé dès que le client valide la réception avec son code OTP unique. Vos gains (95%) sont crédités instantanément sur votre compte Mobile Money.",
-  },
-];
+] as const;
 
 const THREE_BENEFITS = [
   {
@@ -285,6 +282,8 @@ export default function DevenirLivreurPage() {
                         src={step.illustration}
                         alt={step.title}
                         className="relative z-10 w-full h-full object-contain drop-shadow-lg"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
 

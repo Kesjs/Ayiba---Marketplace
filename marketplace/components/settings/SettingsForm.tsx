@@ -20,7 +20,7 @@ export function SettingsSection({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay }}
-      className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm mb-6"
+      className="bg-white p-4 sm:p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm mb-6 max-w-2xl"
     >
       <div className="flex items-center gap-2 mb-6">
         <Icon size={18} className="text-teal-600" />
@@ -106,9 +106,9 @@ export function DangerZoneCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-3xl border border-red-100 bg-white overflow-hidden mb-10"
+      className="rounded-3xl border border-red-100 bg-white overflow-hidden mb-10 max-w-2xl"
     >
-      <div className="flex items-center gap-3 px-6 sm:px-8 py-5 border-b border-red-100 bg-red-50/60">
+      <div className="flex items-center gap-3 px-4 sm:px-6 md:px-8 py-5 border-b border-red-100 bg-red-50/60">
         <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center text-red-500 shrink-0 shadow-sm">
           <ShieldAlert size={18} />
         </div>
@@ -146,7 +146,7 @@ export function DangerZoneRow({
       : "border-red-200 text-red-600 hover:bg-red-50";
 
   return (
-    <div className="flex items-center justify-between gap-4 px-6 sm:px-8 py-5">
+    <div className="flex items-center justify-between gap-4 px-4 sm:px-6 md:px-8 py-5">
       <div className="flex items-start gap-3 min-w-0">
         <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconToneClasses}`}>
           <Icon size={18} />

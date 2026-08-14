@@ -135,8 +135,8 @@ export function DashboardLayout({
         <div
           className={
             fullHeight
-              ? "flex-1 min-h-0 flex flex-col p-5 sm:p-6 md:p-8 lg:p-10 pb-3 lg:pb-6 max-w-7xl mx-auto min-w-0 w-full"
-              : "p-5 sm:p-6 md:p-8 lg:p-10 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0"
+              ? "flex-1 min-h-0 flex flex-col p-4 sm:p-5 md:p-6 lg:p-8 pb-3 lg:pb-6 max-w-7xl mx-auto min-w-0 w-full"
+              : "p-4 sm:p-5 md:p-6 lg:p-8 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0 w-full"
           }
         >
           <div

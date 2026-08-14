@@ -1,0 +1,980 @@
+"use client";
+
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { PhotoUpload } from "./PhotoUpload";
+import { DocumentUpload } from "./DocumentUpload";
+import { MobileMoneySelector } from "./MobileMoneySelector";
+import { RecapSection } from "./RecapSection";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ShieldCheck,
+  Hourglass,
+  AlertTriangle,
+  UserRound,
+  FileText,
+  Bike,
+  MapPin,
+  Wallet,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { AdresseForm } from "@/components/adresse/AdresseForm";
+import { useToast } from "@/context/ToastContext";
+import LogoAyiba from "@/components/ui/LogoAyiba";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
+import { WizardHeader } from "@/components/ui/WizardHeader";
+import type { WizardStep } from "./StepIndicator";
+
+const WIZARD_STEPS: WizardStep[] = [
+  { label: "Identité", icon: UserRound },
+  { label: "Document", icon: FileText },
+  { label: "Véhicule", icon: Bike },
+  { label: "Localisation", icon: MapPin },
+  { label: "Paiement", icon: Wallet },
+];
+const STORAGE_KEY = "ayiba-livreur-kyc-draft";
+
+const STATUT_CONFIG: Record<string, { dot: string; label: string }> = {
+  en_attente: { dot: "bg-amber-500", label: "En attente" },
+  valide: { dot: "bg-teal-500", label: "Vérifié" },
+  refuse: { dot: "bg-red-500", label: "Refusé" },
+};
+
+type TypeVehicule = "motocyclette" | "velo" | "tricycle" | "a_pied";
+
+const VEHICULE_OPTIONS: { id: TypeVehicule; label: string }[] = [
+  { id: "motocyclette", label: "Motocyclette" },
+  { id: "velo", label: "Vélo" },
+  { id: "tricycle", label: "Tricycle" },
+  { id: "a_pied", label: "À pied" },
+];
+
+interface LivreurFormData {
+  nomComplet: string;
+  photoProfil: File | null;
+  photoCni: File | null;
+  typeVehicule: TypeVehicule | null;
+  photoVehicule: File | null;
+  plaqueImmatriculation: string;
+  quartier: string;
+  commune: string;
+  latitude: number | null;
+  longitude: number | null;
+  mobileMoneyNetwork: "mtn" | "moov" | "celtiis" | null;
+  mobileMoneyNumber: string;
+}
+
+type PersistedFields = Omit<LivreurFormData, "photoProfil" | "photoCni" | "photoVehicule">;
+
+const INITIAL_DATA: LivreurFormData = {
+  nomComplet: "",
+  photoProfil: null,
+  photoCni: null,
+  typeVehicule: null,
+  photoVehicule: null,
+  plaqueImmatriculation: "",
+  quartier: "",
+  commune: "",
+  latitude: null,
+  longitude: null,
+  mobileMoneyNetwork: null,
+  mobileMoneyNumber: "",
+};
+
+const slideVariants = {
+  enter: (dir: number) => ({ opacity: 0, x: dir > 0 ? 24 : -24, scale: 0.99 }),
+  center: { opacity: 1, x: 0, scale: 1 },
+  exit: (dir: number) => ({ opacity: 0, x: dir > 0 ? -24 : 24, scale: 0.99 }),
+};
+
+function StatutIndicator({ statut }: { statut: string }) {
+  const config = STATUT_CONFIG[statut];
+  if (!config) return null;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-500 shrink-0">
+      <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+      <span className="hidden xs:inline">{config.label}</span>
+    </span>
+  );
+}
+
+function ConfirmModal({
+  open,
+  onConfirm,
+  onCancel,
+}: {
+  open: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm px-4 pb-4 sm:pb-4"
+          onClick={onCancel}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 12, scale: 0.97 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full sm:max-w-sm bg-white rounded-3xl p-6 shadow-xl"
+          >
+            <h3 className="text-base font-bold text-gray-900 mb-1.5">Quitter l'inscription ?</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Tes informations non enregistrées seront perdues.
+            </p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={onCancel}
+                className="flex-1 h-11 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Continuer
+              </button>
+              <button
+                onClick={onConfirm}
+                className="flex-1 h-11 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors"
+              >
+                Quitter
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+export function LivreurKycWizard() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [direction, setDirection] = useState(1);
+  const [data, setData] = useState<LivreurFormData>(INITIAL_DATA);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const totalSteps = WIZARD_STEPS.length;
+
+  const [existingPhotoProfilUrl, setExistingPhotoProfilUrl] = useState<string | null>(null);
+  const [existingPhotoCniPath, setExistingPhotoCniPath] = useState<string | null>(null);
+  const [existingPhotoVehiculeUrl, setExistingPhotoVehiculeUrl] = useState<string | null>(null);
+  const [livreurStatut, setLivreurStatut] = useState<string | null>(null);
+  const [raisonRejet, setRaisonRejet] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const { showToast } = useToast();
+
+  // Miniature pour le récap : priorité au fichier fraîchement choisi, sinon
+  // l'URL déjà enregistrée en base.
+  const photoProfilApercu = useMemo(
+    () => (data.photoProfil ? URL.createObjectURL(data.photoProfil) : existingPhotoProfilUrl),
+    [data.photoProfil, existingPhotoProfilUrl]
+  );
+  // Instantané des champs pris au chargement (dossier déjà soumis), pour
+  // détecter si "Modifier mes informations" a vraiment changé quelque chose
+  // avant de forcer une resoumission (voir handleSubmit).
+  const originalSnapshotRef = useRef<PersistedFields | null>(null);
+
+  const confirmLogoutAndGoHome = async () => {
+    setShowLogoutModal(false);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let cancelled = false;
+
+    const hydrate = async () => {
+      let draft: { step: number; fields: PersistedFields } | null = null;
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) draft = JSON.parse(saved);
+      } catch {
+        // brouillon corrompu, on l'ignore silencieusement
+      }
+
+      try {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user) {
+          const { data: livreur } = await supabase
+            .from("livreurs")
+            .select("*")
+            .eq("id", user.id)
+            .maybeSingle();
+
+          if (livreur && !cancelled) {
+            setData((prev) => ({
+              ...prev,
+              nomComplet: livreur.nom_complet ?? prev.nomComplet,
+              typeVehicule: (livreur.type_vehicule as TypeVehicule) ?? prev.typeVehicule,
+              plaqueImmatriculation: livreur.plaque_immatriculation ?? prev.plaqueImmatriculation,
+              quartier: livreur.quartier ?? prev.quartier,
+              commune: livreur.commune ?? prev.commune,
+              latitude: livreur.latitude ?? prev.latitude,
+              longitude: livreur.longitude ?? prev.longitude,
+              mobileMoneyNetwork: livreur.mobile_money_network ?? prev.mobileMoneyNetwork,
+              mobileMoneyNumber: livreur.mobile_money_number ?? prev.mobileMoneyNumber,
+            }));
+            originalSnapshotRef.current = {
+              nomComplet: livreur.nom_complet ?? "",
+              typeVehicule: (livreur.type_vehicule as TypeVehicule) ?? null,
+              plaqueImmatriculation: livreur.plaque_immatriculation ?? "",
+              quartier: livreur.quartier ?? "",
+              commune: livreur.commune ?? "",
+              latitude: livreur.latitude ?? null,
+              longitude: livreur.longitude ?? null,
+              mobileMoneyNetwork: livreur.mobile_money_network ?? null,
+              mobileMoneyNumber: livreur.mobile_money_number ?? "",
+            };
+            setExistingPhotoProfilUrl(livreur.photo_profil_url ?? null);
+            setExistingPhotoCniPath(livreur.photo_cni_path ?? null);
+            setExistingPhotoVehiculeUrl(livreur.photo_vehicule_url ?? null);
+            setLivreurStatut(livreur.statut_verification ?? null);
+            setRaisonRejet(livreur.raison_rejet ?? null);
+            setHydrated(true);
+            return;
+          }
+        }
+      } catch {
+        // pas de session / erreur réseau → on retombe sur le brouillon local
+      }
+
+      if (!cancelled && draft) {
+        setData((prev) => ({ ...prev, ...draft!.fields }));
+        setStep(draft.step || 1);
+      }
+      if (!cancelled) setHydrated(true);
+    };
+
+    hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated || typeof window === "undefined") return;
+    const { photoProfil, photoCni, photoVehicule, ...fields } = data;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ step, fields }));
+  }, [data, step, hydrated]);
+
+  const update = <K extends keyof LivreurFormData>(key: K, value: LivreurFormData[K]) => {
+    setData((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const clearDraft = () => {
+    if (typeof window !== "undefined") {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  };
+
+  const needsPlaque = data.typeVehicule === "motocyclette" || data.typeVehicule === "tricycle";
+
+  const hasProgress = () => {
+    return (
+      data.nomComplet.trim().length > 0 ||
+      data.photoProfil !== null ||
+      data.photoCni !== null ||
+      data.typeVehicule !== null ||
+      data.photoVehicule !== null ||
+      data.plaqueImmatriculation.trim().length > 0 ||
+      data.quartier.trim().length > 0 ||
+      data.commune.trim().length > 0 ||
+      data.mobileMoneyNumber.length > 0
+    );
+  };
+
+  const handleCancel = () => {
+    if (hasProgress()) {
+      setShowCancelModal(true);
+      return;
+    }
+    clearDraft();
+    if (editMode && livreurStatut) {
+      setEditMode(false);
+      return;
+    }
+    router.push("/");
+  };
+
+  const confirmCancel = () => {
+    clearDraft();
+    setShowCancelModal(false);
+    if (editMode && livreurStatut) {
+      setEditMode(false);
+      return;
+    }
+    showToast("Pas de souci, tu pourras reprendre à tout moment.", "info");
+    router.push("/");
+  };
+
+  const isStepValid = () => {
+    switch (step) {
+      case 1:
+        return (
+          data.nomComplet.trim().length > 2 &&
+          (data.photoProfil !== null || existingPhotoProfilUrl !== null)
+        );
+      case 2:
+        return data.photoCni !== null || existingPhotoCniPath !== null;
+      case 3:
+        if (!data.typeVehicule) return false;
+        if (data.typeVehicule === "a_pied") return true;
+        const plaqueOk = needsPlaque ? data.plaqueImmatriculation.trim().length > 2 : true;
+        return (data.photoVehicule !== null || existingPhotoVehiculeUrl !== null) && plaqueOk;
+      case 4:
+        return (
+          data.quartier.trim().length > 1 &&
+          data.commune.trim().length > 1 &&
+          data.latitude !== null &&
+          data.longitude !== null
+        );
+      case 5:
+        return data.mobileMoneyNetwork !== null && data.mobileMoneyNumber.length === 8;
+      default:
+        return true;
+    }
+  };
+
+  const goToStep = (target: number) => {
+    setDirection(target > step ? 1 : -1);
+    setStep(target);
+  };
+
+  const handleNext = () => {
+    if (step < totalSteps) {
+      goToStep(step + 1);
+    } else {
+      goToStep(totalSteps + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (step > 1) goToStep(step - 1);
+  };
+
+  const hasMeaningfulChanges = () => {
+    if (data.photoProfil || data.photoCni || data.photoVehicule) return true;
+    const snap = originalSnapshotRef.current;
+    if (!snap) return true; // pas d'instantané connu (première soumission) → on soumet normalement
+    return (
+      data.nomComplet !== snap.nomComplet ||
+      data.typeVehicule !== snap.typeVehicule ||
+      data.plaqueImmatriculation !== snap.plaqueImmatriculation ||
+      data.quartier !== snap.quartier ||
+      data.commune !== snap.commune ||
+      data.mobileMoneyNetwork !== snap.mobileMoneyNetwork ||
+      data.mobileMoneyNumber !== snap.mobileMoneyNumber
+    );
+  };
+
+  const handleSubmit = async () => {
+    // Dossier déjà soumis (en_attente/valide) rouvert via "Modifier mes
+    // informations" mais renvoyé sans aucun changement réel : on n'écrase pas
+    // le statut existant (surtout pas un compte déjà "valide") et on ne
+    // redéclenche pas le toast "Dossier envoyé !" pour rien.
+    const wasAlreadySubmitted = livreurStatut === "en_attente" || livreurStatut === "valide";
+    if (wasAlreadySubmitted && !hasMeaningfulChanges()) {
+      clearDraft();
+      setEditMode(false);
+      showToast("Aucune modification détectée — ton dossier reste inchangé.", "info");
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("Ta session a expiré, reconnecte-toi.");
+      setSubmitting(false);
+      return;
+    }
+
+    try {
+      let photoProfilUrl: string | null = existingPhotoProfilUrl;
+      let photoCniPath: string | null = existingPhotoCniPath;
+      let photoVehiculeUrl: string | null = existingPhotoVehiculeUrl;
+
+      if (data.photoProfil) {
+        const path = `${user.id}/profil-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, data.photoProfil, { upsert: true });
+        if (upErr) throw upErr;
+        photoProfilUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      }
+
+      if (data.photoCni) {
+        const path = `${user.id}/cni-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("kyc-documents")
+          .upload(path, data.photoCni, { upsert: true });
+        if (upErr) throw upErr;
+        photoCniPath = path;
+      }
+
+      if (data.photoVehicule) {
+        const path = `${user.id}/vehicule-${Date.now()}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("avatars")
+          .upload(path, data.photoVehicule, { upsert: true });
+        if (upErr) throw upErr;
+        photoVehiculeUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      }
+
+      // statut_verification forcé explicitement à chaque soumission (nouvelle
+      // demande ou resoumission après refus) — le trigger DB bloque de toute
+      // façon toute tentative d'auto-passer à "valide".
+      const { error: insertError } = await supabase.from("livreurs").upsert({
+        id: user.id,
+        nom_complet: data.nomComplet,
+        photo_profil_url: photoProfilUrl,
+        photo_cni_path: photoCniPath,
+        type_vehicule: data.typeVehicule,
+        photo_vehicule_url: photoVehiculeUrl,
+        plaque_immatriculation: needsPlaque ? data.plaqueImmatriculation : null,
+        quartier: data.quartier,
+        commune: data.commune,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        mobile_money_network: data.mobileMoneyNetwork,
+        mobile_money_number: data.mobileMoneyNumber,
+        statut_verification: "en_attente",
+      });
+      if (insertError) throw insertError;
+
+      // Le header (useUser()/profile.full_name) lit la table `users`, pas
+      // `livreurs` — sans cette synchro le nom saisi ici n'apparaissait
+      // dans l'avatar qu'après un passage manuel par Paramètres.
+      const { error: userUpdateError } = await supabase
+        .from("users")
+        .update({
+          full_name: data.nomComplet,
+          ...(photoProfilUrl ? { avatar_url: photoProfilUrl } : {}),
+        })
+        .eq("id", user.id);
+      if (userUpdateError) throw userUpdateError;
+
+      clearDraft();
+      showToast(
+        "Dossier envoyé ! Vérification en cours — activation sous 24-48h.",
+        "success"
+      );
+      // Pas de router.push ici : /livreur/missions (et les autres onglets)
+      // restent verrouillés par requireValidLivreur() tant que le statut
+      // n'est pas "valide", donc une redirection immédiate ne ferait que
+      // rebondir en boucle vers /livreur/kyc. On met juste à jour le statut
+      // local pour basculer sur l'écran "Dossier en cours" ci-dessous.
+      setLivreurStatut("en_attente");
+    } catch (err: any) {
+      setError(err.message || "Une erreur est survenue, réessaie.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isRecap = step === totalSteps + 1;
+
+  const showStatusScreen =
+    hydrated && (livreurStatut === "en_attente" || livreurStatut === "valide") && !editMode;
+
+  // Le <main> du layout racine a un padding-bottom (pb-24) prévu pour laisser
+  // de la place à la BottomNav sur les pages qui scrollent normalement. Sur
+  // cet écran on ne veut aucun scroll du tout : nos conteneurs internes en
+  // h-full/overflow-hidden ne suffisent pas à eux seuls à annuler ce padding
+  // hérité, donc on verrouille explicitement le scroll du document tant que
+  // cet écran est affiché.
+  useEffect(() => {
+    if (!showStatusScreen || typeof document === "undefined") return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showStatusScreen]);
+
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (showStatusScreen) {
+    const isValide = livreurStatut === "valide";
+    return (
+      <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+        <LogoutConfirmModal
+          open={showLogoutModal}
+          onConfirm={confirmLogoutAndGoHome}
+          onCancel={() => setShowLogoutModal(false)}
+        />
+
+        <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
+          <div className="max-w-2xl mx-auto flex items-center gap-3">
+            <button
+              onClick={() => setShowLogoutModal(true)}
+              className="shrink-0 flex items-center rounded-full hover:opacity-80 transition-opacity"
+              aria-label="Accueil (déconnexion)"
+            >
+              <LogoAyiba className="h-7 w-auto" />
+            </button>
+            <div className="flex-1" />
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold shrink-0 ${
+                isValide ? "bg-teal-50 text-teal-600" : "bg-amber-50 text-amber-600"
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${isValide ? "bg-teal-500" : "bg-amber-500"}`} />
+              {isValide ? "Vérifié" : "En attente"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-center justify-center px-4 py-8">
+          <div className="w-full max-w-md bg-white rounded-[32px] border border-gray-100 p-8 shadow-sm text-center flex flex-col items-center gap-4">
+            <div
+              className={`w-14 h-14 rounded-full flex items-center justify-center ${
+                isValide ? "bg-teal-50 text-teal-500" : "bg-amber-50 text-amber-500"
+              }`}
+            >
+              {isValide ? (
+                <ShieldCheck size={28} />
+              ) : (
+                <motion.div
+                  animate={{ rotate: [0, 0, 180, 180, 360] }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    times: [0, 0.4, 0.5, 0.9, 1],
+                  }}
+                >
+                  <Hourglass size={28} />
+                </motion.div>
+              )}
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">
+                {isValide ? "Compte vérifié" : "Dossier en cours de vérification"}
+              </h2>
+              <p className="text-sm text-gray-500 mt-1.5">
+                {isValide
+                  ? "Ton identité est validée, tu peux accepter des missions."
+                  : "Ton dossier a bien été envoyé — activation sous 24-48h. Missions, paiements et messages restent verrouillés jusqu'à validation."}
+              </p>
+            </div>
+            <button
+              onClick={() => (isValide ? router.push("/livreur/missions") : setShowLogoutModal(true))}
+              className="w-full h-12 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
+            >
+              {isValide ? "Aller aux missions" : "Se déconnecter"}
+            </button>
+            <button
+              onClick={() => setEditMode(true)}
+              className="text-sm font-semibold text-gray-500 hover:text-gray-700"
+            >
+              Modifier mes informations
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <ConfirmModal
+        open={showCancelModal}
+        onConfirm={confirmCancel}
+        onCancel={() => setShowCancelModal(false)}
+      />
+
+      <WizardHeader
+        eyebrow="Premier pas avec Ayiba"
+        title="Devenir livreur vérifié"
+        steps={WIZARD_STEPS}
+        currentStep={step}
+        isRecap={isRecap}
+        onCancel={handleCancel}
+        cancelLabel="Annuler l'inscription"
+        trailing={livreurStatut ? <StatutIndicator statut={livreurStatut} /> : undefined}
+      />
+
+      <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8">
+        <div className="w-full max-w-2xl flex flex-col gap-4">
+          <AnimatePresence>
+            {livreurStatut === "refuse" && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                className="flex items-start gap-3 bg-red-50 border border-red-100 rounded-3xl p-4"
+              >
+                <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-bold text-red-700">Vérification refusée</p>
+                  <p className="text-sm text-red-600 mt-0.5">
+                    {raisonRejet || "Aucune raison précisée."} Corrige les informations ci-dessous puis
+                    soumets à nouveau ta demande.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="bg-white rounded-[32px] border border-gray-100 p-6 md:p-8 shadow-sm overflow-hidden">
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={isRecap ? "recap" : step}
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+              >
+                {/* Étape 1 : Identité */}
+                {step === 1 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Qui es-tu ?</h2>
+                      <p className="text-sm text-gray-500">
+                        Ton identité est vérifiée pour garantir la sécurité des livraisons.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="nomComplet" className="block text-sm font-medium text-gray-700 mb-2">
+                        Nom complet
+                      </label>
+                      <input
+                        id="nomComplet"
+                        type="text"
+                        value={data.nomComplet}
+                        onChange={(e) => update("nomComplet", e.target.value)}
+                        placeholder="Ex: Chidi Koffi Adéyemi"
+                        className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
+                      />
+                    </div>
+
+                    <div className="flex justify-center">
+                      <PhotoUpload
+                        label="Photo de profil"
+                        helperText={
+                          existingPhotoProfilUrl
+                            ? "Une photo est déjà enregistrée — touche pour la remplacer"
+                            : "Une photo claire de ton visage"
+                        }
+                        value={data.photoProfil}
+                        onChange={(file) => update("photoProfil", file)}
+                        aspect="square"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Étape 2 : Document CNI */}
+                {step === 2 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Vérifie ton identité</h2>
+                      <p className="text-sm text-gray-500">
+                        Une photo recto de ta pièce d'identité, bien lisible.
+                      </p>
+                    </div>
+
+                    <DocumentUpload
+                      label="Ajouter la CNI (recto)"
+                      value={data.photoCni}
+                      onChange={(file) => update("photoCni", file)}
+                      existingFileLabel={existingPhotoCniPath ? "Document déjà enregistré" : null}
+                    />
+
+                    <p className="text-xs text-gray-400 text-center px-2">
+                      Ce document sert uniquement à vérifier ton identité et protéger clients et
+                      vendeurs Ayiba contre la fraude.
+                    </p>
+                  </div>
+                )}
+
+                {/* Étape 3 : Véhicule */}
+                {step === 3 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Ton véhicule</h2>
+                      <p className="text-sm text-gray-500">
+                        Choisis comment tu comptes effectuer tes livraisons.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        Type de véhicule
+                      </label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {VEHICULE_OPTIONS.map((option) => {
+                          const isSelected = data.typeVehicule === option.id;
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => update("typeVehicule", option.id)}
+                              className={`h-11 rounded-lg border-2 text-sm font-medium transition-colors ${
+                                isSelected
+                                  ? "border-coral-500 bg-coral-50 text-coral-600"
+                                  : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                              }`}
+                            >
+                              {option.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {data.typeVehicule && data.typeVehicule !== "a_pied" && (
+                      <>
+                        <PhotoUpload
+                          label="Photo du véhicule"
+                          helperText={
+                            existingPhotoVehiculeUrl
+                              ? "Une photo est déjà enregistrée — touche pour la remplacer"
+                              : undefined
+                          }
+                          value={data.photoVehicule}
+                          onChange={(file) => update("photoVehicule", file)}
+                          aspect="wide"
+                        />
+
+                        {needsPlaque && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                              Plaque d'immatriculation
+                            </label>
+                            <input
+                              type="text"
+                              value={data.plaqueImmatriculation}
+                              onChange={(e) => update("plaqueImmatriculation", e.target.value.toUpperCase())}
+                              placeholder="Ex: AB 1234 RB"
+                              className="w-full h-11 px-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-coral-400 focus:ring-2 focus:ring-coral-100 transition-shadow"
+                            />
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Étape 4 : Localisation */}
+                {step === 4 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Où habites-tu ?</h2>
+                      <p className="text-sm text-gray-500">
+                        On te propose en priorité les missions proches de chez toi.
+                      </p>
+                    </div>
+
+                    <AdresseForm
+                      valeurInitiale={{
+                        adresse_complete: [data.quartier, data.commune].filter(Boolean).join(", "),
+                        quartier: data.quartier,
+                        commune: data.commune,
+                        latitude: data.latitude ?? undefined,
+                        longitude: data.longitude ?? undefined,
+                      }}
+                      onValider={(adresse) => {
+                        update("quartier", adresse.quartier);
+                        update("commune", adresse.commune);
+                        update("latitude", adresse.latitude);
+                        update("longitude", adresse.longitude);
+                      }}
+                      labelBouton="Valider cette adresse"
+                    />
+                  </div>
+                )}
+
+                {/* Étape 5 : Paiement */}
+                {step === 5 && !isRecap && (
+                  <div className="flex flex-col gap-5">
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 mb-1">Comment être payé ?</h2>
+                      <p className="text-sm text-gray-500">
+                        Tes gains sont crédités après chaque livraison validée.
+                      </p>
+                    </div>
+
+                    <MobileMoneySelector
+                      selected={data.mobileMoneyNetwork}
+                      onSelect={(network) => update("mobileMoneyNetwork", network)}
+                      phoneNumber={data.mobileMoneyNumber}
+                      onPhoneChange={(value) => update("mobileMoneyNumber", value)}
+                    />
+                  </div>
+                )}
+
+                {isRecap && (
+                  <div className="flex flex-col gap-4">
+                    <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[28px] p-6 text-white shadow-xl shadow-coral-500/20">
+                      <div className="absolute -top-16 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute -bottom-16 -left-8 w-32 h-32 bg-black/10 rounded-full blur-3xl pointer-events-none" />
+                      <div className="relative">
+                        <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center mb-3">
+                          <ShieldCheck size={22} />
+                        </div>
+                        <h2 className="text-lg font-bold mb-1">Vérifie tes informations</h2>
+                        <p className="text-sm text-white/80">
+                          Ton compte sera validé sous 24-48h après soumission.
+                        </p>
+                      </div>
+                    </div>
+
+                    <RecapSection
+                      icon={UserRound}
+                      title="Identité"
+                      onEdit={() => goToStep(1)}
+                      rows={[{ label: "Nom", value: data.nomComplet }]}
+                      preview={
+                        photoProfilApercu ? (
+                          <img
+                            src={photoProfilApercu}
+                            alt="Photo de profil"
+                            className="w-14 h-14 rounded-full object-cover border border-gray-100"
+                          />
+                        ) : undefined
+                      }
+                      warning={
+                        !data.photoProfil && !existingPhotoProfilUrl
+                          ? "Ta photo de profil a été perdue lors d'un rechargement. Touche ici pour la réajouter."
+                          : undefined
+                      }
+                    />
+
+                    <RecapSection
+                      icon={FileText}
+                      title="Document d'identité"
+                      onEdit={() => goToStep(2)}
+                      rows={
+                        data.photoCni || existingPhotoCniPath
+                          ? [{ label: "Statut", value: data.photoCni ? "Prêt à envoyer" : "Déjà enregistré" }]
+                          : []
+                      }
+                      warning={
+                        !data.photoCni && !existingPhotoCniPath
+                          ? "Ton document d'identité a été perdu lors d'un rechargement. Touche ici pour le réajouter."
+                          : undefined
+                      }
+                    />
+
+                    <RecapSection
+                      icon={Bike}
+                      title="Véhicule"
+                      onEdit={() => goToStep(3)}
+                      rows={[
+                        {
+                          label: "Type",
+                          value:
+                            (VEHICULE_OPTIONS.find((v) => v.id === data.typeVehicule)?.label ?? "") +
+                            (needsPlaque && data.plaqueImmatriculation ? ` • ${data.plaqueImmatriculation}` : ""),
+                        },
+                      ]}
+                    />
+
+                    <RecapSection
+                      icon={MapPin}
+                      title="Localisation"
+                      onEdit={() => goToStep(4)}
+                      rows={[{ label: "Adresse", value: `${data.quartier}, ${data.commune}` }]}
+                    />
+
+                    <RecapSection
+                      icon={Wallet}
+                      title="Paiement"
+                      onEdit={() => goToStep(5)}
+                      rows={[
+                        {
+                          label: "Réseau",
+                          value: `${data.mobileMoneyNetwork?.toUpperCase() ?? ""} • ${data.mobileMoneyNumber}`,
+                        },
+                      ]}
+                    />
+
+                    {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="flex items-center gap-3 mt-8 pt-6 border-t border-gray-100">
+              {!isRecap ? (
+                <>
+                  {step === 1 ? (
+                    <button
+                      onClick={handleCancel}
+                      className="h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+                    >
+                      Annuler
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleBack}
+                      className="flex items-center gap-1 h-12 px-4 rounded-xl text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors shrink-0"
+                    >
+                      <ChevronLeft size={16} />
+                      Retour
+                    </button>
+                  )}
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleNext}
+                    disabled={!isStepValid()}
+                    className="flex-1 flex items-center justify-center gap-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 active:bg-coral-600 text-white text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {step === totalSteps ? "Voir le récap" : "Suivant"}
+                    <ChevronRight size={16} />
+                  </motion.button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => goToStep(totalSteps)}
+                    className="flex items-center gap-1 h-12 px-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors shrink-0"
+                  >
+                    <ChevronLeft size={16} />
+                    Modifier
+                  </button>
+                  <motion.button
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleSubmit}
+                    disabled={submitting || (!data.photoProfil && !existingPhotoProfilUrl)}
+                    className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 active:bg-coral-600 text-white font-bold text-sm disabled:opacity-50 transition-colors"
+                  >
+                    {submitting ? "Envoi en cours..." : "Soumettre pour vérification"}
+                  </motion.button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

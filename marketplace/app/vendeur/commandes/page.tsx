@@ -1,0 +1,1899 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
+import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import {
+  ChevronDown,
+  Phone,
+  MapPin,
+  MessageCircle,
+  Package,
+  AlertCircle,
+  RefreshCw,
+  Loader2,
+  X,
+  Search,
+  CheckSquare,
+  Square,
+  Download,
+  Clock,
+  Users,
+  ArrowUpDown,
+  StickyNote,
+  Wallet,
+  History,
+  ShoppingBag,
+  Archive,
+  Truck,
+  Navigation,
+} from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { useToast } from "@/context/ToastContext";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import {
+  STATUTS_COMMANDE,
+  LABELS_STATUT_COMMANDE,
+  STATUT_STYLE,
+  STATUT_SPINE_COLOR,
+  PROCHAINS_STATUTS,
+  type StatutCommande,
+} from "@/lib/constants/commandes";
+
+const PAGE_SIZE = 20;
+const SLA_HEURES = 3;
+const SEARCH_LIMIT = 50;
+const SEARCH_DEBOUNCE_MS = 300;
+
+interface Commande {
+  id: string;
+  numero: string;
+  client_id: string;
+  nom_client: string | null;
+  telephone_client: string | null;
+  adresse_livraison: string | null;
+  commune: string | null;
+  note_client: string | null;
+  note_vendeur: string | null;
+  montant_total: number;
+  statut: StatutCommande;
+  created_at: string;
+  archivee_vendeur: boolean;
+  livreur_id: string | null;
+  prime_prise_en_charge: number | null;
+  distance_prise_en_charge_km: number | null;
+  livreur: { nom: string | null; telephone: string | null } | null;
+}
+
+interface LivreurDisponible {
+  livreur_id: string;
+  nom_complet: string | null;
+  telephone: string | null;
+  commune: string | null;
+  quartier: string | null;
+  distance_km: number | null;
+  distance_fiable: boolean;
+}
+
+interface Boutique {
+  nom_boutique: string | null;
+  nom_complet: string | null;
+  quartier: string | null;
+  commune: string | null;
+  telephone: string | null;
+}
+
+// Statuts à partir desquels le livreur gère lui-même la suite (retrait via
+// code/QR) ou la commande est close : plus de (ré)assignation possible depuis
+// cette page — cohérent avec les gardes de la fonction assigner_livreur_commande.
+const STATUTS_ASSIGNATION_BLOQUEE = new Set<StatutCommande>([
+  STATUTS_COMMANDE.EXPEDIEE,
+  STATUTS_COMMANDE.EN_ATTENTE_VERIFICATION,
+  STATUTS_COMMANDE.LIVREE,
+  STATUTS_COMMANDE.ANNULEE,
+  STATUTS_COMMANDE.REMBOURSEE,
+]);
+
+interface ArticleLigne {
+  id: string;
+  article_id: string;
+  quantite: number;
+  prix_unitaire: number;
+  total: number;
+  nom: string;
+  image_url: string | null;
+}
+
+interface Paiement {
+  id: string;
+  methode: string | null;
+  statut: string;
+  montant: number;
+  montant_net: number | null;
+}
+
+interface HistoriqueEntry {
+  id: string;
+  ancien_statut: string | null;
+  nouveau_statut: string;
+  created_at: string;
+}
+
+interface DetailCommande {
+  articles: ArticleLigne[];
+  paiement: Paiement | null;
+  historique: HistoriqueEntry[];
+  nbCommandesClient: number;
+}
+
+type FiltreStatut = StatutCommande | "tous";
+type TriOption = "recent" | "montant" | "statut";
+type PeriodeOption = "tout" | "7j" | "30j";
+
+const FILTRES: { value: FiltreStatut; label: string }[] = [
+  { value: "tous", label: "Toutes" },
+  ...Object.values(STATUTS_COMMANDE).map((value) => ({
+    value,
+    label: LABELS_STATUT_COMMANDE[value],
+  })),
+];
+
+const ORDRE_STATUT: StatutCommande[] = [
+  STATUTS_COMMANDE.EN_ATTENTE,
+  STATUTS_COMMANDE.CONFIRMEE,
+  STATUTS_COMMANDE.PREPAREE,
+  STATUTS_COMMANDE.EXPEDIEE,
+  STATUTS_COMMANDE.LIVREE,
+  STATUTS_COMMANDE.REMBOURSEE,
+  STATUTS_COMMANDE.ANNULEE,
+];
+
+const expandVariants: Variants = {
+  collapsed: { height: 0, opacity: 0 },
+  open: { height: "auto", opacity: 1 },
+};
+
+function formatMontant(v: number) {
+  return new Intl.NumberFormat("fr-FR").format(v) + " F";
+}
+
+function initiales(nom: string | null) {
+  if (!nom) return "?";
+  return nom
+    .split(" ")
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
+
+function heuresDepuis(dateStr: string) {
+  return (Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60);
+}
+
+function formatRelatif(dateStr: string) {
+  const h = heuresDepuis(dateStr);
+  if (h < 1) return `il y a ${Math.max(1, Math.round(h * 60))} min`;
+  if (h < 24) return `il y a ${Math.round(h)} h`;
+  return `il y a ${Math.round(h / 24)} j`;
+}
+
+function estEnRetardSLA(order: Commande) {
+  return order.statut === STATUTS_COMMANDE.EN_ATTENTE && heuresDepuis(order.created_at) >= SLA_HEURES;
+}
+
+// Échappe le HTML injecté dans la facture imprimable pour éviter toute
+// exécution de script via un nom de client/article mal formé.
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function exportCSV(orders: Commande[]) {
+  const header = ["Numero", "Client", "Telephone", "Commune", "Montant", "Statut", "Date"];
+  const rows = orders.map((o) => [
+    o.numero,
+    o.nom_client ?? "",
+    o.telephone_client ?? "",
+    o.commune ?? "",
+    String(o.montant_total),
+    LABELS_STATUT_COMMANDE[o.statut] ?? o.statut,
+    new Date(o.created_at).toLocaleString("fr-FR"),
+  ]);
+  const csv = [header, ...rows]
+    .map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(";"))
+    .join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `commandes_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Monogramme "AY" en SVG inline (copie de public/favicon.svg) — reste net à
+// toutes les résolutions et n'alourdit pas le document comme un PNG encodé
+// en base64 (logo.png fait plus de 500 Ko).
+const LOGO_SVG = `<svg viewBox="0 0 320 100" width="120" height="37.5" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M45 25L20 80" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+  <path d="M45 25L70 55V80" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+  <path d="M70 55L95 25" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+  <path d="M30 60C38 64 52 64 60 60" stroke="#D85A30" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="95" cy="13" r="5.5" fill="#1D9E75"/>
+  <text x="115" y="80" font-family="system-ui, -apple-system, sans-serif" font-size="70" font-weight="500" fill="#111827" letter-spacing="-0.02em">iba</text>
+</svg>`;
+
+const STYLE_DOCUMENT = `
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, system-ui, sans-serif; padding: 32px; color: #111; max-width: 720px; margin: 0 auto; }
+  .entete { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #D85A30; padding-bottom: 16px; margin-bottom: 20px; }
+  .entete .titre-doc { text-align: right; }
+  .entete .titre-doc h1 { font-size: 18px; margin: 0; color: #D85A30; text-transform: uppercase; letter-spacing: 0.04em; }
+  .entete .titre-doc .numero { font-size: 13px; color: #888; margin-top: 2px; }
+  .blocs { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 20px; }
+  .bloc { flex: 1; min-width: 220px; background: #FAFAFA; border-radius: 12px; padding: 14px 16px; }
+  .label { font-size: 10px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em; color: #999; margin-bottom: 4px; }
+  .valeur { font-size: 14px; color: #111; line-height: 1.5; }
+  .valeur .principal { font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { text-align: left; padding: 8px; border-bottom: 2px solid #111; font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: #666; }
+  td { padding: 8px; border-bottom: 1px solid #eee; font-size: 13px; }
+  .total { text-align: right; font-weight: bold; font-size: 17px; margin-top: 16px; color: #D85A30; }
+  .signature { margin-top: 48px; display: flex; justify-content: space-between; }
+  .signature div { width: 45%; border-top: 1px solid #111; padding-top: 6px; font-size: 12px; color: #666; }
+  .pied { margin-top: 32px; text-align: center; font-size: 11px; color: #bbb; }
+`;
+
+function blocBoutique(boutique: Boutique | null) {
+  const nom = boutique?.nom_boutique || boutique?.nom_complet || "Boutique Ayiba";
+  const localisation = [boutique?.quartier, boutique?.commune].filter(Boolean).join(", ");
+  return `
+    <div class="bloc">
+      <div class="label">Vendeur</div>
+      <div class="valeur">
+        <div class="principal">${escapeHtml(nom)}</div>
+        ${localisation ? `<div>${escapeHtml(localisation)}</div>` : ""}
+        ${boutique?.telephone ? `<div>${escapeHtml(boutique.telephone)}</div>` : ""}
+      </div>
+    </div>`;
+}
+
+function blocClient(order: Commande) {
+  return `
+    <div class="bloc">
+      <div class="label">Client</div>
+      <div class="valeur">
+        <div class="principal">${escapeHtml(order.nom_client ?? "-")}</div>
+        <div>${escapeHtml(order.telephone_client ?? "Téléphone non renseigné")}</div>
+        ${order.adresse_livraison ? `<div>${escapeHtml(order.adresse_livraison)}</div>` : ""}
+        ${order.commune ? `<div>${escapeHtml(order.commune)}</div>` : ""}
+      </div>
+    </div>`;
+}
+
+// N'affiche ce bloc que si un livreur a effectivement été assigné à la
+// commande — avant assignation, il n'y a rien de pertinent à montrer.
+function blocLivreur(order: Commande) {
+  if (!order.livreur) return "";
+  return `
+    <div class="bloc">
+      <div class="label">Livreur assigné</div>
+      <div class="valeur">
+        <div class="principal">${escapeHtml(order.livreur.nom ?? "-")}</div>
+        ${order.livreur.telephone ? `<div>${escapeHtml(order.livreur.telephone)}</div>` : ""}
+      </div>
+    </div>`;
+}
+
+// Ouvre un document HTML imprimable dans un nouvel onglet via une URL de
+// Blob (plus fiable que window.open("", "_blank") + document.write, bloqué
+// silencieusement par de nombreux navigateurs mobiles). Si le popup est
+// bloqué malgré tout, on ne télécharge JAMAIS sans demander : on délègue au
+// composant appelant via onPopupBlocked, qui affiche une confirmation.
+function ouvrirDocumentImprimable(
+  html: string,
+  nomFichier: string,
+  showToast: (m: string, v: "success" | "error" | "warning" | "info") => void,
+  onPopupBlocked: (html: string, nomFichier: string) => void
+) {
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, "_blank", "noopener,noreferrer");
+
+  if (!win) {
+    showToast("Popup bloqué par le navigateur", "warning");
+    onPopupBlocked(html, nomFichier);
+    URL.revokeObjectURL(url);
+    return;
+  }
+
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
+}
+
+// Même principe que ouvrirFacture (fenêtre imprimable), mais orienté remise
+// au livreur : coordonnées du destinataire + quantités, pas de prix — ce
+// n'est pas un document comptable.
+function ouvrirBonLivraison(
+  order: Commande,
+  articles: ArticleLigne[],
+  boutique: Boutique | null,
+  showToast: (m: string, v: "success" | "error" | "warning" | "info") => void,
+  onPopupBlocked: (html: string, nomFichier: string) => void
+) {
+  const lignes = articles
+    .map((a) => `<tr><td>${escapeHtml(a.nom)}</td><td style="text-align:center;">${a.quantite}</td></tr>`)
+    .join("");
+  const html = `
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>Bon de livraison ${escapeHtml(order.numero)}</title>
+        <style>${STYLE_DOCUMENT}</style>
+      </head>
+      <body>
+        <div class="entete">
+          ${LOGO_SVG}
+          <div class="titre-doc">
+            <h1>Bon de livraison</h1>
+            <div class="numero">${escapeHtml(order.numero)} · ${new Date(order.created_at).toLocaleDateString("fr-FR")}</div>
+          </div>
+        </div>
+
+        <div class="blocs">
+          ${blocBoutique(boutique)}
+          ${blocClient(order)}
+          ${blocLivreur(order)}
+        </div>
+
+        <div class="label" style="margin-bottom:6px;">Articles à livrer</div>
+        <table>
+          <thead><tr><th>Article</th><th style="text-align:center;">Qté</th></tr></thead>
+          <tbody>${lignes || "<tr><td colspan=2 style='color:#999;'>Aucun détail d'article</td></tr>"}</tbody>
+        </table>
+
+        <div class="signature">
+          <div>Signature vendeur</div>
+          <div>Signature livreur</div>
+        </div>
+
+        <button class="no-print" onclick="window.print()" style="margin-top:24px; padding:10px 20px; border-radius:10px; border:none; background:#D85A30; color:#fff; font-weight:700; font-size:13px; cursor:pointer;">Imprimer</button>
+        <p class="pied">Ayiba Marketplace — document généré automatiquement</p>
+        <style>@media print { .no-print { display: none; } }</style>
+      </body>
+    </html>
+  `;
+  ouvrirDocumentImprimable(html, `bon_livraison_${order.numero}.html`, showToast, onPopupBlocked);
+}
+
+// Supabase renvoie une relation many-to-one comme un objet OU un tableau à un
+// élément selon le contexte de la requête — on normalise systématiquement.
+function one<T>(rel: T | T[] | null | undefined): T | null {
+  if (Array.isArray(rel)) return rel[0] ?? null;
+  return rel ?? null;
+}
+
+function normaliserCommandeRow(row: any): Commande {
+  const livreurBrut = one(row.livreur);
+  return {
+    ...row,
+    livreur: livreurBrut
+      ? { nom: livreurBrut.nom_complet, telephone: one(livreurBrut.users)?.phone ?? null }
+      : null,
+  } as Commande;
+}
+
+function CommandeRowSkeleton() {
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm px-4 sm:px-6 py-4 flex items-center gap-2.5">
+      <div className="w-10 h-10 rounded-full bg-gray-100 animate-pulse shrink-0" />
+      <div className="flex-1 space-y-2">
+        <div className="h-3 w-1/3 rounded bg-gray-100 animate-pulse" />
+        <div className="h-2.5 w-1/5 rounded bg-gray-100 animate-pulse" />
+      </div>
+      <div className="h-6 w-16 rounded-full bg-gray-100 animate-pulse" />
+    </div>
+  );
+}
+
+export default function VendeurCommandesPage() {
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  const [vendeurId, setVendeurId] = useState<string | null>(null);
+  const [boutique, setBoutique] = useState<Boutique | null>(null);
+  const [pendingDownload, setPendingDownload] = useState<{ html: string; filename: string } | null>(null);
+  const [commandes, setCommandes] = useState<Commande[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+  const [generatingFactureId, setGeneratingFactureId] = useState<string | null>(null);
+
+  const [search, setSearch] = useState("");
+  const [filtre, setFiltre] = useState<FiltreStatut>("tous");
+  const [tri, setTri] = useState<TriOption>("recent");
+  const [periode, setPeriode] = useState<PeriodeOption>("tout");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [afficherArchivees, setAfficherArchivees] = useState(false);
+
+  // Résultats de recherche côté serveur (toute l'historique, pas seulement
+  // les commandes déjà chargées en mémoire).
+  const [searchResults, setSearchResults] = useState<Commande[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const [details, setDetails] = useState<Record<string, DetailCommande | "loading">>({});
+  const [noteEdits, setNoteEdits] = useState<Record<string, string>>({});
+  const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+
+  const [cancelTargets, setCancelTargets] = useState<Commande[] | null>(null);
+  const [cancelMotif, setCancelMotif] = useState("");
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  const [assignTarget, setAssignTarget] = useState<Commande | null>(null);
+  const [assignLivreurs, setAssignLivreurs] = useState<LivreurDisponible[] | null>(null);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+  const [assigningId, setAssigningId] = useState<string | null>(null);
+
+  const offsetRef = useRef(0);
+
+  const fetchCommandes = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    offsetRef.current = 0;
+    const supabase = createClient();
+
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      setLoadError("Ta session a expiré — reconnecte-toi puis réessaie.");
+      setLoading(false);
+      return;
+    }
+    setVendeurId(user.id);
+
+    supabase
+      .from("vendeurs")
+      .select("nom_boutique, nom_complet, quartier, commune, users ( phone )")
+      .eq("id", user.id)
+      .single()
+      .then(({ data: vendeurRow }: { data: any }) => {
+        if (!vendeurRow) return;
+        setBoutique({
+          nom_boutique: (vendeurRow as any).nom_boutique ?? null,
+          nom_complet: (vendeurRow as any).nom_complet ?? null,
+          quartier: (vendeurRow as any).quartier ?? null,
+          commune: (vendeurRow as any).commune ?? null,
+          telephone: one((vendeurRow as any).users)?.phone ?? null,
+        });
+      });
+
+    const { data, error } = await supabase
+      .from("commandes")
+      .select(
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
+      )
+      .eq("vendeur_id", user.id)
+      .order("created_at", { ascending: false })
+      .range(0, PAGE_SIZE - 1);
+
+    if (error) {
+      console.error("[vendeur/commandes] fetchCommandes error:", error);
+      setLoadError("Impossible de charger tes commandes — vérifie ta connexion et réessaie.");
+      setLoading(false);
+      return;
+    }
+
+    const rows = ((data as any[]) ?? []).map(normaliserCommandeRow);
+    setCommandes(rows);
+    setHasMore(rows.length === PAGE_SIZE);
+    offsetRef.current = rows.length;
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchCommandes();
+  }, [fetchCommandes]);
+
+  const loadMore = useCallback(async () => {
+    if (!vendeurId || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const supabase = createClient();
+    const start = offsetRef.current;
+    const { data, error } = await supabase
+      .from("commandes")
+      .select(
+        "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
+      )
+      .eq("vendeur_id", vendeurId)
+      .order("created_at", { ascending: false })
+      .range(start, start + PAGE_SIZE - 1);
+
+    setLoadingMore(false);
+    if (error) {
+      showToast("Impossible de charger plus de commandes", "error");
+      return;
+    }
+    const rows = ((data as any[]) ?? []).map(normaliserCommandeRow);
+    setCommandes((prev) => {
+      const existingIds = new Set(prev.map((c) => c.id));
+      return [...prev, ...rows.filter((r) => !existingIds.has(r.id))];
+    });
+    setHasMore(rows.length === PAGE_SIZE);
+    offsetRef.current = start + rows.length;
+  }, [vendeurId, loadingMore, hasMore, showToast]);
+
+  // Recherche côté serveur, débouncée : porte sur TOUTES les commandes du
+  // vendeur (nom client ou numéro), pas seulement celles déjà en mémoire.
+  useEffect(() => {
+    if (!vendeurId) return;
+    const q = search.trim();
+
+    if (!q) {
+      setSearchResults(null);
+      setSearchError(null);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    setSearchError(null);
+
+    const handle = setTimeout(async () => {
+      const supabase = createClient();
+      // Échappe les caractères spéciaux du filtre .or() ilike (%, ,, *)
+      const safeQ = q.replace(/[%,*]/g, "");
+      const { data, error } = await supabase
+        .from("commandes")
+        .select(
+          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
+        )
+        .eq("vendeur_id", vendeurId)
+        .or(`nom_client.ilike.%${safeQ}%,numero.ilike.%${safeQ}%`)
+        .order("created_at", { ascending: false })
+        .limit(SEARCH_LIMIT);
+
+      setSearching(false);
+      if (error) {
+        setSearchError("Impossible de lancer la recherche — réessaie.");
+        return;
+      }
+      setSearchResults(((data as any[]) ?? []).map(normaliserCommandeRow));
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(handle);
+  }, [search, vendeurId]);
+
+  // Temps réel : nouvelles commandes et changements de statut
+  useEffect(() => {
+    if (!vendeurId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`commandes-vendeur-${vendeurId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "commandes", filter: `vendeur_id=eq.${vendeurId}` },
+        (payload: RealtimePostgresChangesPayload<Commande>) => {
+          if (payload.eventType === "INSERT") {
+            const nouvelle = payload.new as Commande;
+            setCommandes((prev) => (prev.some((c) => c.id === nouvelle.id) ? prev : [nouvelle, ...prev]));
+            showToast(`Nouvelle commande de ${nouvelle.nom_client ?? "un client"}`, "success");
+          } else if (payload.eventType === "UPDATE") {
+            const maj = payload.new as Commande;
+            setCommandes((prev) => prev.map((c) => (c.id === maj.id ? { ...c, ...maj } : c)));
+            setSearchResults((prev) =>
+              prev ? prev.map((c) => (c.id === maj.id ? { ...c, ...maj } : c)) : prev
+            );
+          } else if (payload.eventType === "DELETE") {
+            const suppr = payload.old as Commande;
+            setCommandes((prev) => prev.filter((c) => c.id !== suppr.id));
+            setSearchResults((prev) => (prev ? prev.filter((c) => c.id !== suppr.id) : prev));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [vendeurId, showToast]);
+
+  // Source des commandes affichées : résultats serveur si une recherche est
+  // active, sinon la liste paginée normale.
+  const searchedCommandes = useMemo(() => {
+    if (!search.trim()) return commandes;
+    return searchResults ?? [];
+  }, [commandes, search, searchResults]);
+
+  const archiveFiltered = useMemo(
+    () => searchedCommandes.filter((c) => (afficherArchivees ? c.archivee_vendeur : !c.archivee_vendeur)),
+    [searchedCommandes, afficherArchivees]
+  );
+
+  const periodeFiltered = useMemo(() => {
+    if (periode === "tout") return archiveFiltered;
+    const jours = periode === "7j" ? 7 : 30;
+    const seuil = Date.now() - jours * 24 * 60 * 60 * 1000;
+    return archiveFiltered.filter((c) => new Date(c.created_at).getTime() >= seuil);
+  }, [archiveFiltered, periode]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { tous: periodeFiltered.length };
+    Object.values(STATUTS_COMMANDE).forEach((s) => {
+      c[s] = periodeFiltered.filter((cmd) => cmd.statut === s).length;
+    });
+    return c;
+  }, [periodeFiltered]);
+
+  const commandesFiltrees = useMemo(() => {
+    const base = filtre === "tous" ? periodeFiltered : periodeFiltered.filter((c) => c.statut === filtre);
+    const sorted = [...base];
+    if (tri === "recent") {
+      sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    } else if (tri === "montant") {
+      sorted.sort((a, b) => b.montant_total - a.montant_total);
+    } else if (tri === "statut") {
+      sorted.sort((a, b) => ORDRE_STATUT.indexOf(a.statut) - ORDRE_STATUT.indexOf(b.statut));
+    }
+    return sorted;
+  }, [periodeFiltered, filtre, tri]);
+
+  const openMessagerie = (clientId: string, commandeId: string) => {
+    router.push(`/vendeur/messages?client=${clientId}&commande=${commandeId}`);
+  };
+
+  const updateStatut = async (commandeId: string, statut: StatutCommande) => {
+    setUpdatingId(commandeId);
+    const previous = commandes;
+    setCommandes((prev) => prev.map((c) => (c.id === commandeId ? { ...c, statut } : c)));
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("commandes")
+      .update({ statut, updated_at: new Date().toISOString() })
+      .eq("id", commandeId);
+
+    setUpdatingId(null);
+
+    if (error) {
+      setCommandes(previous);
+      showToast("Impossible de mettre à jour le statut", "error");
+      return;
+    }
+    showToast(`Commande marquée « ${LABELS_STATUT_COMMANDE[statut]} »`, "success");
+  };
+
+  // --- Sélection multiple / actions groupées ---
+  const toggleAfficherArchivees = () => {
+    setAfficherArchivees((v) => !v);
+    setFiltre("tous");
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  };
+
+  const applyBulkArchive = async (archiver: boolean) => {
+    const ids = selectedOrders.map((o) => o.id);
+    if (ids.length === 0) return;
+    setBulkUpdating(true);
+    const previous = commandes;
+    setCommandes((prev) =>
+      prev.map((c) => (ids.includes(c.id) ? { ...c, archivee_vendeur: archiver } : c))
+    );
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("commandes")
+      .update({ archivee_vendeur: archiver, updated_at: new Date().toISOString() })
+      .in("id", ids);
+
+    setBulkUpdating(false);
+    if (error) {
+      setCommandes(previous);
+      showToast(archiver ? "Échec de l'archivage" : "Échec de la restauration", "error");
+      return;
+    }
+    showToast(
+      archiver
+        ? `${ids.length} commande(s) archivée(s)`
+        : `${ids.length} commande(s) restaurée(s)`,
+      "success"
+    );
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  };
+
+  const toggleSelectionMode = () => {
+    setSelectionMode((v) => !v);
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) =>
+      prev.size === commandesFiltrees.length ? new Set() : new Set(commandesFiltrees.map((c) => c.id))
+    );
+  };
+
+  const selectedOrders = useMemo(
+    () => commandesFiltrees.filter((c) => selectedIds.has(c.id)),
+    [commandesFiltrees, selectedIds]
+  );
+
+  const transitionsCommunes = useMemo(() => {
+    if (selectedOrders.length === 0) return [];
+    const listes = selectedOrders.map((o) => PROCHAINS_STATUTS[o.statut] || []);
+    return listes.reduce((acc, liste) => acc.filter((s) => liste.includes(s)), listes[0] ?? []);
+  }, [selectedOrders]);
+
+  const applyBulkStatut = async (statut: StatutCommande) => {
+    if (statut === STATUTS_COMMANDE.ANNULEE) {
+      setCancelError(null);
+      setCancelTargets(selectedOrders);
+      return;
+    }
+    // Même garde que pour l'action individuelle : impossible de confirmer en
+    // masse des commandes qui n'ont pas encore de livreur assigné.
+    if (statut === STATUTS_COMMANDE.CONFIRMEE) {
+      const sansLivreur = selectedOrders.filter((o) => !o.livreur_id);
+      if (sansLivreur.length > 0) {
+        showToast(
+          sansLivreur.length === 1
+            ? `La commande ${sansLivreur[0].numero} n'a pas de livreur assigné`
+            : `${sansLivreur.length} commandes sélectionnées n'ont pas de livreur assigné`,
+          "warning"
+        );
+        return;
+      }
+    }
+    const ids = selectedOrders.map((o) => o.id);
+    setBulkUpdating(true);
+    const previous = commandes;
+    setCommandes((prev) => prev.map((c) => (ids.includes(c.id) ? { ...c, statut } : c)));
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("commandes")
+      .update({ statut, updated_at: new Date().toISOString() })
+      .in("id", ids);
+
+    setBulkUpdating(false);
+    if (error) {
+      setCommandes(previous);
+      showToast("Échec de la mise à jour groupée", "error");
+      return;
+    }
+    showToast(`${ids.length} commande(s) marquée(s) « ${LABELS_STATUT_COMMANDE[statut]} »`, "success");
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+  };
+
+  // --- Détail à la demande (articles, paiement, historique, historique client) ---
+  const chargerDetail = useCallback(
+    async (order: Commande) => {
+      if (details[order.id]) return;
+      setDetails((prev) => ({ ...prev, [order.id]: "loading" }));
+      const supabase = createClient();
+
+      const [articlesRes, paiementRes, historiqueRes, clientCountRes] = await Promise.all([
+        supabase
+          .from("commande_articles")
+          .select("id, article_id, quantite, prix_unitaire, total, article:articles(nom, article_images(image_url, ordre))")
+          .eq("commande_id", order.id),
+        supabase
+          .from("paiements")
+          .select("id, methode, statut, montant, montant_net")
+          .eq("commande_id", order.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("commande_statut_historique")
+          .select("id, ancien_statut, nouveau_statut, created_at")
+          .eq("commande_id", order.id)
+          .order("created_at", { ascending: true }),
+        vendeurId
+          ? supabase
+              .from("commandes")
+              .select("id", { count: "exact", head: true })
+              .eq("client_id", order.client_id)
+              .eq("vendeur_id", vendeurId)
+          : Promise.resolve({ count: null, error: null }),
+      ]);
+
+      const articles: ArticleLigne[] = (articlesRes.data ?? []).map((row: any) => {
+        const images = (row.article?.article_images ?? []).sort(
+          (a: any, b: any) => (a.ordre ?? 0) - (b.ordre ?? 0)
+        );
+        return {
+          id: row.id,
+          article_id: row.article_id,
+          quantite: row.quantite,
+          prix_unitaire: row.prix_unitaire,
+          total: row.total,
+          nom: row.article?.nom ?? "Article",
+          image_url: images[0]?.image_url ?? null,
+        };
+      });
+
+      setDetails((prev) => ({
+        ...prev,
+        [order.id]: {
+          articles,
+          paiement: (paiementRes.data as Paiement | null) ?? null,
+          historique: (historiqueRes.data as HistoriqueEntry[]) ?? [],
+          nbCommandesClient: clientCountRes.count ?? 1,
+        },
+      }));
+      setNoteEdits((prev) => ({ ...prev, [order.id]: order.note_vendeur ?? "" }));
+    },
+    [details, vendeurId]
+  );
+
+  const toggleExpand = (order: Commande) => {
+    const willExpand = expandedId !== order.id;
+    setExpandedId(willExpand ? order.id : null);
+    if (willExpand) chargerDetail(order);
+  };
+
+  const enregistrerNoteVendeur = async (order: Commande) => {
+    setSavingNoteId(order.id);
+    const supabase = createClient();
+    const texte = noteEdits[order.id] ?? "";
+    const { error } = await supabase.from("commandes").update({ note_vendeur: texte }).eq("id", order.id);
+    setSavingNoteId(null);
+    if (error) {
+      showToast("Impossible d'enregistrer la note", "error");
+      return;
+    }
+    setCommandes((prev) => prev.map((c) => (c.id === order.id ? { ...c, note_vendeur: texte } : c)));
+    showToast("Note enregistrée", "success");
+  };
+
+  // Repli déclenché quand le popup du document (facture/bon de livraison) a
+  // été bloqué par le navigateur : on ne télécharge jamais sans confirmation
+  // explicite de l'utilisateur, le pendingDownload alimente le modal ci-dessous.
+  const confirmerTelechargement = () => {
+    if (!pendingDownload) return;
+    const blob = new Blob([pendingDownload.html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = pendingDownload.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setPendingDownload(null);
+    showToast("Document téléchargé", "success");
+  };
+
+  // Vraie génération PDF côté serveur (voir app/api/vendeur/commandes/[id]/facture) —
+  // remplace l'ancien flux HTML+window.print() : téléchargement direct
+  // déclenché par le clic, donc pas de popup à bloquer/débloquer.
+  const telechargerFacture = async (order: Commande) => {
+    setGeneratingFactureId(order.id);
+    try {
+      const res = await fetch(`/api/vendeur/commandes/${order.id}/facture`);
+      if (!res.ok) {
+        showToast("Impossible de générer la facture — réessaie", "error");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `facture_${order.numero}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showToast("Facture téléchargée", "success");
+    } catch {
+      showToast("Impossible de générer la facture — réessaie", "error");
+    } finally {
+      setGeneratingFactureId(null);
+    }
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelTargets || cancelTargets.length === 0) return;
+    const motif = cancelMotif.trim();
+    if (!motif) {
+      setCancelError("Indique la raison de l'annulation avant de continuer.");
+      return;
+    }
+    setCancelError(null);
+    setIsCancelling(true);
+
+    const ids = cancelTargets.map((c) => c.id);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("commandes")
+      .update({ statut: STATUTS_COMMANDE.ANNULEE, motif_annulation: motif, updated_at: new Date().toISOString() })
+      .in("id", ids);
+
+    setIsCancelling(false);
+
+    if (error) {
+      setCancelError("Échec de l'annulation. Réessaie.");
+      return;
+    }
+
+    setCommandes((prev) => prev.map((c) => (ids.includes(c.id) ? { ...c, statut: STATUTS_COMMANDE.ANNULEE } : c)));
+    setCancelTargets(null);
+    setCancelMotif("");
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+    showToast(ids.length > 1 ? `${ids.length} commandes annulées` : "Commande annulée", "success");
+  };
+
+  // --- Assignation d'un livreur ---
+  // Liste triée par distance livreur↔vendeur (fonction RPC dédiée) : aide à
+  // choisir un livreur proche sans rien changer au prix affiché au client.
+  const ouvrirAssignation = async (order: Commande) => {
+    setAssignTarget(order);
+    setAssignError(null);
+    setAssignLivreurs(null);
+    setAssignLoading(true);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("livreurs_disponibles_pour_commande", {
+      p_commande_id: order.id,
+    });
+    setAssignLoading(false);
+    if (error) {
+      setAssignError("Impossible de charger les livreurs disponibles.");
+      return;
+    }
+    setAssignLivreurs((data as LivreurDisponible[]) ?? []);
+  };
+
+  const fermerAssignation = () => {
+    if (assigningId) return;
+    setAssignTarget(null);
+    setAssignLivreurs(null);
+    setAssignError(null);
+  };
+
+  // Assigne le livreur ET calcule sa prime de "prise en charge" (distance
+  // livreur↔vendeur), ajoutée à son gain net sans toucher au prix client —
+  // le tout est fait côté base par assigner_livreur_commande.
+  const choisirLivreur = async (livreur: LivreurDisponible) => {
+    if (!assignTarget) return;
+    setAssigningId(livreur.livreur_id);
+    setAssignError(null);
+    const supabase = createClient();
+    const { data, error } = await supabase.rpc("assigner_livreur_commande", {
+      p_commande_id: assignTarget.id,
+      p_livreur_id: livreur.livreur_id,
+    });
+    setAssigningId(null);
+
+    if (error) {
+      setAssignError(error.message || "Impossible d'assigner ce livreur — réessaie.");
+      return;
+    }
+
+    const resultat = data as { distance_km: number | null; prime_prise_en_charge: number } | null;
+    const commandeId = assignTarget.id;
+    setCommandes((prev) =>
+      prev.map((c) =>
+        c.id === commandeId
+          ? {
+              ...c,
+              livreur_id: livreur.livreur_id,
+              prime_prise_en_charge: resultat?.prime_prise_en_charge ?? null,
+              distance_prise_en_charge_km: resultat?.distance_km ?? null,
+              livreur: { nom: livreur.nom_complet, telephone: livreur.telephone },
+            }
+          : c
+      )
+    );
+    showToast(
+      `${livreur.nom_complet ?? "Livreur"} assigné · +${(resultat?.prime_prise_en_charge ?? 0).toLocaleString("fr-FR")} F prise en charge`,
+      "success"
+    );
+    setAssignTarget(null);
+    setAssignLivreurs(null);
+  };
+
+  return (
+    <DashboardLayout role="vendeur" title="Commandes">
+      <div className="w-full min-w-0 overflow-x-hidden">
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher un client ou un numéro de commande..."
+              className="w-full h-12 pl-12 pr-10 bg-gray-50 border border-transparent rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 focus:bg-white transition-all text-sm font-medium"
+            />
+            {searching && (
+              <Loader2
+                size={16}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 animate-spin"
+              />
+            )}
+          </div>
+          {searchError && <p className="text-xs text-red-600 mt-2 px-1">{searchError}</p>}
+          {search.trim() && !searching && searchResults && searchResults.length === SEARCH_LIMIT && (
+            <p className="text-xs text-gray-400 mt-2 px-1">
+              Affiche les {SEARCH_LIMIT} résultats les plus récents — affine ta recherche pour plus de précision.
+            </p>
+          )}
+        </div>
+
+        {commandes.length > 0 && (
+          <div className="flex items-center justify-between mb-4 px-1 gap-3">
+            <p className="text-sm text-gray-500">
+              <span className="font-bold text-gray-900">{commandesFiltrees.length}</span> commande
+              {commandesFiltrees.length > 1 ? "s" : ""}
+              {!afficherArchivees && counts[STATUTS_COMMANDE.EN_ATTENTE] > 0 && (
+                <>
+                  {" · "}
+                  <span className="font-bold text-amber-600">{counts[STATUTS_COMMANDE.EN_ATTENTE]} en attente</span>
+                </>
+              )}
+              {afficherArchivees && (
+                <>
+                  {" · "}
+                  <span className="text-gray-400">vue archives</span>
+                </>
+              )}
+            </p>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={toggleAfficherArchivees}
+                className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-bold transition-colors ${
+                  afficherArchivees ? "bg-gray-900 text-white" : "bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                <Archive size={13} />
+                {afficherArchivees ? "Retour" : "Archivées"}
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  exportCSV(
+                    selectionMode && selectedIds.size > 0 ? selectedOrders : commandesFiltrees
+                  )
+                }
+                className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-bold bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
+              >
+                <Download size={13} />
+                CSV
+              </button>
+              <button
+                type="button"
+                onClick={toggleSelectionMode}
+                className={`flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-bold transition-colors ${
+                  selectionMode ? "bg-coral-500 text-white" : "bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
+                }`}
+              >
+                <CheckSquare size={13} />
+                {selectionMode ? "Annuler" : "Sélectionner"}
+              </button>
+            </div>
+          </div>
+        )}
+
+
+        <div className="w-full min-w-0 flex items-center gap-2 mb-3 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {FILTRES.map((s) => {
+            const active = filtre === s.value;
+            const count = counts[s.value] || 0;
+            return (
+              <button
+                key={s.value}
+                type="button"
+                onClick={() => setFiltre(s.value)}
+                className={`shrink-0 flex items-center gap-1.5 h-9 px-4 rounded-full text-xs font-bold transition-colors ${
+                  active ? "bg-coral-500 text-white" : "bg-white border border-gray-100 text-gray-500 hover:bg-gray-50"
+                }`}
+              >
+                {s.label}
+                {count > 0 && (
+                  <span className={`text-[10px] font-bold rounded-full px-1.5 ${active ? "bg-white/25" : "bg-gray-100"}`}>
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="w-full min-w-0 flex items-center gap-2 mb-6 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {(["tout", "7j", "30j"] as PeriodeOption[]).map((p) => (
+            <button
+              key={p}
+              type="button"
+              onClick={() => setPeriode(p)}
+              className={`shrink-0 h-8 px-3.5 rounded-full text-xs font-semibold transition-colors ${
+                periode === p ? "bg-gray-900 text-white" : "bg-white border border-gray-100 text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              {p === "tout" ? "Toute période" : `${p === "7j" ? "7" : "30"} derniers jours`}
+            </button>
+          ))}
+          <span className="w-px h-5 bg-gray-200 shrink-0 mx-1" />
+          {(
+            [
+              { value: "recent", label: "Récent" },
+              { value: "montant", label: "Montant" },
+              { value: "statut", label: "Statut" },
+            ] as { value: TriOption; label: string }[]
+          ).map((t) => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => setTri(t.value)}
+              className={`shrink-0 flex items-center gap-1 h-8 px-3.5 rounded-full text-xs font-semibold transition-colors ${
+                tri === t.value ? "bg-gray-900 text-white" : "bg-white border border-gray-100 text-gray-500 hover:bg-gray-50"
+              }`}
+            >
+              <ArrowUpDown size={11} />
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {selectionMode && commandesFiltrees.length > 0 && (
+          <button
+            type="button"
+            onClick={toggleSelectAll}
+            className="flex items-center gap-2 text-xs font-semibold text-gray-500 mb-3 px-1"
+          >
+            {selectedIds.size === commandesFiltrees.length ? <CheckSquare size={15} /> : <Square size={15} />}
+            Tout sélectionner ({selectedIds.size}/{commandesFiltrees.length})
+          </button>
+        )}
+
+        {loadError && (
+          <div className="bg-red-50 border border-red-100 rounded-3xl p-6 mb-6 flex items-start gap-3">
+            <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm text-red-700 leading-relaxed mb-3">{loadError}</p>
+              <button
+                onClick={fetchCommandes}
+                className="inline-flex items-center gap-2 text-xs font-bold text-red-700 hover:text-red-800"
+              >
+                <RefreshCw size={13} />
+                Réessayer
+              </button>
+            </div>
+          </div>
+        )}
+
+        {loading && !loadError && (
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <CommandeRowSkeleton key={i} />
+            ))}
+          </div>
+        )}
+
+        {!loading && !loadError && (
+          <>
+            {commandesFiltrees.length === 0 ? (
+              <div className="bg-white rounded-[32px] border border-gray-100 shadow-sm px-8 py-16 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+                  <Package size={22} className="text-gray-300" />
+                </div>
+                <p className="text-gray-700 font-semibold mb-1">
+                  {search || filtre !== "tous" ? "Aucune commande ne correspond à ces critères" : "Tu n'as pas encore reçu de commande"}
+                </p>
+                <p className="text-sm text-gray-400">
+                  {search || filtre !== "tous" ? "Essaie un autre mot-clé ou un autre filtre." : "Les nouvelles commandes de tes clients apparaîtront ici."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3 pb-24">
+                {commandesFiltrees.map((order, i) => {
+                  const isExpanded = expandedId === order.id;
+                  const prochains = PROCHAINS_STATUTS[order.statut] || [];
+                  const spineColor = STATUT_SPINE_COLOR[order.statut] || "#D1D5DB";
+                  const detail = details[order.id];
+                  const enRetard = estEnRetardSLA(order);
+                  const isSelected = selectedIds.has(order.id);
+
+                  return (
+                    <motion.div
+                      key={order.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: Math.min(i, 8) * 0.03, duration: 0.25 }}
+                      className={`bg-white rounded-3xl border shadow-sm overflow-hidden ${
+                        isSelected ? "border-coral-300 ring-2 ring-coral-100" : "border-gray-100"
+                      }`}
+                      style={{ borderLeft: `4px solid ${spineColor}` }}
+                    >
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => (selectionMode ? toggleSelected(order.id) : toggleExpand(order))}
+                        onKeyDown={(e) => e.key === "Enter" && (selectionMode ? toggleSelected(order.id) : toggleExpand(order))}
+                        className="w-full flex items-center gap-2.5 px-4 sm:px-6 py-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      >
+                        {selectionMode && (
+                          <div className="shrink-0 text-coral-500">
+                            {isSelected ? <CheckSquare size={18} /> : <Square size={18} className="text-gray-300" />}
+                          </div>
+                        )}
+
+                        <div className="w-10 h-10 rounded-full bg-coral-50 text-coral-600 flex items-center justify-center text-xs font-bold shrink-0">
+                          {initiales(order.nom_client)}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold text-gray-900 truncate text-sm">{order.nom_client ?? "Client"}</p>
+                          <p className="text-xs text-gray-500 truncate">{order.numero}</p>
+                          {enRetard && (
+                            <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-red-600">
+                              <Clock size={10} />
+                              En attente {formatRelatif(order.created_at)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col items-end gap-1 shrink-0">
+                          <span className="font-bold text-gray-900 text-sm whitespace-nowrap">{formatMontant(order.montant_total)}</span>
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border whitespace-nowrap ${
+                              STATUT_STYLE[order.statut] || "bg-gray-100 text-gray-600 border-gray-200"
+                            }`}
+                          >
+                            {LABELS_STATUT_COMMANDE[order.statut] || order.statut}
+                          </span>
+                        </div>
+
+                        {!selectionMode && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openMessagerie(order.client_id, order.id);
+                            }}
+                            className="w-9 h-9 rounded-full bg-coral-50 flex items-center justify-center text-coral-600 hover:bg-coral-100 shrink-0"
+                            aria-label="Discuter avec le client"
+                            title="Discuter avec le client"
+                          >
+                            <MessageCircle size={15} />
+                          </button>
+                        )}
+
+                        {!selectionMode && (
+                          <ChevronDown size={18} className={`text-gray-400 transition-transform shrink-0 ${isExpanded ? "rotate-180" : ""}`} />
+                        )}
+                      </div>
+
+                      <AnimatePresence initial={false}>
+                        {isExpanded && !selectionMode && (
+                          <motion.div
+                            variants={expandVariants}
+                            initial="collapsed"
+                            animate="open"
+                            exit="collapsed"
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-4 sm:px-6 pb-5 pt-4 bg-gray-50/60 border-t border-gray-100">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
+                                <div className="flex items-center gap-2 text-sm text-gray-600 bg-white px-3 py-2.5 rounded-xl border border-gray-100">
+                                  <Phone size={15} className="text-gray-400 shrink-0" />
+                                  <span className="truncate">{order.telephone_client || "Non renseigné"}</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-sm text-gray-600 bg-white px-3 py-2.5 rounded-xl border border-gray-100">
+                                  <MapPin size={15} className="text-gray-400 shrink-0 mt-0.5" />
+                                  <span>{order.adresse_livraison || order.commune || "Non renseignée"}</span>
+                                </div>
+                              </div>
+
+                              {order.note_client && (
+                                <p className="text-sm text-gray-600 bg-white p-3.5 rounded-2xl border border-gray-100 mb-3">« {order.note_client} »</p>
+                              )}
+
+                              {/* Articles */}
+                              <div className="bg-white rounded-2xl border border-gray-100 mb-3 overflow-hidden">
+                                <div className="flex items-center gap-2 px-3.5 py-2.5 border-b border-gray-100 text-xs font-bold text-gray-500">
+                                  <ShoppingBag size={13} />
+                                  Articles
+                                </div>
+                                {detail === "loading" || !detail ? (
+                                  <div className="p-3.5 flex items-center gap-2 text-xs text-gray-400">
+                                    <Loader2 size={13} className="animate-spin" />
+                                    Chargement...
+                                  </div>
+                                ) : detail.articles.length === 0 ? (
+                                  <p className="p-3.5 text-xs text-gray-400">Aucun détail d'article enregistré pour cette commande.</p>
+                                ) : (
+                                  <div className="divide-y divide-gray-50">
+                                    {detail.articles.map((a) => (
+                                      <div key={a.id} className="flex items-center gap-3 px-3.5 py-2.5">
+                                        <div className="w-9 h-9 rounded-lg bg-gray-50 shrink-0 overflow-hidden flex items-center justify-center">
+                                          {a.image_url ? (
+                                            // eslint-disable-next-line @next/next/no-img-element
+                                            <img src={a.image_url} alt={a.nom} className="w-full h-full object-cover" />
+                                          ) : (
+                                            <Package size={14} className="text-gray-300" />
+                                          )}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                          <p className="text-xs font-semibold text-gray-800 truncate">{a.nom}</p>
+                                          <p className="text-[11px] text-gray-400">
+                                            {a.quantite} × {formatMontant(a.prix_unitaire)}
+                                          </p>
+                                        </div>
+                                        <span className="text-xs font-bold text-gray-900 shrink-0">{formatMontant(a.total)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Paiement */}
+                              <div className="bg-white rounded-2xl border border-gray-100 mb-3 px-3.5 py-2.5">
+                                <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-1.5">
+                                  <Wallet size={13} />
+                                  Paiement
+                                </div>
+                                {detail === "loading" || !detail ? (
+                                  <p className="text-xs text-gray-400">Chargement...</p>
+                                ) : detail.paiement ? (
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="text-gray-600">{detail.paiement.methode ?? "Mobile money"}</span>
+                                    <span
+                                      className={`px-2 py-0.5 rounded-full font-bold ${
+                                        detail.paiement.statut === "paye"
+                                          ? "bg-green-50 text-green-700"
+                                          : detail.paiement.statut === "echoue"
+                                            ? "bg-red-50 text-red-700"
+                                            : detail.paiement.statut === "rembourse"
+                                              ? "bg-gray-100 text-gray-600"
+                                              : "bg-amber-50 text-amber-700"
+                                      }`}
+                                    >
+                                      {detail.paiement.statut === "paye"
+                                        ? "Payé"
+                                        : detail.paiement.statut === "echoue"
+                                          ? "Échoué"
+                                          : detail.paiement.statut === "rembourse"
+                                            ? "Remboursé"
+                                            : "En attente"}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <p className="text-xs text-gray-400">Aucun paiement enregistré.</p>
+                                )}
+                              </div>
+
+                              {/* Livraison / assignation livreur */}
+                              <div className="bg-white rounded-2xl border border-gray-100 mb-3 px-3.5 py-2.5">
+                                <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-1.5">
+                                  <Truck size={13} />
+                                  Livraison
+                                </div>
+                                {order.livreur_id ? (
+                                  <div className="flex items-center justify-between gap-2">
+                                    <div className="min-w-0">
+                                      <p className="text-xs font-semibold text-gray-800 truncate">
+                                        {order.livreur?.nom || "Livreur assigné"}
+                                      </p>
+                                      {order.prime_prise_en_charge != null && (
+                                        <p className="text-[11px] text-teal-600 flex items-center gap-1 mt-0.5">
+                                          <Navigation size={10} />
+                                          {order.distance_prise_en_charge_km != null
+                                            ? `${order.distance_prise_en_charge_km} km du vendeur`
+                                            : "Distance estimée"}{" "}
+                                          · +{order.prime_prise_en_charge.toLocaleString("fr-FR")} F prise en charge
+                                        </p>
+                                      )}
+                                    </div>
+                                    {!STATUTS_ASSIGNATION_BLOQUEE.has(order.statut) && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          ouvrirAssignation(order);
+                                        }}
+                                        className="shrink-0 text-[11px] font-bold text-coral-600 hover:text-coral-700 whitespace-nowrap"
+                                      >
+                                        Changer
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : STATUTS_ASSIGNATION_BLOQUEE.has(order.statut) ? (
+                                  <p className="text-xs text-gray-400">Aucun livreur assigné.</p>
+                                ) : (
+                                  <div className="flex items-center justify-between gap-2">
+                                    <p className="text-xs text-gray-400">Aucun livreur assigné</p>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        ouvrirAssignation(order);
+                                      }}
+                                      className="shrink-0 text-[11px] font-bold text-coral-600 hover:text-coral-700 whitespace-nowrap"
+                                    >
+                                      Assigner un livreur
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Historique statut */}
+                              {detail && detail !== "loading" && detail.historique.length > 0 && (
+                                <div className="bg-white rounded-2xl border border-gray-100 mb-3 px-3.5 py-2.5">
+                                  <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-2">
+                                    <History size={13} />
+                                    Historique
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {detail.historique.map((h) => (
+                                      <div key={h.id} className="flex items-center justify-between text-[11px] text-gray-500">
+                                        <span>
+                                          {h.ancien_statut ? `${LABELS_STATUT_COMMANDE[h.ancien_statut as StatutCommande] ?? h.ancien_statut} → ` : "Créée · "}
+                                          <span className="font-semibold text-gray-700">
+                                            {LABELS_STATUT_COMMANDE[h.nouveau_statut as StatutCommande] ?? h.nouveau_statut}
+                                          </span>
+                                        </span>
+                                        <span>{formatRelatif(h.created_at)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Historique client */}
+                              {detail && detail !== "loading" && (
+                                <div className="flex items-center gap-2 text-xs text-gray-500 bg-white px-3.5 py-2.5 rounded-2xl border border-gray-100 mb-3">
+                                  <Users size={13} className="text-gray-400 shrink-0" />
+                                  {detail.nbCommandesClient > 1
+                                    ? `${detail.nbCommandesClient} commandes au total avec ce client`
+                                    : "Première commande de ce client"}
+                                </div>
+                              )}
+
+                              {/* Note interne vendeur */}
+                              <div className="bg-white rounded-2xl border border-gray-100 mb-4 px-3.5 py-2.5">
+                                <div className="flex items-center gap-2 text-xs font-bold text-gray-500 mb-1.5">
+                                  <StickyNote size={13} />
+                                  Note interne (visible par toi seul)
+                                </div>
+                                <textarea
+                                  value={noteEdits[order.id] ?? order.note_vendeur ?? ""}
+                                  onChange={(e) => setNoteEdits((prev) => ({ ...prev, [order.id]: e.target.value }))}
+                                  onClick={(e) => e.stopPropagation()}
+                                  placeholder="Ex : préparer avec soin, client régulier..."
+                                  rows={2}
+                                  className="w-full text-xs rounded-lg border border-gray-100 bg-gray-50 p-2 focus:outline-none focus:ring-2 focus:ring-coral-100 resize-none"
+                                />
+                                <div className="flex justify-end mt-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      enregistrerNoteVendeur(order);
+                                    }}
+                                    disabled={savingNoteId === order.id}
+                                    className="text-[11px] font-bold text-coral-600 hover:text-coral-700 disabled:opacity-50"
+                                  >
+                                    {savingNoteId === order.id ? "Enregistrement..." : "Enregistrer"}
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center justify-between text-sm text-gray-500 px-0.5 mb-3">
+                                <span>Montant total</span>
+                                <span className="font-bold text-gray-900">{formatMontant(order.montant_total)}</span>
+                              </div>
+
+                              <div className="flex flex-col sm:flex-row gap-2 w-full">
+                                {prochains.map((next) => {
+                                  const isCancel = next === STATUTS_COMMANDE.ANNULEE;
+                                  // On ne peut pas confirmer une commande sans livreur assigné —
+                                  // rien ne le garantissait avant (ni côté DB, ni côté client).
+                                  // Au lieu d'un bouton juste désactivé (sans issue pour le
+                                  // vendeur), on ouvre directement le modal d'assignation.
+                                  const requiertLivreur = next === STATUTS_COMMANDE.CONFIRMEE && !order.livreur_id;
+                                  return (
+                                    <button
+                                      key={next}
+                                      type="button"
+                                      disabled={updatingId === order.id}
+                                      onClick={() => {
+                                        if (isCancel) {
+                                          setCancelError(null);
+                                          setCancelTargets([order]);
+                                        } else if (requiertLivreur) {
+                                          showToast("Assigne d'abord un livreur avant de confirmer", "warning");
+                                          ouvrirAssignation(order);
+                                        } else {
+                                          updateStatut(order.id, next);
+                                        }
+                                      }}
+                                      title={requiertLivreur ? "Assigne d'abord un livreur avant de confirmer" : undefined}
+                                      className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 flex items-center justify-center gap-2 ${
+                                        isCancel
+                                          ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                          : requiertLivreur
+                                          ? "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                                          : "bg-coral-500 text-white hover:bg-coral-600"
+                                      }`}
+                                    >
+                                      {updatingId === order.id ? (
+                                        <Loader2 size={14} className="animate-spin" />
+                                      ) : requiertLivreur ? (
+                                        <>
+                                          <Truck size={13} />
+                                          Assigner un livreur d&apos;abord
+                                        </>
+                                      ) : (
+                                        `Marquer ${LABELS_STATUT_COMMANDE[next]}`
+                                      )}
+                                    </button>
+                                  );
+                                })}
+                                <button
+                                  type="button"
+                                  disabled={generatingFactureId === order.id}
+                                  onClick={() => telechargerFacture(order)}
+                                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-50"
+                                >
+                                  {generatingFactureId === order.id ? (
+                                    <Loader2 size={13} className="animate-spin" />
+                                  ) : (
+                                    "Générer la facture"
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    ouvrirBonLivraison(
+                                      order,
+                                      detail && detail !== "loading" ? detail.articles : [],
+                                      boutique,
+                                      showToast,
+                                      (html, filename) => setPendingDownload({ html, filename })
+                                    )
+                                  }
+                                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-bold bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
+                                >
+                                  Bon de livraison
+                                </button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
+
+                {hasMore && !search && (
+                  <div className="flex justify-center pt-2">
+                    <button
+                      type="button"
+                      onClick={loadMore}
+                      disabled={loadingMore}
+                      className="flex items-center gap-2 h-11 px-6 rounded-xl bg-white border border-gray-100 text-sm font-bold text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {loadingMore ? <Loader2 size={15} className="animate-spin" /> : null}
+                      Charger plus
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Barre d'actions groupées */}
+        <AnimatePresence>
+          {selectionMode && selectedIds.size > 0 && (
+            <motion.div
+              initial={{ y: 80, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 80, opacity: 0 }}
+              className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-8 sm:w-[420px] bg-gray-900 text-white rounded-2xl shadow-2xl p-4 z-50 flex items-center gap-3"
+            >
+              <span className="text-xs font-bold flex-1">{selectedIds.size} sélectionnée(s)</span>
+              {transitionsCommunes.length === 0 && (
+                <span className="text-[11px] text-gray-400 hidden sm:inline">
+                  Statuts différents — pas de changement groupé
+                </span>
+              )}
+              {transitionsCommunes.map((next) => (
+                <button
+                  key={next}
+                  type="button"
+                  disabled={bulkUpdating}
+                  onClick={() => applyBulkStatut(next)}
+                  className={`px-3 py-2 rounded-xl text-xs font-bold disabled:opacity-50 ${
+                    next === STATUTS_COMMANDE.ANNULEE ? "bg-red-500 hover:bg-red-600" : "bg-coral-500 hover:bg-coral-600"
+                  }`}
+                >
+                  {bulkUpdating ? <Loader2 size={13} className="animate-spin" /> : LABELS_STATUT_COMMANDE[next]}
+                </button>
+              ))}
+              <button
+                type="button"
+                disabled={bulkUpdating}
+                onClick={() => applyBulkArchive(!afficherArchivees)}
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 disabled:opacity-50"
+              >
+                {bulkUpdating ? (
+                  <Loader2 size={13} className="animate-spin" />
+                ) : afficherArchivees ? (
+                  "Désarchiver"
+                ) : (
+                  "Archiver"
+                )}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {cancelTargets && cancelTargets.length > 0 && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => !isCancelling && (setCancelTargets(null), setCancelMotif(""), setCancelError(null))}
+                className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60]"
+              />
+              <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
+                <motion.div
+                  initial={{ y: 40, opacity: 0, scale: 0.98 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 40, opacity: 0, scale: 0.98 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                  className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 shadow-2xl"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-900">
+                      {cancelTargets.length > 1 ? `Annuler ${cancelTargets.length} commandes ?` : "Annuler la commande ?"}
+                    </h3>
+                    <button
+                      onClick={() => !isCancelling && (setCancelTargets(null), setCancelMotif(""), setCancelError(null))}
+                      className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-4">
+                    {cancelTargets.length > 1 ? (
+                      <>
+                        <strong className="text-gray-900">{cancelTargets.length}</strong> commandes seront marquées comme annulées. Cette
+                        action est définitive.
+                      </>
+                    ) : (
+                      <>
+                        La commande <strong className="text-gray-900">{cancelTargets[0].numero}</strong> de{" "}
+                        <strong className="text-gray-900">{cancelTargets[0].nom_client ?? "ce client"}</strong> sera marquée comme
+                        annulée. Cette action est définitive.
+                      </>
+                    )}
+                  </p>
+
+                  <label className="block mb-4">
+                    <span className="text-xs font-bold text-gray-500 mb-1.5 block">
+                      Raison de l&apos;annulation <span className="text-red-500">*</span>
+                    </span>
+                    <textarea
+                      value={cancelMotif}
+                      onChange={(e) => setCancelMotif(e.target.value)}
+                      placeholder="Ex : rupture de stock, client injoignable, adresse hors zone..."
+                      rows={3}
+                      autoFocus
+                      className="w-full text-sm rounded-xl border border-gray-200 bg-gray-50 p-3 focus:outline-none focus:ring-2 focus:ring-coral-100 resize-none"
+                    />
+                    <span className="text-[11px] text-gray-400 mt-1 block">Visible par l&apos;équipe Ayiba sur la fiche commande.</span>
+                  </label>
+
+                  {cancelError && (
+                    <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl p-3 mb-4">
+                      <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700 leading-relaxed">{cancelError}</p>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => !isCancelling && (setCancelTargets(null), setCancelMotif(""), setCancelError(null))}
+                      disabled={isCancelling}
+                      className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors disabled:opacity-50"
+                    >
+                      Ne pas annuler
+                    </button>
+                    <button
+                      onClick={handleConfirmCancel}
+                      disabled={isCancelling || cancelMotif.trim().length === 0}
+                      className="flex-1 h-12 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center"
+                    >
+                      {isCancelling ? <Loader2 size={18} className="animate-spin" /> : "Oui, annuler"}
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            </>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {pendingDownload && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setPendingDownload(null)}
+                className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60]"
+              />
+              <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
+                <motion.div
+                  initial={{ y: 40, opacity: 0, scale: 0.98 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 40, opacity: 0, scale: 0.98 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                  className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 shadow-2xl"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-gray-900">Télécharger le document ?</h3>
+                    <button
+                      onClick={() => setPendingDownload(null)}
+                      className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-6">
+                    Ton navigateur a bloqué l'ouverture de la fenêtre d'aperçu. Tu peux télécharger le fichier{" "}
+                    <strong className="text-gray-900">{pendingDownload.filename}</strong> à la place.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setPendingDownload(null)}
+                      className="flex-1 h-12 rounded-xl border-2 border-gray-200 text-gray-700 font-bold text-sm hover:bg-gray-50 transition-colors"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      onClick={confirmerTelechargement}
+                      className="flex-1 h-12 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
+                    >
+                      Télécharger
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            </>
+          )}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {assignTarget && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={fermerAssignation}
+                className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-[60]"
+              />
+              <div className="fixed inset-0 z-[70] flex items-end sm:items-center justify-center pointer-events-none">
+                <motion.div
+                  initial={{ y: 40, opacity: 0, scale: 0.98 }}
+                  animate={{ y: 0, opacity: 1, scale: 1 }}
+                  exit={{ y: 40, opacity: 0, scale: 0.98 }}
+                  transition={{ type: "spring", damping: 28, stiffness: 320 }}
+                  className="pointer-events-auto w-full sm:max-w-md bg-white rounded-t-[32px] sm:rounded-[32px] p-6 sm:p-8 shadow-2xl max-h-[85vh] overflow-y-auto"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <h3 className="text-lg font-bold text-gray-900">Assigner un livreur</h3>
+                    <button
+                      onClick={fermerAssignation}
+                      disabled={!!assigningId}
+                      className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors shrink-0 disabled:opacity-50"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 mb-4">
+                    Commande {assignTarget.numero} · {assignTarget.nom_client ?? "Client"}
+                  </p>
+
+                  {assignError && (
+                    <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-xl p-3 mb-3">
+                      <AlertCircle size={15} className="text-red-500 shrink-0 mt-0.5" />
+                      <p className="text-xs text-red-700 leading-relaxed">{assignError}</p>
+                    </div>
+                  )}
+
+                  {assignLoading ? (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-8 justify-center">
+                      <Loader2 size={15} className="animate-spin" />
+                      Chargement des livreurs disponibles...
+                    </div>
+                  ) : !assignLivreurs || assignLivreurs.length === 0 ? (
+                    <p className="text-sm text-gray-500 py-8 text-center">
+                      Aucun livreur disponible pour le moment (vérifié et pas en pause).
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-[11px] text-gray-400 mb-1">
+                        Triés du plus proche au plus loin de ta boutique — le plus proche coûte moins cher en prime
+                        de prise en charge.
+                      </p>
+                      {assignLivreurs.map((l) => (
+                        <button
+                          key={l.livreur_id}
+                          type="button"
+                          disabled={!!assigningId}
+                          onClick={() => choisirLivreur(l)}
+                          className="w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-2xl border border-gray-100 hover:border-coral-200 hover:bg-coral-50/40 transition-colors disabled:opacity-50 text-left"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">
+                              {l.nom_complet || "Livreur"}
+                            </p>
+                            <p className="text-[11px] text-gray-400 truncate">
+                              {[l.quartier, l.commune].filter(Boolean).join(", ") || "Zone non renseignée"}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            {assigningId === l.livreur_id ? (
+                              <Loader2 size={16} className="animate-spin text-coral-500" />
+                            ) : (
+                              <>
+                                <p className="text-xs font-bold text-gray-900 flex items-center gap-1 justify-end">
+                                  <Navigation size={11} className="text-gray-400" />
+                                  {l.distance_km != null ? `${l.distance_km} km` : "—"}
+                                </p>
+                                {!l.distance_fiable && (
+                                  <p className="text-[10px] text-amber-500">estimation</p>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </motion.div>
+              </div>
+            </>
+          )}
+        </AnimatePresence>
+      </div>
+    </DashboardLayout>
+  );
+}

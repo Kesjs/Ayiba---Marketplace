@@ -121,6 +121,7 @@ export default function CheckoutPage() {
   // Étape 2 — Paiement
   // GeniusPay ne route le Bénin que sur MTN/Moov (voir lib/geniuspay.ts) —
   // Celtiis n'est plus une option ici (l'était encore avec l'ancien FedaPay).
+  const [methodePaiement, setMethodePaiement] = useState<'moto' | 'carte'>('moto')
   const [reseau, setReseau] = useState<'mtn' | 'moov' | ''>('')
   const [telephoneMomo, setTelephoneMomo] = useState('')
   const [recapOuvert, setRecapOuvert] = useState(false)
@@ -438,13 +439,15 @@ export default function CheckoutPage() {
   }
 
   const declencherPaiement = async () => {
-    if (!reseau) {
-      showToast('Choisis un réseau Mobile Money', 'error')
-      return
-    }
-    if (!telephoneMomo.trim()) {
-      showToast('Indique le numéro Mobile Money', 'error')
-      return
+    if (methodePaiement === 'moto') {
+      if (!reseau) {
+        showToast('Choisis un réseau Mobile Money', 'error')
+        return
+      }
+      if (!telephoneMomo.trim()) {
+        showToast('Indique le numéro Mobile Money', 'error')
+        return
+      }
     }
     if (!adresseFinale) return
 
@@ -483,8 +486,8 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           groupes,
           montant: totalGeneral,
-          reseau,
-          telephone: telephoneMomo.trim(),
+          methodePaiement,
+          ...(methodePaiement === 'moto' ? { reseau, telephone: telephoneMomo.trim() } : {}),
           nomClient: nomClient.trim(),
         }),
         signal: controller.signal,
@@ -493,10 +496,17 @@ export default function CheckoutPage() {
       if (!res.ok) throw new Error(data.error || 'Échec du déclenchement du paiement')
 
       setPaiementCheckoutId(data.paiementCheckoutId)
-      setStatutPaiement('attente')
       setRaisonEchec(null)
       setAttentePassiveDepassee(false)
       synchroniserUrlPaiement(data.paiementCheckoutId)
+
+      // Si c'est une carte et qu'on a une paymentUrl, rediriger vers GeniusPay
+      if (methodePaiement === 'carte' && data.paymentUrl) {
+        window.location.href = data.paymentUrl
+      } else {
+        // Mode Mobile Money : afficher l'overlay d'attente
+        setStatutPaiement('attente')
+      }
     } catch (err) {
       console.error('[checkout] initier paiement error:', err)
       if (err instanceof DOMException && err.name === 'AbortError') {
@@ -548,14 +558,18 @@ export default function CheckoutPage() {
   }
 
   // Bouton Payer à 3 états : guide l'utilisateur sans jamais afficher de message d'erreur pour un simple champ manquant
-  const paiementDisabled = !reseau || !telephoneMomo.trim() || declenchementEnCours
+  const paiementDisabled = 
+    (methodePaiement === 'moto' && (!reseau || !telephoneMomo.trim())) ||
+    declenchementEnCours
   const libellePayer = declenchementEnCours
     ? 'Connexion...'
-    : !reseau
-    ? 'Choisis un réseau'
-    : !telephoneMomo.trim()
-    ? 'Indique ton numéro'
-    : `Payer ${totalGeneral.toLocaleString('fr-FR')} F`
+    : methodePaiement === 'moto'
+    ? !reseau
+      ? 'Choisis un réseau'
+      : !telephoneMomo.trim()
+      ? 'Indique ton numéro'
+      : `Payer ${totalGeneral.toLocaleString('fr-FR')} F`
+    : `Payer par carte ${totalGeneral.toLocaleString('fr-FR')} F`
 
   if (userLoading || !user || (items.length === 0 && etape === 'livraison' && !paiementCheckoutId)) {
     return (
@@ -896,15 +910,53 @@ export default function CheckoutPage() {
             )}
 
             <section className="mb-6">
-              <MobileMoneySelector
-                selected={reseau}
-                onSelect={(r) => { setReseau(r as 'mtn' | 'moov'); setErreurInitiation(null) }}
-                phoneNumber={telephoneMomo}
-                onPhoneChange={(v) => { setTelephoneMomo(v); setErreurInitiation(null) }}
-                montant={totalGeneral}
-                networks={['mtn', 'moov']}
-              />
+              <h2 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">
+                Moyen de paiement
+              </h2>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setMethodePaiement('moto'); setErreurInitiation(null) }}
+                  className={`flex-1 py-3 px-4 rounded-2xl font-bold text-sm transition-all ${
+                    methodePaiement === 'moto'
+                      ? 'bg-coral-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Mobile Money
+                </button>
+                <button
+                  onClick={() => { setMethodePaiement('carte'); setErreurInitiation(null) }}
+                  className={`flex-1 py-3 px-4 rounded-2xl font-bold text-sm transition-all ${
+                    methodePaiement === 'carte'
+                      ? 'bg-coral-500 text-white shadow-md'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  Carte bancaire
+                </button>
+              </div>
             </section>
+
+            {methodePaiement === 'moto' && (
+              <section className="mb-6">
+                <MobileMoneySelector
+                  selected={reseau}
+                  onSelect={(r) => { setReseau(r as 'mtn' | 'moov'); setErreurInitiation(null) }}
+                  phoneNumber={telephoneMomo}
+                  onPhoneChange={(v) => { setTelephoneMomo(v); setErreurInitiation(null) }}
+                  montant={totalGeneral}
+                  networks={['mtn', 'moov']}
+                />
+              </section>
+            )}
+
+            {methodePaiement === 'carte' && (
+              <section className="mb-6 p-4 rounded-2xl bg-blue-50 border border-blue-200">
+                <p className="text-sm text-blue-700">
+                  <strong>Paiement par carte :</strong> vous serez redirigé vers la page sécurisée GeniusPay pour saisir vos coordonnées de carte.
+                </p>
+              </section>
+            )}
 
             {erreurInitiation && (
               <div className="mb-6 flex items-start gap-3 p-4 rounded-2xl bg-red-50">

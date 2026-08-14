@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { declencherPaiementMobileMoney, extraireMessageErreurGeniusPay } from '@/lib/geniuspay'
+import { declencherPaiementMobileMoney, declencherPaiementParCarte, extraireMessageErreurGeniusPay } from '@/lib/geniuspay'
 
 interface GroupeCommande {
   vendeur_id: string
@@ -17,8 +17,9 @@ interface GroupeCommande {
 /**
  * Étape "Paiement" du checkout : NE crée PAS de commande.
  * Enregistre une intention de paiement (`paiements_checkout`), déclenche le
- * prélèvement Mobile Money côté GeniusPay (MTN/Moov, Bénin uniquement — cf.
- * lib/geniuspay.ts), et renvoie la référence à surveiller.
+ * prélèvement côté GeniusPay selon le moyen de paiement :
+ * - MTN/Moov (Mobile Money) : mode direct, client reste dans l'app Ayiba
+ * - Carte : redirection vers page de saisie hébergée par GeniusPay
  * La ou les commandes ne seront créées qu'au webhook `payment.success`
  * (voir app/api/paiements/webhook/route.ts et la RPC finaliser_paiement_checkout).
  */
@@ -46,8 +47,9 @@ export async function POST(req: NextRequest) {
   let body: {
     groupes: GroupeCommande[]
     montant: number
-    reseau: 'mtn' | 'moov'
-    telephone: string
+    methodePaiement?: 'moto' | 'carte' // défaut: 'moto'
+    reseau?: 'mtn' | 'moov'
+    telephone?: string
     nomClient: string
   }
   try {
@@ -56,7 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Corps de requête invalide' }, { status: 400 })
   }
 
-  const { groupes, montant, reseau, telephone, nomClient } = body
+  const { groupes, montant, methodePaiement = 'moto', reseau, telephone, nomClient } = body
 
   if (!Array.isArray(groupes) || groupes.length === 0) {
     return NextResponse.json({ error: 'Panier vide' }, { status: 400 })
@@ -64,13 +66,8 @@ export async function POST(req: NextRequest) {
   if (!montant || montant <= 0) {
     return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
   }
-  // GeniusPay ne route le Bénin que sur MTN/Moov (voir lib/geniuspay.ts) —
-  // Celtiis n'est plus une option ici (l'était encore avec FedaPay).
-  if (!reseau || !['mtn', 'moov'].includes(reseau)) {
-    return NextResponse.json({ error: 'Réseau Mobile Money invalide' }, { status: 400 })
-  }
-  if (!telephone?.trim()) {
-    return NextResponse.json({ error: 'Numéro Mobile Money requis' }, { status: 400 })
+  if (!methodePaiement || !['moto', 'carte'].includes(methodePaiement)) {
+    return NextResponse.json({ error: 'Méthode de paiement invalide' }, { status: 400 })
   }
   for (const g of groupes) {
     if (!g.vendeur_id || !Array.isArray(g.articles) || g.articles.length === 0 || !g.commune?.trim() || !g.adresse_livraison?.trim()) {
@@ -78,8 +75,18 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Validations spécifiques au moyen de paiement
+  if (methodePaiement === 'moto') {
+    if (!reseau || !['mtn', 'moov'].includes(reseau)) {
+      return NextResponse.json({ error: 'Réseau Mobile Money invalide' }, { status: 400 })
+    }
+    if (!telephone?.trim()) {
+      return NextResponse.json({ error: 'Numéro Mobile Money requis' }, { status: 400 })
+    }
+  }
+
   // Un vendeur ne peut pas s'acheter lui-même — vérifié ici, avant tout
-  // prélèvement Mobile Money, pour ne jamais faire payer quelqu'un pour une
+  // prélèvement, pour ne jamais faire payer quelqu'un pour une
   // commande qui échouerait de toute façon à la création (contrainte DB
   // commandes_client_different_vendeur sur la table `commandes`).
   if (groupes.some((g) => g.vendeur_id === user.id)) {
@@ -95,8 +102,8 @@ export async function POST(req: NextRequest) {
     .insert({
       client_id: user.id,
       montant,
-      reseau,
-      telephone: telephone.trim(),
+      reseau: methodePaiement === 'moto' ? reseau : null,
+      telephone: methodePaiement === 'moto' ? telephone?.trim() : null,
       payload: { groupes },
     })
     .select('id')
@@ -116,30 +123,58 @@ export async function POST(req: NextRequest) {
         ? `Commande Ayiba — ${groupes.length} boutiques`
         : 'Commande Ayiba'
 
-    const { reference } = await declencherPaiementMobileMoney({
-      montant,
-      description,
-      reseau,
-      telephone: telephone.trim(),
-      nomClient: nomClient?.trim() || 'Client Ayiba',
-      emailClient: user.email || `client-${user.id}@ayiba.app`,
-      metadata: { paiement_checkout_id: paiementCheckout.id, user_id: user.id },
-    })
+    if (methodePaiement === 'moto') {
+      // Mobile Money : mode direct, reste dans l'app
+      const { reference } = await declencherPaiementMobileMoney({
+        montant,
+        description,
+        reseau: reseau as 'mtn' | 'moov',
+        telephone: telephone!.trim(),
+        nomClient: nomClient?.trim() || 'Client Ayiba',
+        emailClient: user.email || `client-${user.id}@ayiba.app`,
+        metadata: { paiement_checkout_id: paiementCheckout.id, user_id: user.id },
+      })
 
-    // 3. On rattache la référence GeniusPay à l'intention de paiement
-    // (permet au webhook de retrouver la ligne quand il reçoit l'événement).
-    const { error: rpcError } = await supabase.rpc('attacher_reference_paiement', {
-      p_paiement_checkout_id: paiementCheckout.id,
-      p_reference: reference,
-    })
-    if (rpcError) {
-      throw new Error(`Transaction créée mais non rattachée : ${rpcError.message}`)
+      // 3. On rattache la référence GeniusPay à l'intention de paiement
+      const { error: rpcError } = await supabase.rpc('attacher_reference_paiement', {
+        p_paiement_checkout_id: paiementCheckout.id,
+        p_reference: reference,
+      })
+      if (rpcError) {
+        throw new Error(`Transaction créée mais non rattachée : ${rpcError.message}`)
+      }
+
+      return NextResponse.json({
+        paiementCheckoutId: paiementCheckout.id,
+        transactionId: reference,
+      })
+    } else {
+      // Carte : redirection vers page de saisie GeniusPay
+      const { reference, paymentUrl } = await declencherPaiementParCarte({
+        montant,
+        description,
+        nomClient: nomClient?.trim() || 'Client Ayiba',
+        emailClient: user.email || `client-${user.id}@ayiba.app`,
+        successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout?success=true&paiement=${paiementCheckout.id}`,
+        errorUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout?error=true&paiement=${paiementCheckout.id}`,
+        metadata: { paiement_checkout_id: paiementCheckout.id, user_id: user.id },
+      })
+
+      // 3. On rattache la référence GeniusPay à l'intention de paiement
+      const { error: rpcError } = await supabase.rpc('attacher_reference_paiement', {
+        p_paiement_checkout_id: paiementCheckout.id,
+        p_reference: reference,
+      })
+      if (rpcError) {
+        throw new Error(`Transaction créée mais non rattachée : ${rpcError.message}`)
+      }
+
+      return NextResponse.json({
+        paiementCheckoutId: paiementCheckout.id,
+        transactionId: reference,
+        paymentUrl,
+      })
     }
-
-    return NextResponse.json({
-      paiementCheckoutId: paiementCheckout.id,
-      transactionId: reference,
-    })
   } catch (err) {
     // On log l'objet brut en entier : c'est ce qu'il faut regarder dans les
     // logs Render pour voir la vraie cause (numéro refusé, clé API

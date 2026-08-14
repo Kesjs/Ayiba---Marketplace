@@ -105,6 +105,73 @@ export async function declencherPaiementMobileMoney({
   return { reference: String(reference) };
 }
 
+interface DeclencherPaiementParCarteParams {
+  montant: number;
+  description: string;
+  nomClient: string;
+  emailClient: string;
+  successUrl: string;
+  errorUrl: string;
+  /** Données réinjectées telles quelles dans la réponse et le webhook — on y met l'id du paiement_checkout pour le rattacher côté webhook si besoin. */
+  metadata?: Record<string, string>;
+}
+
+/**
+ * Crée une transaction GeniusPay pour paiement par carte bancaire.
+ * Retourne une payment_url vers la page de saisie de carte hébergée GeniusPay.
+ * Le client y entre ses coordonnées de carte, puis est redirigé vers success_url
+ * ou error_url selon le résultat.
+ * 
+ * L'approbation réelle est notifiée via webhook (payment.success / payment.failed).
+ */
+export async function declencherPaiementParCarte({
+  montant,
+  description,
+  nomClient,
+  emailClient,
+  successUrl,
+  errorUrl,
+  metadata,
+}: DeclencherPaiementParCarteParams): Promise<{ reference: string; paymentUrl: string }> {
+  const { apiKey, apiSecret } = getCredentials();
+
+  const res = await fetch(`${GENIUSPAY_BASE_URL}/payments`, {
+    method: "POST",
+    headers: {
+      "X-API-Key": apiKey,
+      "X-API-Secret": apiSecret,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      amount: Math.round(montant),
+      currency: "XOF",
+      payment_method: "card",
+      description,
+      customer: {
+        name: nomClient || "Client Ayiba",
+        email: emailClient,
+      },
+      success_url: successUrl,
+      error_url: errorUrl,
+      ...(metadata ? { metadata } : {}),
+    }),
+  });
+
+  const json = await res.json().catch(() => null);
+
+  if (!res.ok || !json?.success) {
+    throw new Error(extraireMessageErreurGeniusPay(json, res.status));
+  }
+
+  const reference = json?.data?.reference;
+  const paymentUrl = json?.data?.payment_url;
+  if (!reference || !paymentUrl) {
+    throw new Error("Réponse GeniusPay sans référence ou payment_url");
+  }
+
+  return { reference: String(reference), paymentUrl };
+}
+
 /**
  * GeniusPay renvoie toujours { success: false, error: { code, message } }
  * en cas d'erreur — beaucoup plus prévisible que FedaPay (dont .message

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { initFedaPay } from '@/lib/fedapay'
-import { Transaction } from 'fedapay'
+import { recupererPaiement } from '@/lib/geniuspay'
 
 /**
  * GET /api/paiements/statut?id=<paiementCheckoutId>
@@ -14,9 +13,9 @@ import { Transaction } from 'fedapay'
  * en attente indéfiniment) :
  *  1. Expiration auto : une intention "en_attente" depuis plus de 3 min est
  *     basculée en "echoue" plutôt que de rester bloquée pour toujours.
- *  2. Vérification active : si le webhook FedaPay n'est jamais arrivé (mal
- *     configuré côté tableau de bord FedaPay, par exemple), on interroge
- *     directement l'API FedaPay avec le transactionId déjà rattaché — même
+ *  2. Vérification active : si le webhook GeniusPay n'est jamais arrivé (mal
+ *     configuré côté dashboard GeniusPay, par exemple), on interroge
+ *     directement l'API GeniusPay avec la référence déjà rattachée — même
  *     pattern de "reconciliation" que Stripe/PayPal recommandent (le webhook
  *     est un raccourci, jamais la seule source de vérité).
  */
@@ -46,7 +45,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Non authentifié' }, { status: 401 })
   }
 
-  const selectCols = 'statut, commande_ids, raison_echec, reseau, telephone, montant, fedapay_transaction_id'
+  const selectCols = 'statut, commande_ids, raison_echec, reseau, telephone, montant, transaction_reference'
 
   let { data, error } = await supabase.from('paiements_checkout').select(selectCols).eq('id', id).single()
 
@@ -65,36 +64,35 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // 2. Reconciliation active auprès de FedaPay, uniquement si toujours en
-  // attente ET qu'une transaction a bien été créée côté FedaPay (sinon rien
-  // à interroger). Nécessite la clé service_role pour pouvoir appeler
+  // 2. Reconciliation active auprès de GeniusPay, uniquement si toujours en
+  // attente ET qu'une transaction a bien été créée (sinon rien à
+  // interroger). Nécessite la clé service_role pour pouvoir appeler
   // finaliser_paiement_checkout / echouer_paiement_checkout (réservées au
-  // serveur, cf. migration chantier 5).
+  // serveur).
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (data.statut === 'en_attente' && data.fedapay_transaction_id && serviceRoleKey) {
+  if (data.statut === 'en_attente' && data.transaction_reference && serviceRoleKey) {
     try {
-      initFedaPay()
-      const transaction: any = await Transaction.retrieve(data.fedapay_transaction_id)
+      const transaction = await recupererPaiement(data.transaction_reference)
       const admin = createServiceClient(supabaseUrl, serviceRoleKey)
 
-      if (typeof transaction.wasPaid === 'function' ? transaction.wasPaid() : transaction.status === 'approved') {
-        await admin.rpc('finaliser_paiement_checkout', { p_transaction_id: String(data.fedapay_transaction_id) })
+      if (transaction.status === 'completed') {
+        await admin.rpc('finaliser_paiement_checkout', { p_transaction_id: String(data.transaction_reference) })
         const refetch = await supabase.from('paiements_checkout').select(selectCols).eq('id', id).single()
         if (refetch.data) data = refetch.data
-      } else if (transaction.status === 'declined' || transaction.status === 'canceled') {
+      } else if (transaction.status === 'failed' || transaction.status === 'cancelled' || transaction.status === 'expired') {
         await admin.rpc('echouer_paiement_checkout', {
-          p_transaction_id: String(data.fedapay_transaction_id),
-          p_raison: `transaction.${transaction.status}`,
+          p_transaction_id: String(data.transaction_reference),
+          p_raison: `payment.${transaction.status}`,
         })
         const refetch = await supabase.from('paiements_checkout').select(selectCols).eq('id', id).single()
         if (refetch.data) data = refetch.data
       }
-      // sinon (pending) : rien à faire, on continue d'attendre le webhook ou
-      // le prochain polling.
+      // sinon (pending/processing) : rien à faire, on continue d'attendre le
+      // webhook ou le prochain polling.
     } catch (err) {
       // Silencieux — c'est un filet de sécurité en plus du webhook, pas la
       // voie principale. On ne casse pas l'écran d'attente pour ça.
-      console.error('[paiements/statut] Vérification active FedaPay échouée:', err)
+      console.error('[paiements/statut] Vérification active GeniusPay échouée:', err)
     }
   }
 

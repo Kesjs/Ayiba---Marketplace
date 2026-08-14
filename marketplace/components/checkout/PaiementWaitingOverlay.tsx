@@ -6,17 +6,16 @@ import { Loader2, CheckCircle2, XCircle, RotateCcw } from 'lucide-react'
 
 type Statut = 'attente' | 'succes' | 'echec' | 'timeout'
 
-const LOGO_PAR_RESEAU: Record<'mtn' | 'moov' | 'celtiis', { src: string; label: string }> = {
+const LOGO_PAR_RESEAU: Record<'mtn' | 'moov', { src: string; label: string }> = {
   mtn: { src: '/logos/mtn.png', label: 'MTN MoMo' },
   moov: { src: '/logos/moov.jpg', label: 'Moov Money' },
-  celtiis: { src: '/logos/celtiis.jpg', label: 'Celtiis Cash' },
 }
 
 const DUREE_TIMEOUT_SECONDES = 150
 
 interface PaiementWaitingOverlayProps {
   statut: Statut
-  reseau: 'mtn' | 'moov' | 'celtiis'
+  reseau: 'mtn' | 'moov'
   telephone: string
   montant: number
   raisonEchec?: string | null

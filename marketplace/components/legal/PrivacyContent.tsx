@@ -71,8 +71,8 @@ export function PrivacyContent() {
 
         <SectionCard id="utilisation" icon={Eye} title="Utilisation des informations">
           <p>
-            Vos données sont utilisées pour traiter vos commandes, sécuriser les paiements via FedaPay (MTN, Moov,
-            Celtiis) et permettre aux livreurs de vous contacter pour la remise de vos colis. Nous n'utilisons pas
+            Vos données sont utilisées pour traiter vos commandes, sécuriser les paiements via GeniusPay (MTN, Moov)
+            et permettre aux livreurs de vous contacter pour la remise de vos colis. Nous n'utilisons pas
             vos données à des fins publicitaires intrusives.
           </p>
         </SectionCard>

@@ -15,7 +15,7 @@ import crypto from "crypto";
  * IMPORTANT : définir FACTURE_HMAC_SECRET dans les variables d'environnement
  * (chaîne aléatoire longue, ex. générée avec `openssl rand -hex 32`).
  * Ne jamais réutiliser une autre clé secrète existante (service role,
- * webhook FedaPay...) pour cet usage.
+ * webhook GeniusPay...) pour cet usage.
  */
 
 function secret(): string {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
-import { initFedaPay, declencherPaiementMobileMoney, extraireMessageErreurFedaPay } from '@/lib/fedapay'
+import { declencherPaiementMobileMoney, extraireMessageErreurGeniusPay } from '@/lib/geniuspay'
 
 interface GroupeCommande {
   vendeur_id: string
@@ -15,10 +15,11 @@ interface GroupeCommande {
 }
 
 /**
- * Étape "Paiement" du checkout (chantier 5) : NE crée PAS de commande.
+ * Étape "Paiement" du checkout : NE crée PAS de commande.
  * Enregistre une intention de paiement (`paiements_checkout`), déclenche le
- * prélèvement Mobile Money côté FedaPay, et renvoie l'ID à surveiller.
- * La ou les commandes ne seront créées qu'au webhook `transaction.approved`
+ * prélèvement Mobile Money côté GeniusPay (MTN/Moov, Bénin uniquement — cf.
+ * lib/geniuspay.ts), et renvoie la référence à surveiller.
+ * La ou les commandes ne seront créées qu'au webhook `payment.success`
  * (voir app/api/paiements/webhook/route.ts et la RPC finaliser_paiement_checkout).
  */
 export async function POST(req: NextRequest) {
@@ -45,7 +46,7 @@ export async function POST(req: NextRequest) {
   let body: {
     groupes: GroupeCommande[]
     montant: number
-    reseau: 'mtn' | 'moov' | 'celtiis'
+    reseau: 'mtn' | 'moov'
     telephone: string
     nomClient: string
   }
@@ -63,7 +64,9 @@ export async function POST(req: NextRequest) {
   if (!montant || montant <= 0) {
     return NextResponse.json({ error: 'Montant invalide' }, { status: 400 })
   }
-  if (!reseau || !['mtn', 'moov', 'celtiis'].includes(reseau)) {
+  // GeniusPay ne route le Bénin que sur MTN/Moov (voir lib/geniuspay.ts) —
+  // Celtiis n'est plus une option ici (l'était encore avec FedaPay).
+  if (!reseau || !['mtn', 'moov'].includes(reseau)) {
     return NextResponse.json({ error: 'Réseau Mobile Money invalide' }, { status: 400 })
   }
   if (!telephone?.trim()) {
@@ -106,28 +109,28 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // 2. Déclenchement FedaPay
+  // 2. Déclenchement GeniusPay
   try {
-    initFedaPay()
     const description =
       groupes.length > 1
         ? `Commande Ayiba — ${groupes.length} boutiques`
         : 'Commande Ayiba'
 
-    const { transactionId } = await declencherPaiementMobileMoney({
+    const { reference } = await declencherPaiementMobileMoney({
       montant,
       description,
       reseau,
       telephone: telephone.trim(),
       nomClient: nomClient?.trim() || 'Client Ayiba',
       emailClient: user.email || `client-${user.id}@ayiba.app`,
+      metadata: { paiement_checkout_id: paiementCheckout.id, user_id: user.id },
     })
 
-    // 3. On rattache l'ID de transaction à l'intention de paiement (permet au
-    // webhook de retrouver la ligne quand il reçoit l'événement FedaPay).
-    const { error: rpcError } = await supabase.rpc('attacher_transaction_fedapay', {
+    // 3. On rattache la référence GeniusPay à l'intention de paiement
+    // (permet au webhook de retrouver la ligne quand il reçoit l'événement).
+    const { error: rpcError } = await supabase.rpc('attacher_reference_paiement', {
       p_paiement_checkout_id: paiementCheckout.id,
-      p_transaction_id: transactionId,
+      p_reference: reference,
     })
     if (rpcError) {
       throw new Error(`Transaction créée mais non rattachée : ${rpcError.message}`)
@@ -135,18 +138,17 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       paiementCheckoutId: paiementCheckout.id,
-      transactionId,
+      transactionId: reference,
     })
   } catch (err) {
-    // On log l'objet brut en entier (pas juste err.message, souvent vide côté
-    // FedaPay) : c'est ce qu'il faut regarder dans les logs Render pour voir
-    // la vraie cause (numéro refusé, méthode indisponible en sandbox, clé API
-    // invalide, etc.).
-    console.error('[paiements/initier] FedaPay error (brut):', err)
-    const messageErreur = extraireMessageErreurFedaPay(err)
-    console.error('[paiements/initier] FedaPay error (message extrait):', messageErreur)
+    // On log l'objet brut en entier : c'est ce qu'il faut regarder dans les
+    // logs Render pour voir la vraie cause (numéro refusé, clé API
+    // invalide, opérateur indisponible, etc.).
+    console.error('[paiements/initier] GeniusPay error (brut):', err)
+    const messageErreur = err instanceof Error ? err.message : extraireMessageErreurGeniusPay(err)
+    console.error('[paiements/initier] GeniusPay error (message extrait):', messageErreur)
     // On marque l'intention comme échouée pour ne pas la laisser traîner
-    // "en_attente" indéfiniment si FedaPay a refusé avant même de créer la transaction.
+    // "en_attente" indéfiniment si GeniusPay a refusé avant même de créer la transaction.
     await supabase.rpc('echouer_initiation_paiement', { p_paiement_checkout_id: paiementCheckout.id })
     return NextResponse.json({ error: messageErreur }, { status: 502 })
   }

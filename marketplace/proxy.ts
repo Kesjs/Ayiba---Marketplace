@@ -2,6 +2,34 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+// Headers de cache pour les pages publiques (contenu statique côté vendeur/livreur
+// et fichiers image sont déjà exclus par le matcher plus bas, donc pas besoin
+// de les gérer ici).
+function applyCacheHeaders(res: NextResponse, path: string) {
+  const publicPages = [
+    "/catalogue",
+    "/devenir-vendeur",
+    "/devenir-livreur",
+    "/cgu",
+    "/privacy",
+  ];
+
+  if (publicPages.some((page) => path.startsWith(page))) {
+    res.headers.set(
+      "Cache-Control",
+      "public, max-age=3600, stale-while-revalidate=86400"
+    );
+    return res;
+  }
+
+  if (path.startsWith("/api/")) {
+    res.headers.set("Cache-Control", "private, max-age=0, must-revalidate");
+    return res;
+  }
+
+  return res;
+}
+
 export async function proxy(req: NextRequest) {
   let res = NextResponse.next({ request: req });
 
@@ -59,7 +87,9 @@ export async function proxy(req: NextRequest) {
     "/", "/catalogue", "/devenir-vendeur", "/devenir-livreur",
     "/cgu", "/privacy", "/compte-suspendu", "/auth", "/admin/login",
   ];
-  if (publicRoutes.some((route) => path.startsWith(route))) return res;
+  if (publicRoutes.some((route) => path.startsWith(route))) {
+    return applyCacheHeaders(res, path);
+  }
 
   const clientRoutes = ["/commandes", "/messages", "/historique", "/profil", "/favoris", "/checkout"];
   // Préfixes complets : toute page sous /vendeur ou /livreur est protégée par défaut,
@@ -99,7 +129,7 @@ export async function proxy(req: NextRequest) {
     }
   }
 
-  return res;
+  return applyCacheHeaders(res, path);
 }
 
 export const config = {

@@ -119,7 +119,9 @@ export default function CheckoutPage() {
   >({})
 
   // Étape 2 — Paiement
-  const [reseau, setReseau] = useState<'mtn' | 'moov' | 'celtiis' | ''>('')
+  // GeniusPay ne route le Bénin que sur MTN/Moov (voir lib/geniuspay.ts) —
+  // Celtiis n'est plus une option ici (l'était encore avec l'ancien FedaPay).
+  const [reseau, setReseau] = useState<'mtn' | 'moov' | ''>('')
   const [telephoneMomo, setTelephoneMomo] = useState('')
   const [recapOuvert, setRecapOuvert] = useState(false)
   const [passageEnCours, setPassageEnCours] = useState(false)
@@ -132,7 +134,7 @@ export default function CheckoutPage() {
   // l'écran "Paiement confirmé" retomberait à 0 F au même rendu.
   const [montantPaye, setMontantPaye] = useState<number | null>(null)
   // Le délai de 150s affiché dans l'overlay est purement visuel : la
-  // transaction FedaPay peut aboutir après coup (opérateur lent, réseau
+  // transaction Mobile Money peut aboutir après coup (opérateur lent, réseau
   // faible). On continue donc à écouter en arrière-plan même une fois
   // l'écran "Pas de réponse" affiché, pour basculer automatiquement vers le
   // succès si la confirmation finit par arriver plutôt que de laisser le
@@ -140,9 +142,10 @@ export default function CheckoutPage() {
   const [attentePassiveDepassee, setAttentePassiveDepassee] = useState(false)
   const [erreurInitiation, setErreurInitiation] = useState<string | null>(null)
   const [commandeIds, setCommandeIds] = useState<string[]>([])
-  // Mode test FedaPay (sandbox) : affiché en bandeau pour éviter de chercher
-  // un faux bug alors que c'est le mode sandbox qui bride le réseau choisi
-  // et n'accepte que 2 numéros de test (voir lib/fedapay.ts).
+  // Mode test GeniusPay (sandbox) : affiché en bandeau pour éviter de
+  // chercher un faux bug alors que c'est le mode sandbox qui est actif
+  // (détecté depuis le préfixe de la clé publique, voir
+  // app/api/paiements/mode/route.ts).
   const [modeTest, setModeTest] = useState(false)
   useEffect(() => {
     fetch('/api/paiements/mode')
@@ -502,10 +505,10 @@ export default function CheckoutPage() {
       } else if (err instanceof TypeError) {
         // fetch() échoue avec un TypeError ("Load failed", "Failed to fetch"...)
         // uniquement quand la requête n'a jamais atteint le serveur : coupure
-        // réseau, wifi/4G instable, etc. — jamais une erreur métier FedaPay.
+        // réseau, wifi/4G instable, etc. — jamais une erreur métier GeniusPay.
         setErreurInitiation("Connexion réseau interrompue. Vérifie ta connexion et réessaie.")
       } else {
-        // Erreur métier renvoyée par notre API (FedaPay, validation, etc.)
+        // Erreur métier renvoyée par notre API (GeniusPay, validation, etc.)
         setErreurInitiation(err instanceof Error ? err.message : 'Impossible de démarrer le paiement')
       }
     } finally {
@@ -569,7 +572,7 @@ export default function CheckoutPage() {
       {statutPaiement && (
         <PaiementWaitingOverlay
           statut={statutPaiement}
-          reseau={reseau as 'mtn' | 'moov' | 'celtiis'}
+          reseau={reseau as 'mtn' | 'moov'}
           telephone={telephoneMomo}
           montant={montantPaye ?? totalGeneral}
           raisonEchec={raisonEchec}
@@ -895,10 +898,11 @@ export default function CheckoutPage() {
             <section className="mb-6">
               <MobileMoneySelector
                 selected={reseau}
-                onSelect={(r) => { setReseau(r); setErreurInitiation(null) }}
+                onSelect={(r) => { setReseau(r as 'mtn' | 'moov'); setErreurInitiation(null) }}
                 phoneNumber={telephoneMomo}
                 onPhoneChange={(v) => { setTelephoneMomo(v); setErreurInitiation(null) }}
                 montant={totalGeneral}
+                networks={['mtn', 'moov']}
               />
             </section>
 

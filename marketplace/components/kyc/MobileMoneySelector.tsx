@@ -40,8 +40,8 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
   },
 ];
 
-/** Détecte le réseau à partir des 2 premiers chiffres significatifs du numéro. Retourne null si indéterminé. */
-function detecterReseau(numero: string): "mtn" | "moov" | "celtiis" | null {
+/** Détecte le réseau à partir des 2 premiers chiffres significatifs du numéro, parmi les réseaux autorisés. Retourne null si indéterminé ou hors liste. */
+function detecterReseau(numero: string, reseauxAutorises: ("mtn" | "moov" | "celtiis")[]): "mtn" | "moov" | "celtiis" | null {
   let chiffres = numero.replace(/\D/g, "");
   // Au cas où l'indicatif pays serait déjà collé au numéro (ex: valeur
   // reprise telle quelle depuis le profil), on le retire avant détection.
@@ -49,7 +49,9 @@ function detecterReseau(numero: string): "mtn" | "moov" | "celtiis" | null {
   const sansIndicatifNational = chiffres.startsWith("01") ? chiffres.slice(2) : chiffres;
   const deuxChiffres = sansIndicatifNational.slice(0, 2);
   if (deuxChiffres.length < 2) return null;
-  return MOBILE_MONEY_OPTIONS.find((o) => o.prefixes.includes(deuxChiffres))?.id ?? null;
+  const option = MOBILE_MONEY_OPTIONS.find((o) => o.prefixes.includes(deuxChiffres));
+  if (!option || !reseauxAutorises.includes(option.id)) return null;
+  return option.id;
 }
 
 /** Numéro tel qu'il doit s'afficher à côté du badge "+229" — jamais l'indicatif en double. */
@@ -67,6 +69,13 @@ interface MobileMoneySelectorProps {
   montant?: number;
   error?: string | null;
   touched?: boolean;
+  /**
+   * Réseaux affichés — par défaut les 3 (usage KYC vendeur/livreur : compte
+   * de réception, indépendant de tout prestataire de paiement). Le checkout
+   * acheteur passe ["mtn", "moov"] : GeniusPay ne route le Bénin que sur ces
+   * deux opérateurs (voir lib/geniuspay.ts), Celtiis n'y est pas disponible.
+   */
+  networks?: ("mtn" | "moov" | "celtiis")[];
 }
 
 export function MobileMoneySelector({
@@ -77,12 +86,19 @@ export function MobileMoneySelector({
   montant,
   error,
   touched,
+  networks = ["mtn", "moov", "celtiis"],
 }: MobileMoneySelectorProps) {
   const [logoFailed, setLogoFailed] = useState<Record<string, boolean>>({});
   // Tant que l'utilisateur n'a pas choisi lui-même une carte, on laisse l'auto-détection piloter la sélection.
   const [choisiManuellement, setChoisiManuellement] = useState(false);
 
-  const detecte = useMemo(() => detecterReseau(phoneNumber), [phoneNumber]);
+  const optionsAffichees = useMemo(
+    () => MOBILE_MONEY_OPTIONS.filter((o) => networks.includes(o.id)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [networks.join(",")]
+  );
+
+  const detecte = useMemo(() => detecterReseau(phoneNumber, networks), [phoneNumber, networks]);
 
   useEffect(() => {
     if (choisiManuellement) return;
@@ -102,7 +118,7 @@ export function MobileMoneySelector({
       </label>
 
       <div className="grid grid-cols-3 gap-3 mb-5">
-        {MOBILE_MONEY_OPTIONS.map((option) => {
+        {optionsAffichees.map((option) => {
           const isSelected = selected === option.id;
           const failed = logoFailed[option.id];
           return (

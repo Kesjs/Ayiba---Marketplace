@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { getRoleWithCache, setCachedServerRole, invalidateUserRoleCache } from "@/lib/supabase/role-cache";
 
 /**
  * Fait passer un compte CLIENT existant au rôle vendeur, en une seule
@@ -49,8 +50,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
   }
 
-  const { data: caller } = await cookieClient.from("users").select("role").eq("id", user.id).single();
-  if (caller?.role !== "client") {
+  // Utiliser le cache pour vérifier le rôle de l'appelant
+  const callerRole = await getRoleWithCache(user.id);
+  if (callerRole !== "client") {
     return NextResponse.json(
       { error: "Seul un compte client peut ouvrir une boutique via ce parcours." },
       { status: 400 }
@@ -120,6 +122,10 @@ export async function POST(req: NextRequest) {
   if (userError) {
     return NextResponse.json({ error: userError.message }, { status: 500 });
   }
+
+  // Invalidate cache et mettre à jour avec le nouveau rôle
+  invalidateUserRoleCache(user.id);
+  setCachedServerRole(user.id, "vendeur");
 
   return NextResponse.json({ success: true });
 }

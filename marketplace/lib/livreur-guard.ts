@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getRoleWithCache } from "@/lib/supabase/role-cache";
 
 /**
  * Garde d'accès pour les pages livreur sensibles (missions, historique,
@@ -22,10 +23,16 @@ export async function requireValidLivreur() {
     redirect("/connexion");
   }
 
+  // Utiliser le cache pour vérifier le rôle
+  const userRole = await getRoleWithCache(user.id);
+  if (userRole !== "livreur") {
+    redirect("/connexion");
+  }
+
   const { data: livreur } = await supabase
     .from("livreurs")
     .select("id, statut_verification")
-    .eq("id", user!.id)
+    .eq("id", user.id)
     .maybeSingle();
 
   if (!livreur || livreur.statut_verification !== "valide") {

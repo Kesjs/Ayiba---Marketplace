@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
@@ -9,6 +10,11 @@ import { AuthModal } from "@/components/ui/AuthModal";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { getRedirectPathForRole, isValidRole } from "@/lib/auth-utils";
+
+// Lazy-load heavy animation components to reduce initial bundle
+const HeroSection = dynamic(() => import("@/components/devenir-livreur/HeroSection").then(m => ({ default: m.HeroSection })), { ssr: true });
+const StepsSection = dynamic(() => import("@/components/devenir-livreur/StepsSection").then(m => ({ default: m.StepsSection })), { ssr: true });
+const CommissionSection = dynamic(() => import("@/components/devenir-livreur/CommissionSection").then(m => ({ default: m.CommissionSection })), { ssr: true });
 import {
   Wallet,
   ShieldCheck,
@@ -43,18 +49,22 @@ const STEPS = [
     illustration: "/illustrations/rider-step-1.svg",
     title: "Profil vérifié",
     desc: "Inscrivez-vous en 2 minutes. Notre équipe vérifie votre identité et votre véhicule pour garantir la sécurité et le sérieux des livraisons sur Ayiba.",
+    icon: IdCard,
   },
   {
     number: "02",
     illustration: "/illustrations/rider-step-2.svg",
     title: "Missions locales",
     desc: "Recevez des demandes de livraison à proximité. Acceptez les courses qui vous conviennent en un clic via votre application dédiée.",
+    icon: Smartphone,
   },
   {
     number: "03",
     illustration: "/illustrations/rider-step-3.svg",
     title: "Gains instantanés",
     desc: "Soyez payé dès que le client valide la réception avec son code OTP unique. Vos gains (95%) sont crédités instantanément sur votre compte Mobile Money.",
+    icon: Wallet,
+  },
 ] as const;
 
 const THREE_BENEFITS = [
@@ -156,261 +166,19 @@ export default function DevenirLivreurPage() {
 
       <div className="min-h-screen bg-white">
         {/* ═══════════════════════════════════════════════════════
-            HERO
+            HERO - Lazy-loaded
         ═══════════════════════════════════════════════════════ */}
-        <section className="relative bg-gradient-to-br from-white via-teal-50/30 to-coral-50/20 border-b border-gray-100 py-20 md:py-28">
-          <div className="max-w-4xl mx-auto px-4 md:px-8 lg:px-12">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex flex-col items-center text-center"
-            >
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-full px-4 py-2 mb-8">
-                <Bike className="w-4 h-4 text-teal-600" strokeWidth={2} />
-                <span className="text-sm font-medium text-teal-800">
-                  Devenir livreur partenaire
-                </span>
-              </div>
-
-              {/* H1 - Options commentées en bas */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-medium text-gray-900 leading-[1.1] mb-6 tracking-tight max-w-3xl">
-                Livrez votre quartier, gagnez en liberté
-              </h1>
-              
-              
-              {/* HERO OPTIONS (choisir celui qui te plaît) :
-              
-              Option 1 (actif) : "Livrez votre quartier, gagnez en liberté"
-              Option 2 : "Transformez vos trajets en revenus"
-              Option 3 : "Votre moto, vos horaires, vos gains"
-              Option 4 : "Livrez à proximité, encaissez instantanément"
-              
-              */}
-
-              {/* Subtexte */}
-              <p className="text-lg md:text-xl text-gray-600 mb-10 leading-relaxed max-w-2xl">
-                Rejoignez le réseau Ayiba et transformez votre disponibilité en opportunité. 95% de gains par course, paiement Mobile Money instantané.
-              </p>
-
-              {/* Boutons */}
-              <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                <Button
-                  variant="primary"
-                  onClick={() => setAuthModalOpen(true)}
-                  className="min-w-[200px] !bg-teal-600 hover:!bg-teal-700 !text-white !font-medium !shadow-lg hover:!shadow-xl"
-                >
-                  Commencer maintenant
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  className="min-w-[200px] !bg-white !border-2 !border-teal-600 !text-teal-600 hover:!bg-teal-50 !font-medium"
-                >
-                  Comment ça marche
-                </Button>
-              </div>
-
-              {/* Stats rapides */}
-              <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-                {THREE_BENEFITS.map((benefit, i) => {
-                  const Icon = benefit.icon;
-                  return (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 + i * 0.1, duration: 0.5 }}
-                      className="flex items-center gap-3"
-                    >
-                      <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-teal-600" strokeWidth={2} />
-                      </div>
-                      <div className="text-left">
-                        <p className="text-sm font-medium text-gray-900">{benefit.title}</p>
-                        <p className="text-xs text-gray-500">{benefit.desc}</p>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </div>
-        </section>
+        <HeroSection benefits={THREE_BENEFITS} onCTAClick={() => setAuthModalOpen(true)} />
 
         {/* ═══════════════════════════════════════════════════════
-            COMMENT ÇA MARCHE
+            COMMENT ÇA MARCHE - Lazy-loaded
         ═══════════════════════════════════════════════════════ */}
-        <section className="py-20 px-4 md:px-8 lg:px-12 bg-white">
-          <div className="max-w-6xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-3xl md:text-4xl font-medium text-gray-900 mb-4">
-                Comment ça marche ?
-              </h2>
-              <p className="text-lg text-gray-600">
-                Devenez livreur en 3 étapes simples et sécurisées
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {STEPS.map((step, i) => {
-                const Icon = step.icon;
-                return (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 30 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.15, duration: 0.6 }}
-                    viewport={{ once: true }}
-                    className="relative bg-white border border-gray-100 rounded-2xl p-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300"
-                  >
-                    {/* Numéro */}
-                    <div className="absolute top-6 left-6 w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
-                      <span className="text-sm font-medium text-teal-600">{step.number}</span>
-                    </div>
-
-                    {/* Illustration */}
-                    <div className="relative w-full aspect-square max-w-[160px] mx-auto mb-8 mt-4">
-                      <div className="absolute inset-0 bg-teal-100 rounded-full blur-3xl opacity-40" />
-                      <img
-                        src={step.illustration}
-                        alt={step.title}
-                        className="relative z-10 w-full h-full object-contain drop-shadow-lg"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
-
-                    {/* Icone + titre */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-lg bg-teal-50 flex items-center justify-center shrink-0">
-                        <Icon className="w-5 h-5 text-teal-600" strokeWidth={2} />
-                      </div>
-                      <h3 className="text-xl font-medium text-gray-900">{step.title}</h3>
-                    </div>
-
-                    <p className="text-sm text-gray-600 leading-relaxed">{step.desc}</p>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-        </section>
-
+        <StepsSection steps={STEPS} />
 
         {/* ═══════════════════════════════════════════════════════
-            COMMISSION — Style Shopify
+            COMMISSION — Style Shopify - Lazy-loaded
         ═══════════════════════════════════════════════════════ */}
-        <section className="py-20 px-4 md:px-8 lg:px-12 bg-gray-50 border-y border-gray-100">
-          <div className="max-w-5xl mx-auto">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl md:text-4xl font-medium text-gray-900 mb-4">
-                Une rémunération transparente
-              </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-                Gagnez jusqu'à 95% de chaque course. Votre travail, votre revenu.
-              </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Card 1 - Vous gagnez */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-                className="bg-white border border-gray-200 rounded-2xl p-8"
-              >
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
-                    <Wallet className="w-6 h-6 text-teal-600" strokeWidth={2} />
-                  </div>
-                  <div>
-                    <p className="text-5xl font-medium text-teal-600 mb-2">95%</p>
-                    <p className="text-sm font-medium text-gray-900 mb-1">Vous gagnez</p>
-                    <p className="text-xs text-gray-500">Par course livrée</p>
-                  </div>
-                </div>
-
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-sm text-gray-700">Paiement instantané sur Mobile Money</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-sm text-gray-700">Retrait disponible immédiatement</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-sm text-gray-700">Zéro frais cachés</span>
-                  </li>
-                </ul>
-              </motion.div>
-
-              {/* Card 2 - Frais Ayiba */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                viewport={{ once: true }}
-                className="bg-white border border-gray-200 rounded-2xl p-8"
-              >
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
-                    <ShieldCheck className="w-6 h-6 text-gray-500" strokeWidth={2} />
-                  </div>
-                  <div>
-                    <p className="text-5xl font-medium text-gray-700 mb-2">5%</p>
-                    <p className="text-sm font-medium text-gray-900 mb-1">Frais Ayiba</p>
-                    <p className="text-xs text-gray-500">Commission plateforme</p>
-                  </div>
-                </div>
-
-                <ul className="space-y-3">
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-sm text-gray-700">Sécurité des transactions</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-sm text-gray-700">Application mobile et support</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <CheckCircle className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" strokeWidth={2} />
-                    <span className="text-sm text-gray-700">Système OTP et tracking GPS</span>
-                  </li>
-                </ul>
-              </motion.div>
-            </div>
-
-            {/* Trust badge */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              viewport={{ once: true }}
-              className="mt-8 flex items-center justify-center gap-3 p-4 bg-teal-50 border border-teal-100 rounded-xl max-w-md mx-auto"
-            >
-              <ShieldCheck className="w-5 h-5 text-teal-600" strokeWidth={2} />
-              <p className="text-sm font-medium text-teal-900">
-                Paiements garantis et sécurisés via Mobile Money
-              </p>
-            </motion.div>
-          </div>
-        </section>
+        <CommissionSection />
 
         {/* ═══════════════════════════════════════════════════════
             FLUX DE LIVRAISON — Split view

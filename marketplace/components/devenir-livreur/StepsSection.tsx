@@ -1,56 +1,54 @@
+/**
+ * Steps section for devenir-livreur page
+ * Lazy-loaded via dynamic import to reduce main bundle
+ */
+
 "use client";
 
-import dynamic from "next/dynamic";
-import { UserCheck, MapPin, Wallet } from "lucide-react";
+import { motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 
-const motion = dynamic(() => import("framer-motion").then(mod => ({ default: mod.motion })), {
-  ssr: false,
-});
+interface Step {
+  readonly number: string;
+  readonly illustration: string;
+  readonly title: string;
+  readonly desc: string;
+  readonly icon: LucideIcon;
+}
 
-// Données des étapes statiques
-const STEPS = [
-  {
-    number: "01",
-    illustration: "/illustrations/rider-step-1.svg",
-    icon: UserCheck,
-    title: "Profil vérifié",
-    desc: "Inscrivez-vous en 2 minutes. Notre équipe vérifie votre identité et votre véhicule pour garantir la sécurité et le sérieux des livraisons sur Ayiba.",
-  },
-  {
-    number: "02",
-    illustration: "/illustrations/rider-step-2.svg",
-    icon: MapPin,
-    title: "Missions locales",
-    desc: "Recevez des demandes de livraison à proximité. Acceptez les courses qui vous conviennent en un clic via votre application dédiée.",
-  },
-  {
-    number: "03",
-    illustration: "/illustrations/rider-step-3.svg",
-    icon: Wallet,
-    title: "Gains instantanés",
-    desc: "Soyez payé dès que le client valide la réception avec son code OTP unique. Vos gains (95%) sont crédités instantanément sur votre compte Mobile Money.",
-  },
-] as const;
+interface StepsSectionProps {
+  steps: readonly Step[];
+}
 
-export default function StepsSection() {
+export function StepsSection({ steps }: StepsSectionProps) {
   return (
     <section className="py-20 px-4 md:px-8 lg:px-12 bg-white">
       <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-16">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          viewport={{ once: true }}
+          className="text-center mb-16"
+        >
           <h2 className="text-3xl md:text-4xl font-medium text-gray-900 mb-4">
             Comment ça marche ?
           </h2>
           <p className="text-lg text-gray-600">
             Devenez livreur en 3 étapes simples et sécurisées
           </p>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {STEPS.map((step, i) => {
+          {steps.map((step, i) => {
             const Icon = step.icon;
             return (
-              <div
+              <motion.div
                 key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.15, duration: 0.6 }}
+                viewport={{ once: true }}
                 className="relative bg-white border border-gray-100 rounded-2xl p-8 hover:shadow-xl hover:-translate-y-2 transition-all duration-300"
               >
                 {/* Numéro */}
@@ -79,7 +77,7 @@ export default function StepsSection() {
                 </div>
 
                 <p className="text-sm text-gray-600 leading-relaxed">{step.desc}</p>
-              </div>
+              </motion.div>
             );
           })}
         </div>

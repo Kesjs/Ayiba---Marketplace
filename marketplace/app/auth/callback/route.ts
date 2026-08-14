@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { setCachedServerRole } from "@/lib/supabase/role-cache";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 export async function GET(request: Request) {
@@ -63,6 +64,11 @@ export async function GET(request: Request) {
         .select("role")
         .eq("id", user.id)
         .single();
+
+      // Cache le rôle pour les prochains appels
+      if (userData?.role) {
+        setCachedServerRole(user.id, userData.role);
+      }
 
       if (userData?.role === "vendeur" || userData?.role === "livreur") {
         const table = userData.role === "vendeur" ? "vendeurs" : "livreurs";

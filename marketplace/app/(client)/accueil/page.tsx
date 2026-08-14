@@ -13,6 +13,7 @@ import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 import { createClient } from '@/lib/supabase/client'
 import { fetchFavoriteIds, toggleFavorite } from '@/lib/catalogue'
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from '@/lib/queries/articles'
+import { useCallback } from 'react'
 
 function saluerSelonHeure(): string {
   const h = new Date().getHours()
@@ -105,6 +106,14 @@ export default function AccueilPage() {
     }
   }
 
+  const handleCategoryClick = useCallback((categoryName: string) => {
+    if (categoryName === 'Tout') {
+      router.push('/catalogue')
+    } else {
+      router.push(`/catalogue?categorie=${encodeURIComponent(categoryName)}`)
+    }
+  }, [router])
+
   return (
     <div className="flex-1 flex flex-col h-screen overflow-hidden">
       <ClientDashboardHeader
@@ -124,7 +133,7 @@ export default function AccueilPage() {
         {categoryLabels.map((cat) => (
           <button
             key={cat}
-            onClick={() => setSelectedCategory(cat)}
+            onClick={() => handleCategoryClick(cat)}
             className={`px-5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
               selectedCategory === cat
                 ? 'bg-coral-500 text-white shadow-lg shadow-coral-500/20'

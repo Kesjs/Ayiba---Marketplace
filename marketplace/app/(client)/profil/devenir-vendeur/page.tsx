@@ -43,5 +43,10 @@ export default async function DevenirVendeurClientPage() {
     redirect("/admin/dashboard");
   }
 
-  return <VendeurKycWizard />;
+  return (
+    <>
+      <VendeurKycWizard />
+      <SimpleBottomNav />
+    </>
+  );
 }

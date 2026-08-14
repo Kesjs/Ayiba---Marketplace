@@ -65,7 +65,6 @@ export function BottomNav() {
 
   const hideOnPaths = [
     '/auth', '/cgu', '/privacy', '/compte-suspendu',
-    '/devenir-vendeur', '/devenir-livreur',
     '/produits', '/vendeur/kyc'
   ];
 

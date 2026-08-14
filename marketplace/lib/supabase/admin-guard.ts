@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
+import { getRoleWithCache } from "@/lib/supabase/role-cache";
 
 /**
  * Vérifie, côté serveur, que l'appelant d'une route API admin est bien
@@ -49,13 +50,10 @@ export async function requireAdmin(req: NextRequest) {
     return { error: NextResponse.json({ error: "Non authentifié" }, { status: 401 }) } as const;
   }
 
-  const { data: callerProfile } = await cookieClient
-    .from("users")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  // Utiliser le cache pour réduire les appels Supabase
+  const callerRole = await getRoleWithCache(user.id);
 
-  if (callerProfile?.role !== "admin") {
+  if (callerRole !== "admin") {
     return { error: NextResponse.json({ error: "Réservé aux administrateurs" }, { status: 403 }) } as const;
   }
 

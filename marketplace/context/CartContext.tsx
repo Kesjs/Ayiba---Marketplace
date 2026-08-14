@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
 interface CartItem {
   id: string
@@ -52,6 +53,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem('ayiba-cart', JSON.stringify(items))
   }, [items])
+
+  // Le panier vit dans localStorage, complètement indépendant de la session
+  // Supabase — sans ce listener, se déconnecter (ou se connecter sur un
+  // autre compte, sur le même appareil) laissait les articles d'un panier
+  // précédent visibles pour le prochain utilisateur. On vide le panier
+  // uniquement sur SIGNED_OUT (pas sur les autres events comme
+  // TOKEN_REFRESHED, pour ne jamais perdre le panier d'une session active).
+  useEffect(() => {
+    const supabase = createClient()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
+      if (event === 'SIGNED_OUT') {
+        setItems([])
+        localStorage.removeItem('ayiba-cart')
+      }
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
   const addItem = (item: Omit<CartItem, 'quantite'>) => {
     setItems(prev => {

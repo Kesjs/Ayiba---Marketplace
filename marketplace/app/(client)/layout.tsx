@@ -7,9 +7,7 @@ import {
   Search, Package, Home, MessageSquare, Menu as MenuIcon,
   ShoppingCart, LogOut, Minus, Plus, Trash2, ShoppingBag, X,
 } from 'lucide-react'
-import { CartProvider, useCart } from '@/context/CartContext'
-import { ToastProvider } from '@/context/ToastContext'
-import { Toast } from '@/components/ui/Toast'
+import { useCart } from '@/context/CartContext'
 import LogoAyiba from '@/components/ui/LogoAyiba'
 import { Button } from '@/components/ui/Button'
 import { createClient } from '@/lib/supabase/client'
@@ -32,7 +30,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const { isOpen, closeCart, items, total, itemCount, updateQty, removeItem } = useCart()
+  const { isOpen, openCart, closeCart, items, total, itemCount, updateQty, removeItem } = useCart()
   const supabase = createClient()
 
   const confirmLogout = async () => {
@@ -43,7 +41,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <aside className={`hidden bg-white border-r border-gray-100 flex-col shrink-0 md:flex h-screen sticky top-0 transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
+      <aside className={`hidden bg-white border-r border-gray-100 flex-col shrink-0 lg:flex h-screen sticky top-0 transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
         <div className="p-4 border-b border-gray-50">
           <LogoAyiba />
         </div>
@@ -68,7 +66,7 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
         </nav>
         <div className="p-4 border-t border-gray-50">
           <button
-            onClick={closeCart}
+            onClick={openCart}
             className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all cursor-pointer relative"
           >
             <ShoppingCart size={18} />
@@ -178,11 +176,6 @@ function ClientLayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
   return (
-    <CartProvider>
-      <ToastProvider>
-        <ClientLayoutContent>{children}</ClientLayoutContent>
-        <Toast />
-      </ToastProvider>
-    </CartProvider>
+    <ClientLayoutContent>{children}</ClientLayoutContent>
   )
 }

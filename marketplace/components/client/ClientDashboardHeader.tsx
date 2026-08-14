@@ -72,13 +72,13 @@ export function ClientDashboardHeader({
 
   return (
     <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-100 shrink-0">
-      {/* --- Bande actions unique, mobile (< md) ---
-          L'aside client porte déjà le logo à partir de md ; en dessous,
+      {/* --- Bande actions unique, mobile (< lg) ---
+          L'aside client porte déjà le logo à partir de lg ; en dessous,
           cette bande unique regroupe logo + cloche + avatar sur une seule
-          ligne, même principe que pour vendeur/livreur mais calé sur md
+          ligne, même principe que pour vendeur/livreur mais calé sur lg
           puisque l'aside client (contrairement au Sidebar rôle) apparaît
-          dès md et non lg. */}
-      <div className="md:hidden flex items-center justify-between gap-3 px-4 h-12 border-b border-gray-50">
+          dès lg et non lg. */}
+      <div className="lg:hidden flex items-center justify-between gap-3 px-4 h-12 border-b border-gray-50">
         <Link href={logoHref} className="flex items-center">
           <LogoAyiba className="h-6 w-auto" />
         </Link>
@@ -121,8 +121,8 @@ export function ClientDashboardHeader({
         </div>
       </div>
 
-      {/* --- Bande contenu, mobile (< md) : pleine largeur, plus rien à droite --- */}
-      <div className="md:hidden flex items-center gap-2 px-4 h-14">
+      {/* --- Bande contenu, mobile (< lg) : pleine largeur, plus rien à droite --- */}
+      <div className="lg:hidden flex items-center gap-2 px-4 h-14">
         {backHref && (
           <Link
             href={backHref}
@@ -142,8 +142,8 @@ export function ClientDashboardHeader({
         )}
       </div>
 
-      {/* --- Desktop réel (>= md) : l'aside garde le logo, le header garde cloche+avatar --- */}
-      <div className="hidden md:flex relative items-center justify-between gap-3 px-4 md:px-8 h-16">
+      {/* --- Desktop réel (>= lg) : l'aside garde le logo, le header garde cloche+avatar --- */}
+      <div className="hidden lg:flex relative items-center justify-between gap-3 px-4 md:px-8 h-16">
         <div className="flex items-center gap-3 min-w-0">
           {backHref && (
             <Link

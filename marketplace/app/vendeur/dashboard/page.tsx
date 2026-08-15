@@ -378,7 +378,7 @@ export default function VendeurDashboardPage() {
                     {commandes.map((order) => (
                       <button
                         key={order.id}
-                        onClick={() => router.push(`/vendeur/commandes/${order.id}`)}
+                        onClick={() => router.push(`/vendeur/commandes?commande=${order.id}`)}
                         className="w-full flex items-center justify-between gap-3 px-4 py-4 active:bg-gray-50 transition-colors text-left"
                       >
                         <div className="min-w-0 flex-1">
@@ -414,7 +414,7 @@ export default function VendeurDashboardPage() {
                         {commandes.map((order) => (
                           <tr
                             key={order.id}
-                            onClick={() => router.push(`/vendeur/commandes/${order.id}`)}
+                            onClick={() => router.push(`/vendeur/commandes?commande=${order.id}`)}
                             className="hover:bg-gray-50 cursor-pointer transition-colors group"
                           >
                             <td className="px-8 py-6">

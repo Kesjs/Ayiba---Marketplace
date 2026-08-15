@@ -93,20 +93,20 @@ export function BottomNav() {
       // ressorte bien : c'est le seul endroit dans toute la navigation mobile
       // du dashboard vendeur qui bascule vers le catalogue public — sans lui
       // un vendeur n'a aucun moyen évident d'acheter chez un autre vendeur.
-      // Même lien que "Faire des achats" dans AccountDropdown (desktop et
+      // Même lien que "Catalogue" dans AccountDropdown (desktop et
       // header mobile), ajouté ici aussi car ce tiroir est la navigation
       // mobile réellement utilisée au quotidien.
       title: "Acheter",
       items: [
-        { label: "Faire des achats", icon: ShoppingBag, href: "/vendeur/catalogue", iconBg: "bg-coral-50", iconColor: "text-coral-500" },
-        { label: "Mes achats", icon: ShoppingCart, href: "/vendeur/achats", iconBg: "bg-gray-50", iconColor: "text-gray-600" },
+        { label: "Catalogue", icon: ShoppingBag, href: "/vendeur/catalogue", iconBg: "bg-coral-50", iconColor: "text-coral-500" },
+        { label: "Commandes", icon: ShoppingCart, href: "/vendeur/achats", iconBg: "bg-gray-50", iconColor: "text-gray-600" },
         { label: "Favoris", icon: Heart, href: "/vendeur/favoris", iconBg: "bg-gray-50", iconColor: "text-gray-600" },
       ],
     },
     {
       title: "Boutique",
       items: [
-        { label: "Ma boutique", icon: Store, href: "/vendeur/boutique", iconBg: "bg-teal-50", iconColor: "text-teal-600" },
+        { label: "Boutique", icon: Store, href: "/vendeur/boutique", iconBg: "bg-teal-50", iconColor: "text-teal-600" },
         { label: "Paiements", icon: Wallet, href: "/vendeur/paiements", iconBg: "bg-amber-50", iconColor: "text-amber-600" },
       ],
     },

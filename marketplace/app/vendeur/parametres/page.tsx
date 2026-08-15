@@ -607,6 +607,7 @@ export default function VendeurParametresPage() {
         )}
       </div>
     </div>
+    </div>
 
     <DangerZoneModal
       open={showConfirmPause}

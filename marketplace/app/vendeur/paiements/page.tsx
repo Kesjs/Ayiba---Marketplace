@@ -114,22 +114,18 @@ export default function VendeurPaiementsPage() {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="space-y-6"
         >
-          {/* --- Bande hero : solde + attente + retirer ---
-              Mobile/tablette : bloc plein format avec pills empilées (inchangé).
-              Desktop (lg+) : bande compacte fusionnée avec les KPIs (plus de
-              doublon avec une grille de tuiles séparée) — solde à gauche,
-              3 stats alignées à droite séparées par des liserés verticaux. */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[24px] p-5 sm:p-6 lg:py-5 lg:px-7 text-white shadow-xl shadow-coral-500/20">
+          {/* --- Bande hero : solde + attente + retirer --- */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[24px] p-5 sm:p-6 text-white shadow-xl shadow-coral-500/20">
             <div className="absolute -top-16 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-16 -left-8 w-40 h-40 bg-black/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between lg:gap-8">
+            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Wallet size={14} className="text-white/80" />
                   <span className="text-white/80 text-xs font-semibold uppercase tracking-wider">Solde disponible</span>
                 </div>
-                <p className="text-3xl sm:text-4xl lg:text-3xl font-bold tracking-tight mb-4 lg:mb-3">
+                <p className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
                   {soldeDisponible.toLocaleString("fr-FR")} <span className="text-sm font-semibold opacity-90">F</span>
                 </p>
 
@@ -148,8 +144,7 @@ export default function VendeurPaiementsPage() {
                 )}
               </div>
 
-              {/* Pills — mobile/tablette uniquement */}
-              <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-start lg:hidden">
+              <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-start">
                 <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
                   <Clock size={12} className="text-white/90" />
                   <span className="text-xs font-semibold">
@@ -160,29 +155,11 @@ export default function VendeurPaiementsPage() {
                   <span className="text-xs font-semibold">{retraits.length} retrait{retraits.length > 1 ? "s" : ""}</span>
                 </div>
               </div>
-
-              {/* Stats fusionnées — desktop uniquement */}
-              <div className="hidden lg:flex lg:items-center lg:gap-7">
-                {[
-                  { icon: ArrowDownToLine, value: paiements.length, label: "Paiements reçus" },
-                  { icon: ArrowUpFromLine, value: retraits.length, label: `Retrait${retraits.length > 1 ? "s" : ""}` },
-                  { icon: Clock, value: `${soldeEnAttenteLivraison.toLocaleString("fr-FR")} F`, label: "En attente" },
-                ].map((stat, i) => (
-                  <div key={stat.label} className={`flex items-center gap-2.5 ${i > 0 ? "pl-7 border-l border-white/20" : ""}`}>
-                    <stat.icon size={16} className="text-white/70 shrink-0" />
-                    <div>
-                      <p className="text-lg font-bold leading-tight">{stat.value}</p>
-                      <p className="text-[11px] text-white/70 leading-tight whitespace-nowrap">{stat.label}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </div>
 
-          {/* --- Grille de tuiles carrées (raccourcis + KPIs) — mobile/tablette uniquement,
-              sur desktop ces stats vivent désormais dans la bande hero ci-dessus --- */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:hidden">
+          {/* --- Grille de tuiles carrées (raccourcis + KPIs) --- */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             {[
               { icon: ArrowDownToLine, label: "Paiements reçus", value: paiements.length, color: "text-teal-600", bg: "bg-teal-50" },
               { icon: ArrowUpFromLine, label: "Retraits", value: retraits.length, color: "text-coral-500", bg: "bg-coral-50" },

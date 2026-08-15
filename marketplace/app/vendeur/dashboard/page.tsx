@@ -215,37 +215,58 @@ export default function VendeurDashboardPage() {
             </div>
           )}
 
-          {/* Stats — 4 blocs sur une même ligne (CA, Commandes, Articles actifs, Articles vendus) */}
+          {/* Stats — 4 blocs sur une même ligne (CA mis en avant, puis Commandes, Articles actifs, Articles vendus) */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-            {secondaryStats.map((stat, i) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * i, duration: 0.3 }}
-                className="bg-white p-3 sm:p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300"
-              >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className={`w-9 h-9 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center flex-shrink-0`}>
-                    <stat.icon size={18} />
-                  </div>
-                  {stat.change && (
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
-                        stat.change.startsWith("+") || stat.change === "Nouveau"
-                          ? "bg-teal-50 text-teal-600"
-                          : "bg-red-50 text-red-600"
+            {secondaryStats.map((stat, i) => {
+              const isCA = i === 0;
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 * i, duration: 0.3 }}
+                  className={`relative overflow-hidden p-3 sm:p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 ${
+                    isCA
+                      ? "bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 shadow-coral-500/20"
+                      : "bg-white border border-gray-100"
+                  }`}
+                >
+                  {isCA && (
+                    <div className="absolute -top-8 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                  )}
+
+                  <div className="relative flex items-center justify-between gap-2 mb-2">
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                        isCA ? "bg-white/20 text-white" : `${stat.bg} ${stat.color}`
                       }`}
                     >
-                      {stat.change}
-                    </span>
-                  )}
-                </div>
+                      <stat.icon size={18} />
+                    </div>
+                    {stat.change && (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
+                          isCA
+                            ? "bg-white/20 text-white"
+                            : stat.change.startsWith("+") || stat.change === "Nouveau"
+                            ? "bg-teal-50 text-teal-600"
+                            : "bg-red-50 text-red-600"
+                        }`}
+                      >
+                        {stat.change}
+                      </span>
+                    )}
+                  </div>
 
-                <p className="text-[11px] font-medium text-gray-500 mb-0.5 line-clamp-1">{stat.label}</p>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight truncate">{stat.value}</p>
-              </motion.div>
-            ))}
+                  <p className={`relative text-[11px] font-medium mb-0.5 line-clamp-1 ${isCA ? "text-white/80" : "text-gray-500"}`}>
+                    {stat.label}
+                  </p>
+                  <p className={`relative text-xl sm:text-2xl font-bold tracking-tight truncate ${isCA ? "text-white" : "text-gray-900"}`}>
+                    {stat.value}
+                  </p>
+                </motion.div>
+              );
+            })}
           </div>
 
           {/* Graphique CA */}

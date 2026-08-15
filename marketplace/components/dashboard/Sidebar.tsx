@@ -173,7 +173,7 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
           directement après le logo. */}
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 px-3 pt-4 space-y-1 overflow-y-auto">
         {items.map((item) => {
           const isActive = item.path
             ? pathname === item.path || pathname.startsWith(`${item.path}/`)

@@ -358,244 +358,254 @@ export default function VendeurParametresPage() {
         </div>
       )}
 
-      {/* Avatar + nom */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="bg-white p-6 sm:p-8 rounded-3xl border border-gray-100 shadow-sm mb-6 flex items-center gap-5"
-      >
-        <button
-          onClick={handleAvatarClick}
-          disabled={uploadingAvatar}
-          className="relative w-20 h-20 rounded-2xl bg-gray-100 overflow-hidden shrink-0 group"
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Colonne principale - Profil avec avatar intégré */}
+      <div className="lg:col-span-7 space-y-6">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-100 shadow-sm"
         >
-          {usersRow?.avatar_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={usersRow.avatar_url} alt="Photo de profil" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300">
-              <User size={28} />
+          <div className="flex items-start gap-6 mb-6">
+            <button
+              onClick={handleAvatarClick}
+              disabled={uploadingAvatar}
+              className="relative w-24 h-24 rounded-xl bg-gray-100 overflow-hidden shrink-0 group"
+            >
+              {usersRow?.avatar_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={usersRow.avatar_url} alt="Photo de profil" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                  <User size={32} />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera size={20} className="text-white" />
+              </div>
+              {uploadingAvatar && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            <div className="flex-1 min-w-0">
+              <h3 className="text-lg font-bold text-gray-900 mb-1">{form.fullName || "Ton nom"}</h3>
+              <p className="text-sm text-gray-500 mb-3">Photo de profil</p>
+              <p className="text-xs text-gray-400">Touche la photo pour la changer</p>
             </div>
-          )}
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <Camera size={18} className="text-white" />
           </div>
-          {uploadingAvatar && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+
+          <div className="space-y-4">
+            <SettingsField label="Nom complet" error={fieldErrors.fullName}>
+              <input
+                type="text"
+                value={form.fullName}
+                onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+                className="settings-input"
+                placeholder="Ton nom complet"
+              />
+            </SettingsField>
+            <SettingsField label="Téléphone" error={fieldErrors.phone}>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                className="settings-input"
+                placeholder="+229 00 00 00 00"
+              />
+            </SettingsField>
+          </div>
+        </motion.div>
+
+        {/* Boutique */}
+        <SettingsSection icon={Store} title="Boutique" delay={0.1}>
+          <Link
+            href="/vendeur/boutique"
+            className="w-full flex items-center justify-between py-2 group"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-gray-900">Gérer ma boutique</p>
+              <p className="text-xs text-gray-400 font-medium mt-0.5 truncate">
+                {vendeurRow?.nom_boutique || "Nom, adresse, horaires"}
+              </p>
             </div>
-          )}
-        </button>
-        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-        <div className="min-w-0">
-          <p className="font-bold text-gray-900 truncate">{form.fullName || "Ton nom"}</p>
-          <p className="text-xs text-gray-400 font-medium mt-0.5">Touche la photo pour la changer</p>
-        </div>
-      </motion.div>
+            <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
+          </Link>
+        </SettingsSection>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      {/* Profil */}
-      <SettingsSection icon={User} title="Profil" delay={0.05}>
-        <SettingsField label="Nom complet" error={fieldErrors.fullName}>
-          <input
-            type="text"
-            value={form.fullName}
-            onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
-            className="settings-input"
-            placeholder="Ton nom complet"
-          />
-        </SettingsField>
-        <SettingsField label="Téléphone" error={fieldErrors.phone}>
-          <input
-            type="tel"
-            value={form.phone}
-            onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
-            className="settings-input"
-            placeholder="+229 00 00 00 00"
-          />
-        </SettingsField>
-      </SettingsSection>
+        {/* Sécurité & connexion */}
+        <SettingsSection icon={Lock} title="Sécurité & connexion" delay={0.15}>
+          <SettingsField label="Email de connexion" error={fieldErrors.email}>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              className="settings-input"
+              placeholder="toi@exemple.com"
+            />
+          </SettingsField>
+          <p className="text-xs text-gray-400 font-medium -mt-2">
+            Utilisé pour te connecter. Enregistre avec le bouton en bas de page.
+          </p>
 
-      {/* Boutique */}
-      <SettingsSection icon={Store} title="Boutique" delay={0.1}>
-        <Link
-          href="/vendeur/boutique"
-          className="w-full flex items-center justify-between py-2 group"
-        >
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-gray-900">Gérer ma boutique</p>
-            <p className="text-xs text-gray-400 font-medium mt-0.5 truncate">
-              {vendeurRow?.nom_boutique || "Nom, adresse, horaires"}
-            </p>
-          </div>
-          <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
-        </Link>
-      </SettingsSection>
+          <div className="pt-4 border-t border-gray-100 mt-4" />
 
-      {/* Sécurité & connexion */}
-      <SettingsSection icon={Lock} title="Sécurité & connexion" delay={0.15}>
-        <SettingsField label="Email de connexion" error={fieldErrors.email}>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            className="settings-input"
-            placeholder="toi@exemple.com"
-          />
-        </SettingsField>
-        <p className="text-xs text-gray-400 font-medium -mt-2">
-          Utilisé pour te connecter. Enregistre avec le bouton en bas de page.
-        </p>
-
-        <div className="pt-2 border-t border-gray-100" />
-
-        <SettingsField label="Nouveau mot de passe">
-          <input
-            type="password"
-            value={passwordForm.next}
-            onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
-            className="settings-input"
-            placeholder="8 caractères, 1 majuscule, 1 chiffre"
-          />
-        </SettingsField>
-        <SettingsField label="Confirmer le nouveau mot de passe">
-          <input
-            type="password"
-            value={passwordForm.confirm}
-            onChange={(e) => setPasswordForm((f) => ({ ...f, confirm: e.target.value }))}
-            className="settings-input"
-          />
-        </SettingsField>
-        {passwordError && <p className="text-xs font-semibold text-red-500">{passwordError}</p>}
-        <button
-          onClick={handleChangePassword}
-          disabled={isSavingPassword || (!passwordForm.next && !passwordForm.confirm)}
-          className="h-11 px-5 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-2"
-        >
-          {isSavingPassword ? (
-            "Mise à jour..."
-          ) : passwordSuccess ? (
-            <>
-              <Check size={16} /> Mot de passe modifié
-            </>
-          ) : (
-            "Modifier le mot de passe"
-          )}
-        </button>
-      </SettingsSection>
-
-      {/* Notifications */}
-      <SettingsSection icon={Bell} title="Notifications" delay={0.2}>
-        <SettingsToggle
-          label="Notifications push"
-          checked={usersRow?.notif_push ?? false}
-          onChange={(v) => setNotif("notif_push", v)}
-        />
-        <SettingsToggle
-          label="Alertes WhatsApp"
-          checked={usersRow?.notif_whatsapp ?? false}
-          onChange={(v) => setNotif("notif_whatsapp", v)}
-        />
-        <SettingsToggle
-          label="Notifications email"
-          checked={usersRow?.notif_email ?? false}
-          onChange={(v) => setNotif("notif_email", v)}
-        />
-      </SettingsSection>
-
-      {/* Assistance & légal */}
-      <SettingsSection icon={LifeBuoy} title="Assistance & légal" delay={0.22}>
-        <button
-          onClick={() => setOpenLegalSheet("cgu")}
-          className="w-full flex items-center justify-between py-2 group"
-        >
-          <div className="flex items-center gap-3">
-            <FileText size={16} className="text-gray-400 shrink-0" />
-            <span className="text-sm font-bold text-gray-900">Conditions Générales d'Utilisation</span>
-          </div>
-          <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
-        </button>
-        <button
-          onClick={() => setOpenLegalSheet("privacy")}
-          className="w-full flex items-center justify-between py-2 group"
-        >
-          <div className="flex items-center gap-3">
-            <ShieldCheck size={16} className="text-gray-400 shrink-0" />
-            <span className="text-sm font-bold text-gray-900">Politique de confidentialité</span>
-          </div>
-          <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
-        </button>
-        <a
-          href="mailto:support@ayiba.bj"
-          className="w-full flex items-center justify-between py-2 group"
-        >
-          <div className="flex items-center gap-3">
-            <Mail size={16} className="text-gray-400 shrink-0" />
-            <span className="text-sm font-bold text-gray-900">Contacter le support</span>
-          </div>
-          <span className="text-xs text-gray-400 font-medium shrink-0">support@ayiba.bj</span>
-        </a>
-      </SettingsSection>
-
+          <SettingsField label="Nouveau mot de passe">
+            <input
+              type="password"
+              value={passwordForm.next}
+              onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
+              className="settings-input"
+              placeholder="8 caractères, 1 majuscule, 1 chiffre"
+            />
+          </SettingsField>
+          <SettingsField label="Confirmer le nouveau mot de passe">
+            <input
+              type="password"
+              value={passwordForm.confirm}
+              onChange={(e) => setPasswordForm((f) => ({ ...f, confirm: e.target.value }))}
+              className="settings-input"
+            />
+          </SettingsField>
+          {passwordError && <p className="text-xs font-semibold text-red-500">{passwordError}</p>}
+          <button
+            onClick={handleChangePassword}
+            disabled={isSavingPassword || (!passwordForm.next && !passwordForm.confirm)}
+            className="h-11 px-5 rounded-xl border border-gray-200 text-sm font-bold text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 flex items-center gap-2 mt-2"
+          >
+            {isSavingPassword ? (
+              "Mise à jour..."
+            ) : passwordSuccess ? (
+              <>
+                <Check size={16} /> Mot de passe modifié
+              </>
+            ) : (
+              "Modifier le mot de passe"
+            )}
+          </button>
+        </SettingsSection>
       </div>
 
-      {/* Bouton sauvegarder */}
-      <motion.button
-        whileTap={{ scale: 0.98 }}
-        onClick={handleSave}
-        disabled={saving}
-        className="w-full h-14 bg-gray-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
-      >
-        {saving ? (
-          "Enregistrement..."
-        ) : successMessage ? (
-          <>
-            <Check size={18} /> {successMessage}
-          </>
+      {/* Colonne secondaire - Notifications et Assistance */}
+      <div className="lg:col-span-5 space-y-6">
+        {/* Notifications */}
+        <SettingsSection icon={Bell} title="Notifications" delay={0.2}>
+          <SettingsToggle
+            label="Notifications push"
+            checked={usersRow?.notif_push ?? false}
+            onChange={(v) => setNotif("notif_push", v)}
+          />
+          <SettingsToggle
+            label="Alertes WhatsApp"
+            checked={usersRow?.notif_whatsapp ?? false}
+            onChange={(v) => setNotif("notif_whatsapp", v)}
+          />
+          <SettingsToggle
+            label="Notifications email"
+            checked={usersRow?.notif_email ?? false}
+            onChange={(v) => setNotif("notif_email", v)}
+          />
+        </SettingsSection>
+
+        {/* Assistance & légal */}
+        <SettingsSection icon={LifeBuoy} title="Assistance & légal" delay={0.22}>
+          <button
+            onClick={() => setOpenLegalSheet("cgu")}
+            className="w-full flex items-center justify-between py-2 group"
+          >
+            <div className="flex items-center gap-3">
+              <FileText size={16} className="text-gray-400 shrink-0" />
+              <span className="text-sm font-bold text-gray-900">Conditions Générales d'Utilisation</span>
+            </div>
+            <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
+          </button>
+          <button
+            onClick={() => setOpenLegalSheet("privacy")}
+            className="w-full flex items-center justify-between py-2 group"
+          >
+            <div className="flex items-center gap-3">
+              <ShieldCheck size={16} className="text-gray-400 shrink-0" />
+              <span className="text-sm font-bold text-gray-900">Politique de confidentialité</span>
+            </div>
+            <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
+          </button>
+          <a
+            href="mailto:support@ayiba.bj"
+            className="w-full flex items-center justify-between py-2 group"
+          >
+            <div className="flex items-center gap-3">
+              <Mail size={16} className="text-gray-400 shrink-0" />
+              <span className="text-sm font-bold text-gray-900">Contacter le support</span>
+            </div>
+            <span className="text-xs text-gray-400 font-medium shrink-0">support@ayiba.bj</span>
+          </a>
+        </SettingsSection>
+      </div>
+
+      {/* Section d'actions - pleine largeur */}
+      <div className="lg:col-span-12 space-y-4 pt-4">
+        {/* Bouton sauvegarder */}
+        <motion.button
+          whileTap={{ scale: 0.98 }}
+          onClick={handleSave}
+          disabled={saving}
+          className="w-full h-14 bg-gray-900 text-white font-bold rounded-xl hover:bg-black transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+          {saving ? (
+            "Enregistrement..."
+          ) : successMessage ? (
+            <>
+              <Check size={18} /> {successMessage}
+            </>
+          ) : (
+            "Enregistrer les modifications"
+          )}
+        </motion.button>
+
+        {/* Déconnexion */}
+        <button
+          onClick={() => setShowLogoutModal(true)}
+          className="w-full h-14 border border-red-100 text-red-600 font-bold rounded-xl hover:bg-red-50 transition-all flex items-center justify-center gap-2"
+        >
+          <LogOut size={18} /> Déconnexion
+        </button>
+      </div>
+
+      {/* Zone sensible - section séparée */}
+      <div className="lg:col-span-12 pt-6">
+        {deleteSent ? (
+          <div className="w-full p-4 sm:p-5 rounded-xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3">
+            <Check size={18} />
+            Demande envoyée — notre équipe te contactera sous 48h.
+          </div>
         ) : (
-          "Enregistrer les modifications"
+          <DangerZoneCard>
+            <DangerZoneRow
+              icon={isPaused ? PlayCircle : PauseCircle}
+              title={isPaused ? "Réactiver la boutique" : "Fermer temporairement la boutique"}
+              description={
+                isPaused
+                  ? "Ta boutique redeviendra visible dans le catalogue."
+                  : "Ta boutique ne sera plus visible tant qu'elle est en pause."
+              }
+              actionLabel={isPaused ? "Réactiver" : "Mettre en pause"}
+              tone="amber"
+              onClick={() => setShowConfirmPause(true)}
+            />
+            <DangerZoneRow
+              icon={Trash2}
+              title="Supprimer mon compte"
+              description="Demande de suppression définitive, traitée sous 48h par notre équipe."
+              actionLabel="Supprimer"
+              tone="red"
+              onClick={() => setShowConfirmDelete(true)}
+            />
+          </DangerZoneCard>
         )}
-      </motion.button>
-
-      {/* Déconnexion */}
-      <button
-        onClick={() => setShowLogoutModal(true)}
-        className="w-full h-14 border border-red-100 text-red-600 font-bold rounded-2xl hover:bg-red-50 transition-all flex items-center justify-center gap-2 mb-10"
-      >
-        <LogOut size={18} /> Déconnexion
-      </button>
-
-      {/* Zone sensible */}
-      {deleteSent ? (
-        <div className="w-full p-4 sm:p-5 rounded-2xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3 mb-10">
-          <Check size={18} />
-          Demande envoyée — notre équipe te contactera sous 48h.
-        </div>
-      ) : (
-        <DangerZoneCard>
-          <DangerZoneRow
-            icon={isPaused ? PlayCircle : PauseCircle}
-            title={isPaused ? "Réactiver la boutique" : "Fermer temporairement la boutique"}
-            description={
-              isPaused
-                ? "Ta boutique redeviendra visible dans le catalogue."
-                : "Ta boutique ne sera plus visible tant qu'elle est en pause."
-            }
-            actionLabel={isPaused ? "Réactiver" : "Mettre en pause"}
-            tone="amber"
-            onClick={() => setShowConfirmPause(true)}
-          />
-          <DangerZoneRow
-            icon={Trash2}
-            title="Supprimer mon compte"
-            description="Demande de suppression définitive, traitée sous 48h par notre équipe."
-            actionLabel="Supprimer"
-            tone="red"
-            onClick={() => setShowConfirmDelete(true)}
-          />
-        </DangerZoneCard>
-      )}
+      </div>
     </div>
 
     <DangerZoneModal

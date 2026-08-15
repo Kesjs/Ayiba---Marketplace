@@ -241,8 +241,21 @@ export default function Home() {
   // qu'inventé).
   const produitsDuMoment = articles.slice(0, 4);
 
-  // Ventes flash : uniquement les articles avec une vraie promo en base.
-  const flashDealsProducts = articles.filter(a => a.prix_promo != null).slice(0, 4);
+  // Ventes flash : uniquement les articles avec une vraie promo active EN
+  // COURS (date_fin_promo non expirée). Le job serveur (cron, toutes les
+  // 5 min) nettoie prix_promo/date_fin_promo une fois la date dépassée,
+  // mais ce filtre côté client évite qu'un article expiré depuis quelques
+  // secondes reste visible jusqu'au prochain passage du cron.
+  // 8 = garantit au moins 2 lignes pleines sur desktop (grille 4 colonnes)
+  // tout en restant cohérent avec le reste (mobile 2 colonnes → 4 lignes).
+  const flashDealsProducts = articles
+    .filter(
+      (a) =>
+        a.prix_promo != null &&
+        a.date_fin_promo != null &&
+        new Date(a.date_fin_promo).getTime() > Date.now()
+    )
+    .slice(0, 8);
 
   const handleAddToCart = (article: ArticlePublic) => {
     addItem({
@@ -500,6 +513,16 @@ export default function Home() {
                     </motion.div>
                   ))}
                 </motion.div>
+
+                <div className="flex justify-center mt-6 md:mt-8">
+                  <Link
+                    href="/catalogue?promo=1"
+                    className="inline-flex items-center gap-1.5 text-sm font-bold text-coral-600 hover:text-coral-700 transition-colors group"
+                  >
+                    Voir tous les produits en promo
+                    <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </div>
               </div>
             </motion.section>
           )}

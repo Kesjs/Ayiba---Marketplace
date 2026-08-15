@@ -1,11 +1,12 @@
 "use client";
 
-import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { useUser } from "@/lib/hooks/useUser";
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
+import { Navbar } from "@/components/ui/Navbar";
+import { Footer } from "@/components/home/Footer";
 import useArticlesPublics from "@/lib/hooks/useArticlesPublics";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { createClient } from "@/lib/supabase/client";
@@ -34,7 +35,6 @@ export default function VendeurCataloguePage() {
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [boutiquesLoading, setBoutiquesLoading] = useState(false);
   const [boutiquesError, setBoutiquesError] = useState<string | null>(null);
-  const [boutiquesSearch, setBoutiquesSearch] = useState("");
 
   const { articles, loading, categories, categorySlug, setCategorySlug, page, setPage, hasMore, totalCount, search, setSearch, sortBy, setSortBy } = useArticlesPublics({ pageSize: 18 });
 
@@ -116,40 +116,48 @@ export default function VendeurCataloguePage() {
     showToast("Produit ajouté au panier", "success");
   };
 
-  const filteredBoutiques = boutiques.filter((b) =>
-    b.nom.toLowerCase().includes(boutiquesSearch.toLowerCase())
-  );
+  const filteredBoutiques = boutiques;
 
   return (
-    <DashboardLayout role="vendeur" title="Catalogue & Boutiques" userName={profile?.full_name ?? undefined}>
-      {/* Tabs */}
-      <div className="mb-8 flex gap-4 border-b border-gray-200">
-        <button
-          onClick={() => setActiveTab("produits")}
-          className={`px-4 py-3 font-bold text-sm transition-colors ${
-            activeTab === "produits"
-              ? "text-coral-600 border-b-2 border-coral-500 -mb-[2px]"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Produits
-        </button>
-        <button
-          onClick={() => setActiveTab("boutiques")}
-          className={`px-4 py-3 font-bold text-sm transition-colors ${
-            activeTab === "boutiques"
-              ? "text-coral-600 border-b-2 border-coral-500 -mb-[2px]"
-              : "text-gray-500 hover:text-gray-700"
-          }`}
-        >
-          Boutiques
-        </button>
-      </div>
+    <div className="min-h-screen bg-white">
+      <Navbar />
+      <main className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-12">
+        {/* En-tête de page — remplace l'ancien header dashboard (titre "Catalogue
+            & Boutiques" + recherche locale) : on réutilise le header public
+            (logo, recherche, panier, dropdown profil vendeur) pour éviter la
+            double barre de recherche empilée. */}
+        <div className="mb-6">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Catalogue & Boutiques</h1>
+        </div>
 
-      {/* TAB PRODUITS */}
-      {activeTab === "produits" && (
-        <div>
-          {/* Ventes flash — grille figée en 4 colonnes sur desktop (jamais en
+        {/* Tabs */}
+        <div className="mb-8 flex gap-4 border-b border-gray-200">
+          <button
+            onClick={() => setActiveTab("produits")}
+            className={`px-4 py-3 font-bold text-sm transition-colors ${
+              activeTab === "produits"
+                ? "text-coral-600 border-b-2 border-coral-500 -mb-[2px]"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Produits
+          </button>
+          <button
+            onClick={() => setActiveTab("boutiques")}
+            className={`px-4 py-3 font-bold text-sm transition-colors ${
+              activeTab === "boutiques"
+                ? "text-coral-600 border-b-2 border-coral-500 -mb-[2px]"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Boutiques
+          </button>
+        </div>
+
+        {/* TAB PRODUITS */}
+        {activeTab === "produits" && (
+          <div>
+            {/* Ventes flash — grille figée en 4 colonnes sur desktop (jamais en
               colonne unique "sur le côté"), 2 colonnes sur mobile comme le reste. */}
           {flashDealsProducts.length > 0 && (
             <div className="mb-10 rounded-3xl bg-gradient-to-br from-coral-50/60 via-white to-amber-50/30 border border-coral-100/60 p-5 md:p-8">
@@ -228,18 +236,7 @@ export default function VendeurCataloguePage() {
 
           {/* Header */}
           <div className="mb-8">
-            <p className="text-sm text-gray-500 font-medium mb-4">Parcourez le catalogue et ajoutez des produits à votre panier.</p>
-            
-            {/* Barre de recherche */}
-            <div className="relative mb-6">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                value={search ?? ""}
-                onChange={(e) => setSearch(e.target.value || null)}
-                placeholder="Rechercher un produit, une marque..."
-                className="w-full h-12 pl-11 pr-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-coral-500/20 focus:border-coral-500 transition-all text-sm"
-              />
-            </div>
+            <p className="text-sm text-gray-500 font-medium mb-4">Parcourez le catalogue et ajoutez des produits à votre panier. Utilisez la recherche en haut de page pour trouver un produit précis.</p>
 
             {/* Filtres */}
             <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
@@ -347,17 +344,6 @@ export default function VendeurCataloguePage() {
           {/* Header */}
           <div className="mb-8">
             <p className="text-sm text-gray-500 font-medium mb-4">Découvrez les vendeurs vérifiés d'Ayiba, près de chez vous.</p>
-            
-            {/* Barre de recherche */}
-            <div className="relative mb-6 max-w-md">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                value={boutiquesSearch}
-                onChange={(e) => setBoutiquesSearch(e.target.value)}
-                placeholder="Rechercher une boutique..."
-                className="w-full h-12 pl-11 pr-4 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-coral-500/20 focus:border-coral-500 transition-all text-sm"
-              />
-            </div>
           </div>
 
           {/* Grille de boutiques */}
@@ -375,7 +361,7 @@ export default function VendeurCataloguePage() {
             </div>
           ) : filteredBoutiques.length === 0 ? (
             <div className="py-20 text-center text-gray-400">
-              {boutiquesSearch ? `Aucune boutique trouvée pour "${boutiquesSearch}".` : "Aucune boutique disponible pour le moment."}
+              Aucune boutique disponible pour le moment.
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -413,8 +399,10 @@ export default function VendeurCataloguePage() {
               ))}
             </div>
           )}
-        </div>
-      )}
-    </DashboardLayout>
+          </div>
+        )}
+      </main>
+      <Footer />
+    </div>
   );
 }

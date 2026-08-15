@@ -9,6 +9,7 @@ import type { AccountLink } from "./AccountDropdown";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
 import { createClient } from "@/lib/supabase/client";
+import { CartDrawer } from "@/components/ui/CartDrawer";
 import { ReactNode } from "react";
 
 interface DashboardLayoutProps {
@@ -130,6 +131,7 @@ export function DashboardLayout({
           onLogout={handleLogout}
           showSearch={showSearch}
           searchPlaceholder={searchPlaceholder}
+          showCart={role === "vendeur"}
         />
 
         <div
@@ -150,6 +152,11 @@ export function DashboardLayout({
           </div>
         </div>
       </main>
+
+      {/* CartDrawer global (sidebar depuis la droite) : monté uniquement
+          pour le vendeur, seul rôle du Dashboard qui achète sur la
+          plateforme (voir ROLE_ACCOUNT_LINKS plus haut). */}
+      {role === "vendeur" && <CartDrawer />}
     </div>
   );
 }

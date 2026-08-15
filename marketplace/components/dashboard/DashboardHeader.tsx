@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, ArrowLeft, Search, X } from "lucide-react";
+import { Bell, ArrowLeft, Search, X, ShoppingCart } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { NotificationsDropdown, type Notification } from "./NotificationsDropdown";
 import { AccountDropdown, type AccountLink } from "./AccountDropdown";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
+import { useCart } from "@/context/CartContext";
 
 export type { Notification, AccountLink };
 
@@ -41,6 +42,11 @@ interface DashboardHeaderProps {
   searchHref?: string;
   /** Si fourni, prend le dessus sur la navigation par défaut vers `searchHref`. */
   onSearchSubmit?: (query: string) => void;
+  /** Icône panier (mobile + desktop) — ouvre le CartDrawer global (sidebar
+   * depuis la droite, même comportement que sur le site public). Seul le
+   * rôle vendeur achète depuis son propre dashboard (livreur/admin non
+   * concernés), donc ce prop est explicite plutôt que déduit ici. */
+  showCart?: boolean;
 }
 
 export function DashboardHeader({
@@ -64,8 +70,10 @@ export function DashboardHeader({
   searchPlaceholder = "Rechercher un produit...",
   searchHref = "/recherche",
   onSearchSubmit,
+  showCart = false,
 }: DashboardHeaderProps) {
   const router = useRouter();
+  const { itemCount, openCart } = useCart();
   const [showNotifs, setShowNotifs] = useState(false);
   const [showAccount, setShowAccount] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -149,6 +157,21 @@ export function DashboardHeader({
         </div>
 
         <div className="flex items-center gap-2 shrink-0" ref={topBarRef}>
+          {showCart && (
+            <button
+              onClick={openCart}
+              className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+              aria-label="Voir le panier"
+            >
+              <ShoppingCart size={19} className="text-gray-500" />
+              {itemCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
+                  {itemCount > 9 ? "9+" : itemCount}
+                </span>
+              )}
+            </button>
+          )}
+
           <div className="relative">
             <button
               onClick={handleBellClick}
@@ -290,6 +313,21 @@ export function DashboardHeader({
                 className="w-56 xl:w-72 h-10 pl-10 pr-3 bg-gray-50 border border-transparent rounded-full text-sm font-medium text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-coral-100 focus:border-coral-400 focus:bg-white transition-all"
               />
             </form>
+          )}
+
+          {showCart && (
+            <button
+              onClick={openCart}
+              className="relative w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-50 transition-colors"
+              aria-label="Voir le panier"
+            >
+              <ShoppingCart size={19} className="text-gray-500" />
+              {itemCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[16px] h-4 px-1 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
+                  {itemCount > 9 ? "9+" : itemCount}
+                </span>
+              )}
+            </button>
           )}
 
           <div className="relative">

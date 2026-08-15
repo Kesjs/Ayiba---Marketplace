@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ElementType } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
@@ -22,6 +22,7 @@ import {
   Truck,
   History,
   Lock,
+  ChevronDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
@@ -38,13 +39,26 @@ interface SidebarProps {
   cartItemCount?: number;
 }
 
+interface SidebarChildItem {
+  name: string;
+  path: string;
+}
+
+interface SidebarMenuItem {
+  name: string;
+  icon: ElementType;
+  path?: string;
+  children?: SidebarChildItem[];
+  requiresValidation?: boolean;
+}
+
 export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartClick, cartItemCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { exitDemoMode, profile } = useUser();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  const menuItems = {
+  const menuItems: Record<SidebarProps["role"], SidebarMenuItem[]> = {
     admin: [
       { name: "Vue d'ensemble", icon: LayoutDashboard, path: "/admin/dashboard" },
       { name: "Vendeurs (KYC)", icon: Store, path: "/admin/vendeurs" },
@@ -63,7 +77,14 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
       { name: "Tableau de bord", icon: LayoutDashboard, path: "/vendeur/dashboard" },
       { name: "Mes Articles", icon: Package, path: "/vendeur/articles" },
       { name: "Mes ventes", icon: ShoppingBag, path: "/vendeur/commandes" },
-      { name: "Mes achats", icon: ShoppingCart, path: "/vendeur/achats" },
+      {
+        name: "Achats",
+        icon: ShoppingCart,
+        children: [
+          { name: "Faire des achats", path: "/vendeur/catalogue" },
+          { name: "Mes commandes", path: "/vendeur/achats" },
+        ],
+      },
       { name: "Favoris", icon: Heart, path: "/vendeur/favoris" },
       { name: "Boutique", icon: Store, path: "/vendeur/boutique" },
       { name: "Paiements", icon: Wallet, path: "/vendeur/paiements" },
@@ -93,6 +114,16 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
   const { isValide: isLivreurValide, loading: statutLoading } =
     useLivreurVerificationStatut(role === "livreur");
   const { showToast } = useToast();
+
+  // Item parent (ex. "Achats") actuellement déplié — un seul ouvert à la
+  // fois. Ouvert par défaut si on se trouve déjà sur une de ses sous-pages,
+  // pour ne pas cacher l'endroit où on est.
+  const [expandedMenu, setExpandedMenu] = useState<string | null>(() => {
+    const parentActif = items.find((item) =>
+      item.children?.some((child) => pathname === child.path || pathname.startsWith(`${child.path}/`))
+    );
+    return parentActif?.name ?? null;
+  });
 
   const confirmLogout = async () => {
     setShowLogoutModal(false);
@@ -159,7 +190,9 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
         {items.map((item) => {
-          const isActive = pathname === item.path || pathname.startsWith(`${item.path}/`);
+          const isActive = item.path
+            ? pathname === item.path || pathname.startsWith(`${item.path}/`)
+            : false;
           const isLocked =
             (item as { requiresValidation?: boolean }).requiresValidation &&
             !statutLoading &&
@@ -189,10 +222,80 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
             );
           }
 
+          // Item avec sous-menu (ex. "Achats" → Faire des achats / Mes commandes) :
+          // pas de navigation directe, on déplie/replie la liste des enfants.
+          if (item.children) {
+            const isOpen = expandedMenu === item.name;
+            const unEnfantActif = item.children.some(
+              (child) => pathname === child.path || pathname.startsWith(`${child.path}/`)
+            );
+
+            return (
+              <div key={item.name}>
+                <button
+                  onClick={() => {
+                    // Sidebar repliée : pas de place pour un sous-menu déroulant,
+                    // on va directement sur le premier enfant.
+                    if (isCollapsed) {
+                      router.push(item.children![0].path);
+                      return;
+                    }
+                    setExpandedMenu(isOpen ? null : item.name);
+                  }}
+                  className={`
+                    w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
+                    ${unEnfantActif
+                      ? "bg-coral-50 text-coral-600 shadow-sm shadow-coral-500/5"
+                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"}
+                  `}
+                >
+                  <item.icon
+                    size={22}
+                    strokeWidth={unEnfantActif ? 2.5 : 2}
+                    className={`shrink-0 ${unEnfantActif ? "text-coral-500" : "group-hover:text-gray-700"}`}
+                  />
+                  {!isCollapsed && (
+                    <>
+                      <span className="font-semibold text-[14px] whitespace-nowrap flex-1 text-left">
+                        {item.name}
+                      </span>
+                      <ChevronDown
+                        size={16}
+                        className={`shrink-0 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                      />
+                    </>
+                  )}
+                </button>
+
+                {!isCollapsed && isOpen && (
+                  <div className="mt-1 ml-[22px] pl-[14px] border-l border-gray-100 space-y-1">
+                    {item.children.map((child) => {
+                      const childActive = pathname === child.path || pathname.startsWith(`${child.path}/`);
+                      return (
+                        <Link
+                          key={child.path}
+                          href={child.path}
+                          className={`
+                            block px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors
+                            ${childActive
+                              ? "text-coral-600 bg-coral-50"
+                              : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"}
+                          `}
+                        >
+                          {child.name}
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          }
+
           return (
             <Link
               key={item.path}
-              href={item.path}
+              href={item.path!}
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
                 ${isActive

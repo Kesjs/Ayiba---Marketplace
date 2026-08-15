@@ -106,7 +106,7 @@ export default function LivreurHistoriquePage() {
           </button>
         </div>
       ) : (
-        <div className="max-w-2xl">
+        <div className="max-w-4xl">
           <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-8">
             {statCards.map((stat, i) => (
               <motion.div

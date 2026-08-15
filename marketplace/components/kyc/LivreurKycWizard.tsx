@@ -62,7 +62,7 @@ interface LivreurFormData {
   commune: string;
   latitude: number | null;
   longitude: number | null;
-  mobileMoneyNetwork: "mtn" | "moov" | "celtiis" | null;
+  mobileMoneyNetwork: "mtn" | "moov" | null;
   mobileMoneyNumber: string;
 }
 
@@ -438,38 +438,29 @@ export function LivreurKycWizard() {
         photoVehiculeUrl = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
       }
 
-      // statut_verification forcé explicitement à chaque soumission (nouvelle
-      // demande ou resoumission après refus) — le trigger DB bloque de toute
-      // façon toute tentative d'auto-passer à "valide".
-      const { error: insertError } = await supabase.from("livreurs").upsert({
-        id: user.id,
-        nom_complet: data.nomComplet,
-        photo_profil_url: photoProfilUrl,
-        photo_cni_path: photoCniPath,
-        type_vehicule: data.typeVehicule,
-        photo_vehicule_url: photoVehiculeUrl,
-        plaque_immatriculation: needsPlaque ? data.plaqueImmatriculation : null,
-        quartier: data.quartier,
-        commune: data.commune,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        mobile_money_network: data.mobileMoneyNetwork,
-        mobile_money_number: data.mobileMoneyNumber,
-        statut_verification: "en_attente",
+      // La route serveur ajoute le droit livreur sans écraser un éventuel
+      // droit vendeur. Elle évite aussi que le navigateur puisse modifier
+      // account_roles ou le rôle principal directement.
+      const res = await fetch("/api/devenir-livreur", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nomComplet: data.nomComplet,
+          photoProfilUrl,
+          photoCniPath,
+          typeVehicule: data.typeVehicule,
+          photoVehiculeUrl,
+          plaqueImmatriculation: needsPlaque ? data.plaqueImmatriculation : null,
+          quartier: data.quartier,
+          commune: data.commune,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          mobileMoneyNetwork: data.mobileMoneyNetwork,
+          mobileMoneyNumber: data.mobileMoneyNumber,
+        }),
       });
-      if (insertError) throw insertError;
-
-      // Le header (useUser()/profile.full_name) lit la table `users`, pas
-      // `livreurs` — sans cette synchro le nom saisi ici n'apparaissait
-      // dans l'avatar qu'après un passage manuel par Paramètres.
-      const { error: userUpdateError } = await supabase
-        .from("users")
-        .update({
-          full_name: data.nomComplet,
-          ...(photoProfilUrl ? { avatar_url: photoProfilUrl } : {}),
-        })
-        .eq("id", user.id);
-      if (userUpdateError) throw userUpdateError;
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json.error || "Une erreur est survenue.");
 
       clearDraft();
       showToast(

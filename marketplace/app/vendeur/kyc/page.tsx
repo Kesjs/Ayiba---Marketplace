@@ -14,11 +14,11 @@ export default async function VendeurKycPage() {
 
   const { data: userRow } = await supabase
     .from("users")
-    .select("role")
+    .select("role, account_roles")
     .eq("id", user!.id)
     .single();
 
-  if (userRow?.role !== "vendeur") {
+  if (!(userRow?.account_roles ?? [userRow?.role]).includes("vendeur")) {
     redirect("/");
   }
 

@@ -212,7 +212,8 @@ export default function VendeurDashboardPage() {
             <div className="absolute -top-20 -right-16 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -left-10 w-48 h-48 bg-black/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative">
+            <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp size={16} className="text-white/80" />
                 <span className="text-white/80 text-sm">Chiffre d'affaires</span>
@@ -221,6 +222,7 @@ export default function VendeurDashboardPage() {
                 {chiffreAffaires?.montant_total ?? 0} F
               </p>
 
+              </div>
               {caChange && (
                 <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
                   <span className="text-xs font-semibold">{caChange} vs période précédente</span>

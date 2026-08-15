@@ -53,7 +53,7 @@ export function BottomNav() {
 
   const hideOnPaths = [
     '/auth', '/cgu', '/privacy', '/compte-suspendu',
-    '/devenir-vendeur', '/devenir-livreur',
+    '/devenir-vendeur', '/devenir-livreur', '/profil/devenir-vendeur', '/profil/devenir-livreur',
     '/produits', '/vendeur/kyc'
   ];
 
@@ -86,11 +86,11 @@ export function BottomNav() {
       { label: "Partenaire", icon: Briefcase, isAction: true },
     ],
     client: [
-      { label: "Explorer", icon: Search, href: "/explorer" },
+      { label: "Accueil", icon: Home, href: "/accueil" },
       { label: "Commandes", icon: Package, href: "/commandes", badge: badges.commandes },
-      { label: "Accueil", icon: Home, href: "/" },
+      { label: "Favoris", icon: Heart, href: "/favoris" },
       { label: "Messages", icon: MessageSquare, href: "/messages", badge: badges.messages },
-      { label: "Menu", icon: MenuIcon, href: "/menu" },
+      { label: "Compte", icon: User, href: "/menu" },
     ],
     admin: [
       { label: "Admin", icon: LayoutDashboard, href: "/admin/dashboard" },
@@ -296,10 +296,10 @@ export function BottomNav() {
                 <button onClick={() => setIsPartnerOpen(false)}><X size={20}/></button>
               </div>
               <div className="flex flex-col gap-3">
-                <Link href="/devenir-vendeur" onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-coral-50 rounded-2xl text-coral-600 font-bold">
+                <Link href={profile ? "/profil/devenir-vendeur" : "/devenir-vendeur"} onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-coral-50 rounded-2xl text-coral-600 font-bold">
                   <Store /> Ouvrir ma boutique
                 </Link>
-                <Link href="/devenir-livreur" onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-teal-50 rounded-2xl text-teal-600 font-bold">
+                <Link href={profile ? "/profil/devenir-livreur" : "/devenir-livreur"} onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-teal-50 rounded-2xl text-teal-600 font-bold">
                   <Bike /> Devenir livreur
                 </Link>
               </div>

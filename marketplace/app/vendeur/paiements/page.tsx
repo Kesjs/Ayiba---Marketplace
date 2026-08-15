@@ -101,7 +101,8 @@ export default function VendeurPaiementsPage() {
             <div className="absolute -top-20 -right-16 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute -bottom-24 -left-10 w-48 h-48 bg-black/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative">
+            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+              <div>
               <div className="flex items-center gap-2 mb-2">
                 <Wallet size={16} className="text-white/80" />
                 <span className="text-white/80 text-sm">Solde disponible</span>
@@ -109,18 +110,6 @@ export default function VendeurPaiementsPage() {
               <p className="text-4xl sm:text-5xl font-bold tracking-tight mb-5">
                 {soldeDisponible.toLocaleString("fr-FR")} F
               </p>
-
-              <div className="flex flex-wrap items-center gap-2 mb-5">
-                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
-                  <Clock size={12} className="text-white/90" />
-                  <span className="text-xs font-semibold">
-                    {soldeEnAttenteLivraison.toLocaleString("fr-FR")} F en attente
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
-                  <span className="text-xs font-semibold">{retraits.length} retrait{retraits.length > 1 ? "s" : ""}</span>
-                </div>
-              </div>
 
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -135,16 +124,29 @@ export default function VendeurPaiementsPage() {
                   Rien à retirer pour l'instant — reviens une fois tes livraisons confirmées.
                 </p>
               )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-start lg:min-w-52">
+                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
+                  <Clock size={12} className="text-white/90" />
+                  <span className="text-xs font-semibold">
+                    {soldeEnAttenteLivraison.toLocaleString("fr-FR")} F en attente
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
+                  <span className="text-xs font-semibold">{retraits.length} retrait{retraits.length > 1 ? "s" : ""}</span>
+                </div>
+              </div>
+
             </div>
           </div>
 
           {/* --- Grille de tuiles carrées (raccourcis + KPIs) --- */}
-          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
             {[
               { icon: ArrowDownToLine, label: "Paiements reçus", value: paiements.length, color: "text-teal-600", bg: "bg-teal-50" },
               { icon: ArrowUpFromLine, label: "Retraits", value: retraits.length, color: "text-coral-500", bg: "bg-coral-50" },
               { icon: Clock, label: "En attente", value: `${soldeEnAttenteLivraison.toLocaleString("fr-FR")} F`, color: "text-amber-600", bg: "bg-amber-50" },
-              { icon: Wallet, label: "Disponible", value: `${soldeDisponible.toLocaleString("fr-FR")} F`, color: "text-gray-900", bg: "bg-gray-100" },
             ].map((tile, i) => (
               <motion.div
                 key={tile.label}

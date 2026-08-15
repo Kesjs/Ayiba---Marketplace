@@ -303,7 +303,7 @@ export function Navbar() {
                     <div className="p-2 flex flex-col gap-1">
                       <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
                         <LayoutDashboard size={18} className="text-gray-400" />
-                        <span>Mon dashboard</span>
+                        <span>{userRole === "client" ? "Découvrir la boutique" : "Mon dashboard"}</span>
                       </a>
                       {userRole === "client" && (
                         <a href="/profil/devenir-vendeur" className="flex items-center gap-3 px-4 py-2.5 hover:bg-coral-50 rounded-xl transition-all text-sm text-coral-500 font-bold">
@@ -453,7 +453,7 @@ export function Navbar() {
             <div className="flex flex-col gap-1">
               <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                 <LayoutDashboard size={20} className="text-gray-400" />
-                <span>Mon dashboard</span>
+                <span>{userRole === "client" ? "Découvrir la boutique" : "Mon dashboard"}</span>
               </a>
               {userRole === "client" && (
                 <a href="/profil/devenir-vendeur" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-coral-50 transition-colors text-sm font-bold text-coral-500">

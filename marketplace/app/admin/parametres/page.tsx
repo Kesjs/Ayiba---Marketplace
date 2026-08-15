@@ -37,7 +37,7 @@ function Card({
       initial="hidden"
       animate="show"
       variants={fadeUp}
-      className={`bg-white rounded-[32px] border border-gray-50 shadow-sm p-8 max-w-xl space-y-6 ${className}`}
+      className={`bg-white rounded-[32px] border border-gray-50 shadow-sm p-8 space-y-6 ${className}`}
     >
       {children}
     </motion.div>
@@ -267,7 +267,7 @@ export default function AdminParametresPage() {
 
   return (
     <DashboardLayout role="admin" title="Paramètres système">
-      <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Commission & livraison */}
         <Card custom={0}>
           <div>
@@ -544,7 +544,7 @@ export default function AdminParametresPage() {
           )}
         </Card>
 
-        <Card custom={5}>
+        <Card custom={5} className="lg:col-span-2">
           <Button variant="primary" onClick={handleSave} disabled={saving} className="w-full">
             {saving ? (
               <Save size={16} className="animate-pulse" />

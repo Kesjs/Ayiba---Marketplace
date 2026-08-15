@@ -74,7 +74,7 @@ export function CGUContent() {
 
         <SectionCard id="inscription" icon={UserPlus} title="Inscription et compte">
           <p>
-            L'inscription sur Ayiba nécessite un numéro de téléphone valide (MTN, Moov ou Celtiis).
+            L'inscription sur Ayiba nécessite un numéro de téléphone valide (MTN ou Moov).
             Chaque utilisateur est responsable de la sécurité de son compte. Les comptes vendeurs et livreurs
             font l'objet d'une validation manuelle rigoureuse par nos équipes avant activation.
           </p>

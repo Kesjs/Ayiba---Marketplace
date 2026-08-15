@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 interface MobileMoneyOption {
-  id: "mtn" | "moov" | "celtiis";
+  id: "mtn" | "moov";
   label: string;
   logoSrc: string;
   fallbackColor: string;
@@ -25,18 +25,11 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
     fallbackColor: "bg-blue-600",
     fallbackTextColor: "text-white",
   },
-  {
-    id: "celtiis",
-    label: "Celtiis Cash",
-    logoSrc: "/logos/celtiis.jpg",
-    fallbackColor: "bg-orange-500",
-    fallbackTextColor: "text-white",
-  },
 ];
 
 interface MobileMoneySelectorProps {
-  selected: "mtn" | "moov" | "celtiis" | "" | null;
-  onSelect: (network: "mtn" | "moov" | "celtiis") => void;
+  selected: "mtn" | "moov" | "" | null;
+  onSelect: (network: "mtn" | "moov") => void;
   phoneNumber: string;
   onPhoneChange: (value: string) => void;
   error?: string | null;
@@ -60,7 +53,7 @@ export function MobileMoneySelector({
         Réseau Mobile Money
       </label>
 
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-2 gap-3 mb-5">
         {MOBILE_MONEY_OPTIONS.map((option) => {
           const isSelected = selected === option.id;
           const failed = logoFailed[option.id];

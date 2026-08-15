@@ -32,7 +32,7 @@ export default function LivreurProfilPage() {
           </button>
         </div>
       ) : (
-        <div className="max-w-2xl">
+        <div className="max-w-4xl">
           {/* En-tête profil */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}

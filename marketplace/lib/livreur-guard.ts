@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getRoleWithCache } from "@/lib/supabase/role-cache";
 
 /**
  * Garde d'accès pour les pages livreur sensibles (missions, historique,
@@ -23,9 +22,16 @@ export async function requireValidLivreur() {
     redirect("/connexion");
   }
 
-  // Utiliser le cache pour vérifier le rôle
-  const userRole = await getRoleWithCache(user.id);
-  if (userRole !== "livreur") {
+  // `role` est désormais le rôle principal historique : un vendeur peut
+  // aussi être livreur. La garde doit donc lire les droits cumulés, pas le
+  // seul rôle principal (ni son cache mono-rôle).
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("role, account_roles")
+    .eq("id", user.id)
+    .single();
+  const roles = userProfile?.account_roles ?? [userProfile?.role ?? "client"];
+  if (!roles.includes("livreur")) {
     redirect("/connexion");
   }
 

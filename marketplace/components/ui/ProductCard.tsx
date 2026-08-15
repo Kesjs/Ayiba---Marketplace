@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 interface ProductCardProps {
   image: string;
@@ -11,6 +12,8 @@ interface ProductCardProps {
   oldPrice?: number;
   variants?: string[];
   isFavorite?: boolean;
+  isOwnProduct?: boolean;
+  ownHref?: string;
   onAddToCart: () => void;
   onToggleFavorite: () => void;
   onClick?: () => void;
@@ -26,6 +29,8 @@ export function ProductCard({
   oldPrice,
   variants,
   isFavorite = false,
+  isOwnProduct = false,
+  ownHref,
   onAddToCart,
   onToggleFavorite,
   onClick,
@@ -106,19 +111,26 @@ export function ProductCard({
           )}
         </div>
         
-        {/* Bouton Ajouter au panier */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            onAddToCart();
-          }}
-          className="w-full mt-2 py-3 bg-gray-950 text-white rounded-[16px] text-sm font-bold hover:bg-coral-500 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-gray-200"
-        >
-          <i className="ti ti-shopping-cart text-lg" />
-          Ajouter au panier
-        </button>
+        {/* Bouton Ajouter au panier ou badge "Votre article" si c'est le vendeur */}
+        {isOwnProduct ? (
+          <Link href={ownHref || '#'} onClick={(e) => e.stopPropagation()} className="w-full mt-2 py-3 bg-white text-gray-700 rounded-[16px] text-sm font-bold border border-gray-100 transition-all duration-300 flex items-center justify-center gap-2">
+            <i className="ti ti-package text-lg" />
+            Votre article
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              onAddToCart();
+            }}
+            className="w-full mt-2 py-3 bg-gray-950 text-white rounded-[16px] text-sm font-bold hover:bg-coral-500 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-gray-200"
+          >
+            <i className="ti ti-shopping-cart text-lg" />
+            Ajouter au panier
+          </button>
+        )}
       </div>
     </motion.div>
   );

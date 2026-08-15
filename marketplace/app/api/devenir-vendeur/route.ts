@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
-import { getRoleWithCache, setCachedServerRole, invalidateUserRoleCache } from "@/lib/supabase/role-cache";
+import { setCachedServerRole, invalidateUserRoleCache } from "@/lib/supabase/role-cache";
 
 /**
  * Fait passer un compte CLIENT existant au rôle vendeur, en une seule
  * opération atomique côté serveur (service_role) : crée/complète sa ligne
- * vendeurs (statut en_attente) ET met à jour users.role + full_name/avatar.
+ * vendeurs (statut en_attente) ET met à jour users.account_roles +
+ * full_name/avatar. `role` reste le rôle principal historique.
  *
  * Volontairement pas un upsert direct depuis le navigateur comme au signup :
  * la policy RLS vendeurs_insert_own exige déjà role='vendeur' pour pouvoir
@@ -51,8 +52,12 @@ export async function POST(req: NextRequest) {
   }
 
   // Utiliser le cache pour vérifier le rôle de l'appelant
-  const callerRole = await getRoleWithCache(user.id);
-  if (callerRole !== "client") {
+  const { data: callerProfile } = await cookieClient
+    .from("users")
+    .select("role, account_roles")
+    .eq("id", user.id)
+    .single();
+  if (!callerProfile || callerProfile.role === "admin" || !(callerProfile.account_roles ?? [callerProfile.role]).includes("client")) {
     return NextResponse.json(
       { error: "Seul un compte client peut ouvrir une boutique via ce parcours." },
       { status: 400 }
@@ -114,7 +119,10 @@ export async function POST(req: NextRequest) {
   const { error: userError } = await admin
     .from("users")
     .update({
-      role: "vendeur",
+      // Conserver le rôle principal si le compte est déjà livreur : les deux
+      // espaces restent alors accessibles grâce à account_roles.
+      role: callerProfile.role === "livreur" ? "livreur" : "vendeur",
+      account_roles: Array.from(new Set([...(callerProfile.account_roles ?? ["client"]), "client", "vendeur"])),
       full_name: nomComplet,
       ...(photoProfilUrl ? { avatar_url: photoProfilUrl } : {}),
     })
@@ -125,7 +133,7 @@ export async function POST(req: NextRequest) {
 
   // Invalidate cache et mettre à jour avec le nouveau rôle
   invalidateUserRoleCache(user.id);
-  setCachedServerRole(user.id, "vendeur");
+  setCachedServerRole(user.id, callerProfile.role === "livreur" ? "livreur" : "vendeur");
 
   return NextResponse.json({ success: true });
 }

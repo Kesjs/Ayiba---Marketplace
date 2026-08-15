@@ -351,7 +351,7 @@ export default function VendeurParametresPage() {
 
   return (
     <DashboardLayout role="vendeur" title="Paramètres" backHref="/vendeur/dashboard" backLabel="Dashboard">
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
       {saveError && (
         <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-6 text-sm font-medium text-red-600">
           {saveError}
@@ -394,6 +394,7 @@ export default function VendeurParametresPage() {
         </div>
       </motion.div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Profil */}
       <SettingsSection icon={User} title="Profil" delay={0.05}>
         <SettingsField label="Nom complet" error={fieldErrors.fullName}>
@@ -536,6 +537,8 @@ export default function VendeurParametresPage() {
           <span className="text-xs text-gray-400 font-medium shrink-0">support@ayiba.bj</span>
         </a>
       </SettingsSection>
+
+      </div>
 
       {/* Bouton sauvegarder */}
       <motion.button

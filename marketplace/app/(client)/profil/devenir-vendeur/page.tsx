@@ -26,18 +26,16 @@ export default async function DevenirVendeurClientPage() {
 
   const { data: userRow } = await supabase
     .from("users")
-    .select("role")
+    .select("role, account_roles")
     .eq("id", user!.id)
     .single();
 
-  // Un vendeur/livreur/admin est déjà passé (ou n'a pas à passer) par ce
-  // KYC — direction son propre espace plutôt qu'une page qui ne le concerne
-  // pas. Seul un compte encore 'client' arrive jusqu'au wizard.
-  if (userRow?.role === "vendeur") {
+  const roles = userRow?.account_roles ?? [userRow?.role ?? "client"];
+
+  // Un compte ayant déjà le droit vendeur peut reprendre son espace. Un
+  // livreur sans boutique, en revanche, peut maintenant ouvrir la sienne.
+  if (roles.includes("vendeur")) {
     redirect("/vendeur/dashboard");
-  }
-  if (userRow?.role === "livreur") {
-    redirect("/livreur/missions");
   }
   if (userRow?.role === "admin") {
     redirect("/admin/dashboard");

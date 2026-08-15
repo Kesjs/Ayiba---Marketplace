@@ -13,7 +13,6 @@ import { Check, Camera, ImagePlus, MapPin, Clock, Store } from "lucide-react";
 const PREFIXES_RESEAU: Record<string, string[]> = {
   mtn: ["46", "50", "51", "52", "53", "54", "56", "57", "59", "61", "62", "66", "67", "69", "90", "91", "96", "97"],
   moov: ["55", "58", "60", "63", "64", "65", "68", "94", "95", "98", "99"],
-  celtiis: ["40", "41", "42", "43", "44", "45", "47", "48", "49"],
 };
 
 const JOURS: { value: Jour; label: string }[] = [
@@ -50,7 +49,7 @@ function validerNumero(numero: string, reseau: string): string | null {
   if (!reseau) return "Choisis un opérateur d'abord.";
   const prefixe = chiffres.slice(2, 4);
   if (!PREFIXES_RESEAU[reseau]?.includes(prefixe)) {
-    const labels: Record<string, string> = { mtn: "MTN", moov: "MOOV", celtiis: "CELTIIS" };
+    const labels: Record<string, string> = { mtn: "MTN", moov: "MOOV" };
     return `Ce préfixe (${prefixe}) ne correspond pas à un numéro ${labels[reseau]}.`;
   }
   return null;
@@ -67,7 +66,7 @@ export default function VendeurBoutiquePage() {
     commune: "",
     latitude: null as number | null,
     longitude: null as number | null,
-    mobile_money_network: "" as "mtn" | "moov" | "celtiis" | "",
+    mobile_money_network: "" as "mtn" | "moov" | "",
     mobile_money_number: "",
     horaires: HORAIRES_DEFAUT,
   });
@@ -87,7 +86,7 @@ export default function VendeurBoutiquePage() {
         commune: boutique.commune || "",
         latitude: boutique.latitude ?? null,
         longitude: boutique.longitude ?? null,
-        mobile_money_network: (boutique.mobile_money_network || "") as "mtn" | "moov" | "celtiis" | "",
+        mobile_money_network: (boutique.mobile_money_network || "") as "mtn" | "moov" | "",
         mobile_money_number: boutique.mobile_money_number || "",
         horaires: boutique.horaires || HORAIRES_DEFAUT,
       };

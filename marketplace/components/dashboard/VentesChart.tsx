@@ -80,6 +80,13 @@ export function VentesChart({ paiements, objectifMensuel = 500000 }: VentesChart
     });
   }, [payes, periode]);
 
+  // L'axe doit décrire les ventes observées, pas étirer artificiellement la
+  // courbe jusqu'à un objectif encore lointain. On garde une petite marge
+  // visuelle et on masque l'objectif lorsqu'il écraserait la lecture.
+  const maxValeur = useMemo(() => Math.max(0, ...data.map((point) => point.valeur)), [data]);
+  const plafondAxe = Math.max(1000, Math.ceil((maxValeur * 1.15) / 1000) * 1000);
+  const afficherObjectif = periode === "30j" && maxValeur > 0 && objectifMensuel <= maxValeur * 3;
+
   return (
     <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
@@ -117,6 +124,7 @@ export function VentesChart({ paiements, objectifMensuel = 500000 }: VentesChart
               tickLine={false}
             />
             <YAxis
+              domain={[0, plafondAxe]}
               tick={{ fontSize: 11, fill: "#888780" }}
               axisLine={false}
               tickLine={false}
@@ -129,7 +137,7 @@ export function VentesChart({ paiements, objectifMensuel = 500000 }: VentesChart
               ]}
               contentStyle={{ borderRadius: 12, border: "1px solid #F1EFE8", fontSize: 12 }}
             />
-            {periode === "30j" && (
+            {afficherObjectif && (
               <ReferenceLine
                 y={objectifMensuel}
                 stroke={COULEUR_OBJECTIF}

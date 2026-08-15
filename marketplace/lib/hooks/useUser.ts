@@ -8,6 +8,7 @@ interface UserProfile {
   full_name: string | null
   avatar_url: string | null
   role: string
+  account_roles: string[]
   note_moyenne: number
   nb_avis: number
   created_at: string
@@ -36,6 +37,7 @@ export function useUser() {
           full_name: demoName,
           avatar_url: null,
           role: demoRole,
+          account_roles: demoRole === 'client' ? ['client'] : ['client', demoRole],
           note_moyenne: 4.8,
           nb_avis: 0,
           created_at: new Date().toISOString(),

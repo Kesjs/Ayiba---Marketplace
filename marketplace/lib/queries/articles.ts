@@ -90,6 +90,120 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
 }
 
 /**
+ * Server-side paginated version. Returns one extra item to signal `hasMore`.
+ * Note: does not return a total count to avoid expensive COUNT(*) with joins.
+ */
+export async function getArticlesPublicsPaged(options?: {
+  page?: number;
+  pageSize?: number;
+  categorieSlug?: string;
+  recherche?: string;
+  vendeurId?: string;
+  excludeVendeurId?: string;
+  sortBy?: string;
+  ascending?: boolean;
+}) {
+  const supabase = createClient();
+  const page = Math.max(1, options?.page ?? 1);
+  const pageSize = Math.max(1, options?.pageSize ?? 20);
+  const start = (page - 1) * pageSize;
+  const end = start + pageSize; // request one extra to detect hasMore
+  // Resolve category slug to id if provided (avoids post-join filtering)
+  let categorieId: string | undefined = undefined;
+  if (options?.categorieSlug) {
+    const { data: catData, error: catErr } = await supabase.from("categories").select("id").eq("slug", options.categorieSlug).limit(1).maybeSingle();
+    if (catErr) throw catErr;
+    if (catData && (catData as any).id) categorieId = (catData as any).id;
+  }
+
+  // Build search/or conditions for tokenized recherche
+  let searchOr: string | undefined = undefined;
+  if (options?.recherche) {
+    const tokens = (options.recherche || "").trim().split(/\s+/).filter(Boolean);
+    if (tokens.length > 0) {
+      const conds = tokens.flatMap((t) => [
+        `nom.ilike.%${t}%`,
+        `description.ilike.%${t}%`,
+      ]);
+      searchOr = conds.join(",");
+    }
+  }
+
+  // Compute total count with same filters (without joins for performance)
+  let totalCount: number | null = null;
+  {
+    let countQuery: any = supabase.from("articles").select("id", { count: "exact" });
+    countQuery = countQuery.eq("statut", "publie").eq("actif", true);
+    if (options?.vendeurId) countQuery = countQuery.eq("vendeur_id", options.vendeurId);
+    if (options?.excludeVendeurId) countQuery = countQuery.neq("vendeur_id", options.excludeVendeurId);
+    if (categorieId) countQuery = countQuery.eq("categorie_id", categorieId);
+    if (searchOr) countQuery = countQuery.or(searchOr);
+    const { count, error: countErr } = await countQuery;
+    if (countErr) throw countErr;
+    totalCount = count ?? null;
+  }
+
+  let query: any = supabase
+    .from("articles")
+    .select(
+      `id, nom, description, prix, prix_promo, stock, vendeur_id, vues, created_at,
+       article_images ( image_url, ordre ),
+       categories ( id, nom, slug ),
+       vendeurs ( nom_boutique, quartier, commune )`
+    )
+    .eq("statut", "publie")
+    .eq("actif", true)
+    .range(start, end);
+
+  // Sorting
+  const sortMap: Record<string, { field: string; asc: boolean }> = {
+    recent: { field: "created_at", asc: false },
+    "price-asc": { field: "prix", asc: true },
+    "price-desc": { field: "prix", asc: false },
+    popular: { field: "vues", asc: false },
+  };
+  const sortKey = options?.sortBy ?? "recent";
+  const sortDef = sortMap[sortKey] ?? { field: "created_at", asc: !!options?.ascending };
+  query = query.order(sortDef.field, { ascending: sortDef.asc });
+
+  if (options?.vendeurId) query = query.eq("vendeur_id", options.vendeurId);
+  if (options?.excludeVendeurId) query = query.neq("vendeur_id", options.excludeVendeurId);
+  if (categorieId) query = query.eq("categorie_id", categorieId);
+  if (searchOr) query = query.or(searchOr);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const raw = data || [];
+  const items = (raw || []).map((a: any) => {
+    const images = (a.article_images || []).slice().sort(
+      (x: any, y: any) => (x.ordre ?? 0) - (y.ordre ?? 0)
+    );
+    const cat = Array.isArray(a.categories) ? a.categories[0] : a.categories;
+    const vendeur = Array.isArray(a.vendeurs) ? a.vendeurs[0] : a.vendeurs;
+    return {
+      id: a.id,
+      nom: a.nom,
+      description: a.description,
+      prix: a.prix,
+      prix_promo: a.prix_promo,
+      stock: a.stock,
+      vendeur_id: a.vendeur_id,
+      created_at: a.created_at,
+      photos: images.map((img: any) => img.image_url),
+      categorie: cat ? { id: cat.id, nom: cat.nom, slug: cat.slug } : null,
+      vendeur: vendeur ?? null,
+    };
+  });
+
+  const hasMore = (items.length > pageSize);
+  const paged = items.slice(0, pageSize);
+
+  // final result already filtered by categorie_id when applicable
+  return { articles: paged, hasMore, totalCount };
+}
+
+/**
  * Catégories utilisées pour les onglets de la home et les filtres du
  * catalogue. On n'y affiche que les catégories "feuilles" (celles qu'un
  * article peut réellement porter) : une catégorie parente qui a des

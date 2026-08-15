@@ -66,7 +66,14 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { error } = await admin.from("users").update({ role }).eq("id", userId);
+    // L'outil admin modifie le rôle principal : garder account_roles cohérent
+    // évite qu'un livreur attribué par l'admin soit ensuite bloqué par le
+    // proxy multi-compte. L'attribution vendeur reste volontairement
+    // interdite ci-dessus car elle exige un dossier KYC.
+    const account_roles =
+      role === "admin" ? ["admin"] :
+      role === "livreur" ? ["client", "livreur"] : ["client"];
+    const { error } = await admin.from("users").update({ role, account_roles }).eq("id", userId);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
     await admin.from("admin_actions_log").insert({

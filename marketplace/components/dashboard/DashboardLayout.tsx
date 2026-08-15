@@ -39,7 +39,7 @@ interface DashboardLayoutProps {
 // pas de lien équivalent pour lui.
 const ROLE_ACCOUNT_LINKS: Record<"admin" | "vendeur" | "livreur", AccountLink[]> = {
   vendeur: [
-    { label: "Faire des achats", href: "/catalogue", icon: ShoppingBag },
+    { label: "Faire des achats", href: "/vendeur/catalogue", icon: ShoppingBag },
     { label: "Ma boutique", href: "/vendeur/boutique", icon: Store },
     { label: "Paramètres", href: "/vendeur/parametres", icon: Settings },
   ],

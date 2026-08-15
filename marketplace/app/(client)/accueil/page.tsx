@@ -14,6 +14,7 @@ import { createClient } from '@/lib/supabase/client'
 import { fetchFavoriteIds, toggleFavorite } from '@/lib/catalogue'
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from '@/lib/queries/articles'
 import { useCallback } from 'react'
+import { Search, SlidersHorizontal } from 'lucide-react'
 
 function saluerSelonHeure(): string {
   const h = new Date().getHours()
@@ -38,6 +39,8 @@ export default function AccueilPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('Tout')
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'recent' | 'price-asc' | 'price-desc'>('recent')
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [authModalOpen, setAuthModalOpen] = useState(false)
 
@@ -81,10 +84,17 @@ export default function AccueilPage() {
     return () => { cancelled = true }
   }, [profile?.id, profile?.role])
 
-  const filteredProducts =
-    selectedCategory === 'Tout'
-      ? products
-      : products.filter((p) => p.categorie?.nom === selectedCategory)
+  const filteredProducts = products
+    .filter((p) => selectedCategory === 'Tout' || p.categorie?.nom === selectedCategory)
+    .filter((p) => {
+      const needle = search.trim().toLocaleLowerCase()
+      return !needle || `${p.nom} ${p.description || ''}`.toLocaleLowerCase().includes(needle)
+    })
+    .sort((a, b) => {
+      if (sortBy === 'price-asc') return (a.prix_promo ?? a.prix) - (b.prix_promo ?? b.prix)
+      if (sortBy === 'price-desc') return (b.prix_promo ?? b.prix) - (a.prix_promo ?? a.prix)
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    })
 
   const handleToggleFavorite = async (productId: string) => {
     if (!profile) {
@@ -106,16 +116,10 @@ export default function AccueilPage() {
     }
   }
 
-  const handleCategoryClick = useCallback((categoryName: string) => {
-    if (categoryName === 'Tout') {
-      router.push('/catalogue')
-    } else {
-      router.push(`/catalogue?categorie=${encodeURIComponent(categoryName)}`)
-    }
-  }, [router])
+  const handleCategoryClick = useCallback((categoryName: string) => setSelectedCategory(categoryName), [])
 
   return (
-    <div className="flex-1 flex flex-col h-screen overflow-hidden">
+    <div className="flex-1 flex flex-col h-full overflow-hidden">
       <ClientDashboardHeader
         title="Tableau de bord"
         greeting={`${saluerSelonHeure()} ${prenom} 👋`}
@@ -148,6 +152,18 @@ export default function AccueilPage() {
       {/* Content Area */}
       <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50/30">
         <div className="max-w-6xl mx-auto">
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row">
+            <label className="relative flex-1">
+              <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Rechercher un produit" className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm outline-none focus:border-coral-400" />
+            </label>
+            <label className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 text-sm text-gray-600">
+              <SlidersHorizontal size={17} />
+              <select value={sortBy} onChange={(event) => setSortBy(event.target.value as typeof sortBy)} className="bg-transparent py-3 outline-none">
+                <option value="recent">Plus récents</option><option value="price-asc">Prix croissant</option><option value="price-desc">Prix décroissant</option>
+              </select>
+            </label>
+          </div>
           {error && (
             <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
               {error}

@@ -1,109 +1,28 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import {
-  Search, Package, Home, MessageSquare, Menu as MenuIcon,
-  ShoppingCart, LogOut, Minus, Plus, Trash2, ShoppingBag, X, ChevronLeft,
-} from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingBag, X } from 'lucide-react'
+import { Sidebar } from '@/components/dashboard/Sidebar'
 import { useCart } from '@/context/CartContext'
-import LogoAyiba from '@/components/ui/LogoAyiba'
 import { Button } from '@/components/ui/Button'
-import { createClient } from '@/lib/supabase/client'
-import { LogoutConfirmModal } from '@/components/ui/LogoutConfirmModal'
 
-const NAV_ITEMS = [
-  { href: '/explorer', icon: Search, label: 'Explorer' },
-  { href: '/commandes', icon: Package, label: 'Commandes' },
-  { href: '/accueil', icon: Home, label: 'Accueil' },
-  { href: '/messages', icon: MessageSquare, label: 'Messages' },
-  { href: '/menu', icon: MenuIcon, label: 'Menu' },
-]
-
-function estActif(pathname: string, href: string) {
-  return pathname === href || pathname.startsWith(`${href}/`)
-}
+// Sidebar is provided by shared component `Sidebar`
 
 function ClientLayoutContent({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
-  const pathname = usePathname()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [showLogoutModal, setShowLogoutModal] = useState(false)
   const { isOpen, openCart, closeCart, items, total, itemCount, updateQty, removeItem } = useCart()
-  const supabase = createClient()
-
-  const confirmLogout = async () => {
-    setShowLogoutModal(false)
-    await supabase.auth.signOut()
-    router.push('/')
-  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <aside className={`hidden bg-white border-r border-gray-100 flex-col shrink-0 lg:flex h-screen sticky top-0 transition-all duration-300 ${sidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="p-4 border-b border-gray-50 flex items-center justify-between">
-          <LogoAyiba />
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors shrink-0"
-            aria-label={sidebarCollapsed ? "Déplier" : "Replier"}
-            title={sidebarCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
-          >
-            <ChevronLeft size={18} className={`transition-transform duration-300 ${sidebarCollapsed ? 'rotate-180' : ''}`} />
-          </button>
-        </div>
-        <nav className="flex-1 p-4 space-y-1">
-          {NAV_ITEMS.map((item) => {
-            const actif = estActif(pathname, item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium transition-all ${
-                  actif
-                    ? 'bg-coral-50 text-coral-800 border-l-2 border-coral-400'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                <item.icon size={18} />
-                {!sidebarCollapsed && <span>{item.label}</span>}
-              </Link>
-            )
-          })}
-        </nav>
-        <div className="p-4 border-t border-gray-50">
-          <button
-            onClick={openCart}
-            className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-all cursor-pointer relative"
-          >
-            <ShoppingCart size={18} />
-            {!sidebarCollapsed && <span>Panier</span>}
-            {itemCount > 0 && (
-              <span className="absolute right-3 bg-coral-400 text-white rounded-full text-[11px] w-4 h-4 flex items-center justify-center">
-                {itemCount}
-              </span>
-            )}
-          </button>
-        </div>
-        <div className="p-4 border-t border-gray-50">
-          <button
-            onClick={() => setShowLogoutModal(true)}
-            className="w-full flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-medium text-red-400 hover:bg-red-50 transition-all cursor-pointer"
-          >
-            <LogOut size={18} />
-            {!sidebarCollapsed && <span>Déconnexion</span>}
-          </button>
-        </div>
-      </aside>
-
-      <LogoutConfirmModal
-        open={showLogoutModal}
-        onConfirm={confirmLogout}
-        onCancel={() => setShowLogoutModal(false)}
+      <Sidebar
+        role="client"
+        isCollapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onCartClick={openCart}
+        cartItemCount={itemCount}
       />
 
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className={`flex-1 flex flex-col min-h-0 transition-all ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
         {children}
       </div>
       {isOpen && (

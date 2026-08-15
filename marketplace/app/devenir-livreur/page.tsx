@@ -98,7 +98,7 @@ const WHY_AYIBA = [
   {
     icon: Wallet,
     title: "Revenus immédiats",
-    desc: "Retrait quotidien via MTN, Moov ou Celtiis",
+    desc: "Retrait quotidien via MTN ou Moov",
     color: "teal",
   },
   {
@@ -144,7 +144,7 @@ const FAQS = [
   },
   {
     q: "Comment je reçois mes gains ?",
-    a: "Directement sur votre Mobile Money (MTN, Moov ou Celtiis). Vous touchez 95% de chaque course — Ayiba prélève 5% pour assurer la sécurité et la technologie de la plateforme.",
+    a: "Directement sur votre Mobile Money (MTN ou Moov). Vous touchez 95% de chaque course — Ayiba prélève 5% pour assurer la sécurité et la technologie de la plateforme.",
   },
   {
     q: "Est-ce que je peux refuser une course ?",

@@ -56,6 +56,9 @@ export async function GET(request: Request) {
           phone: meta.phone || user.phone || "",
           full_name: meta.full_name || "Utilisateur",
           role: meta.role || "client",
+          account_roles:
+            meta.role === "vendeur" ? ["client", "vendeur"] :
+            meta.role === "livreur" ? ["client", "livreur"] : ["client"],
         });
       }
 

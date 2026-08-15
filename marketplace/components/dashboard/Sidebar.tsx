@@ -8,10 +8,12 @@ import {
   LayoutDashboard,
   Package,
   ShoppingBag,
+  ShoppingCart,
   MessageSquare,
   Settings,
   LogOut,
-  ChevronLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
   ShieldCheck,
   Store,
   User,
@@ -29,16 +31,18 @@ import { useToast } from "@/context/ToastContext";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 
 interface SidebarProps {
-  role: "admin" | "vendeur" | "livreur";
+  role: "admin" | "vendeur" | "livreur" | "client";
   userName?: string;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  onCartClick?: () => void;
+  cartItemCount?: number;
 }
 
-export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: SidebarProps) {
+export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartClick, cartItemCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { exitDemoMode } = useUser();
+  const { exitDemoMode, profile } = useUser();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const menuItems = {
@@ -60,10 +64,18 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
       { name: "Tableau de bord", icon: LayoutDashboard, path: "/vendeur/dashboard" },
       { name: "Mes Articles", icon: Package, path: "/vendeur/articles" },
       { name: "Mes ventes", icon: ShoppingBag, path: "/vendeur/commandes" },
+      { name: "Mes achats", icon: ShoppingCart, path: "/vendeur/achats" },
       { name: "Boutique", icon: Store, path: "/vendeur/boutique" },
       { name: "Paiements", icon: Wallet, path: "/vendeur/paiements" },
       { name: "Messages", icon: MessageSquare, path: "/vendeur/messages" },
       { name: "Paramètres", icon: Settings, path: "/vendeur/parametres" },
+    ],
+    client: [
+      { name: "Accueil", icon: LayoutDashboard, path: "/accueil" },
+      { name: "Commandes", icon: Package, path: "/commandes" },
+      { name: "Favoris", icon: ShoppingBag, path: "/favoris" },
+      { name: "Messages", icon: MessageSquare, path: "/messages" },
+      { name: "Compte", icon: User, path: "/menu" },
     ],
     // La bottom bar mobile se limite à 4 onglets (LIVREUR_NAV_ITEMS) ;
     // le sidebar desktop a la place d'afficher toutes les sections.
@@ -124,7 +136,11 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
           aria-label={isCollapsed ? "Déplier" : "Replier"}
           title={isCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
         >
-          <ChevronLeft size={18} className={`transition-transform duration-300 ${isCollapsed ? "rotate-180" : ""}`} />
+          {isCollapsed ? (
+            <PanelLeftOpen size={18} />
+          ) : (
+            <PanelLeftClose size={18} />
+          )}
         </button>
       </div>
 
@@ -202,6 +218,30 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse }: Sideb
 
       {/* Bottom Actions */}
       <div className="p-3 border-t border-gray-50">
+        {!isCollapsed && profile && (profile.account_roles ?? [profile.role]).filter((item) => item !== "admin").length > 1 && (
+          <div className="mb-2 rounded-xl bg-gray-50 p-2">
+            <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Changer d&apos;espace</p>
+            <div className="flex gap-1">
+              <Link href="/accueil" className="flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 hover:bg-white">Acheter</Link>
+              {(profile.account_roles ?? []).includes("vendeur") && <Link href="/vendeur/dashboard" className="flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 hover:bg-white">Vendre</Link>}
+              {(profile.account_roles ?? []).includes("livreur") && <Link href="/livreur/missions" className="flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 hover:bg-white">Livrer</Link>}
+            </div>
+          </div>
+        )}
+        {role === "client" && onCartClick && (
+          <button
+            onClick={onCartClick}
+            className="relative w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-gray-50 hover:text-gray-900 transition-all group"
+          >
+            <ShoppingCart size={22} className="shrink-0 group-hover:text-gray-700" />
+            {!isCollapsed && <span className="font-semibold text-[14px] whitespace-nowrap">Panier</span>}
+            {cartItemCount > 0 && (
+              <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-coral-500 text-white text-[11px] font-bold flex items-center justify-center">
+                {cartItemCount}
+              </span>
+            )}
+          </button>
+        )}
         <button
           onClick={() => setShowLogoutModal(true)}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all group"

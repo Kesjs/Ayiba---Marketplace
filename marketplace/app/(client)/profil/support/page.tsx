@@ -22,7 +22,7 @@ const FAQS: Faq[] = [
   },
   {
     question: "Quels moyens de paiement sont acceptés ?",
-    reponse: "Mobile Money (MTN, Moov, Celtiis) et le paiement en espèces à la livraison selon le vendeur.",
+    reponse: "Mobile Money (MTN ou Moov) et le paiement en espèces à la livraison selon le vendeur.",
   },
   {
     question: "Que faire si ma livraison a un problème ?",

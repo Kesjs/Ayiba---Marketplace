@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export type TypeVehicule = "motocyclette" | "velo" | "tricycle" | "a_pied";
-export type MobileMoneyNetwork = "mtn" | "moov" | "celtiis";
+export type MobileMoneyNetwork = "mtn" | "moov";
 
 export interface LivreurParametres {
   fullName: string;

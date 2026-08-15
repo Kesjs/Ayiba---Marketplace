@@ -51,7 +51,7 @@ interface VendeurFormData {
   commune: string;
   latitude: number | null;
   longitude: number | null;
-  mobileMoneyNetwork: "mtn" | "moov" | "celtiis" | null;
+  mobileMoneyNetwork: "mtn" | "moov" | null;
   mobileMoneyNumber: string;
 }
 
@@ -422,7 +422,10 @@ export function VendeurKycWizard() {
       // rôle et la création du dossier ensemble. Un compte déjà 'vendeur'
       // (parcours d'inscription classique, ou modification d'un dossier
       // existant) continue à écrire directement, comme avant.
-      if (callerRole === "client") {
+      // Un livreur qui ouvre aussi une boutique n'a pas le rôle principal
+      // "vendeur" : il doit donc lui aussi passer par la route serveur,
+      // laquelle ajoute le droit sans lui retirer le droit livreur.
+      if (callerRole !== "vendeur") {
         const res = await fetch("/api/devenir-vendeur", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

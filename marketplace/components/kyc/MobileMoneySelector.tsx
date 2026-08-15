@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Check, ShieldCheck } from "lucide-react";
 
 interface MobileMoneyOption {
-  id: "mtn" | "moov" | "celtiis";
+  id: "mtn" | "moov";
   label: string;
   logoSrc: string;
   fallbackColor: string;
@@ -30,18 +30,10 @@ const MOBILE_MONEY_OPTIONS: MobileMoneyOption[] = [
     fallbackTextColor: "text-white",
     prefixes: ["60", "63", "64", "65", "68", "98", "99"],
   },
-  {
-    id: "celtiis",
-    label: "Celtiis Cash",
-    logoSrc: "/logos/celtiis.jpg",
-    fallbackColor: "bg-orange-500",
-    fallbackTextColor: "text-white",
-    prefixes: ["55", "56"],
-  },
 ];
 
 /** Détecte le réseau à partir des 2 premiers chiffres significatifs du numéro, parmi les réseaux autorisés. Retourne null si indéterminé ou hors liste. */
-function detecterReseau(numero: string, reseauxAutorises: ("mtn" | "moov" | "celtiis")[]): "mtn" | "moov" | "celtiis" | null {
+function detecterReseau(numero: string, reseauxAutorises: ("mtn" | "moov")[]): "mtn" | "moov" | null {
   let chiffres = numero.replace(/\D/g, "");
   // Au cas où l'indicatif pays serait déjà collé au numéro (ex: valeur
   // reprise telle quelle depuis le profil), on le retire avant détection.
@@ -61,8 +53,8 @@ function numeroPourAffichage(numero: string): string {
 }
 
 interface MobileMoneySelectorProps {
-  selected: "mtn" | "moov" | "celtiis" | "" | null;
-  onSelect: (network: "mtn" | "moov" | "celtiis") => void;
+  selected: "mtn" | "moov" | "" | null;
+  onSelect: (network: "mtn" | "moov") => void;
   phoneNumber: string;
   onPhoneChange: (value: string) => void;
   /** Montant total à payer, affiché dans le récap final. */
@@ -70,12 +62,9 @@ interface MobileMoneySelectorProps {
   error?: string | null;
   touched?: boolean;
   /**
-   * Réseaux affichés — par défaut les 3 (usage KYC vendeur/livreur : compte
-   * de réception, indépendant de tout prestataire de paiement). Le checkout
-   * acheteur passe ["mtn", "moov"] : GeniusPay ne route le Bénin que sur ces
-   * deux opérateurs (voir lib/geniuspay.ts), Celtiis n'y est pas disponible.
+   * Réseaux affichés — GeniusPay ne route le Bénin que sur MTN et Moov.
    */
-  networks?: ("mtn" | "moov" | "celtiis")[];
+  networks?: ("mtn" | "moov")[];
 }
 
 export function MobileMoneySelector({
@@ -86,7 +75,7 @@ export function MobileMoneySelector({
   montant,
   error,
   touched,
-  networks = ["mtn", "moov", "celtiis"],
+  networks = ["mtn", "moov"],
 }: MobileMoneySelectorProps) {
   const [logoFailed, setLogoFailed] = useState<Record<string, boolean>>({});
   // Tant que l'utilisateur n'a pas choisi lui-même une carte, on laisse l'auto-détection piloter la sélection.
@@ -106,7 +95,7 @@ export function MobileMoneySelector({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [detecte, choisiManuellement]);
 
-  const handleSelect = (id: "mtn" | "moov" | "celtiis") => {
+  const handleSelect = (id: "mtn" | "moov") => {
     setChoisiManuellement(true);
     onSelect(id);
   };
@@ -117,7 +106,7 @@ export function MobileMoneySelector({
         Réseau Mobile Money
       </label>
 
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-2 gap-3 mb-5">
         {optionsAffichees.map((option) => {
           const isSelected = selected === option.id;
           const failed = logoFailed[option.id];

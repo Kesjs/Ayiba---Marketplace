@@ -1072,7 +1072,7 @@ export default function DevenirVendeurPage() {
                   <div>
                     <h3 className="font-medium text-gray-900 mb-2">Mobile Money</h3>
                     <p className="text-sm text-gray-600 leading-relaxed">
-                      Vos clients paient via MTN, Moov ou Celtiis en toute sécurité
+                      Vos clients paient via MTN ou Moov en toute sécurité
                     </p>
                   </div>
                 </div>
@@ -1155,7 +1155,7 @@ export default function DevenirVendeurPage() {
                     </div>
                     <h3 className="font-medium text-gray-900 mb-2">Client paie</h3>
                     <p className="text-sm text-gray-600">
-                      Mobile Money : MTN, Moov, Celtiis
+                      Mobile Money : MTN, Moov
                     </p>
                   </div>
                 </motion.div>
@@ -1258,7 +1258,7 @@ export default function DevenirVendeurPage() {
                 {
                   icon: Smartphone,
                   title: "Le client paie par Mobile Money",
-                  desc: "MTN, Moov, Celtiis — paiement instantané et sécurisé",
+                  desc: "MTN, Moov — paiement instantané et sécurisé",
                   color: "coral"
                 },
                 {

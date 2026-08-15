@@ -105,7 +105,7 @@ export default function NotFound() {
             </Button>
             <Button
               variant="secondary"
-              onClick={() => router.push('/explorer')}
+              onClick={() => router.push('/accueil')}
               className="w-full sm:w-auto"
             >
               <Search size={16} />

@@ -195,11 +195,11 @@ export default function CheckoutPage() {
     if (userLoading) return
     if (!user) {
       showToast('Connecte-toi pour passer commande', 'info')
-      router.push('/explorer')
+      router.push('/accueil')
       return
     }
     if (items.length === 0 && etape === 'livraison' && !paiementCheckoutId) {
-      router.push('/explorer')
+      router.push('/accueil')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLoading, user, items.length, paiementCheckoutId])
@@ -1042,7 +1042,7 @@ export default function CheckoutPage() {
       </div>
 
       <div className="hidden">
-        <Link href="/explorer">Continuer mes achats</Link>
+        <Link href="/accueil">Continuer mes achats</Link>
       </div>
 
       <CheckoutFooter />

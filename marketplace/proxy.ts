@@ -111,17 +111,18 @@ export async function proxy(req: NextRequest) {
 
     const { data: userData } = await supabase
       .from("users")
-      .select("role, statut")
+      .select("role, account_roles, statut")
       .eq("id", user.id)
       .single();
 
     if (userData?.statut === "suspendu") {
       return NextResponse.redirect(new URL("/compte-suspendu", req.url));
     }
-    if (vendeurRoutes.some((r) => path.startsWith(r)) && userData?.role !== "vendeur") {
+    const roles = userData?.account_roles ?? [userData?.role ?? "client"];
+    if (vendeurRoutes.some((r) => path.startsWith(r)) && !roles.includes("vendeur")) {
       return NextResponse.redirect(new URL("/catalogue", req.url));
     }
-    if (livreurRoutes.some((r) => path.startsWith(r)) && userData?.role !== "livreur") {
+    if (livreurRoutes.some((r) => path.startsWith(r)) && !roles.includes("livreur")) {
       return NextResponse.redirect(new URL("/catalogue", req.url));
     }
     if (adminRoutes.some((r) => path.startsWith(r)) && userData?.role !== "admin") {

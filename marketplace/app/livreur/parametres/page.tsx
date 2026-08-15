@@ -84,7 +84,6 @@ const VEHICULES: { value: TypeVehicule; label: string }[] = [
 const RESEAUX: { value: MobileMoneyNetwork; label: string }[] = [
   { value: "mtn", label: "MTN Mobile Money" },
   { value: "moov", label: "Moov Money" },
-  { value: "celtiis", label: "Celtiis Cash" },
 ];
 
 export default function LivreurParametresPage() {
@@ -200,7 +199,7 @@ export default function LivreurParametresPage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="max-w-2xl">
+        <div className="max-w-5xl">
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-6 text-sm font-medium text-red-600">
               {error}
@@ -249,6 +248,7 @@ export default function LivreurParametresPage() {
             </div>
           </motion.div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Profil */}
           <SettingsSection icon={User} title="Profil" delay={0.05}>
             <SettingsField label="Nom complet">
@@ -473,6 +473,8 @@ export default function LivreurParametresPage() {
               <span className="text-xs text-gray-400 font-medium shrink-0">support@ayiba.bj</span>
             </a>
           </SettingsSection>
+
+          </div>
 
           {/* Bouton sauvegarder */}
           <motion.button

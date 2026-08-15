@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useVendeurPaiements } from "../../hooks/useVendeurPaiements";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { VentesChart } from "@/components/dashboard/VentesChart";
 import { LABELS_STATUT_PAIEMENT, STATUT_PAIEMENT_BADGE_VARIANT, getLivraisonBadge, type StatutPaiement } from "@/lib/constants/paiements";
+import Link from "next/link";
 import {
-  Wallet, Clock, X, ArrowDownToLine, ArrowUpFromLine,
+  Wallet, Clock, X, ArrowDownToLine, ArrowUpFromLine, Smartphone, Pencil, PiggyBank,
 } from "lucide-react";
 
 interface PaiementRow {
@@ -18,6 +20,7 @@ interface PaiementRow {
   commission: number;
   statut: string | null;
   created_at: string;
+  methode?: string | null;
   commande?: { numero: string; statut: string } | null;
 }
 
@@ -74,7 +77,7 @@ function RetraitCard({ r }: { r: RetraitRow }) {
 
 export default function VendeurPaiementsPage() {
   const {
-    loading, error, paiements, retraits,
+    loading, error, vendeur, paiements, retraits,
     soldeDisponible, soldeEnAttenteLivraison,
     requesting, demanderRetrait, refresh,
   } = useVendeurPaiements();
@@ -83,6 +86,24 @@ export default function VendeurPaiementsPage() {
   const [montant, setMontant] = useState("");
   const [feedback, setFeedback] = useState<{ success: boolean; message: string } | null>(null);
   const [mobileTab, setMobileTab] = useState<"recus" | "retraits">("recus");
+
+  // Répartition des paiements reçus par méthode — sur les paiements payés uniquement.
+  const repartitionMethodes = useMemo(() => {
+    const payes = (paiements as PaiementRow[]).filter((p) => p.statut === "paye");
+    const totaux = new Map<string, number>();
+    for (const p of payes) {
+      const cle = p.methode?.trim() || "Mobile Money";
+      totaux.set(cle, (totaux.get(cle) ?? 0) + Number(p.montant_net ?? p.montant ?? 0));
+    }
+    const totalGeneral = Array.from(totaux.values()).reduce((a, b) => a + b, 0);
+    return Array.from(totaux.entries())
+      .map(([methode, montant]) => ({
+        methode,
+        montant,
+        pct: totalGeneral > 0 ? Math.round((montant / totalGeneral) * 100) : 0,
+      }))
+      .sort((a, b) => b.montant - a.montant);
+  }, [paiements]);
 
   const handleDemande = async () => {
     setFeedback(null);
@@ -195,6 +216,92 @@ export default function VendeurPaiementsPage() {
               Rien à retirer pour l'instant — reviens après tes prochaines livraisons confirmées.
             </p>
           )}
+
+          {/* --- Évolution des paiements --- */}
+          <VentesChart paiements={paiements} titre="Évolution des paiements" objectifMensuel={500000} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+            {/* --- Répartition par méthode de paiement --- */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <PiggyBank size={16} className="text-teal-600" />
+                Répartition par méthode
+              </h3>
+
+              {repartitionMethodes.length === 0 ? (
+                <p className="text-gray-400 text-center py-8 text-xs">Aucun paiement reçu pour le moment</p>
+              ) : (
+                <div className="space-y-4">
+                  {repartitionMethodes.map((m, i) => (
+                    <div key={m.methode}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-semibold text-gray-700">{m.methode}</span>
+                        <span className="text-xs text-gray-500">
+                          {m.montant.toLocaleString("fr-FR")} F · {m.pct}%
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${m.pct}%` }}
+                          transition={{ delay: 0.1 * i, duration: 0.5, ease: "easeOut" }}
+                          className={`h-full rounded-full ${
+                            i === 0 ? "bg-coral-500" : i === 1 ? "bg-teal-500" : "bg-amber-500"
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* --- Moyen de retrait enregistré --- */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6">
+              <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Smartphone size={16} className="text-coral-500" />
+                Moyen de retrait
+              </h3>
+
+              {vendeur?.mobile_money_number ? (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-coral-50 text-coral-600 flex items-center justify-center flex-shrink-0">
+                      <Smartphone size={20} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-gray-900 truncate">{vendeur.mobile_money_number}</p>
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">
+                        {vendeur.mobile_money_network || "Mobile Money"}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/vendeur/boutique"
+                    className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors whitespace-nowrap"
+                  >
+                    <Pencil size={13} />
+                    Modifier
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center text-center gap-3 py-4">
+                  <p className="text-sm text-gray-500">
+                    Aucun numéro Mobile Money enregistré — indispensable pour recevoir tes retraits.
+                  </p>
+                  <Link
+                    href="/vendeur/boutique"
+                    className="inline-flex items-center gap-2 bg-coral-600 hover:bg-coral-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 whitespace-nowrap"
+                  >
+                    <Smartphone size={15} />
+                    Ajouter un numéro
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* --- Listes : tabs sur mobile, côte à côte sur desktop --- */}
           <div className="lg:hidden bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex p-2 gap-2 border-b border-gray-100">
               {(["recus", "retraits"] as const).map((tab) => (

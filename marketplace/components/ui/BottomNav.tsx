@@ -309,7 +309,7 @@ export function BottomNav() {
             <VendeurNavLink
               href="/vendeur/commandes"
               icon={ShoppingBag}
-              label="Commandes"
+              label="Ventes"
               badge={badges.commandes}
               pathname={pathname}
               onClick={triggerHaptic}

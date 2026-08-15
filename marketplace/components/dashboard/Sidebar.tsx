@@ -158,7 +158,7 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
           l'accueil. Le collapse de la sidebar est désormais piloté par le
           bouton hamburger du DashboardHeader (cf. onToggleCollapse), pas
           depuis la sidebar elle-même. */}
-      <div className={`h-20 flex items-center ${isCollapsed ? "justify-center px-2" : "px-6"}`}>
+      <div className={`h-20 flex items-center border-b border-gray-100 ${isCollapsed ? "justify-center px-2" : "px-6"}`}>
         {isCollapsed ? (
           <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />
         ) : (
@@ -300,9 +300,9 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
         })}
       </nav>
 
-      {/* Bottom Actions : identité (nom + rôle en un seul bloc, remonté
-          depuis le haut de la sidebar), panier (client), puis déconnexion. */}
-      <div className="p-3 border-t border-gray-50 space-y-1">
+      {/* Bottom Actions : identité (nom + rôle) + panier (client), séparés
+          du menu de nav au-dessus par une bordure. */}
+      <div className="p-3 border-t border-gray-100 space-y-1">
         <Link
           href={settingsPath[role]}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors ${isCollapsed ? "justify-center px-0" : ""}`}
@@ -334,11 +334,18 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
             )}
           </button>
         )}
+      </div>
+
+      {/* Déconnexion — isolée dans sa propre section, bordure au-dessus
+          pour la séparer du bloc identité/panier, et accent rouge permanent
+          (pas juste au survol) pour bien la distinguer : c'est une action
+          de rupture, pas une destination comme le reste du menu. */}
+      <div className="p-3 border-t border-gray-100">
         <button
           onClick={() => setShowLogoutModal(true)}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-500 hover:bg-red-50 hover:text-red-600 transition-all group"
+          className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 font-semibold hover:bg-red-50 transition-all group ${isCollapsed ? "justify-center px-0" : ""}`}
         >
-          <LogOut size={22} className="group-hover:text-red-500 shrink-0" />
+          <LogOut size={22} className="text-red-500 shrink-0" />
           {!isCollapsed && <span className="font-semibold text-[14px] whitespace-nowrap">Déconnexion</span>}
         </button>
       </div>

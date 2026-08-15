@@ -104,12 +104,20 @@ export default function VendeurDashboardPage() {
 
   const secondaryStats = [
     {
+      label: "Chiffre d'affaires",
+      value: `${chiffreAffaires?.montant_total ?? 0} F`,
+      change: caChange,
+      icon: TrendingUp,
+      color: "text-coral-600",
+      bg: "bg-coral-50",
+    },
+    {
       label: "Commandes",
       value: stats?.nombre_commandes ?? 0,
       change: commandesChange,
       icon: ShoppingBag,
-      color: "text-coral-500",
-      bg: "bg-coral-50",
+      color: "text-teal-600",
+      bg: "bg-teal-50",
     },
     {
       label: "Articles actifs",
@@ -207,35 +215,8 @@ export default function VendeurDashboardPage() {
             </div>
           )}
 
-          {/* Hero CA — Compact, efficace */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[24px] p-5 sm:p-6 text-white shadow-xl shadow-coral-500/20">
-            <div className="absolute -top-16 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-16 -left-8 w-40 h-40 bg-black/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp size={14} className="text-white/80" />
-                  <span className="text-white/80 text-xs font-semibold uppercase tracking-wider">Chiffre d'affaires</span>
-                </div>
-                <p className="text-3xl sm:text-4xl font-bold tracking-tight">
-                  {chiffreAffaires?.montant_total ?? 0} <span className="text-sm font-semibold opacity-90">F</span>
-                </p>
-              </div>
-              {caChange && (
-                <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5 whitespace-nowrap">
-                  <span className="text-xs font-semibold">{caChange}</span>
-                  <span className="text-[10px] opacity-80">vs période</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Graphique CA */}
-          <VentesChart paiements={paiements} objectifMensuel={500000} />
-
-          {/* Stats secondaires — grid optimisée */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          {/* Stats — 4 blocs sur une même ligne (CA, Commandes, Articles actifs, Articles vendus) */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {secondaryStats.map((stat, i) => (
               <motion.div
                 key={stat.label}
@@ -262,10 +243,13 @@ export default function VendeurDashboardPage() {
                 </div>
 
                 <p className="text-[11px] font-medium text-gray-500 mb-0.5 line-clamp-1">{stat.label}</p>
-                <p className="text-2xl font-bold text-gray-900 tracking-tight">{stat.value}</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight truncate">{stat.value}</p>
               </motion.div>
             ))}
           </div>
+
+          {/* Graphique CA */}
+          <VentesChart paiements={paiements} objectifMensuel={500000} />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
             {/* Colonne principale */}

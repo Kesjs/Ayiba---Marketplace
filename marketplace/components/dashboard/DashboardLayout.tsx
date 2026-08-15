@@ -32,7 +32,7 @@ interface DashboardLayoutProps {
 // Liens rapides du menu compte (clic avatar). Chaque rôle n'a pas la même
 // page profil : le vendeur n'en a pas de dédiée (l'info profil vit dans
 // Paramètres), le livreur en a une ("Mon profil"), l'admin n'a que Paramètres.
-// "Faire des achats" mène au catalogue public : un compte vendeur reste un
+// "Catalogue" mène au catalogue public : un compte vendeur reste un
 // utilisateur Ayiba comme un autre côté achat — panier, favoris, checkout et
 // commandes ne font aucune distinction de rôle (RLS basée uniquement sur
 // auth.uid()) — il ne lui manquait qu'un point d'entrée, la home étant
@@ -40,8 +40,8 @@ interface DashboardLayoutProps {
 // pas de lien équivalent pour lui.
 const ROLE_ACCOUNT_LINKS: Record<"admin" | "vendeur" | "livreur", AccountLink[]> = {
   vendeur: [
-    { label: "Faire des achats", href: "/vendeur/catalogue", icon: ShoppingBag },
-    { label: "Ma boutique", href: "/vendeur/boutique", icon: Store },
+    { label: "Catalogue", href: "/vendeur/catalogue", icon: ShoppingBag },
+    { label: "Boutique", href: "/vendeur/boutique", icon: Store },
     { label: "Paramètres", href: "/vendeur/parametres", icon: Settings },
   ],
   livreur: [

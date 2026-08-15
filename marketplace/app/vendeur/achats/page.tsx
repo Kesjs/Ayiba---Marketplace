@@ -34,7 +34,7 @@ export default function VendeurAchatsPage() {
     return () => { cancelled = true; };
   }, [profile?.id, supabase, tab]);
 
-  return <DashboardLayout role="vendeur" title="Mes achats" userName={profile?.full_name ?? undefined}>
+  return <DashboardLayout role="vendeur" title="Commandes" userName={profile?.full_name ?? undefined}>
     <div className="max-w-5xl space-y-6">
       <div className="inline-flex rounded-xl bg-gray-100 p-1">{([ ["active", "En cours"], ["finished", "Terminées"] ] as const).map(([key, label]) => <button key={key} onClick={() => setTab(key)} className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${tab === key ? "bg-white text-coral-600 shadow-sm" : "text-gray-500"}`}>{label}</button>)}</div>
       {loading ? <div className="space-y-3">{Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-32 rounded-2xl bg-gray-100 animate-pulse" />)}</div> : purchases.length === 0 ? <div className="rounded-2xl border border-dashed border-gray-200 bg-white px-6 py-16 text-center"><p className="font-semibold text-gray-700">Aucun achat {tab === "active" ? "en cours" : "terminé"}</p><p className="mt-1 text-sm text-gray-400">Vos commandes personnelles apparaîtront ici.</p></div> : <div className="space-y-3">{purchases.map((purchase) => {

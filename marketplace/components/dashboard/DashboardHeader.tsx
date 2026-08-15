@@ -369,30 +369,11 @@ export function DashboardHeader({
             )}
           </div>
 
-          <div className="relative">
-            <button
-              onClick={handleAvatarClick}
-              className="w-9 h-9 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0"
-              aria-label="Profil"
-            >
-              {avatarUrl ? (
-                <img src={avatarUrl} alt={fullName || "Avatar"} className="w-full h-full object-cover" />
-              ) : (
-                <span className="text-xs font-bold text-gray-500">{initials}</span>
-              )}
-            </button>
-
-            {showAccount && hasAccountMenu && (
-              <AccountDropdown
-                fullName={fullName}
-                avatarUrl={avatarUrl}
-                subtitle={accountSubtitle}
-                links={accountLinks!}
-                onLogoutClick={handleLogoutClick}
-                onClose={() => setShowAccount(false)}
-              />
-            )}
-          </div>
+          {/* Avatar + menu compte : desktop retiré (identité + déconnexion
+              vivent maintenant en bas de la sidebar visible à partir de lg ;
+              tous les liens du menu compte y sont déjà présents). Reste
+              uniquement dans la bande mobile/tablette ci-dessus, où la
+              sidebar n'existe pas. */}
         </div>
       </div>
 

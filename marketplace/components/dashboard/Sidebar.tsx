@@ -75,14 +75,14 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
     ],
     vendeur: [
       { name: "Tableau de bord", icon: LayoutDashboard, path: "/vendeur/dashboard" },
-      { name: "Mes Articles", icon: Package, path: "/vendeur/articles" },
-      { name: "Mes ventes", icon: ShoppingBag, path: "/vendeur/commandes" },
+      { name: "Articles", icon: Package, path: "/vendeur/articles" },
+      { name: "Ventes", icon: ShoppingBag, path: "/vendeur/commandes" },
       {
         name: "Achats",
         icon: ShoppingCart,
         children: [
-          { name: "Faire des achats", path: "/vendeur/catalogue" },
-          { name: "Mes commandes", path: "/vendeur/achats" },
+          { name: "Catalogue", path: "/vendeur/catalogue" },
+          { name: "Commandes", path: "/vendeur/achats" },
         ],
       },
       { name: "Favoris", icon: Heart, path: "/vendeur/favoris" },
@@ -160,32 +160,10 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
         )}
       </div>
 
-      {/* Badge rôle — bandeau pleine largeur, corail clair, sous le logo.
-          En mode replié : version compacte centrée (une lettre) pour rester
-          lisible dans les 80px disponibles. */}
-      <div className={isCollapsed ? "px-3 mb-3" : "px-6 mb-3"}>
-        <div
-          className={`bg-coral-50 border border-coral-100 text-coral-500 font-bold uppercase tracking-wider rounded-lg text-center ${
-            isCollapsed ? "text-[10px] py-1.5" : "text-[11px] py-1.5"
-          }`}
-        >
-          {isCollapsed ? role.slice(0, 1) : role}
-        </div>
-      </div>
-
-      {/* User Profile Summary */}
-      {!isCollapsed && (
-        <div className="px-6 py-4 mb-4">
-          <div className="bg-gray-50 rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0">
-              <User size={20} className="text-gray-500" />
-            </div>
-            <div className="overflow-hidden">
-              <p className="text-sm font-bold truncate">{userName || "Utilisateur"}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Badge rôle et carte utilisateur : déplacés en bas de la sidebar
+          (cf. section "Bottom Actions"), regroupés en un seul bloc juste
+          au-dessus de la déconnexion — le menu de navigation démarre donc
+          directement après le logo. */}
 
       {/* Navigation */}
       <nav className="flex-1 px-3 space-y-1 overflow-y-auto">
@@ -222,7 +200,7 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
             );
           }
 
-          // Item avec sous-menu (ex. "Achats" → Faire des achats / Mes commandes) :
+          // Item avec sous-menu (ex. "Achats" → Catalogue / Commandes) :
           // pas de navigation directe, on déplie/replie la liste des enfants.
           if (item.children) {
             const isOpen = expandedMenu === item.name;
@@ -316,8 +294,20 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
         })}
       </nav>
 
-      {/* Bottom Actions */}
-      <div className="p-3 border-t border-gray-50">
+      {/* Bottom Actions : identité (nom + rôle en un seul bloc, remonté
+          depuis le haut de la sidebar), panier (client), puis déconnexion. */}
+      <div className="p-3 border-t border-gray-50 space-y-1">
+        <div className={`flex items-center gap-3 px-4 py-3 ${isCollapsed ? "justify-center px-0" : ""}`}>
+          <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+            <User size={18} className="text-gray-500" />
+          </div>
+          {!isCollapsed && (
+            <div className="overflow-hidden min-w-0">
+              <p className="text-sm font-bold text-gray-900 truncate leading-tight">{userName || "Utilisateur"}</p>
+              <p className="text-[11px] font-bold text-coral-500 uppercase tracking-wide truncate leading-tight">{role}</p>
+            </div>
+          )}
+        </div>
         {role === "client" && onCartClick && (
           <button
             onClick={onCartClick}

@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Search, CheckCircle2, MapPin } from "lucide-react";
+import { CheckCircle2, MapPin } from "lucide-react";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
 
 export default function BoutiquesPage() {
-  const [search, setSearch] = useState("");
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,10 +33,6 @@ export default function BoutiquesPage() {
     };
   }, []);
 
-  const filteredStores = boutiques.filter((store) =>
-    store.nom.toLowerCase().includes(search.toLowerCase())
-  );
-
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
@@ -52,17 +47,6 @@ export default function BoutiquesPage() {
           </p>
         </div>
 
-        <div className="relative mb-8 md:mb-10 max-w-md">
-          <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Rechercher une boutique..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full h-12 pl-11 pr-4 rounded-full bg-gray-50 border border-gray-100 text-sm focus:outline-none focus:border-coral-300 focus:bg-white transition-colors"
-          />
-        </div>
-
         {error && (
           <div className="mb-8 rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
             {error}
@@ -75,13 +59,13 @@ export default function BoutiquesPage() {
               <div key={i} className="h-40 bg-gray-50 border border-gray-100 rounded-3xl animate-pulse" />
             ))}
           </div>
-        ) : filteredStores.length === 0 ? (
+        ) : boutiques.length === 0 ? (
           <div className="py-20 text-center text-gray-400">
-            {search ? `Aucune boutique trouvée pour "${search}".` : "Aucune boutique disponible pour le moment."}
+            Aucune boutique disponible pour le moment.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {filteredStores.map((store) => (
+            {boutiques.map((store) => (
               <Link
                 key={store.id}
                 href={`/boutiques/${store.id}`}

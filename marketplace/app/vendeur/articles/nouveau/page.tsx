@@ -167,6 +167,15 @@ function NouveauArticleForm() {
   const [modePromo, setModePromo] = useState<"nouveau_prix" | "pourcentage">("pourcentage");
   const [pourcentagePromo, setPourcentagePromo] = useState("");
   const [nouveauPrixPromo, setNouveauPrixPromo] = useState("");
+  // Durée de la promo : une vraie date de fin (date_fin_promo en base),
+  // qui alimente le vrai countdown "Ventes flash" de la home et qui est
+  // aussi ce qui déclenche l'expiration automatique côté serveur (cron).
+  const DUREES_PROMO = [
+    { label: "24h", heures: 24 },
+    { label: "3 jours", heures: 72 },
+    { label: "7 jours", heures: 168 },
+  ] as const;
+  const [dureePromo, setDureePromo] = useState<number>(72);
 
   const prixNumerique = Number(formData.prix) || 0;
 
@@ -581,6 +590,9 @@ function NouveauArticleForm() {
           description: formData.description.trim(),
           prix: Number(formData.prix),
           prix_promo: promoCalcul ? promoCalcul.nouveauPrix : null,
+          date_fin_promo: promoCalcul
+            ? new Date(Date.now() + dureePromo * 60 * 60 * 1000).toISOString()
+            : null,
           stock: stockIllimite ? null : Number(formData.stock),
           statut,
           raison_rejet: raison ?? null,
@@ -951,6 +963,29 @@ function NouveauArticleForm() {
                           <span className="text-sm font-bold text-gray-900">{promoCalcul.nouveauPrix.toLocaleString("fr-FR")} FCFA</span>
                         </div>
                       )}
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                          Durée de la promo
+                        </label>
+                        <div className="flex gap-2">
+                          {DUREES_PROMO.map((d) => (
+                            <button
+                              key={d.heures}
+                              type="button"
+                              onClick={() => setDureePromo(d.heures)}
+                              className={`flex-1 h-9 rounded-lg text-xs font-bold transition-colors ${
+                                dureePromo === d.heures ? "bg-coral-500 text-white" : "bg-white border border-gray-200 text-gray-600"
+                              }`}
+                            >
+                              {d.label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-[11px] text-gray-400 mt-1.5">
+                          Le prix redevient normal automatiquement à la fin de cette période.
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>

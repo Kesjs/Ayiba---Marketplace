@@ -171,16 +171,6 @@ function CatalogueContent() {
             <p className="text-gray-500 font-medium max-w-2xl">Parcourez tout le catalogue Ayiba. Sécurité garantie, livraison locale rapide.</p>
             
             <div className="mt-8 flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                <input 
-                  type="text"
-                  placeholder="Rechercher un produit, une marque..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full h-14 pl-12 pr-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-coral-500/20 focus:border-coral-500 transition-all font-medium"
-                />
-              </div>
               <Button 
                 onClick={() => setShowFilters(!showFilters)}
                 variant="outline" 

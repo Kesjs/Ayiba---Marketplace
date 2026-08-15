@@ -199,7 +199,7 @@ export default function LivreurParametresPage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="max-w-5xl">
+        <div>
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-6 text-sm font-medium text-red-600">
               {error}
@@ -248,7 +248,7 @@ export default function LivreurParametresPage() {
             </div>
           </motion.div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {/* Profil */}
           <SettingsSection icon={User} title="Profil" delay={0.05}>
             <SettingsField label="Nom complet">

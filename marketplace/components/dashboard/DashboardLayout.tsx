@@ -106,6 +106,7 @@ export function DashboardLayout({
       <Sidebar
         role={role}
         userName={displayName}
+        avatarUrl={profile?.avatar_url}
         isCollapsed={isCollapsed}
         onToggleCollapse={() => setIsCollapsed((c) => !c)}
       />

@@ -33,6 +33,7 @@ import LogoAyiba from "@/components/ui/LogoAyiba";
 interface SidebarProps {
   role: "admin" | "vendeur" | "livreur" | "client";
   userName?: string;
+  avatarUrl?: string | null;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   onCartClick?: () => void;
@@ -52,7 +53,7 @@ interface SidebarMenuItem {
   requiresValidation?: boolean;
 }
 
-export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartClick, cartItemCount = 0 }: SidebarProps) {
+export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollapse, onCartClick, cartItemCount = 0 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { exitDemoMode, profile } = useUser();
@@ -307,8 +308,13 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
           href={settingsPath[role]}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors ${isCollapsed ? "justify-center px-0" : ""}`}
         >
-          <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
-            <User size={18} className="text-gray-500" />
+          <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarUrl} alt={userName || "Avatar"} className="w-full h-full object-cover" />
+            ) : (
+              <User size={18} className="text-gray-500" />
+            )}
           </div>
           {!isCollapsed && (
             <>

@@ -12,8 +12,6 @@ import {
   MessageSquare,
   Settings,
   LogOut,
-  PanelLeftClose,
-  PanelLeftOpen,
   ShieldCheck,
   Store,
   User,
@@ -116,28 +114,13 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
         ${isCollapsed ? "lg:w-20" : "lg:w-64"}
       `}
     >
-      {/* Bouton toggle — flottant sur la bordure droite de la sidebar, en
-          dehors du header, pour ne jamais entrer en concurrence d'espace
-          avec le logo (notamment en mode replié où la sidebar ne fait que
-          80px de large). */}
-      <button
-        onClick={onToggleCollapse}
-        className="absolute top-7 -right-3 z-30 w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded-full text-gray-400 hover:text-gray-600 hover:border-gray-300 shadow-sm transition-colors"
-        aria-label={isCollapsed ? "Déplier" : "Replier"}
-        title={isCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
-      >
-        {isCollapsed ? (
-          <PanelLeftOpen size={13} />
-        ) : (
-          <PanelLeftClose size={13} />
-        )}
-      </button>
-
       {/* Logo — volontairement non cliquable dans les dashboards (admin/
           vendeur/livreur) : contrairement au site public, sortir du
           dashboard par erreur en visant la sidebar n'est jamais voulu ici.
           Seul le Navbar public (espace client) garde un logo qui ramène à
-          l'accueil. */}
+          l'accueil. Le collapse de la sidebar est désormais piloté par le
+          bouton hamburger du DashboardHeader (cf. onToggleCollapse), pas
+          depuis la sidebar elle-même. */}
       <div className={`h-20 flex items-center ${isCollapsed ? "justify-center px-2" : "px-6"}`}>
         {isCollapsed ? (
           <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />

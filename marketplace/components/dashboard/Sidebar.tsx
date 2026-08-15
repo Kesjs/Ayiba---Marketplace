@@ -159,7 +159,7 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
           l'accueil. Le collapse de la sidebar est désormais piloté par le
           bouton hamburger du DashboardHeader (cf. onToggleCollapse), pas
           depuis la sidebar elle-même. */}
-      <div className={`h-20 flex items-center border-b border-gray-100 ${isCollapsed ? "justify-center px-2" : "px-6"}`}>
+      <div className={`h-14 flex items-center border-b border-gray-100 ${isCollapsed ? "justify-center px-2" : "px-6"}`}>
         {isCollapsed ? (
           <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />
         ) : (

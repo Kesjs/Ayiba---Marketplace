@@ -106,43 +106,14 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("Tout");
   const [visibleProductsCount, setVisibleProductsCount] = useState(8);
 
-  // Countdown pour les ventes flash — la fenêtre de 3j est un choix produit
-  // indépendant des données ; à faire évoluer séparément si un vrai système
-  // de promos programmées est décidé.
-  // La fin de cycle est recalculée à partir d'un ancrage fixe stocké dans
-  // parametres_systeme (clé "ventes_flash_ancrage"), lu une fois au montage.
-  // Avant, la fin était recalculée en "maintenant + 3 jours" à chaque montage
-  // du composant : chaque reload repartait donc de 72:00:00 sans jamais
-  // finir. En ancrant sur une date fixe partagée en base, tous les visiteurs
-  // (et tous les reloads) voient le même countdown converger vers zéro.
-  const FLASH_DUREE_MS = 1000 * 60 * 60 * 24 * 3;
-  const [flashAnchor, setFlashAnchor] = useState<number | null>(null);
-  const [flashEndTime, setFlashEndTime] = useState<number>(() => Date.now() + FLASH_DUREE_MS);
-  const [countdown, setCountdown] = useState({ h: 72, m: 0, s: 0 });
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const { data } = await supabase
-        .from("parametres_systeme")
-        .select("valeur")
-        .eq("cle", "ventes_flash_ancrage")
-        .maybeSingle();
-      if (cancelled) return;
-      const ancrageStr = data?.valeur as string | undefined;
-      if (ancrageStr) setFlashAnchor(new Date(ancrageStr).getTime());
-    })();
-    return () => { cancelled = true; };
-  }, [supabase]);
-
-  // Recalcule la fin du cycle de 3j courant dès que l'ancrage est connu.
-  useEffect(() => {
-    if (flashAnchor === null) return;
-    const diffDepuisAncrage = Date.now() - flashAnchor;
-    const cyclesEcoules = Math.floor(diffDepuisAncrage / FLASH_DUREE_MS);
-    const finCycleCourant = flashAnchor + (cyclesEcoules + 1) * FLASH_DUREE_MS;
-    setFlashEndTime(finCycleCourant);
-  }, [flashAnchor]);
+  // Countdown pour les ventes flash — basé sur la vraie date_fin_promo de
+  // chaque article en promo (fixée par le vendeur), pas sur un cycle
+  // artificiel. On affiche le temps restant avant la PROCHAINE expiration
+  // parmi les articles actuellement en vente flash : c'est la date la plus
+  // proche qui déclenchera un vrai changement visible dans la section
+  // (l'article expiré redevient un prix normal, via le job serveur qui
+  // nettoie prix_promo/date_fin_promo automatiquement).
+  const [countdown, setCountdown] = useState<{ h: number; m: number; s: number } | null>(null);
 
   // Redirige automatiquement vendeur/livreur/admin vers leur dashboard —
   // la home publique ne sert qu'aux visiteurs (guest) et clients.
@@ -208,27 +179,40 @@ export default function Home() {
     fetchFavoriteIds(supabase, user.id).then(setFavoriteIds);
   }, [supabase, user, articles.length]);
 
+  // Prochaine expiration parmi les articles actuellement en promo avec une
+  // date_fin_promo (recalculé à chaque nouveau chargement d'articles).
+  const nextFlashEnd = useMemo(() => {
+    const dates = articles
+      .filter((a) => a.prix_promo != null && a.date_fin_promo)
+      .map((a) => new Date(a.date_fin_promo as string).getTime())
+      .filter((t) => t > Date.now());
+    return dates.length > 0 ? Math.min(...dates) : null;
+  }, [articles]);
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      const diff = flashEndTime - Date.now();
+    if (nextFlashEnd === null) {
+      setCountdown(null);
+      return;
+    }
+    const tick = () => {
+      const diff = nextFlashEnd - Date.now();
       if (diff <= 0) {
-        // Cycle terminé : on avance au cycle suivant en repartant toujours
-        // du même ancrage fixe (pas de "+3 jours depuis maintenant", qui
-        // désynchroniserait chaque onglet/appareil).
-        if (flashAnchor !== null) {
-          const diffDepuisAncrage = Date.now() - flashAnchor;
-          const cyclesEcoules = Math.floor(diffDepuisAncrage / FLASH_DUREE_MS);
-          setFlashEndTime(flashAnchor + (cyclesEcoules + 1) * FLASH_DUREE_MS);
-        }
+        // La promo la plus proche vient d'expirer : le job serveur va la
+        // nettoyer sous peu et le prochain chargement d'articles fera
+        // disparaître ce produit de "Ventes flash" / recalculera la
+        // prochaine échéance. On arrête juste le décompte ici.
+        setCountdown({ h: 0, m: 0, s: 0 });
         return;
       }
       const h = Math.floor(diff / (1000 * 60 * 60));
       const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
       const s = Math.floor((diff % (1000 * 60)) / 1000);
       setCountdown({ h, m, s });
-    }, 1000);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [flashEndTime, flashAnchor]);
+  }, [nextFlashEnd]);
 
   // Ordre aléatoire, recalculé seulement quand la liste d'articles change
   // (nouveau chargement) et non à chaque re-render — sinon les produits
@@ -472,14 +456,16 @@ export default function Home() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 bg-white rounded-2xl px-3 md:px-4 py-2 md:py-2.5 border border-coral-100 shadow-sm self-start sm:self-auto">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden md:inline">Se termine dans</span>
-                    <div className="flex items-center gap-1 font-mono font-bold text-coral-600 text-xs md:text-sm">
-                      <span className="bg-coral-50 px-1.5 md:px-2 py-1 rounded-lg">{String(countdown.h).padStart(2, '0')}</span>:
-                      <span className="bg-coral-50 px-1.5 md:px-2 py-1 rounded-lg">{String(countdown.m).padStart(2, '0')}</span>:
-                      <span className="bg-coral-50 px-1.5 md:px-2 py-1 rounded-lg">{String(countdown.s).padStart(2, '0')}</span>
+                  {countdown && (
+                    <div className="flex items-center gap-2 bg-white rounded-2xl px-3 md:px-4 py-2 md:py-2.5 border border-coral-100 shadow-sm self-start sm:self-auto">
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden md:inline">Se termine dans</span>
+                      <div className="flex items-center gap-1 font-mono font-bold text-coral-600 text-xs md:text-sm">
+                        <span className="bg-coral-50 px-1.5 md:px-2 py-1 rounded-lg">{String(countdown.h).padStart(2, '0')}</span>:
+                        <span className="bg-coral-50 px-1.5 md:px-2 py-1 rounded-lg">{String(countdown.m).padStart(2, '0')}</span>:
+                        <span className="bg-coral-50 px-1.5 md:px-2 py-1 rounded-lg">{String(countdown.s).padStart(2, '0')}</span>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <motion.div

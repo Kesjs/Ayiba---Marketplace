@@ -88,26 +88,26 @@ export function VentesChart({ paiements, objectifMensuel = 500000 }: VentesChart
   const afficherObjectif = periode === "30j" && maxValeur > 0 && objectifMensuel <= maxValeur * 3;
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 md:p-8">
-      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h3 className="text-lg md:text-xl font-bold">Chiffre d'affaires</h3>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+        <h3 className="font-bold text-gray-900">Chiffre d'affaires</h3>
 
         <div className="flex bg-gray-50 rounded-full p-1">
           {(["7j", "30j", "12mois"] as Periode[]).map((p) => (
             <button
               key={p}
               onClick={() => setPeriode(p)}
-              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+              className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
                 periode === p ? "bg-white text-coral-600 shadow-sm" : "text-gray-500"
               }`}
             >
-              {p === "7j" ? "7 jours" : p === "30j" ? "Ce mois" : "12 mois"}
+              {p === "7j" ? "7j" : p === "30j" ? "Mois" : "12m"}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="h-64">
+      <div className="h-40">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <defs>

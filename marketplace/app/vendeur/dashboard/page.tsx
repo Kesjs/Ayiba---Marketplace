@@ -42,7 +42,7 @@ function ActionRapide({
   href, 
   color 
 }: { 
-  icon: any; 
+  icon: React.ElementType; 
   label: string; 
   href: string; 
   color: string;
@@ -207,25 +207,25 @@ export default function VendeurDashboardPage() {
             </div>
           )}
 
-          {/* Hero CA */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[32px] p-6 sm:p-8 text-white shadow-xl shadow-coral-500/20">
-            <div className="absolute -top-20 -right-16 w-56 h-56 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -left-10 w-48 h-48 bg-black/10 rounded-full blur-3xl pointer-events-none" />
+          {/* Hero CA — Compact, efficace */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[24px] p-5 sm:p-6 text-white shadow-xl shadow-coral-500/20">
+            <div className="absolute -top-16 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-16 -left-8 w-40 h-40 bg-black/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp size={16} className="text-white/80" />
-                <span className="text-white/80 text-sm">Chiffre d'affaires</span>
-              </div>
-              <p className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-                {chiffreAffaires?.montant_total ?? 0} F
-              </p>
-
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp size={14} className="text-white/80" />
+                  <span className="text-white/80 text-xs font-semibold uppercase tracking-wider">Chiffre d'affaires</span>
+                </div>
+                <p className="text-3xl sm:text-4xl font-bold tracking-tight">
+                  {chiffreAffaires?.montant_total ?? 0} <span className="text-sm font-semibold opacity-90">F</span>
+                </p>
               </div>
               {caChange && (
-                <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
-                  <span className="text-xs font-semibold">{caChange} vs période précédente</span>
+                <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5 whitespace-nowrap">
+                  <span className="text-xs font-semibold">{caChange}</span>
+                  <span className="text-[10px] opacity-80">vs période</span>
                 </div>
               )}
             </div>
@@ -234,23 +234,23 @@ export default function VendeurDashboardPage() {
           {/* Graphique CA */}
           <VentesChart paiements={paiements} objectifMensuel={500000} />
 
-          {/* Stats secondaires */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-6">
+          {/* Stats secondaires — grid optimisée */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-4">
             {secondaryStats.map((stat, i) => (
               <motion.div
                 key={stat.label}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 * i, duration: 0.3 }}
-                className="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300"
+                className="bg-white p-3 sm:p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className={`w-12 h-12 rounded-2xl ${stat.bg} ${stat.color} flex items-center justify-center`}>
-                    <stat.icon size={24} />
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className={`w-9 h-9 rounded-lg ${stat.bg} ${stat.color} flex items-center justify-center flex-shrink-0`}>
+                    <stat.icon size={18} />
                   </div>
                   {stat.change && (
                     <span
-                      className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${
                         stat.change.startsWith("+") || stat.change === "Nouveau"
                           ? "bg-teal-50 text-teal-600"
                           : "bg-red-50 text-red-600"
@@ -261,32 +261,32 @@ export default function VendeurDashboardPage() {
                   )}
                 </div>
 
-                <p className="text-sm font-medium text-gray-500 mb-1">{stat.label}</p>
-                <p className="text-3xl font-bold text-gray-900 tracking-tight">{stat.value}</p>
+                <p className="text-[11px] font-medium text-gray-500 mb-0.5 line-clamp-1">{stat.label}</p>
+                <p className="text-2xl font-bold text-gray-900 tracking-tight">{stat.value}</p>
               </motion.div>
             ))}
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
             {/* Colonne principale */}
-            <div className="lg:col-span-8 space-y-8">
+            <div className="lg:col-span-8 space-y-6 lg:space-y-8">
               {/* Actions rapides - Style iOS compact */}
-              <div className="bg-white p-5 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
-                <div className="flex items-center justify-between mb-5">
-                  <h3 className="text-lg font-bold">Actions rapides</h3>
+              <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-gray-900">Actions rapides</h3>
                   <button
                     onClick={() => setShowMore(!showMore)}
-                    className="text-coral-600 text-sm font-semibold flex items-center gap-1 hover:underline active:text-coral-700 transition-colors"
+                    className="text-coral-600 text-xs font-bold flex items-center gap-1 hover:underline active:text-coral-700 transition-colors"
                   >
                     {showMore ? "Voir moins" : "Tout voir"}
                     <ChevronRight 
-                      size={16} 
+                      size={14} 
                       className={`transition-transform ${showMore ? "rotate-90" : ""}`} 
                     />
                   </button>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <ActionRapide icon={Plus} label="Nouvel article" href="/vendeur/articles/nouveau" color="coral" />
                   <ActionRapide icon={ShoppingBag} label="Commandes" href="/vendeur/commandes" color="teal" />
                   <ActionRapide icon={MessageSquare} label="Messages" href="/vendeur/messages" color="amber" />
@@ -298,7 +298,7 @@ export default function VendeurDashboardPage() {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     transition={{ duration: 0.3 }}
-                    className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-100"
+                    className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4 pt-4 border-t border-gray-100"
                   >
                     <ActionRapide icon={Package} label="Mes articles" href="/vendeur/articles" color="amber" />
                     <ActionRapide icon={Star} label="Avis clients" href="/vendeur/avis" color="blue" />
@@ -307,10 +307,10 @@ export default function VendeurDashboardPage() {
               </div>
 
               {/* Dernières commandes */}
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="p-6 md:p-8 border-b border-gray-100 flex items-center justify-between">
-                  <h3 className="text-lg md:text-xl font-bold">Dernières commandes</h3>
-                  <Link href="/vendeur/commandes" className="text-sm font-bold text-coral-600 hover:underline">
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-4 md:p-6 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-bold text-gray-900">Dernières commandes</h3>
+                  <Link href="/vendeur/commandes" className="text-xs font-bold text-coral-600 hover:underline">
                     Voir tout →
                   </Link>
                 </div>
@@ -403,30 +403,30 @@ export default function VendeurDashboardPage() {
             </div>
 
             {/* Colonne latérale */}
-            <div className="lg:col-span-4 space-y-8">
-              <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm h-fit">
-                <h3 className="text-lg md:text-xl font-bold mb-6">Messages récents</h3>
+            <div className="lg:col-span-4 space-y-6 lg:space-y-8">
+              <div className="bg-white p-4 md:p-6 rounded-2xl border border-gray-100 shadow-sm h-fit">
+                <h3 className="font-bold text-gray-900 mb-4">Messages récents</h3>
 
-                <div className="space-y-6">
+                <div className="space-y-4">
                   {messages.length === 0 ? (
-                    <p className="text-gray-400 py-8 text-center">Aucun message récent</p>
+                    <p className="text-gray-400 py-6 text-center text-xs">Aucun message récent</p>
                   ) : (
                     messages.map((msg) => (
                       <div
                         key={msg.id}
-                        className="flex gap-4 group cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded-2xl transition-colors"
+                        className="flex gap-3 group cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded-xl transition-colors"
                       >
-                        <div className="relative w-10 h-10 rounded-2xl bg-teal-100 flex items-center justify-center flex-shrink-0">
-                          <MessageSquare size={20} className="text-teal-600" />
+                        <div className="relative w-9 h-9 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+                          <MessageSquare size={16} className="text-teal-600" />
                           {msg.lu === false && (
-                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-coral-500 rounded-full border-2 border-white" />
+                            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-coral-500 rounded-full border border-white" />
                           )}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm text-gray-700 line-clamp-2 group-hover:text-gray-900 transition-colors">
+                          <p className="text-xs text-gray-700 line-clamp-2 group-hover:text-gray-900 transition-colors">
                             {msg.contenu}
                           </p>
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-[10px] text-gray-400 mt-0.5">
                             {new Date(msg.created_at).toLocaleDateString("fr-FR")}
                           </p>
                         </div>
@@ -437,7 +437,7 @@ export default function VendeurDashboardPage() {
 
                 <Link
                   href="/vendeur/messages"
-                  className="block w-full text-center mt-8 py-3.5 bg-gray-900 hover:bg-black text-white text-sm font-bold rounded-2xl transition-colors"
+                  className="block w-full text-center mt-6 py-2.5 bg-gray-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-colors"
                 >
                   Voir tous les messages
                 </Link>

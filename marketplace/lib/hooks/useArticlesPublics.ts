@@ -6,9 +6,16 @@ type UseOptions = {
   pageSize?: number;
   initialSearch?: string | null;
   initialSortBy?: string | null;
+  excludeVendeurId?: string;
+  // Quand false, met le fetch en pause (reste en `loading`) sans le lancer.
+  // Utile quand `excludeVendeurId` dépend d'un profil encore en cours de
+  // résolution : partir tout de suite ferait un premier appel sans
+  // exclusion, puis un second juste après avec — d'où un clignotement des
+  // résultats. Défaut à true pour ne rien changer aux usages existants.
+  enabled?: boolean;
 };
 
-export function useArticlesPublics({ initialCategorySlug = null, pageSize = 12, initialSearch = null, initialSortBy = null }: UseOptions = {}) {
+export function useArticlesPublics({ initialCategorySlug = null, pageSize = 12, initialSearch = null, initialSortBy = null, excludeVendeurId, enabled = true }: UseOptions = {}) {
   const [articles, setArticles] = useState<ArticlePublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -28,9 +35,10 @@ export function useArticlesPublics({ initialCategorySlug = null, pageSize = 12, 
   }, [search]);
 
   useEffect(() => {
+    if (!enabled) return;
     let mounted = true;
     setLoading(true);
-    getArticlesPublicsPaged({ page, pageSize, categorieSlug: categorySlug ?? undefined, recherche: debouncedSearch ?? undefined, sortBy: sortBy ?? undefined })
+    getArticlesPublicsPaged({ page, pageSize, categorieSlug: categorySlug ?? undefined, recherche: debouncedSearch ?? undefined, sortBy: sortBy ?? undefined, excludeVendeurId })
       .then((res) => {
         if (!mounted) return;
         setArticles(res.articles || []);
@@ -48,7 +56,7 @@ export function useArticlesPublics({ initialCategorySlug = null, pageSize = 12, 
     return () => {
       mounted = false;
     };
-  }, [page, pageSize, categorySlug, debouncedSearch, sortBy]);
+  }, [enabled, page, pageSize, categorySlug, debouncedSearch, sortBy, excludeVendeurId]);
 
   useEffect(() => {
     getCategoriesActives().then(setCategories).catch((err) => setError(err as Error));
@@ -67,7 +75,7 @@ export function useArticlesPublics({ initialCategorySlug = null, pageSize = 12, 
   const reload = async () => {
     setLoading(true);
     try {
-      const res = await getArticlesPublicsPaged({ page, pageSize, categorieSlug: categorySlug ?? undefined, recherche: debouncedSearch ?? undefined, sortBy: sortBy ?? undefined });
+      const res = await getArticlesPublicsPaged({ page, pageSize, categorieSlug: categorySlug ?? undefined, recherche: debouncedSearch ?? undefined, sortBy: sortBy ?? undefined, excludeVendeurId });
       setArticles(res.articles || []);
       setHasMore(!!res.hasMore);
       setTotalCount(res.totalCount ?? null);

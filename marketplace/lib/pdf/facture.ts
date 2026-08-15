@@ -158,7 +158,17 @@ function draw(doc: PDFKit.PDFDocument, data: FactureData, qrBuffer: Buffer): num
   doc.font("Helvetica-Bold").fontSize(10).fillColor(DARK);
   doc.text(data.clientNom, MARGIN_X, y, { width: CONTENT_WIDTH });
   y += doc.heightOfString(data.clientNom, { width: CONTENT_WIDTH }) + 2;
-  for (const ligne of [data.clientTelephone, data.clientAdresse, data.clientCommune]) {
+  // Le checkout construit clientAdresse comme "quartier, commune" : la
+  // commune s'y trouve donc déjà. L'afficher une seconde fois sur sa
+  // propre ligne ne faisait que répéter la même information — on ne la
+  // garde séparée que si elle n'est pas déjà incluse dans l'adresse
+  // (anciennes commandes, ou adresse saisie sans commune).
+  const communeDejaDansAdresse =
+    !!data.clientCommune &&
+    !!data.clientAdresse &&
+    data.clientAdresse.toLowerCase().trim().endsWith(data.clientCommune.toLowerCase().trim());
+  const lignesClient = [data.clientTelephone, data.clientAdresse, communeDejaDansAdresse ? null : data.clientCommune];
+  for (const ligne of lignesClient) {
     if (!ligne) continue;
     doc.font("Helvetica").fontSize(8.5).fillColor(GRAY);
     doc.text(ligne, MARGIN_X, y, { width: CONTENT_WIDTH });

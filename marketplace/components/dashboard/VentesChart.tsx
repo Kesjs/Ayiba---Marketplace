@@ -21,6 +21,7 @@ interface PaiementRow {
 interface VentesChartProps {
   paiements: PaiementRow[];
   objectifMensuel?: number; // temporaire, en attendant un vrai champ en base
+  titre?: string;
 }
 
 type Periode = "7j" | "30j" | "12mois";
@@ -28,7 +29,7 @@ type Periode = "7j" | "30j" | "12mois";
 const COULEUR_CA = "#B94B27";   // coral-500
 const COULEUR_OBJECTIF = "#9E9D95"; // gray-300
 
-export function VentesChart({ paiements, objectifMensuel = 500000 }: VentesChartProps) {
+export function VentesChart({ paiements, objectifMensuel = 500000, titre = "Chiffre d'affaires" }: VentesChartProps) {
   const [periode, setPeriode] = useState<Periode>("30j");
 
   const payes = useMemo(
@@ -90,7 +91,7 @@ export function VentesChart({ paiements, objectifMensuel = 500000 }: VentesChart
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 md:p-6">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h3 className="font-bold text-gray-900">Chiffre d'affaires</h3>
+        <h3 className="font-bold text-gray-900">{titre}</h3>
 
         <div className="flex bg-gray-50 rounded-full p-1">
           {(["7j", "30j", "12mois"] as Periode[]).map((p) => (

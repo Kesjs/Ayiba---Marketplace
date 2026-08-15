@@ -23,7 +23,7 @@ export function CheckoutFooter() {
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
               Partenaire
             </span>
-            <span className="text-xs font-black text-[#6B46C1]">Feda</span>
+            <span className="text-xs font-black text-coral-600">Genius</span>
             <span className="text-xs font-black text-gray-900">Pay</span>
           </div>
         </div>

@@ -11,7 +11,7 @@ import useArticlesPublics from "@/lib/hooks/useArticlesPublics";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { createClient } from "@/lib/supabase/client";
 import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
-import { Search, ChevronLeft, ChevronRight, CheckCircle2, MapPin, Zap, Star } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, CheckCircle2, MapPin, Zap, Star, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
@@ -27,7 +27,7 @@ function ancienPrixAffiche(a: ArticlePublic) {
 
 export default function VendeurCataloguePage() {
   const router = useRouter();
-  const { user, profile } = useUser();
+  const { user, profile, loading: userLoading } = useUser();
   const { addItem } = useCart();
   const { showToast } = useToast();
   const supabase = useMemo(() => createClient(), []);
@@ -35,6 +35,7 @@ export default function VendeurCataloguePage() {
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [boutiquesLoading, setBoutiquesLoading] = useState(false);
   const [boutiquesError, setBoutiquesError] = useState<string | null>(null);
+  const [boutiqueFilter, setBoutiqueFilter] = useState("");
 
   const { articles, loading, categories, categorySlug, setCategorySlug, page, setPage, hasMore, totalCount, search, setSearch, sortBy, setSortBy } = useArticlesPublics({ pageSize: 18 });
 
@@ -73,12 +74,19 @@ export default function VendeurCataloguePage() {
   // de la grille principale, qui ne reflète qu'une page filtrée à la fois.
   const [highlightPool, setHighlightPool] = useState<ArticlePublic[]>([]);
   useEffect(() => {
+    // On attend que le profil (vendeur ou non) soit résolu avant de charger
+    // ce pool : sinon un premier appel part sans excludeVendeurId (profil pas
+    // encore connu), pose ses propres produits en promo dans "Ventes flash",
+    // puis un second appel arrive juste après avec l'exclusion et les retire
+    // — d'où le flash "apparaît puis disparaît" au chargement de la page.
+    // Un seul appel, une fois le profil connu, élimine ce clignotement.
+    if (userLoading) return;
     let cancelled = false;
     getArticlesPublics({ excludeVendeurId: profile?.role === "vendeur" ? profile.id : undefined })
       .then((data) => { if (!cancelled) setHighlightPool(data); })
       .catch((err) => console.error("Erreur chargement sections vitrine:", err));
     return () => { cancelled = true; };
-  }, [profile?.id, profile?.role]);
+  }, [userLoading, profile?.id, profile?.role]);
 
   const flashDealsProducts = useMemo(
     () =>
@@ -89,7 +97,15 @@ export default function VendeurCataloguePage() {
   );
   const produitsDuMoment = useMemo(() => highlightPool.slice(0, 8), [highlightPool]);
 
-  // Charger les boutiques une seule fois
+  // Charger les boutiques une seule fois. Important : `boutiquesLoading` ne
+  // doit PAS être dans les dépendances. Il l'était avant, et comme il est
+  // mis à `true` dès le début de loadBoutiques(), ça redéclenchait cet effet
+  // immédiatement — React exécute alors le cleanup du run précédent, qui
+  // met `cancelled = true` sur la fetch tout juste lancée. Résultat : la
+  // réponse arrivait bien mais était ignorée (cancelled), et le `finally`
+  // ne remettait jamais boutiquesLoading à false non plus (même garde) — le
+  // skeleton de chargement restait affiché indéfiniment, d'où l'onglet
+  // "vide" en pratique.
   useEffect(() => {
     if (activeTab === "boutiques" && boutiques.length === 0 && !boutiquesLoading) {
       let cancelled = false;
@@ -109,14 +125,19 @@ export default function VendeurCataloguePage() {
       loadBoutiques();
       return () => { cancelled = true };
     }
-  }, [activeTab, boutiques.length, boutiquesLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, boutiques.length]);
 
   const handleAdd = (product: ArticlePublic) => {
     addItem({ id: product.id, nom: product.nom, prix: product.prix_promo ?? product.prix, photos: product.photos, vendeur_id: product.vendeur_id });
     showToast("Produit ajouté au panier", "success");
   };
 
-  const filteredBoutiques = boutiques;
+  const filteredBoutiques = useMemo(() => {
+    const q = boutiqueFilter.trim().toLowerCase();
+    if (!q) return boutiques;
+    return boutiques.filter((b) => b.nom.toLowerCase().includes(q));
+  }, [boutiques, boutiqueFilter]);
 
   return (
     <div className="min-h-screen bg-white">
@@ -127,6 +148,13 @@ export default function VendeurCataloguePage() {
             (logo, recherche, panier, dropdown profil vendeur) pour éviter la
             double barre de recherche empilée. */}
         <div className="mb-6">
+          <Link
+            href="/vendeur/dashboard"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-400 hover:text-coral-600 transition-colors mb-2"
+          >
+            <ArrowLeft size={14} />
+            Retour au dashboard
+          </Link>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">Catalogue & Boutiques</h1>
         </div>
 
@@ -344,6 +372,22 @@ export default function VendeurCataloguePage() {
           {/* Header */}
           <div className="mb-8">
             <p className="text-sm text-gray-500 font-medium mb-4">Découvrez les vendeurs vérifiés d'Ayiba, près de chez vous.</p>
+
+            {/* Filtre discret par nom de boutique — pas une "vraie" barre de
+                recherche dupliquée avec celle du header, juste un petit champ
+                pour affiner la liste déjà chargée. */}
+            {boutiques.length > 0 && (
+              <div className="relative max-w-xs">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" />
+                <input
+                  type="text"
+                  value={boutiqueFilter}
+                  onChange={(e) => setBoutiqueFilter(e.target.value)}
+                  placeholder="Filtrer par nom de boutique"
+                  className="w-full pl-8 pr-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-medium text-gray-600 placeholder:text-gray-300 focus:outline-none focus:ring-2 focus:ring-coral-500/10"
+                />
+              </div>
+            )}
           </div>
 
           {/* Grille de boutiques */}
@@ -361,7 +405,9 @@ export default function VendeurCataloguePage() {
             </div>
           ) : filteredBoutiques.length === 0 ? (
             <div className="py-20 text-center text-gray-400">
-              Aucune boutique disponible pour le moment.
+              {boutiqueFilter
+                ? "Aucune boutique ne correspond à ce filtre."
+                : "Aucune boutique disponible pour le moment."}
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">

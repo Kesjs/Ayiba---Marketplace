@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, ArrowLeft, Search, X, ShoppingCart } from "lucide-react";
+import { Bell, ArrowLeft, Search, X, ShoppingCart, Menu } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LogoAyiba from "@/components/ui/LogoAyiba";
@@ -47,6 +47,12 @@ interface DashboardHeaderProps {
    * rôle vendeur achète depuis son propre dashboard (livreur/admin non
    * concernés), donc ce prop est explicite plutôt que déduit ici. */
   showCart?: boolean;
+  /** Bascule l'état replié/déplié de la sidebar (desktop uniquement). Si
+   * fourni, un bouton hamburger apparaît dans le header desktop — c'est lui
+   * qui pilote désormais le collapse (remplace l'ancien bouton flottant sur
+   * la bordure de la sidebar, qui passait derrière le header sticky). */
+  onToggleSidebar?: () => void;
+  sidebarCollapsed?: boolean;
 }
 
 export function DashboardHeader({
@@ -71,6 +77,8 @@ export function DashboardHeader({
   searchHref = "/recherche",
   onSearchSubmit,
   showCart = false,
+  onToggleSidebar,
+  sidebarCollapsed = false,
 }: DashboardHeaderProps) {
   const router = useRouter();
   const { itemCount, openCart } = useCart();
@@ -271,12 +279,24 @@ export function DashboardHeader({
 
       {/* --- Desktop réel (>= lg) : inchangé --- */}
       <div className="hidden lg:flex relative items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
-        <button
-          onClick={onBoutiqueClick}
-          className="flex items-center gap-1 shrink-0 text-sm font-bold text-gray-900"
-        >
-          {boutiqueName || "Ma boutique"}
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {onToggleSidebar && (
+            <button
+              onClick={onToggleSidebar}
+              className="w-9 h-9 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+              aria-label={sidebarCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
+              title={sidebarCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
+            >
+              <Menu size={19} />
+            </button>
+          )}
+          <button
+            onClick={onBoutiqueClick}
+            className="flex items-center gap-1 text-sm font-bold text-gray-900"
+          >
+            {boutiqueName || "Ma boutique"}
+          </button>
+        </div>
 
         {backHref ? (
           <Link

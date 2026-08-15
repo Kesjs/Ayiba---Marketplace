@@ -278,7 +278,7 @@ export function DashboardHeader({
       )}
 
       {/* --- Desktop réel (>= lg) : inchangé --- */}
-      <div className="hidden lg:flex relative items-center justify-between gap-3 px-4 h-14 max-w-7xl mx-auto">
+      <div className={`hidden lg:flex relative items-center justify-between gap-3 px-4 h-14 mx-auto transition-[max-width] duration-300 ${sidebarCollapsed ? "max-w-[1600px]" : "max-w-7xl"}`}>
         <div className="flex items-center gap-1 shrink-0">
           {onToggleSidebar && (
             <button

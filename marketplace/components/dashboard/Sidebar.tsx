@@ -122,7 +122,7 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
           80px de large). */}
       <button
         onClick={onToggleCollapse}
-        className="absolute top-7 -right-3 z-10 w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded-full text-gray-400 hover:text-gray-600 hover:border-gray-300 shadow-sm transition-colors"
+        className="absolute top-7 -right-3 z-30 w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded-full text-gray-400 hover:text-gray-600 hover:border-gray-300 shadow-sm transition-colors"
         aria-label={isCollapsed ? "Déplier" : "Replier"}
         title={isCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
       >

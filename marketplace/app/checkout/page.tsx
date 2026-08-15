@@ -199,10 +199,23 @@ export default function CheckoutPage() {
       return
     }
     if (items.length === 0 && etape === 'livraison' && !paiementCheckoutId) {
-      router.push('/accueil')
+      // Le panier peut être vidé depuis n'importe quel point d'entrée du
+      // catalogue — public (/catalogue, home) ou celui d'un vendeur qui
+      // achète depuis son propre dashboard (/vendeur/catalogue,
+      // /vendeur/achats). Rediriger tout le monde vers "/accueil" (une
+      // page côté client) cassait l'expérience d'un vendeur : il se
+      // retrouvait sur une page vide, dans le chrome de son propre
+      // dashboard mais sur une route qui n'est pas prévue pour ce rôle.
+      // On renvoie donc chacun vers son propre point d'entrée catalogue.
+      const retourParRole: Record<string, string> = {
+        vendeur: '/vendeur/catalogue',
+        livreur: '/catalogue',
+        admin: '/catalogue',
+      }
+      router.push(profile?.role ? (retourParRole[profile.role] ?? '/accueil') : '/accueil')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userLoading, user, items.length, paiementCheckoutId])
+  }, [userLoading, user, items.length, paiementCheckoutId, profile?.role])
 
   useEffect(() => {
     if (profile) {

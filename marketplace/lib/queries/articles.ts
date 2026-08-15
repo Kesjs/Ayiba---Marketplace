@@ -6,6 +6,7 @@ export interface ArticlePublic {
   description: string | null;
   prix: number;
   prix_promo: number | null;
+  date_fin_promo: string | null;
   stock: number;
   vendeur_id: string;
   photos: string[];
@@ -27,7 +28,7 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
   let query = supabase
     .from("articles")
     .select(
-      `id, nom, description, prix, prix_promo, stock, vendeur_id, created_at,
+      `id, nom, description, prix, prix_promo, date_fin_promo, stock, vendeur_id, created_at,
        article_images ( image_url, ordre ),
        categories ( id, nom, slug ),
        vendeurs ( nom_boutique, quartier, commune )`
@@ -75,6 +76,7 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
       description: a.description,
       prix: a.prix,
       prix_promo: a.prix_promo,
+      date_fin_promo: a.date_fin_promo,
       stock: a.stock,
       vendeur_id: a.vendeur_id,
       created_at: a.created_at,

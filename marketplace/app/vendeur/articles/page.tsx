@@ -107,6 +107,7 @@ interface ArticleRow {
   description: string | null;
   prix: number;
   prix_promo: number | null;
+  date_fin_promo: string | null;
   stock: number | null;
   statut: string;
   actif: boolean;
@@ -521,6 +522,20 @@ export default function MesArticlesPage() {
   const [editModePromo, setEditModePromo] = useState<"nouveau_prix" | "pourcentage">("nouveau_prix");
   const [editPourcentagePromo, setEditPourcentagePromo] = useState("");
   const [editNouveauPrixPromo, setEditNouveauPrixPromo] = useState("");
+  // Durée de la promo (voir nouveau/page.tsx pour le contexte) : si le
+  // vendeur active/relance une promo depuis l'édition, on lui redemande une
+  // durée plutôt que de garder une ancienne date_fin_promo périmée.
+  const DUREES_PROMO_EDIT = [
+    { label: "24h", heures: 24 },
+    { label: "3 jours", heures: 72 },
+    { label: "7 jours", heures: 168 },
+  ] as const;
+  const [editDureePromo, setEditDureePromo] = useState<number>(72);
+  // true seulement si le vendeur a explicitement cliqué un bouton de durée
+  // pendant cette session d'édition. Sert à ne PAS réinitialiser le
+  // countdown d'une promo déjà active si le vendeur modifie juste, par
+  // exemple, la description sans toucher à la promo.
+  const [editDureePromoTouched, setEditDureePromoTouched] = useState(false);
 
   const editPrixNumerique = Number(editForm.prix) || 0;
 
@@ -570,7 +585,7 @@ export default function MesArticlesPage() {
 
     const { data, error } = await supabase
       .from("articles")
-      .select("id, nom, description, prix, prix_promo, stock, statut, actif, categorie_id, created_at, vues, categories(nom), article_images(id, image_url, ordre)")
+      .select("id, nom, description, prix, prix_promo, date_fin_promo, stock, statut, actif, categorie_id, created_at, vues, categories(nom), article_images(id, image_url, ordre)")
       .eq("vendeur_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -671,6 +686,8 @@ export default function MesArticlesPage() {
     setEditModePromo("nouveau_prix");
     setEditNouveauPrixPromo(article.prix_promo != null ? String(article.prix_promo) : "");
     setEditPourcentagePromo("");
+    setEditDureePromo(72);
+    setEditDureePromoTouched(false);
 
     // Nettoie d'éventuelles prévisualisations laissées par une précédente
     // ouverture du modal sans sauvegarde.
@@ -1027,6 +1044,15 @@ export default function MesArticlesPage() {
         categorie_id: editForm.categorieId,
         prix,
         prix_promo: editPromoCalcul ? editPromoCalcul.nouveauPrix : null,
+        // Une promo déjà active garde sa date de fin telle quelle tant que
+        // le vendeur n'a pas explicitement choisi une nouvelle durée (voir
+        // editDureePromoTouched) — sinon éditer la description, par
+        // exemple, relancerait le countdown à chaque sauvegarde.
+        date_fin_promo: !editPromoCalcul
+          ? null
+          : editDureePromoTouched || editingArticle.prix_promo == null
+          ? new Date(Date.now() + editDureePromo * 60 * 60 * 1000).toISOString()
+          : editingArticle.date_fin_promo,
         stock,
       };
       if (contentChanged) {
@@ -1613,6 +1639,32 @@ return (
                             <span className="text-sm font-bold text-gray-900">{editPromoCalcul.nouveauPrix.toLocaleString("fr-FR")} FCFA</span>
                           </div>
                         )}
+
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1.5">
+                            Durée de la promo
+                          </label>
+                          <div className="flex gap-2">
+                            {DUREES_PROMO_EDIT.map((d) => (
+                              <button
+                                key={d.heures}
+                                type="button"
+                                onClick={() => {
+                                  setEditDureePromo(d.heures);
+                                  setEditDureePromoTouched(true);
+                                }}
+                                className={`flex-1 h-9 rounded-lg text-xs font-bold transition-colors ${
+                                  editDureePromo === d.heures ? "bg-coral-500 text-white" : "bg-white border border-gray-200 text-gray-600"
+                                }`}
+                              >
+                                {d.label}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[11px] text-gray-400 mt-1.5">
+                            Relance le compte à rebours à partir de maintenant. Le prix redevient normal automatiquement à la fin.
+                          </p>
+                        </div>
                       </div>
                     )}
                   </div>

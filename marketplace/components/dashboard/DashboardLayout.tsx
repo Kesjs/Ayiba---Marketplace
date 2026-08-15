@@ -137,11 +137,13 @@ export function DashboardLayout({
         />
 
         <div
-          className={
+          className={`${
             fullHeight
-              ? "flex-1 min-h-0 flex flex-col p-4 sm:p-5 md:p-6 lg:p-8 pb-3 lg:pb-6 max-w-7xl mx-auto min-w-0 w-full"
-              : "p-4 sm:p-5 md:p-6 lg:p-8 pb-32 lg:pb-10 max-w-7xl mx-auto min-w-0 w-full"
-          }
+              ? "flex-1 min-h-0 flex flex-col p-4 sm:p-5 md:p-6 lg:p-8 pb-3 lg:pb-6"
+              : "p-4 sm:p-5 md:p-6 lg:p-8 pb-32 lg:pb-10"
+          } mx-auto min-w-0 w-full transition-[max-width] duration-300 ${
+            isCollapsed ? "lg:max-w-[1600px]" : "max-w-7xl"
+          }`}
         >
           <div
             className={

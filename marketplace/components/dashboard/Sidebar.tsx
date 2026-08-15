@@ -91,7 +91,7 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
       { name: "Messages", icon: MessageSquare, path: "/vendeur/messages" },
     ],
     client: [
-      { name: "Accueil", icon: LayoutDashboard, path: "/accueil" },
+      { name: "Tableau de bord", icon: LayoutDashboard, path: "/dashboard" },
       { name: "Commandes", icon: Package, path: "/commandes" },
       { name: "Favoris", icon: ShoppingBag, path: "/favoris" },
       { name: "Messages", icon: MessageSquare, path: "/messages" },

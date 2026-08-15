@@ -14,7 +14,7 @@ import { ReactNode } from "react";
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  role: "admin" | "vendeur" | "livreur";
+  role: "admin" | "vendeur" | "livreur" | "client";
   userName?: string;
   title?: string;
   boutiqueName?: string;
@@ -38,7 +38,7 @@ interface DashboardLayoutProps {
 // auth.uid()) — il ne lui manquait qu'un point d'entrée, la home étant
 // réservée à son dashboard. Le livreur n'achète pas sur la plateforme, donc
 // pas de lien équivalent pour lui.
-const ROLE_ACCOUNT_LINKS: Record<"admin" | "vendeur" | "livreur", AccountLink[]> = {
+const ROLE_ACCOUNT_LINKS: Record<"admin" | "vendeur" | "livreur" | "client", AccountLink[]> = {
   vendeur: [
     { label: "Catalogue", href: "/vendeur/catalogue", icon: ShoppingBag },
     { label: "Boutique", href: "/vendeur/boutique", icon: Store },
@@ -49,6 +49,10 @@ const ROLE_ACCOUNT_LINKS: Record<"admin" | "vendeur" | "livreur", AccountLink[]>
     { label: "Paramètres", href: "/livreur/parametres", icon: Settings },
   ],
   admin: [{ label: "Paramètres", href: "/admin/parametres", icon: Settings }],
+  client: [
+    { label: "Mon profil", href: "/profil", icon: User },
+    { label: "Paramètres", href: "/profil/parametres", icon: Settings },
+  ],
 };
 
 function saluerSelonHeure(): string {
@@ -86,10 +90,11 @@ export function DashboardLayout({
   // un jour une vraie recherche scoped-vendeur est branchée derrière.
   const showSearch = searchable ?? false;
 
-  const accountSubtitle: Record<"admin" | "vendeur" | "livreur", string> = {
+  const accountSubtitle: Record<"admin" | "vendeur" | "livreur" | "client", string> = {
     vendeur: boutiqueName || "Vendeur Ayiba",
     livreur: "Livreur Ayiba",
     admin: "Administrateur",
+    client: "Client Ayiba",
   };
 
   async function handleLogout() {

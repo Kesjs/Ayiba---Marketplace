@@ -37,7 +37,18 @@ export default function VendeurCataloguePage() {
   const [boutiquesError, setBoutiquesError] = useState<string | null>(null);
   const [boutiqueFilter, setBoutiqueFilter] = useState("");
 
-  const { articles, loading, categories, categorySlug, setCategorySlug, page, setPage, hasMore, totalCount, search, setSearch, sortBy, setSortBy } = useArticlesPublics({ pageSize: 18 });
+  const { articles, loading, categories, categorySlug, setCategorySlug, page, setPage, hasMore, totalCount, search, setSearch, sortBy, setSortBy } = useArticlesPublics({
+    pageSize: 18,
+    // Même exclusion que pour "Ventes flash"/"Produits du moment" : le
+    // vendeur navigue ici en tant qu'acheteur, il ne doit pas croiser ses
+    // propres produits dans la grille générale. `enabled: !userLoading`
+    // retarde le tout premier fetch jusqu'à ce que le profil soit résolu,
+    // pour ne pas partir une première fois sans exclusion puis recharger
+    // juste après avec — même clignotement que celui déjà corrigé sur le
+    // pool vitrine.
+    enabled: !userLoading,
+    excludeVendeurId: profile?.role === "vendeur" ? profile.id : undefined,
+  });
 
   // Favoris réels du vendeur (en tant qu'acheteur) — synchronisés avec la
   // table `favoris`, comme sur la home et /catalogue. Auparavant ce toggle

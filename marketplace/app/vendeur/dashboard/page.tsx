@@ -302,7 +302,7 @@ export default function VendeurDashboardPage() {
                   transition={{ duration: 0.3 }}
                   className="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4 pt-4 border-t border-gray-100"
                 >
-                  <ActionRapide icon={Package} label="Mes articles" href="/vendeur/articles" color="amber" />
+                  <ActionRapide icon={Package} label="Articles" href="/vendeur/articles" color="amber" />
                   <ActionRapide icon={Star} label="Avis clients" href="/vendeur/avis" color="blue" />
                 </motion.div>
               )}

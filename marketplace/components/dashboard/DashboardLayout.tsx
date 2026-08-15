@@ -132,6 +132,8 @@ export function DashboardLayout({
           showSearch={showSearch}
           searchPlaceholder={searchPlaceholder}
           showCart={role === "vendeur"}
+          onToggleSidebar={() => setIsCollapsed((c) => !c)}
+          sidebarCollapsed={isCollapsed}
         />
 
         <div

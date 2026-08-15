@@ -1201,10 +1201,10 @@ export default function MesArticlesPage() {
   };
 
 return (
-  <DashboardLayout role="vendeur" title="Mes articles" backHref="/vendeur/dashboard" backLabel="Dashboard">
+  <DashboardLayout role="vendeur" title="Articles" backHref="/vendeur/dashboard" backLabel="Dashboard">
   <div className="w-full min-w-0 px-4 sm:px-6 md:px-8 lg:px-10 py-5 lg:py-10 max-w-7xl mx-auto">
       <div className="mb-1.5">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Mes articles</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Articles</h1>
         <p className="text-sm text-gray-400">Gérez tous vos produits</p>
       </div>
 

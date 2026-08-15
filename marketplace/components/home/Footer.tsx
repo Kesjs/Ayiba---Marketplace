@@ -159,7 +159,7 @@ export function Footer() {
                <div className="flex items-center gap-3">
                   <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Partenaire :</span>
                   <div className="px-3 py-1 bg-white rounded border border-gray-100 flex items-center shadow-xs">
-                    <span className="text-xs font-black text-[#6B46C1]">Feda</span>
+                    <span className="text-xs font-black text-coral-600">Genius</span>
                     <span className="text-xs font-black text-gray-900">Pay</span>
                   </div>
                </div>

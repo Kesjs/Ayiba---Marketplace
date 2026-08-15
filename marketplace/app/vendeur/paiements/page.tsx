@@ -114,74 +114,87 @@ export default function VendeurPaiementsPage() {
           transition={{ duration: 0.4, ease: "easeOut" }}
           className="space-y-6"
         >
-          {/* --- Bande hero : solde + attente + retirer --- */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 rounded-[24px] p-5 sm:p-6 text-white shadow-xl shadow-coral-500/20">
-            <div className="absolute -top-16 -right-12 w-40 h-40 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-16 -left-8 w-40 h-40 bg-black/10 rounded-full blur-3xl pointer-events-none" />
-
-            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Wallet size={14} className="text-white/80" />
-                  <span className="text-white/80 text-xs font-semibold uppercase tracking-wider">Solde disponible</span>
-                </div>
-                <p className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-                  {soldeDisponible.toLocaleString("fr-FR")} <span className="text-sm font-semibold opacity-90">F</span>
-                </p>
-
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => { setFeedback(null); setModalOpen(true); }}
-                  disabled={soldeDisponible <= 0}
-                  className="px-4 py-2 bg-white text-coral-600 text-xs font-bold rounded-lg transition-all disabled:opacity-40 disabled:text-gray-400"
-                >
-                  Retirer
-                </motion.button>
-                {soldeDisponible <= 0 && (
-                  <p className="text-[11px] text-white/70 mt-2">
-                    Rien à retirer — reviens après livraisons confirmées.
-                  </p>
-                )}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-start">
-                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
-                  <Clock size={12} className="text-white/90" />
-                  <span className="text-xs font-semibold">
-                    {soldeEnAttenteLivraison.toLocaleString("fr-FR")} F en attente
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1.5">
-                  <span className="text-xs font-semibold">{retraits.length} retrait{retraits.length > 1 ? "s" : ""}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* --- Grille de tuiles carrées (raccourcis + KPIs) --- */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-4">
+          {/* --- Stats — 4 blocs sur une même ligne, solde mis en avant --- */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
             {[
-              { icon: ArrowDownToLine, label: "Paiements reçus", value: paiements.length, color: "text-teal-600", bg: "bg-teal-50" },
-              { icon: ArrowUpFromLine, label: "Retraits", value: retraits.length, color: "text-coral-500", bg: "bg-coral-50" },
-              { icon: Clock, label: "En attente", value: `${soldeEnAttenteLivraison.toLocaleString("fr-FR")} F`, color: "text-amber-600", bg: "bg-amber-50" },
+              {
+                label: "Solde disponible",
+                value: `${soldeDisponible.toLocaleString("fr-FR")} F`,
+                icon: Wallet,
+                color: "text-coral-600",
+                bg: "bg-coral-50",
+                isHero: true,
+              },
+              {
+                label: "Paiements reçus",
+                value: paiements.length,
+                icon: ArrowDownToLine,
+                color: "text-teal-600",
+                bg: "bg-teal-50",
+              },
+              {
+                label: "Retraits",
+                value: retraits.length,
+                icon: ArrowUpFromLine,
+                color: "text-blue-600",
+                bg: "bg-blue-50",
+              },
+              {
+                label: "En attente",
+                value: `${soldeEnAttenteLivraison.toLocaleString("fr-FR")} F`,
+                icon: Clock,
+                color: "text-amber-600",
+                bg: "bg-amber-50",
+              },
             ].map((tile, i) => (
               <motion.div
                 key={tile.label}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 * i, duration: 0.3 }}
-                className="bg-white rounded-2xl p-3 sm:p-4 border border-gray-100 shadow-sm active:scale-[0.97] transition-transform"
+                className={`relative overflow-hidden p-3 sm:p-4 rounded-2xl shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 ${
+                  tile.isHero
+                    ? "bg-gradient-to-br from-coral-500 via-coral-500 to-coral-600 shadow-coral-500/20"
+                    : "bg-white border border-gray-100"
+                }`}
               >
-                <div className={`w-9 h-9 rounded-lg ${tile.bg} ${tile.color} flex items-center justify-center mb-2`}>
-                  <tile.icon size={16} />
+                {tile.isHero && (
+                  <div className="absolute -top-8 -right-6 w-24 h-24 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+                )}
+
+                <div className="relative flex items-center justify-between gap-2 mb-2">
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                      tile.isHero ? "bg-white/20 text-white" : `${tile.bg} ${tile.color}`
+                    }`}
+                  >
+                    <tile.icon size={18} />
+                  </div>
+                  {tile.isHero && (
+                    <button
+                      onClick={() => { setFeedback(null); setModalOpen(true); }}
+                      disabled={soldeDisponible <= 0}
+                      className="px-2.5 py-1 bg-white text-coral-600 text-[10px] font-bold rounded-md transition-all disabled:opacity-40 disabled:text-gray-400 whitespace-nowrap"
+                    >
+                      Retirer
+                    </button>
+                  )}
                 </div>
-                <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{tile.value}</p>
-                <p className="text-[11px] text-gray-500 mt-0.5 line-clamp-1">{tile.label}</p>
+
+                <p className={`relative text-[11px] font-medium mb-0.5 line-clamp-1 ${tile.isHero ? "text-white/80" : "text-gray-500"}`}>
+                  {tile.label}
+                </p>
+                <p className={`relative text-xl sm:text-2xl font-bold tracking-tight truncate ${tile.isHero ? "text-white" : "text-gray-900"}`}>
+                  {tile.value}
+                </p>
               </motion.div>
             ))}
           </div>
-
-          {/* --- Listes : tabs sur mobile, côte à côte sur desktop --- */}
+          {soldeDisponible <= 0 && (
+            <p className="text-[11px] text-gray-400 -mt-2">
+              Rien à retirer pour l'instant — reviens après tes prochaines livraisons confirmées.
+            </p>
+          )}
           <div className="lg:hidden bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
             <div className="flex p-2 gap-2 border-b border-gray-100">
               {(["recus", "retraits"] as const).map((tab) => (

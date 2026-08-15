@@ -7,18 +7,29 @@ import { useToast } from "@/context/ToastContext";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { ProductCardSkeleton } from "@/components/ui/Skeleton";
 import useArticlesPublics from "@/lib/hooks/useArticlesPublics";
-import type { ArticlePublic } from "@/lib/queries/articles";
-import { Search, ChevronLeft, ChevronRight, CheckCircle2, MapPin } from "lucide-react";
+import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
+import { createClient } from "@/lib/supabase/client";
+import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
+import { Search, ChevronLeft, ChevronRight, CheckCircle2, MapPin, Zap, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import Link from "next/link";
 
+// Prix affiché / prix barré — même logique que la home et /catalogue.
+function prixAffiche(a: ArticlePublic) {
+  return a.prix_promo ?? a.prix;
+}
+function ancienPrixAffiche(a: ArticlePublic) {
+  return a.prix_promo ? a.prix : undefined;
+}
+
 export default function VendeurCataloguePage() {
   const router = useRouter();
-  const { profile } = useUser();
+  const { user, profile } = useUser();
   const { addItem } = useCart();
   const { showToast } = useToast();
+  const supabase = useMemo(() => createClient(), []);
   const [activeTab, setActiveTab] = useState<"produits" | "boutiques">("produits");
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [boutiquesLoading, setBoutiquesLoading] = useState(false);
@@ -26,6 +37,57 @@ export default function VendeurCataloguePage() {
   const [boutiquesSearch, setBoutiquesSearch] = useState("");
 
   const { articles, loading, categories, categorySlug, setCategorySlug, page, setPage, hasMore, totalCount, search, setSearch, sortBy, setSortBy } = useArticlesPublics({ pageSize: 18 });
+
+  // Favoris réels du vendeur (en tant qu'acheteur) — synchronisés avec la
+  // table `favoris`, comme sur la home et /catalogue. Auparavant ce toggle
+  // était un no-op ici : le cœur changeait de couleur localement mais rien
+  // n'était sauvegardé, donc rien n'apparaissait nulle part ensuite.
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!user) {
+      setFavoriteIds(new Set());
+      return;
+    }
+    fetchFavoriteIds(supabase, user.id).then(setFavoriteIds);
+  }, [supabase, user, articles.length]);
+
+  const handleToggleFavorite = async (articleId: string) => {
+    if (!user) return;
+    const isFav = favoriteIds.has(articleId);
+    try {
+      const nowFav = await toggleFavorite(supabase, user.id, articleId, isFav);
+      setFavoriteIds((prev) => {
+        const next = new Set(prev);
+        if (nowFav) next.add(articleId); else next.delete(articleId);
+        return next;
+      });
+      showToast(nowFav ? "Ajouté aux favoris" : "Retiré des favoris", "success");
+    } catch (err) {
+      console.error("Erreur toggle favori:", err);
+      showToast("Impossible de mettre à jour les favoris", "error");
+    }
+  };
+
+  // Pool léger et non paginé (comme sur la home) pour calculer "Ventes
+  // flash" et "Produits du moment" — indépendant de la pagination/recherche
+  // de la grille principale, qui ne reflète qu'une page filtrée à la fois.
+  const [highlightPool, setHighlightPool] = useState<ArticlePublic[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    getArticlesPublics({ excludeVendeurId: profile?.role === "vendeur" ? profile.id : undefined })
+      .then((data) => { if (!cancelled) setHighlightPool(data); })
+      .catch((err) => console.error("Erreur chargement sections vitrine:", err));
+    return () => { cancelled = true; };
+  }, [profile?.id, profile?.role]);
+
+  const flashDealsProducts = useMemo(
+    () =>
+      highlightPool
+        .filter((a) => a.prix_promo != null && a.date_fin_promo != null && new Date(a.date_fin_promo).getTime() > Date.now())
+        .slice(0, 8),
+    [highlightPool]
+  );
+  const produitsDuMoment = useMemo(() => highlightPool.slice(0, 8), [highlightPool]);
 
   // Charger les boutiques une seule fois
   useEffect(() => {
@@ -87,6 +149,83 @@ export default function VendeurCataloguePage() {
       {/* TAB PRODUITS */}
       {activeTab === "produits" && (
         <div>
+          {/* Ventes flash — grille figée en 4 colonnes sur desktop (jamais en
+              colonne unique "sur le côté"), 2 colonnes sur mobile comme le reste. */}
+          {flashDealsProducts.length > 0 && (
+            <div className="mb-10 rounded-3xl bg-gradient-to-br from-coral-50/60 via-white to-amber-50/30 border border-coral-100/60 p-5 md:p-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
+                  <Zap size={20} />
+                </div>
+                <div>
+                  <h2 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight">Ventes flash</h2>
+                  <p className="text-gray-500 text-xs md:text-sm mt-0.5">Offres limitées, jusqu'à épuisement des stocks</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {flashDealsProducts.map((p) => (
+                  <div key={p.id} className="block">
+                    <ProductCardModern
+                      image={p.photos?.[0] || "/images/hero-illustration.png"}
+                      category={p.categorie?.nom || "Divers"}
+                      name={p.nom}
+                      rating={0}
+                      reviewCount={0}
+                      price={prixAffiche(p)}
+                      oldPrice={ancienPrixAffiche(p)}
+                      sellerName={p.vendeur?.nom_boutique || undefined}
+                      location={p.vendeur?.quartier || p.vendeur?.commune || undefined}
+                      stock={p.stock}
+                      createdAt={p.created_at}
+                      photosCount={p.photos.length}
+                      onAddToCart={() => handleAdd(p)}
+                      isFavorite={favoriteIds.has(p.id)}
+                      onToggleFavorite={() => handleToggleFavorite(p.id)}
+                      onClick={() => router.push(`/produits/${p.id}`)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Produits du moment — même grille 4 colonnes sur desktop. */}
+          {produitsDuMoment.length > 0 && (
+            <div className="mb-10">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500 shrink-0">
+                  <Star size={20} />
+                </div>
+                <h2 className="text-lg md:text-xl font-bold text-gray-900 tracking-tight">Produits du moment</h2>
+              </div>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                {produitsDuMoment.map((p) => (
+                  <div key={p.id} className="block">
+                    <ProductCardModern
+                      image={p.photos?.[0] || "/images/hero-illustration.png"}
+                      category={p.categorie?.nom || "Divers"}
+                      name={p.nom}
+                      rating={0}
+                      reviewCount={0}
+                      price={prixAffiche(p)}
+                      oldPrice={ancienPrixAffiche(p)}
+                      sellerName={p.vendeur?.nom_boutique || undefined}
+                      location={p.vendeur?.quartier || p.vendeur?.commune || undefined}
+                      stock={p.stock}
+                      createdAt={p.created_at}
+                      photosCount={p.photos.length}
+                      onAddToCart={() => handleAdd(p)}
+                      isFavorite={favoriteIds.has(p.id)}
+                      onToggleFavorite={() => handleToggleFavorite(p.id)}
+                      onClick={() => router.push(`/produits/${p.id}`)}
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 border-b border-gray-100" />
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-8">
             <p className="text-sm text-gray-500 font-medium mb-4">Parcourez le catalogue et ajoutez des produits à votre panier.</p>
@@ -177,8 +316,8 @@ export default function VendeurCataloguePage() {
                     createdAt={p.created_at}
                     photosCount={p.photos.length}
                     onAddToCart={() => handleAdd(p)}
-                    isFavorite={false}
-                    onToggleFavorite={() => {}}
+                    isFavorite={favoriteIds.has(p.id)}
+                    onToggleFavorite={() => handleToggleFavorite(p.id)}
                     onClick={() => router.push(`/produits/${p.id}`)}
                   />
                 </div>

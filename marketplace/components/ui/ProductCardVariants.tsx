@@ -110,14 +110,6 @@ export function ProductCardModern({
           </span>
         )}
 
-        {/* Badge Promo, en bas à droite : étoile rouge avec le % de réduction (toujours négatif) */}
-        {discount && (
-          <span className="absolute bottom-2 right-2 flex items-center gap-1 bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded-full shadow-sm">
-            <Star size={10} className="fill-white text-white" />
-            -{discount}%
-          </span>
-        )}
-
         {/* Indicateur multi-photos, en bas à gauche */}
         {photosCount != null && photosCount > 1 && (
           <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">

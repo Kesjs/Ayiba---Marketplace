@@ -10,7 +10,6 @@ import {
   ShoppingBag,
   ShoppingCart,
   MessageSquare,
-  Settings,
   LogOut,
   ShieldCheck,
   Store,
@@ -23,6 +22,7 @@ import {
   History,
   Lock,
   ChevronDown,
+  ChevronsUpDown,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
@@ -71,7 +71,6 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
       { name: "Catégories", icon: Package, path: "/admin/categories" },
       { name: "Avis", icon: MessageSquare, path: "/admin/avis" },
       { name: "Suppressions", icon: Lock, path: "/admin/demandes" },
-      { name: "Paramètres", icon: Settings, path: "/admin/parametres" },
     ],
     vendeur: [
       { name: "Tableau de bord", icon: LayoutDashboard, path: "/vendeur/dashboard" },
@@ -89,14 +88,12 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
       { name: "Boutique", icon: Store, path: "/vendeur/boutique" },
       { name: "Paiements", icon: Wallet, path: "/vendeur/paiements" },
       { name: "Messages", icon: MessageSquare, path: "/vendeur/messages" },
-      { name: "Paramètres", icon: Settings, path: "/vendeur/parametres" },
     ],
     client: [
       { name: "Accueil", icon: LayoutDashboard, path: "/accueil" },
       { name: "Commandes", icon: Package, path: "/commandes" },
       { name: "Favoris", icon: ShoppingBag, path: "/favoris" },
       { name: "Messages", icon: MessageSquare, path: "/messages" },
-      { name: "Compte", icon: User, path: "/menu" },
     ],
     // La bottom bar mobile se limite à 4 onglets (LIVREUR_NAV_ITEMS) ;
     // le sidebar desktop a la place d'afficher toutes les sections.
@@ -106,8 +103,17 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
       { name: "Messages", icon: MessageSquare, path: "/livreur/messages", requiresValidation: true },
       { name: "Historique", icon: History, path: "/livreur/historique", requiresValidation: true },
       { name: "Profil", icon: User, path: "/livreur/profil" },
-      { name: "Paramètres", icon: Settings, path: "/livreur/parametres" },
     ],
+  };
+
+  // Route "Paramètres" (ou équivalent) par rôle — c'est désormais le bloc
+  // identité en bas de sidebar qui y mène (avatar + nom + rôle cliquables),
+  // d'où la disparition de l'entrée correspondante dans le menu ci-dessus.
+  const settingsPath: Record<SidebarProps["role"], string> = {
+    admin: "/admin/parametres",
+    vendeur: "/vendeur/parametres",
+    livreur: "/livreur/parametres",
+    client: "/menu",
   };
 
   const items = menuItems[role];
@@ -297,17 +303,23 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
       {/* Bottom Actions : identité (nom + rôle en un seul bloc, remonté
           depuis le haut de la sidebar), panier (client), puis déconnexion. */}
       <div className="p-3 border-t border-gray-50 space-y-1">
-        <div className={`flex items-center gap-3 px-4 py-3 ${isCollapsed ? "justify-center px-0" : ""}`}>
+        <Link
+          href={settingsPath[role]}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors ${isCollapsed ? "justify-center px-0" : ""}`}
+        >
           <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
             <User size={18} className="text-gray-500" />
           </div>
           {!isCollapsed && (
-            <div className="overflow-hidden min-w-0">
-              <p className="text-sm font-bold text-gray-900 truncate leading-tight">{userName || "Utilisateur"}</p>
-              <p className="text-[11px] font-bold text-coral-500 uppercase tracking-wide truncate leading-tight">{role}</p>
-            </div>
+            <>
+              <div className="overflow-hidden min-w-0 flex-1">
+                <p className="text-sm font-bold text-gray-900 truncate leading-tight">{userName || "Utilisateur"}</p>
+                <p className="text-[11px] font-bold text-coral-500 uppercase tracking-wide truncate leading-tight">{role}</p>
+              </div>
+              <ChevronsUpDown size={16} className="text-gray-400 shrink-0" />
+            </>
           )}
-        </div>
+        </Link>
         {role === "client" && onCartClick && (
           <button
             onClick={onCartClick}

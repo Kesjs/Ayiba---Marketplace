@@ -218,16 +218,6 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
 
       {/* Bottom Actions */}
       <div className="p-3 border-t border-gray-50">
-        {!isCollapsed && profile && (profile.account_roles ?? [profile.role]).filter((item) => item !== "admin").length > 1 && (
-          <div className="mb-2 rounded-xl bg-gray-50 p-2">
-            <p className="px-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-gray-400">Changer d&apos;espace</p>
-            <div className="flex gap-1">
-              <Link href="/accueil" className="flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 hover:bg-white">Acheter</Link>
-              {(profile.account_roles ?? []).includes("vendeur") && <Link href="/vendeur/dashboard" className="flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 hover:bg-white">Vendre</Link>}
-              {(profile.account_roles ?? []).includes("livreur") && <Link href="/livreur/missions" className="flex-1 rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 hover:bg-white">Livrer</Link>}
-            </div>
-          </div>
-        )}
         {role === "client" && onCartClick && (
           <button
             onClick={onCartClick}

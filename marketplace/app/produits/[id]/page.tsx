@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useToast } from '@/context/ToastContext'
 import { useCart } from '@/context/CartContext'
 import { useUser } from '@/lib/hooks/useUser'
@@ -10,6 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
 import { AuthModal } from '@/components/ui/AuthModal'
+import { QuickContactModal } from '@/components/modals/QuickContactModal'
 import { Footer } from '@/components/home/Footer'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -160,6 +162,10 @@ export default function ProductDetailPage() {
   const [selectedVarianteId, setSelectedVarianteId] = useState<string | null>(null)
   const [variantesError, setVariantesError] = useState<string | null>(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
+  const [contactModalOpen, setContactModalOpen] = useState(false)
+  const [reviewsPage, setReviewsPage] = useState(0)
+  const [totalReviewsCount, setTotalReviewsCount] = useState(0)
+  const [loadingMoreReviews, setLoadingMoreReviews] = useState(false)
   // Où renvoyer l'utilisateur une fois connecté : /checkout après un "Acheter
   // maintenant" en étant déconnecté, null pour les autres usages (favoris...)
   // où on veut juste rester sur la page produit.
@@ -267,16 +273,35 @@ export default function ProductDetailPage() {
     }
   }
 
-  const fetchReviews = async (articleId: string) => {
+  const fetchReviews = async (articleId: string, pageNumber: number = 0) => {
+    if (pageNumber === 0) {
+      setReviews([])
+      setReviewsPage(0)
+    }
+
     const { data: avisRows, error } = await supabase
       .from('avis')
       .select('id, note, commentaire, created_at, utilisateur_id')
       .eq('article_id', articleId)
       .order('created_at', { ascending: false })
-      .limit(10)
+      .range(pageNumber * 5, (pageNumber + 1) * 5 - 1)
 
-    if (error || !avisRows || avisRows.length === 0) {
-      setReviews([])
+    if (error || !avisRows) {
+      if (pageNumber === 0) setReviews([])
+      return
+    }
+
+    // Récupérer le nombre total d'avis au premier chargement
+    if (pageNumber === 0) {
+      const { count } = await supabase
+        .from('avis')
+        .select('*', { count: 'exact', head: true })
+        .eq('article_id', articleId)
+      setTotalReviewsCount(count || 0)
+    }
+
+    if (avisRows.length === 0) {
+      if (pageNumber === 0) setReviews([])
       return
     }
 
@@ -290,19 +315,27 @@ export default function ProductDetailPage() {
       (reviewers || []).map((u: any) => [u.id, u])
     )
 
-    setReviews(
-      avisRows.map((a: any) => {
-        const reviewer = reviewerMap.get(a.utilisateur_id)
-        return {
-          id: a.id,
-          note: a.note,
-          commentaire: a.commentaire,
-          created_at: a.created_at,
-          reviewer_name: reviewer?.full_name || 'Client Ayiba',
-          reviewer_avatar: reviewer?.avatar_url || null,
-        }
-      })
-    )
+    const newReviews = avisRows.map((a: any) => {
+      const reviewer = reviewerMap.get(a.utilisateur_id)
+      return {
+        id: a.id,
+        note: a.note,
+        commentaire: a.commentaire,
+        created_at: a.created_at,
+        reviewer_name: reviewer?.full_name || 'Client Ayiba',
+        reviewer_avatar: reviewer?.avatar_url || null,
+      }
+    })
+
+    setReviews(prev => pageNumber === 0 ? newReviews : [...prev, ...newReviews])
+    setReviewsPage(pageNumber)
+  }
+
+  const handleLoadMoreReviews = async () => {
+    if (!product) return
+    setLoadingMoreReviews(true)
+    await fetchReviews(product.id, reviewsPage + 1)
+    setLoadingMoreReviews(false)
   }
 
   const fetchSimilar = async (categorieId: string | null, excludeId: string) => {
@@ -447,7 +480,7 @@ export default function ProductDetailPage() {
       setAuthModalOpen(true)
       return
     }
-    showToast('Conversation avec le vendeur bientôt disponible', 'info')
+    setContactModalOpen(true)
   }
 
   const handleShare = () => {
@@ -547,10 +580,13 @@ export default function ProductDetailPage() {
                 }
               }}
             >
-              <img
+              <Image
                 src={galleryPhotos[currentImageIndex] ?? galleryPhotos[0]}
                 alt={product.nom}
+                fill
                 className="w-full h-full object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+                priority={currentImageIndex === 0}
               />
 
               {galleryPhotos.length > 1 && (
@@ -619,11 +655,11 @@ export default function ProductDetailPage() {
                   <button
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
+                    className={`relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-colors ${
                       i === currentImageIndex ? 'border-coral-500' : 'border-transparent'
                     }`}
                   >
-                    <img src={photo} alt={`${product.nom} ${i + 1}`} className="w-full h-full object-cover" />
+                    <Image src={photo} alt={`${product.nom} ${i + 1}`} fill className="object-cover" loading="lazy" />
                   </button>
                 ))}
               </div>
@@ -684,7 +720,7 @@ export default function ProductDetailPage() {
                         }`}
                       >
                         {v.photo_url && (
-                          <img src={v.photo_url} alt="" className="w-6 h-6 rounded-md object-cover" />
+                          <Image src={v.photo_url} alt="" width={24} height={24} className="rounded-md object-cover" />
                         )}
                         {v.nom_variante}
                       </button>
@@ -742,10 +778,12 @@ export default function ProductDetailPage() {
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
               <div className="flex items-center gap-3">
                 {product.vendeur.avatar_url ? (
-                  <img
+                  <Image
                     src={product.vendeur.avatar_url}
                     alt={product.vendeur.full_name}
-                    className="w-12 h-12 rounded-xl object-cover shrink-0"
+                    width={48}
+                    height={48}
+                    className="rounded-xl object-cover shrink-0"
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-xl bg-coral-100 flex items-center justify-center shrink-0">
@@ -883,7 +921,7 @@ export default function ProductDetailPage() {
                   )}
                   <div className="flex items-center gap-3">
                     {review.reviewer_avatar ? (
-                      <img src={review.reviewer_avatar} alt={review.reviewer_name} className="w-9 h-9 rounded-full object-cover" />
+                      <Image src={review.reviewer_avatar} alt={review.reviewer_name} width={36} height={36} className="rounded-full object-cover" />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-coral-100 flex items-center justify-center">
                         <span className="text-coral-800 text-xs font-bold">
@@ -898,6 +936,19 @@ export default function ProductDetailPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {reviews.length > 0 && reviews.length < totalReviewsCount && (
+            <div className="flex justify-center mt-8">
+              <Button
+                onClick={handleLoadMoreReviews}
+                disabled={loadingMoreReviews}
+                variant="outline"
+                className="px-6"
+              >
+                {loadingMoreReviews ? 'Chargement...' : `Charger plus d'avis (${totalReviewsCount - reviews.length} restants)`}
+              </Button>
             </div>
           )}
         </section>
@@ -946,7 +997,9 @@ export default function ProductDetailPage() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]"
+            className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-[60] shadow-lg"
+            role="complementary"
+            aria-label="Panier mobile flottant"
           >
             <div className="flex items-center gap-3">
               <div className="shrink-0">
@@ -963,7 +1016,8 @@ export default function ProductDetailPage() {
                 className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                   justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900 hover:bg-gray-50'
                 }`}
-                aria-label="Ajouter au panier"
+                aria-label={justAdded ? 'Produit ajouté au panier' : 'Ajouter au panier'}
+                title={justAdded ? 'Produit ajouté ✓' : 'Ajouter au panier'}
               >
                 <ShoppingBag size={26} />
               </button>
@@ -971,6 +1025,7 @@ export default function ProductDetailPage() {
                 onClick={handleBuyNow}
                 disabled={achatBloque}
                 className="flex-1 h-14 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-base transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label={achatBloque && selectionIncomplete ? 'Choisis une option pour continuer' : isOwnProduct ? 'Impossible - c\'est votre produit' : 'Acheter maintenant'}
               >
                 {achatBloque && selectionIncomplete ? 'Choisis une option' : isOwnProduct ? 'Non disponible' : 'Acheter maintenant'}
               </button>
@@ -989,6 +1044,21 @@ export default function ProductDetailPage() {
         intendedRole={null}
         redirectTo={authRedirectTo}
       />
+
+      {product && user && (
+        <QuickContactModal
+          open={contactModalOpen}
+          onOpenChange={setContactModalOpen}
+          vendor={{
+            id: product.vendeur.id,
+            nom: product.vendeur.full_name,
+            photo: product.vendeur.avatar_url || undefined
+          }}
+          productName={product.nom}
+          productId={product.id}
+          userId={user.id}
+        />
+      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { detecterCommune } from "@/lib/hooks/useGeolocationAdresse";
+import { detecterCommune, extraireQuartier } from "@/lib/hooks/useGeolocationAdresse";
 
 export interface SuggestionAdresse {
   id: string;
@@ -64,7 +64,7 @@ export function useAdresseAutocomplete(requete: string) {
             latitude: parseFloat(item.lat),
             longitude: parseFloat(item.lon),
             commune: detecterCommune(address),
-            quartier: address.suburb || address.neighbourhood || address.quarter || address.village || null,
+            quartier: extraireQuartier(address),
           };
         });
 

@@ -43,6 +43,21 @@ export function detecterCommune(address: Record<string, string | undefined>): st
   return null;
 }
 
+// Un quartier est censé être un nom propre unique. Sur les zones peu
+// cartographiées (hameaux autour d'Abomey-Calavi notamment), le tag OSM
+// suburb/neighbourhood est parfois lui-même déjà pollué avec plusieurs
+// niveaux administratifs empilés et séparés par des virgules (ex : "Tokan,
+// Somè, Togba, Abomey-Calavi, Atlantique, Bénin"). Rien en aval ne
+// détecte ça, et une fois enregistrée telle quelle, cette valeur ressort
+// dupliquée sur la facture (quartier + commune répétée dans la même
+// chaîne). On ne garde que le premier segment, seul niveau réellement
+// pertinent pour "quartier".
+export function extraireQuartier(address: Record<string, string | undefined>): string | null {
+  const brut = address.suburb || address.neighbourhood || address.quarter || address.village || null;
+  if (!brut) return null;
+  return brut.split(",")[0].trim() || null;
+}
+
 /**
  * Localise l'utilisateur via l'API de géolocalisation du navigateur, puis
  * tente un reverse-geocoding (Nominatim/OpenStreetMap, gratuit, sans clé)
@@ -81,7 +96,7 @@ export function useGeolocationAdresse() {
               const data = await res.json();
               const address = (data?.address ?? {}) as Record<string, string | undefined>;
               communeDetectee = detecterCommune(address);
-              quartierDetecte = address.suburb || address.neighbourhood || address.quarter || null;
+              quartierDetecte = extraireQuartier(address);
             }
           } catch (geocodeErr) {
             // Échec silencieux : on garde les coordonnées, l'utilisateur

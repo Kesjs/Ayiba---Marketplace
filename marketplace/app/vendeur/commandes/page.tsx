@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
 import {
@@ -32,6 +32,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import {
   STATUTS_COMMANDE,
   LABELS_STATUT_COMMANDE,
@@ -402,9 +403,11 @@ function CommandeRowSkeleton() {
   );
 }
 
-export default function VendeurCommandesPage() {
+function VendeurCommandesPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const deepLinkHandledRef = useRef(false);
 
   const [vendeurId, setVendeurId] = useState<string | null>(null);
   const [boutique, setBoutique] = useState<Boutique | null>(null);
@@ -860,6 +863,52 @@ export default function VendeurCommandesPage() {
     if (willExpand) chargerDetail(order);
   };
 
+  // Ouvre et scrolle automatiquement vers une commande précise quand on
+  // arrive ici via un lien du type /vendeur/commandes?commande=<id> (ex.
+  // depuis le tableau de bord). Si la commande n'est pas dans la première
+  // page déjà chargée, on va la chercher directement par son id.
+  useEffect(() => {
+    const id = searchParams.get("commande");
+    if (!id || loading || deepLinkHandledRef.current) return;
+
+    const ouvrirEtScroller = (order: Commande) => {
+      deepLinkHandledRef.current = true;
+      setExpandedId(order.id);
+      chargerDetail(order);
+      requestAnimationFrame(() => {
+        document
+          .getElementById(`commande-${order.id}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+    };
+
+    const dejaChargee = commandes.find((c) => c.id === id);
+    if (dejaChargee) {
+      ouvrirEtScroller(dejaChargee);
+      return;
+    }
+
+    (async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("commandes")
+        .select(
+          "id, numero, client_id, nom_client, telephone_client, adresse_livraison, commune, note_client, note_vendeur, montant_total, statut, created_at, archivee_vendeur, livreur_id, prime_prise_en_charge, distance_prise_en_charge_km, livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) )"
+        )
+        .eq("id", id)
+        .maybeSingle();
+
+      if (!data) {
+        deepLinkHandledRef.current = true;
+        showToast("Cette commande est introuvable ou a été supprimée", "error");
+        return;
+      }
+      const order = normaliserCommandeRow(data);
+      setCommandes((prev) => (prev.some((c) => c.id === order.id) ? prev : [order, ...prev]));
+      ouvrirEtScroller(order);
+    })();
+  }, [searchParams, loading, commandes, chargerDetail, showToast]);
+
   const enregistrerNoteVendeur = async (order: Commande) => {
     setSavingNoteId(order.id);
     const supabase = createClient();
@@ -1226,12 +1275,13 @@ export default function VendeurCommandesPage() {
                   return (
                     <motion.div
                       key={order.id}
+                      id={`commande-${order.id}`}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: Math.min(i, 8) * 0.03, duration: 0.25 }}
-                      className={`bg-white rounded-3xl border shadow-sm overflow-hidden ${
+                      className={`bg-white rounded-3xl border shadow-sm overflow-hidden scroll-mt-24 ${
                         isSelected ? "border-coral-300 ring-2 ring-coral-100" : "border-gray-100"
-                      }`}
+                      } ${expandedId === order.id ? "ring-2 ring-coral-200" : ""}`}
                       style={{ borderLeft: `4px solid ${spineColor}` }}
                     >
                       <div
@@ -1895,5 +1945,13 @@ export default function VendeurCommandesPage() {
         </AnimatePresence>
       </div>
     </DashboardLayout>
+  );
+}
+
+export default function VendeurCommandesPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <VendeurCommandesPageContent />
+    </Suspense>
   );
 }

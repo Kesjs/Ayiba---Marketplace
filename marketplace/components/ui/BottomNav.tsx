@@ -100,6 +100,7 @@ export function BottomNav() {
       items: [
         { label: "Faire des achats", icon: ShoppingBag, href: "/vendeur/catalogue", iconBg: "bg-coral-50", iconColor: "text-coral-500" },
         { label: "Mes achats", icon: ShoppingCart, href: "/vendeur/achats", iconBg: "bg-gray-50", iconColor: "text-gray-600" },
+        { label: "Favoris", icon: Heart, href: "/vendeur/favoris", iconBg: "bg-gray-50", iconColor: "text-gray-600" },
       ],
     },
     {

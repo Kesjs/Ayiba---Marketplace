@@ -1071,7 +1071,7 @@ function VendeurCommandesPageContent() {
   };
 
   return (
-    <DashboardLayout role="vendeur" title="Commandes">
+    <DashboardLayout role="vendeur" title="Ventes">
       <div className="w-full min-w-0 overflow-x-hidden">
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-5 mb-4">
           <div className="relative">

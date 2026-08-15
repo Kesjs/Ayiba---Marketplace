@@ -116,34 +116,47 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
         ${isCollapsed ? "lg:w-20" : "lg:w-64"}
       `}
     >
+      {/* Bouton toggle — flottant sur la bordure droite de la sidebar, en
+          dehors du header, pour ne jamais entrer en concurrence d'espace
+          avec le logo (notamment en mode replié où la sidebar ne fait que
+          80px de large). */}
+      <button
+        onClick={onToggleCollapse}
+        className="absolute top-7 -right-3 z-10 w-6 h-6 flex items-center justify-center bg-white border border-gray-200 rounded-full text-gray-400 hover:text-gray-600 hover:border-gray-300 shadow-sm transition-colors"
+        aria-label={isCollapsed ? "Déplier" : "Replier"}
+        title={isCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
+      >
+        {isCollapsed ? (
+          <PanelLeftOpen size={13} />
+        ) : (
+          <PanelLeftClose size={13} />
+        )}
+      </button>
+
       {/* Logo — volontairement non cliquable dans les dashboards (admin/
           vendeur/livreur) : contrairement au site public, sortir du
           dashboard par erreur en visant la sidebar n'est jamais voulu ici.
           Seul le Navbar public (espace client) garde un logo qui ramène à
           l'accueil. */}
-      <div className="h-20 flex items-center justify-between px-6">
-        <div className="flex items-center gap-2 overflow-hidden">
-          {isCollapsed ? (
-            <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />
-          ) : (
-            <>
-              <LogoAyiba className="h-8 w-auto shrink-0" />
-              <span className="text-gray-400 font-medium text-sm whitespace-nowrap">| {role}</span>
-            </>
-          )}
-        </div>
-        <button
-          onClick={onToggleCollapse}
-          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600 transition-colors shrink-0"
-          aria-label={isCollapsed ? "Déplier" : "Replier"}
-          title={isCollapsed ? "Déplier la sidebar" : "Replier la sidebar"}
+      <div className={`h-20 flex items-center ${isCollapsed ? "justify-center px-2" : "px-6"}`}>
+        {isCollapsed ? (
+          <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />
+        ) : (
+          <LogoAyiba className="h-8 w-auto shrink-0" />
+        )}
+      </div>
+
+      {/* Badge rôle — bandeau pleine largeur, corail clair, sous le logo.
+          En mode replié : version compacte centrée (une lettre) pour rester
+          lisible dans les 80px disponibles. */}
+      <div className={isCollapsed ? "px-3 mb-3" : "px-6 mb-3"}>
+        <div
+          className={`bg-coral-50 border border-coral-100 text-coral-500 font-bold uppercase tracking-wider rounded-lg text-center ${
+            isCollapsed ? "text-[10px] py-1.5" : "text-[11px] py-1.5"
+          }`}
         >
-          {isCollapsed ? (
-            <PanelLeftOpen size={18} />
-          ) : (
-            <PanelLeftClose size={18} />
-          )}
-        </button>
+          {isCollapsed ? role.slice(0, 1) : role}
+        </div>
       </div>
 
       {/* User Profile Summary */}
@@ -155,7 +168,6 @@ export function Sidebar({ role, userName, isCollapsed, onToggleCollapse, onCartC
             </div>
             <div className="overflow-hidden">
               <p className="text-sm font-bold truncate">{userName || "Utilisateur"}</p>
-              <p className="text-[11px] text-gray-400 uppercase tracking-wider font-bold">{role}</p>
             </div>
           </div>
         </div>

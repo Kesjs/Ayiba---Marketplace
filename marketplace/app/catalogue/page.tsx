@@ -31,6 +31,7 @@ function CatalogueContent() {
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categorie') || 'Tout')
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
+  const promoOnly = searchParams.get('promo') === '1'
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('popular')
   const [showFilters, setShowFilters] = useState(false)
@@ -98,6 +99,17 @@ function CatalogueContent() {
       filtered = filtered.filter(p => p.vendeur_id !== userId)
     }
 
+    // Lien "Voir tous les produits en promo" depuis la section Ventes flash
+    // de la home (?promo=1) — mêmes articles, sans limite à 8, avec la même
+    // règle d'expiration que la home (date_fin_promo non dépassée) pour ne
+    // jamais lister un article dont le prix va redevenir normal d'une
+    // seconde à l'autre.
+    if (promoOnly) {
+      filtered = filtered.filter(
+        p => p.prix_promo != null && p.date_fin_promo != null && new Date(p.date_fin_promo).getTime() > Date.now()
+      )
+    }
+
     if (selectedCategory !== 'Tout') {
       filtered = filtered.filter(p => p.categorie?.nom === selectedCategory)
     }
@@ -114,7 +126,7 @@ function CatalogueContent() {
     if (sortBy === 'price-desc') filtered.sort((a, b) => (b.prix_promo ?? b.prix) - (a.prix_promo ?? a.prix))
 
     setProducts(filtered)
-  }, [allProducts, selectedCategory, searchQuery, sortBy, userRole, userId])
+  }, [allProducts, selectedCategory, searchQuery, sortBy, userRole, userId, promoOnly])
 
   const handleAddToCart = (product: ArticlePublic) => {
     addItem({

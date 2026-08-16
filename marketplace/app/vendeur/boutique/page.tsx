@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useVendeurBoutique, type Horaires, type Jour } from "../../hooks/useVendeurBoutique";
+import { useVendeurBoutique, type Boutique, type Horaires, type Jour } from "../../hooks/useVendeurBoutique";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { MobileMoneySelector } from "@/components/boutique/MobileMoneySelector";
 import { AdresseForm } from "@/components/adresse/AdresseForm";
-import { Check, Camera, ImagePlus, MapPin, Clock, Store } from "lucide-react";
+import { useToast } from "@/context/ToastContext";
+import { Check, Camera, ImagePlus, MapPin, Clock, Store, Link2, Copy, Share2 } from "lucide-react";
 
 // Préfixes (2 chiffres après le 01) par opérateur — Bénin, plan à 10 chiffres depuis nov. 2024
 const PREFIXES_RESEAU: Record<string, string[]> = {
@@ -53,6 +54,99 @@ function validerNumero(numero: string, reseau: string): string | null {
     return `Ce préfixe (${prefixe}) ne correspond pas à un numéro ${labels[reseau]}.`;
   }
   return null;
+}
+
+function LienBoutiqueCard({
+  boutique,
+  nomBoutique,
+}: {
+  boutique: Boutique | null;
+  nomBoutique: string;
+}) {
+  const { showToast } = useToast();
+  const [origin, setOrigin] = useState("");
+  const [canShare, setCanShare] = useState(false);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+    setCanShare(typeof navigator !== "undefined" && !!navigator.share);
+  }, []);
+
+  const estValidee = boutique?.statut === "valide";
+  const lien = boutique && origin ? `${origin}/boutiques/${boutique.id}` : "";
+
+  const handleCopier = async () => {
+    if (!lien) return;
+    try {
+      await navigator.clipboard.writeText(lien);
+      showToast("Lien copié", "success");
+    } catch {
+      showToast("Impossible de copier le lien", "error");
+    }
+  };
+
+  const handlePartager = async () => {
+    if (!lien) return;
+    try {
+      await navigator.share({
+        title: nomBoutique || "Ma boutique sur Ayiba",
+        text: `Découvre et achète directement sur ma boutique Ayiba : ${nomBoutique || ""}`.trim(),
+        url: lien,
+      });
+    } catch {
+      // Partage annulé par le vendeur — rien à faire.
+    }
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-3">
+      <div className="flex items-center gap-2">
+        <Link2 size={18} className="text-gray-400" />
+        <h3 className="text-lg font-bold">Lien de ta boutique</h3>
+      </div>
+      <p className="text-sm text-gray-500">
+        Partage ce lien n'importe où — TikTok live, WhatsApp, Instagram... Toute personne qui
+        clique tombe directement sur ta boutique et peut acheter tes produits, même sans compte
+        Ayiba.
+      </p>
+
+      {estValidee ? (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <input
+            readOnly
+            value={lien}
+            onFocus={(e) => e.target.select()}
+            className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-600 truncate focus:outline-none"
+          />
+          <div className="flex gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleCopier}
+              disabled={!lien}
+              className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
+            >
+              <Copy size={16} /> Copier
+            </button>
+            {canShare && (
+              <button
+                type="button"
+                onClick={handlePartager}
+                disabled={!lien}
+                className="px-4 py-3 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-700 text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <Share2 size={16} />
+                <span className="hidden sm:inline">Partager</span>
+              </button>
+            )}
+          </div>
+        </div>
+      ) : (
+        <p className="text-xs text-amber-600 font-medium">
+          Ton lien sera actif dès que ta boutique aura été validée par notre équipe.
+        </p>
+      )}
+    </div>
+  );
 }
 
 export default function VendeurBoutiquePage() {
@@ -155,7 +249,10 @@ export default function VendeurBoutiquePage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="space-y-8">
+          <LienBoutiqueCard boutique={boutique} nomBoutique={form.nom_boutique} />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-8">
             {boutique?.statut !== "valide" && (
               <div
@@ -448,6 +545,7 @@ export default function VendeurBoutiquePage() {
                 </p>
               </div>
             </div>
+          </div>
           </div>
         </div>
       )}

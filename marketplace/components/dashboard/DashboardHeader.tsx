@@ -152,7 +152,18 @@ export function DashboardHeader({
 
   return (
     <>
-      <header className="sticky top-0 z-20 bg-white/80 backdrop-blur-xl border-b border-gray-100">
+      {/* Le modal de déconnexion (position: fixed + backdrop-blur) ne parvient
+          pas à flouter un élément sticky qui a lui-même son propre
+          backdrop-filter (bug de compositing connu sur Chrome/Safari) : le
+          header restait net et non assombri au-dessus du fond flouté. On
+          désactive donc sticky + son propre flou tant que ce modal est
+          ouvert, pour qu'il redevienne un élément normal correctement
+          recouvert par l'overlay. */}
+      <header
+        className={`${
+          showLogoutConfirm ? "relative" : "sticky top-0 backdrop-blur-xl"
+        } z-20 bg-white/80 border-b border-gray-100`}
+      >
       {/* --- Bande actions unique, mobile ET tablette (< lg) ---
           Le Sidebar porte déjà logo + avatar à partir de lg ; en dessous,
           cette bande unique regroupe logo + cloche + avatar sur une seule

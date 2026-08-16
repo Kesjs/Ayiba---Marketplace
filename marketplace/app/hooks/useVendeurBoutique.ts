@@ -15,6 +15,7 @@ export type Horaires = Record<Jour, CreneauJour>;
 
 export interface Boutique {
   id: string;
+  slug: string | null;
   nom_boutique: string | null;
   description: string | null;
   quartier: string | null;
@@ -66,7 +67,7 @@ export function useVendeurBoutique() {
       const { data, error: vendeurError } = await supabase
         .from("vendeurs")
         .select(
-          "id, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
+          "id, slug, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
         )
         .eq("id", user.id)
         .single();
@@ -98,7 +99,7 @@ export function useVendeurBoutique() {
           .update({ ...champs, updated_at: new Date().toISOString() })
           .eq("id", boutique.id)
           .select(
-            "id, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
+            "id, slug, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
           )
           .single();
 
@@ -141,7 +142,7 @@ export function useVendeurBoutique() {
           .update({ [column]: publicUrl })
           .eq("id", boutique.id)
           .select(
-            "id, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
+            "id, slug, nom_boutique, description, quartier, commune, latitude, longitude, mobile_money_network, mobile_money_number, photo_profil_url, photo_couverture_url, horaires, statut"
           )
           .single();
         if (updateError) throw updateError;

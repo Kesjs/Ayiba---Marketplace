@@ -18,8 +18,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart, Star, ShoppingBag, MessageCircle, Share2,
   ChevronLeft, ChevronRight, Minus, Plus,
-  Wallet, QrCode, ShieldCheck, MapPin, Truck,
-  CheckCircle2
+  Wallet, QrCode, ShieldCheck, MapPin, Truck
 } from 'lucide-react'
 import {
   ARTICLE_CARD_SELECT,
@@ -795,9 +794,6 @@ export default function ProductDetailPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <h3 className="text-sm font-bold text-gray-900 truncate">{product.vendeur.full_name}</h3>
-                    {product.vendeur.isVerified && (
-                      <CheckCircle2 size={14} className="text-teal-500 fill-teal-50 shrink-0" />
-                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <Star size={12} className="fill-amber-500 text-amber-500" />

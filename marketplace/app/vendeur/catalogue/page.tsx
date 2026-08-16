@@ -11,10 +11,11 @@ import useArticlesPublics from "@/lib/hooks/useArticlesPublics";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { createClient } from "@/lib/supabase/client";
 import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
-import { Search, ChevronLeft, ChevronRight, MapPin, Zap, Star, ArrowLeft } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, CheckCircle2, MapPin, Zap, Star, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
-import { getBoutiquesPopulaires, lienBoutique, type BoutiquePublique } from "@/lib/queries/vendeurs";
+import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
+import { Select } from "@/components/ui/Select";
 import Link from "next/link";
 
 // Prix affiché / prix barré — même logique que la home et /catalogue.
@@ -280,28 +281,27 @@ export default function VendeurCataloguePage() {
             {/* Filtres */}
             <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
               <div className="flex-1 flex flex-wrap gap-2">
-                <label className="sr-only">Filtrer par catégorie</label>
-                <select
+                <Select
                   value={categorySlug ?? ""}
-                  onChange={(e) => setCategorySlug(e.target.value || null)}
-                  className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coral-500/10"
-                >
-                  <option value="">Toutes catégories</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.slug}>{c.nom}</option>
-                  ))}
-                </select>
+                  onChange={(v) => setCategorySlug(v || null)}
+                  className="w-48"
+                  options={[
+                    { value: "", label: "Toutes catégories" },
+                    ...categories.map((c) => ({ value: c.slug, label: c.nom })),
+                  ]}
+                />
 
-                <select
+                <Select
                   value={sortBy ?? "recent"}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coral-500/10"
-                >
-                  <option value="recent">Récent</option>
-                  <option value="price-asc">Prix ↑</option>
-                  <option value="price-desc">Prix ↓</option>
-                  <option value="popular">Popularité</option>
-                </select>
+                  onChange={(v) => setSortBy(v)}
+                  className="w-40"
+                  options={[
+                    { value: "recent", label: "Récent" },
+                    { value: "price-asc", label: "Prix ↑" },
+                    { value: "price-desc", label: "Prix ↓" },
+                    { value: "popular", label: "Popularité" },
+                  ]}
+                />
               </div>
 
               {/* Pagination compacte */}
@@ -314,8 +314,8 @@ export default function VendeurCataloguePage() {
                 >
                   <ChevronLeft size={16} />
                 </button>
-                <div className="text-xs text-gray-500 font-medium min-w-24 text-center">
-                  <span className="font-bold text-gray-700">{page}</span> / {Math.ceil((totalCount ?? 1) / 18)} • {totalCount ?? 0} articles
+                <div className="text-xs text-gray-500 font-medium min-w-16 text-center">
+                  <span className="font-bold text-gray-700">{page}</span> / {Math.ceil((totalCount ?? 1) / 18)}
                 </div>
                 <button
                   onClick={() => setPage(page + 1)}
@@ -425,7 +425,7 @@ export default function VendeurCataloguePage() {
               {filteredBoutiques.map((store) => (
                 <Link
                   key={store.id}
-                  href={lienBoutique(store)}
+                  href={`/boutiques/${store.id}`}
                   className="group p-5 md:p-6 bg-gray-50/50 rounded-2xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
                 >
                   <div className="relative mb-4 inline-block">
@@ -436,6 +436,11 @@ export default function VendeurCataloguePage() {
                         <span className="text-coral-500 font-bold text-xl">{store.nom.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
+                    {store.isVerified && (
+                      <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                        <CheckCircle2 size={18} className="text-teal-500 fill-teal-50" />
+                      </div>
+                    )}
                   </div>
                   <h3 className="font-bold text-gray-900 mb-1 group-hover:text-coral-600 transition-colors">{store.nom}</h3>
                   {store.quartier && (

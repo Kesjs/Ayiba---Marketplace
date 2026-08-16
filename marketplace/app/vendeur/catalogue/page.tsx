@@ -14,7 +14,7 @@ import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
 import { Search, ChevronLeft, ChevronRight, MapPin, Zap, Star, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
-import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
+import { getBoutiquesPopulaires, lienBoutique, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import Link from "next/link";
 
 // Prix affiché / prix barré — même logique que la home et /catalogue.
@@ -425,7 +425,7 @@ export default function VendeurCataloguePage() {
               {filteredBoutiques.map((store) => (
                 <Link
                   key={store.id}
-                  href={`/boutiques/${store.id}`}
+                  href={lienBoutique(store)}
                   className="group p-5 md:p-6 bg-gray-50/50 rounded-2xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
                 >
                   <div className="relative mb-4 inline-block">

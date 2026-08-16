@@ -8,11 +8,21 @@ import { AuthModal } from "@/components/ui/AuthModal";
 import { CartDrawer } from "@/components/ui/CartDrawer";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { useCart } from "@/context/CartContext";
+import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { getRedirectPathForRole, isValidRole } from "@/lib/auth-utils";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 
 const supabase = createClient();
+
+// Petit badge de rôle affiché à côté du nom dans le header, pour que le
+// dropdown "profil" reflète qui est connecté (vendeur, livreur, admin) au
+// lieu de rester sur le libellé générique "Mon compte" pour tout le monde.
+const ROLE_BADGE: Record<string, { label: string; className: string }> = {
+  vendeur: { label: "Vendeur", className: "bg-coral-100 text-coral-600" },
+  livreur: { label: "Livreur", className: "bg-teal-100 text-teal-600" },
+  admin: { label: "Admin", className: "bg-gray-200 text-gray-600" },
+};
 
 // Exemples qui tournent dans le placeholder de la recherche (voir plus bas) —
 // scope module pour ne pas recréer le tableau à chaque rendu.
@@ -40,7 +50,10 @@ export function Navbar() {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
   const [user, setUser] = useState<any>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { profile } = useUser();
+  const userRole = profile?.role ?? null;
+  const displayName = profile?.full_name || "Mon compte";
+  const roleBadge = userRole ? ROLE_BADGE[userRole] : undefined;
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
@@ -106,38 +119,19 @@ export function Navbar() {
     };
   }, [mobileOpen]);
 
+  // `profile` (rôle, avatar, nom complet) vient désormais de useUser() —
+  // seule la session brute (`user`, pour les cas où on veut son id/phone)
+  // reste suivie ici, en simple miroir de useUser (pas besoin de re-requêter
+  // "users" nous-mêmes : c'était la version dupliquée, plus limitée, qui
+  // n'exposait ni avatar_url ni full_name, d'où le "Mon compte" générique
+  // affiché même pour un vendeur connecté).
   useEffect(() => {
-    async function fetchUser() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        const { data: userData } = await supabase
-          .from("users")
-          .select("role, nom")
-          .eq("id", session.user.id)
-          .single();
-        setUserRole(userData?.role || null);
-      }
-    }
-    fetchUser();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event: any, session: any) => {
-        if (session?.user) {
-          setUser(session.user);
-          const { data: userData } = await supabase
-            .from("users")
-            .select("role, nom")
-            .eq("id", session.user.id)
-            .single();
-          setUserRole(userData?.role || null);
-        } else {
-          setUser(null);
-          setUserRole(null);
-        }
-      }
-    );
-
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      setUser(session?.user ?? null);
+    });
     return () => subscription.unsubscribe();
   }, []);
 
@@ -175,15 +169,11 @@ export function Navbar() {
 
   return (
     <>
-      {/* Même bug que le DashboardHeader : un header sticky avec son propre
-          backdrop-filter n'est pas re-flouté par l'overlay du modal de
-          déconnexion. On désactive sticky + le flou propre du header tant
-          que ce modal est ouvert. */}
       <header
-        className={`${showLogoutModal ? "relative" : "sticky top-0"} z-50 md:h-16 transition-all duration-300 ${
+        className={`sticky top-0 z-50 md:h-16 transition-all duration-300 ${
           scrolled
-            ? `bg-white/90 shadow-[0_4px_20px_rgba(0,0,0,0.03)] ${showLogoutModal ? "" : "backdrop-blur-md"}`
-            : `bg-coral-50/60 ${showLogoutModal ? "" : "backdrop-blur-sm"}`
+            ? "bg-white/90 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+            : "bg-coral-50/60 backdrop-blur-sm"
         }`}
       >
         <div className="flex items-center justify-between h-14 md:h-full px-4 md:px-8 lg:px-12 max-w-7xl mx-auto w-full gap-4 md:gap-8">
@@ -291,18 +281,45 @@ export function Navbar() {
             {user && (
               <div className="relative group/user" onMouseEnter={() => setUserMenuOpen(true)} onMouseLeave={() => setUserMenuOpen(false)}>
                 <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-all duration-300">
-                  <div className="w-8 h-8 bg-coral-50 border border-coral-100 rounded-full flex items-center justify-center">
-                    <User size={16} className="text-coral-400" />
+                  <div className="w-8 h-8 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={16} className="text-coral-400" />
+                    )}
                   </div>
-                  <span className="text-sm font-semibold text-gray-700 max-w-[100px] truncate">{user?.user_metadata?.nom || "Mon compte"}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold text-gray-700 max-w-[90px] truncate">{displayName}</span>
+                    {roleBadge && (
+                      <span className={`shrink-0 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${roleBadge.className}`}>
+                        {roleBadge.label}
+                      </span>
+                    )}
+                  </span>
                   <ChevronDown size={14} className={`transition-transform duration-300 ${userMenuOpen ? "rotate-180" : ""}`} />
                 </button>
 
                 <div className={`absolute right-0 top-full pt-2 w-56 origin-top-right transition-all duration-300 ${userMenuOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}>
                   <div className="bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden">
                     <div className="px-4 py-4 bg-gray-50/50 border-b border-gray-100">
-                      <p className="text-sm font-bold text-gray-900 truncate">{user?.user_metadata?.nom || "Mon compte"}</p>
-                      <p className="text-[11px] text-gray-400 mt-1 font-medium">{user?.phone || ""}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
+                          {profile?.avatar_url ? (
+                            <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                          ) : (
+                            <User size={18} className="text-coral-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-bold text-gray-900 truncate">{displayName}</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5 font-medium">{profile?.phone || user?.phone || ""}</p>
+                        </div>
+                      </div>
+                      {roleBadge && (
+                        <span className={`inline-block mt-2.5 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${roleBadge.className}`}>
+                          {roleBadge.label}
+                        </span>
+                      )}
                     </div>
                     <div className="p-2 flex flex-col gap-1">
                       <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
@@ -505,7 +522,23 @@ export function Navbar() {
           </div>
 
           <div className="p-4 border-t border-gray-100 bg-gray-50">
-            <p className="text-sm font-semibold text-gray-900 px-2">{user?.user_metadata?.nom || "Mon compte"}</p>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <User size={16} className="text-coral-400" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-gray-900 px-0 truncate">{displayName}</p>
+                {roleBadge && (
+                  <span className={`inline-block mt-0.5 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${roleBadge.className}`}>
+                    {roleBadge.label}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

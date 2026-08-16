@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, MessageCircle, ArrowLeft, MapPin } from "lucide-react";
+import { CheckCircle2, MessageCircle, ArrowLeft, MapPin, Star } from "lucide-react";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
@@ -56,16 +56,17 @@ export default function BoutiqueDetailPage() {
       setLoading(true);
       setNotFound(false);
       try {
-        const storeData = await getBoutiqueParId(boutiqueId);
+        const [storeData, productsData] = await Promise.all([
+          getBoutiqueParId(boutiqueId),
+          getArticlesPublics({ vendeurId: boutiqueId }),
+        ]);
         if (cancelled) return;
         if (!storeData) {
           setNotFound(true);
-          return;
+        } else {
+          setStore(storeData);
+          setStoreProducts(productsData);
         }
-        const productsData = await getArticlesPublics({ vendeurId: storeData.id });
-        if (cancelled) return;
-        setStore(storeData);
-        setStoreProducts(productsData);
       } catch (err) {
         console.error("Erreur chargement boutique:", err);
         if (!cancelled) setNotFound(true);
@@ -167,7 +168,7 @@ export default function BoutiqueDetailPage() {
           Toutes les boutiques
         </Link>
 
-        <div className="bg-gray-50/50 rounded-3xl border border-gray-100 p-6 md:p-8 mb-8 md:mb-10 flex flex-col md:flex-row md:items-center gap-5 md:gap-6">
+        <div className="bg-gray-50/50 rounded-3xl border border-gray-100 p-6 md:p-8 mb-8 md:mb-10 flex flex-col md:flex-row md:items-start gap-5 md:gap-6">
           <div className="relative shrink-0">
             <div className="w-20 h-20 md:w-24 md:h-24 rounded-3xl overflow-hidden border-4 border-white shadow-sm bg-coral-50 flex items-center justify-center">
               {store.logo ? (
@@ -176,19 +177,32 @@ export default function BoutiqueDetailPage() {
                 <span className="text-coral-500 font-bold text-2xl">{store.nom.charAt(0).toUpperCase()}</span>
               )}
             </div>
+            {store.isVerified && (
+              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-sm">
+                <CheckCircle2 size={20} className="text-teal-500 fill-teal-50" />
+              </div>
+            )}
           </div>
 
           <div className="flex-1">
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-2">{store.nom}</h1>
-            <div className="flex items-center gap-2 mb-3 text-sm text-gray-400">
-              <span className="font-bold text-gray-700">{store.productCount}</span>
-              <span>produit{store.productCount > 1 ? "s" : ""}</span>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              {store.avisCount > 0 && (
+                <div className="flex items-center gap-1">
+                  <Star size={14} className="fill-amber-400 text-amber-400" />
+                  <span className="text-sm font-bold text-gray-700">{store.note}</span>
+                  <span className="text-xs text-gray-400">({store.avisCount} avis)</span>
+                </div>
+              )}
+              {(store.quartier || store.commune) && (
+                <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-500 bg-white px-2.5 py-1.5 rounded-md border border-gray-100 w-fit">
+                  <MapPin size={11} />
+                  {[store.quartier, store.commune].filter(Boolean).join(", ")}
+                </div>
+              )}
             </div>
-            {(store.quartier || store.commune) && (
-              <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-500 bg-white px-2.5 py-1.5 rounded-md border border-gray-100 w-fit">
-                <MapPin size={11} />
-                {[store.quartier, store.commune].filter(Boolean).join(", ")}
-              </div>
+            {store.description && (
+              <p className="text-sm text-gray-600 max-w-2xl">{store.description}</p>
             )}
           </div>
 

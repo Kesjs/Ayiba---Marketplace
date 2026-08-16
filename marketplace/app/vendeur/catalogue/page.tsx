@@ -11,7 +11,7 @@ import useArticlesPublics from "@/lib/hooks/useArticlesPublics";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { createClient } from "@/lib/supabase/client";
 import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
-import { Search, ChevronLeft, ChevronRight, CheckCircle2, MapPin, Zap, Star, ArrowLeft } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, CheckCircle2, MapPin, Zap, Star, ArrowLeft, ArrowRight, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
@@ -150,6 +150,14 @@ export default function VendeurCataloguePage() {
     if (!q) return boutiques;
     return boutiques.filter((b) => b.nom.toLowerCase().includes(q));
   }, [boutiques, boutiqueFilter]);
+
+  // Le vendeur est toujours connecté sur cette page (dashboard), pas besoin
+  // de AuthModal comme sur /boutiques (accessible aux visiteurs anonymes).
+  const handleContactBoutique = (e: React.MouseEvent, storeId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    router.push(`/messages?vendeur=${storeId}`);
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -426,9 +434,9 @@ export default function VendeurCataloguePage() {
                 <Link
                   key={store.id}
                   href={`/boutiques/${store.id}`}
-                  className="group p-5 md:p-6 bg-gray-50/50 rounded-2xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
+                  className="group flex flex-col p-5 md:p-6 bg-gray-50/50 rounded-2xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
                 >
-                  <div className="relative mb-4 inline-block">
+                  <div className="relative mb-4 inline-block w-fit">
                     <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 bg-coral-50 flex items-center justify-center">
                       {store.logo ? (
                         <img src={store.logo} alt={store.nom} className="w-full h-full object-cover" />
@@ -443,15 +451,42 @@ export default function VendeurCataloguePage() {
                     )}
                   </div>
                   <h3 className="font-bold text-gray-900 mb-1 group-hover:text-coral-600 transition-colors">{store.nom}</h3>
-                  {store.quartier && (
-                    <p className="text-xs text-gray-500 flex items-center gap-1 mb-2">
-                      <MapPin size={12} />
-                      {store.quartier}{store.commune && ` · ${store.commune}`}
-                    </p>
+
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
+                    {store.avisCount > 0 && (
+                      <div className="flex items-center gap-1">
+                        <Star size={12} className="fill-amber-400 text-amber-400" />
+                        <span className="text-xs font-bold text-gray-700">{store.note}</span>
+                        <span className="text-[11px] text-gray-400">({store.avisCount})</span>
+                      </div>
+                    )}
+                    {store.quartier && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <MapPin size={12} />
+                        {store.quartier}{store.commune && ` · ${store.commune}`}
+                      </p>
+                    )}
+                  </div>
+
+                  {store.description ? (
+                    <p className="text-xs text-gray-400 line-clamp-2 mb-4 flex-1">{store.description}</p>
+                  ) : (
+                    <div className="flex-1 mb-4" />
                   )}
-                  <p className="text-xs text-gray-400">
-                    {store.productCount} produit{store.productCount > 1 ? "s" : ""} · Vérifiée
-                  </p>
+
+                  <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-gray-100">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold text-coral-500 group-hover:gap-1.5 transition-all">
+                      Voir plus
+                      <ArrowRight size={13} />
+                    </span>
+                    <button
+                      onClick={(e) => handleContactBoutique(e, store.id)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-coral-600 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-coral-200 bg-white transition-colors"
+                    >
+                      <MessageCircle size={13} />
+                      Contacter
+                    </button>
+                  </div>
                 </Link>
               ))}
             </div>

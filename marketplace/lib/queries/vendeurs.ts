@@ -1,127 +1,133 @@
 import { createClient } from "@/lib/supabase/client";
+import { fetchVendeurStats } from "@/lib/catalogue";
 
 export interface BoutiquePublique {
   id: string;
-  slug: string | null;
   nom: string;
   logo: string | null;
   quartier: string | null;
   commune: string | null;
   isVerified: boolean;
   productCount: number;
-}
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** Lien public court à privilégier partout (slug lisible si dispo, sinon l'uuid). */
-export function lienBoutique(store: Pick<BoutiquePublique, "id" | "slug">): string {
-  return `/boutiques/${store.slug || store.id}`;
+  description: string | null;
+  /** Note moyenne calculée à partir des avis sur les articles publiés du
+   *  vendeur (0 si aucun avis) — voir fetchVendeurStats, qui contourne la
+   *  colonne users.note_moyenne non lisible côté client pour un autre
+   *  utilisateur (RLS "Users can view own data"). */
+  note: number;
+  avisCount: number;
 }
 
 /**
  * Boutiques à mettre en avant sur la home (section "Explorer les boutiques").
  *
- * Il n'existe pas de note/avis boutique en base pour l'instant (même
- * décision que pour les articles : reviewCount à 0 plutôt qu'une note
- * inventée) — on ne renvoie donc pas de `rating`. Le tri se fait sur le
- * nombre d'articles publiés, qui est une donnée réelle disponible tout de
- * suite, contrairement à un vrai score de popularité (vues, ventes...) qui
- * resterait à construire séparément.
- *
  * Deux allers-retours volontairement simples (articles puis vendeurs)
  * plutôt qu'un embed PostgREST avec count agrégé, dont le format exact
- * n'a pas été vérifié dans ce projet.
+ * n'a pas été vérifié dans ce projet. La note (voir `note`/`avisCount`) est
+ * calculée à partir des avis articles, pas d'un embed non plus, pour rester
+ * sur ce même parti pris.
  */
 export async function getBoutiquesPopulaires(limit = 10): Promise<BoutiquePublique[]> {
   const supabase = createClient();
 
   const { data: articles, error: articlesError } = await supabase
     .from("articles")
-    .select("vendeur_id")
+    .select("id, vendeur_id")
     .eq("statut", "publie")
     .eq("actif", true);
 
   if (articlesError) throw articlesError;
 
   const countByVendeur = new Map<string, number>();
+  const vendeurByArticle = new Map<string, string>();
   for (const a of articles || []) {
     if (!a.vendeur_id) continue;
     countByVendeur.set(a.vendeur_id, (countByVendeur.get(a.vendeur_id) || 0) + 1);
+    vendeurByArticle.set(a.id, a.vendeur_id);
   }
 
   const vendeurIds = [...countByVendeur.keys()];
   if (vendeurIds.length === 0) return [];
 
+  const articleIds = [...vendeurByArticle.keys()];
+  const notesByVendeur = new Map<string, { sum: number; count: number }>();
+  if (articleIds.length > 0) {
+    const { data: avis, error: avisError } = await supabase
+      .from("avis")
+      .select("article_id, note")
+      .in("article_id", articleIds);
+    if (avisError) throw avisError;
+    (avis || []).forEach((a: any) => {
+      const vendeurId = vendeurByArticle.get(a.article_id);
+      if (!vendeurId) return;
+      const cur = notesByVendeur.get(vendeurId) || { sum: 0, count: 0 };
+      cur.sum += a.note;
+      cur.count += 1;
+      notesByVendeur.set(vendeurId, cur);
+    });
+  }
+
   const { data: vendeurs, error: vendeursError } = await supabase
     .from("vendeurs")
-    .select("id, slug, nom_boutique, quartier, commune, photo_profil_url, statut")
+    .select("id, nom_boutique, description, quartier, commune, photo_profil_url, statut")
     .in("id", vendeurIds)
     .eq("statut", "valide");
 
   if (vendeursError) throw vendeursError;
 
   return (vendeurs || [])
-    .map((v: any) => ({
-      id: v.id,
-      slug: v.slug,
-      nom: v.nom_boutique || "Boutique Ayiba",
-      logo: v.photo_profil_url,
-      quartier: v.quartier,
-      commune: v.commune,
-      isVerified: v.statut === "valide",
-      productCount: countByVendeur.get(v.id) || 0,
-    }))
+    .map((v: any) => {
+      const notes = notesByVendeur.get(v.id);
+      return {
+        id: v.id,
+        nom: v.nom_boutique || "Boutique Ayiba",
+        logo: v.photo_profil_url,
+        description: v.description || null,
+        quartier: v.quartier,
+        commune: v.commune,
+        isVerified: v.statut === "valide",
+        productCount: countByVendeur.get(v.id) || 0,
+        note: notes && notes.count > 0 ? Math.round((notes.sum / notes.count) * 10) / 10 : 0,
+        avisCount: notes?.count || 0,
+      };
+    })
     .sort((a: BoutiquePublique, b: BoutiquePublique) => b.productCount - a.productCount)
     .slice(0, limit);
 }
 
 /**
- * Boutique unique pour la page détail (/boutiques/[id]). Même logique que
- * getBoutiquesPopulaires pour le comptage d'articles, réduite à un seul
- * vendeur. Retourne null si la boutique n'existe pas ou n'est pas validée
- * (cohérent avec la RLS : un vendeur non "valide" n'a pas d'articles publics
- * de toute façon).
- *
- * `identifiant` accepte soit le slug lisible (/boutiques/warda-mode), soit
- * l'uuid brut (/boutiques/<uuid>) — les liens déjà partagés avant l'ajout du
- * slug continuent donc de fonctionner sans jamais casser.
+ * Boutique unique pour la page détail (/boutiques/[id]). Réutilise
+ * fetchVendeurStats (déjà utilisé sur /produits/[id]) pour la note et le
+ * nombre de produits, plutôt que de dupliquer ce calcul. Retourne null si la
+ * boutique n'existe pas ou n'est pas validée (cohérent avec la RLS : un
+ * vendeur non "valide" n'a pas d'articles publics de toute façon).
  */
-export async function getBoutiqueParId(identifiant: string): Promise<BoutiquePublique | null> {
+export async function getBoutiqueParId(id: string): Promise<BoutiquePublique | null> {
   const supabase = createClient();
 
-  let query = supabase
+  const { data: vendeur, error: vendeurError } = await supabase
     .from("vendeurs")
-    .select("id, slug, nom_boutique, quartier, commune, photo_profil_url, statut")
-    .eq("statut", "valide");
-
-  // `id.eq.<valeur>` lève une erreur Postgres si <valeur> n'est pas un uuid
-  // valide — on ne l'inclut donc que quand l'identifiant y ressemble.
-  query = UUID_RE.test(identifiant)
-    ? query.or(`id.eq.${identifiant},slug.eq.${identifiant}`)
-    : query.eq("slug", identifiant);
-
-  const { data: vendeur, error: vendeurError } = await query.maybeSingle();
+    .select("id, nom_boutique, description, quartier, commune, photo_profil_url, statut")
+    .eq("id", id)
+    .eq("statut", "valide")
+    .maybeSingle();
 
   if (vendeurError) throw vendeurError;
   if (!vendeur) return null;
 
-  const { count, error: countError } = await supabase
-    .from("articles")
-    .select("*", { count: "exact", head: true })
-    .eq("vendeur_id", vendeur.id)
-    .eq("statut", "publie")
-    .eq("actif", true);
-
-  if (countError) throw countError;
+  const stats = await fetchVendeurStats(supabase, id);
 
   return {
     id: vendeur.id,
-    slug: vendeur.slug,
     nom: vendeur.nom_boutique || "Boutique Ayiba",
     logo: vendeur.photo_profil_url,
+    description: vendeur.description || null,
     quartier: vendeur.quartier,
     commune: vendeur.commune,
     isVerified: vendeur.statut === "valide",
-    productCount: count || 0,
+    productCount: stats.productCount,
+    note: stats.rating,
+    avisCount: stats.reviewCount,
   };
 }
+

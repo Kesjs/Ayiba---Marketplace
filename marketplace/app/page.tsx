@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ShieldCheck, QrCode, Store, Bike, ArrowRight,
   Wallet, Star, MapPin, Clock,
-  ChevronRight, Zap
+  CheckCircle2, ChevronRight, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
@@ -14,7 +14,7 @@ import { Footer } from "@/components/home/Footer";
 import { AuthModal } from "@/components/ui/AuthModal";
 import { useRouter } from "next/navigation";
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
-import { getBoutiquesPopulaires, lienBoutique, type BoutiquePublique } from "@/lib/queries/vendeurs";
+import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { resolveCategoryIcon } from "@/lib/constants/category-icons";
 import { useUser } from "@/lib/hooks/useUser";
 import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
@@ -658,7 +658,7 @@ export default function Home() {
                   {boutiques.map((store) => (
                     <Link
                       key={store.id}
-                      href={lienBoutique(store)}
+                      href={`/boutiques/${store.id}`}
                       className="group shrink-0 w-56 md:w-64 p-4 md:p-5 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
                     >
                       <div className="relative mb-3 md:mb-4">
@@ -669,12 +669,20 @@ export default function Home() {
                             <span className="text-coral-500 font-bold text-xl">{store.nom.charAt(0).toUpperCase()}</span>
                           )}
                         </div>
+                        {store.isVerified && (
+                          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                            <CheckCircle2 size={18} className="text-teal-500 fill-teal-50" />
+                          </div>
+                        )}
                       </div>
                       <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1 group-hover:text-coral-500 transition-colors truncate">{store.nom}</h3>
-                      <div className="flex items-center gap-1.5 mb-3 text-xs text-gray-400">
-                        <span className="font-bold text-gray-700">{store.productCount}</span>
-                        <span>produit{store.productCount > 1 ? 's' : ''}</span>
-                      </div>
+                      {store.avisCount > 0 && (
+                        <div className="flex items-center gap-1 mb-2">
+                          <Star size={11} className="fill-amber-400 text-amber-400" />
+                          <span className="text-xs font-bold text-gray-700">{store.note}</span>
+                          <span className="text-[11px] text-gray-400">({store.avisCount})</span>
+                        </div>
+                      )}
                       {(store.quartier || store.commune) && (
                         <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100 w-fit">
                           <MapPin size={11} />

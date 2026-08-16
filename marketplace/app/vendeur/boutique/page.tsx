@@ -74,7 +74,7 @@ function LienBoutiqueCard({
   }, []);
 
   const estValidee = boutique?.statut === "valide";
-  const lien = boutique && origin ? `${origin}/boutiques/${boutique.id}` : "";
+  const lien = boutique && origin ? `${origin}/boutiques/${boutique.slug || boutique.id}` : "";
 
   const handleCopier = async () => {
     if (!lien) return;

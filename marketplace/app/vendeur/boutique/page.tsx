@@ -66,6 +66,7 @@ function LienBoutiqueCard({
   const { showToast } = useToast();
   const [origin, setOrigin] = useState("");
   const [canShare, setCanShare] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -80,6 +81,8 @@ function LienBoutiqueCard({
     try {
       await navigator.clipboard.writeText(lien);
       showToast("Lien copié", "success");
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       showToast("Impossible de copier le lien", "error");
     }
@@ -123,9 +126,35 @@ function LienBoutiqueCard({
               type="button"
               onClick={handleCopier}
               disabled={!lien}
-              className="flex-1 sm:flex-none px-4 py-3 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className={`flex-1 sm:flex-none px-4 py-3 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 transition-colors duration-300 ${
+                copied ? "bg-teal-500" : "bg-coral-500 hover:bg-coral-600"
+              }`}
             >
-              <Copy size={16} /> Copier
+              <AnimatePresence mode="wait" initial={false}>
+                {copied ? (
+                  <motion.span
+                    key="copied"
+                    initial={{ scale: 0.5, opacity: 0, rotate: -45 }}
+                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <Check size={16} /> Copié !
+                  </motion.span>
+                ) : (
+                  <motion.span
+                    key="copy"
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.5, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: "easeOut" }}
+                    className="flex items-center gap-1.5"
+                  >
+                    <Copy size={16} /> Copier
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
             {canShare && (
               <button

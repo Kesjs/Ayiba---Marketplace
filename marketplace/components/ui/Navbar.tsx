@@ -126,7 +126,7 @@ export function Navbar() {
   // n'exposait ni avatar_url ni full_name, d'où le "Mon compte" générique
   // affiché même pour un vendeur connecté).
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }: { data: { session: any } }) => {
       setUser(session?.user ?? null);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {

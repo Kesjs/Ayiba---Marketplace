@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ShieldCheck, QrCode, Store, Bike, ArrowRight,
   Wallet, Star, MapPin, Clock,
-  CheckCircle2, ChevronRight, Zap
+  ChevronRight, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
@@ -669,11 +669,6 @@ export default function Home() {
                             <span className="text-coral-500 font-bold text-xl">{store.nom.charAt(0).toUpperCase()}</span>
                           )}
                         </div>
-                        {store.isVerified && (
-                          <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                            <CheckCircle2 size={18} className="text-teal-500 fill-teal-50" />
-                          </div>
-                        )}
                       </div>
                       <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1 group-hover:text-coral-500 transition-colors truncate">{store.nom}</h3>
                       <div className="flex items-center gap-1.5 mb-3 text-xs text-gray-400">

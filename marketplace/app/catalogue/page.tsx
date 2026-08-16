@@ -169,17 +169,6 @@ function CatalogueContent() {
           <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight mb-4">Découvrez nos produits</h1>
             <p className="text-gray-500 font-medium max-w-2xl">Parcourez tout le catalogue Ayiba. Sécurité garantie, livraison locale rapide.</p>
-            
-            <div className="mt-8 flex flex-col md:flex-row gap-4">
-              <Button 
-                onClick={() => setShowFilters(!showFilters)}
-                variant="outline" 
-                className={`h-14 px-6 rounded-2xl border-gray-200 flex items-center gap-2 font-bold ${showFilters ? 'bg-gray-100' : 'bg-white'}`}
-              >
-                <SlidersHorizontal size={18} />
-                Filtres
-              </Button>
-            </div>
           </div>
         </section>
 
@@ -206,28 +195,34 @@ function CatalogueContent() {
                   ))}
                 </div>
               </div>
+            </aside>
 
-              <div>
-                <h3 className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-4">Trier par</h3>
-                <select 
+            {/* Main Content */}
+            <div className="flex-1">
+              {/* Filtres, tri et bascule grille/liste regroupés sur une même
+                  ligne (avant : "Filtres" dans le hero, "Trier par" dans la
+                  sidebar, toggle ici — trois emplacements différents). */}
+              <div className="flex flex-wrap items-center gap-3 mb-8">
+                <Button
+                  onClick={() => setShowFilters(!showFilters)}
+                  variant="outline"
+                  className={`h-11 px-4 rounded-xl border-gray-200 flex items-center gap-2 font-bold text-sm ${showFilters ? 'bg-gray-100' : 'bg-white'}`}
+                >
+                  <SlidersHorizontal size={16} />
+                  Filtres
+                </Button>
+
+                <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="w-full h-11 px-3 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-coral-500/10"
+                  className="h-11 px-3 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-coral-500/10"
                 >
                   <option value="popular">Les plus populaires</option>
                   <option value="price-asc">Prix croissant</option>
                   <option value="price-desc">Prix décroissant</option>
                 </select>
-              </div>
-            </aside>
 
-            {/* Main Content */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-8">
-                <p className="text-sm text-gray-500 font-bold">
-                  {products.length} <span className="font-medium">produits trouvés</span>
-                </p>
-                <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
+                <div className="ml-auto flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
                   <button 
                     onClick={() => setViewMode('grid')}
                     className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}

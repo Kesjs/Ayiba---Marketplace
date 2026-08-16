@@ -175,11 +175,15 @@ export function Navbar() {
 
   return (
     <>
+      {/* Même bug que le DashboardHeader : un header sticky avec son propre
+          backdrop-filter n'est pas re-flouté par l'overlay du modal de
+          déconnexion. On désactive sticky + le flou propre du header tant
+          que ce modal est ouvert. */}
       <header
-        className={`sticky top-0 z-50 md:h-16 transition-all duration-300 ${
+        className={`${showLogoutModal ? "relative" : "sticky top-0"} z-50 md:h-16 transition-all duration-300 ${
           scrolled
-            ? "bg-white/90 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
-            : "bg-coral-50/60 backdrop-blur-sm"
+            ? `bg-white/90 shadow-[0_4px_20px_rgba(0,0,0,0.03)] ${showLogoutModal ? "" : "backdrop-blur-md"}`
+            : `bg-coral-50/60 ${showLogoutModal ? "" : "backdrop-blur-sm"}`
         }`}
       >
         <div className="flex items-center justify-between h-14 md:h-full px-4 md:px-8 lg:px-12 max-w-7xl mx-auto w-full gap-4 md:gap-8">

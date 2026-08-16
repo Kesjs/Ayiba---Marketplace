@@ -2,12 +2,20 @@ import { createClient } from "@/lib/supabase/client";
 
 export interface BoutiquePublique {
   id: string;
+  slug: string | null;
   nom: string;
   logo: string | null;
   quartier: string | null;
   commune: string | null;
   isVerified: boolean;
   productCount: number;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Lien public court à privilégier partout (slug lisible si dispo, sinon l'uuid). */
+export function lienBoutique(store: Pick<BoutiquePublique, "id" | "slug">): string {
+  return `/boutiques/${store.slug || store.id}`;
 }
 
 /**
@@ -46,7 +54,7 @@ export async function getBoutiquesPopulaires(limit = 10): Promise<BoutiquePubliq
 
   const { data: vendeurs, error: vendeursError } = await supabase
     .from("vendeurs")
-    .select("id, nom_boutique, quartier, commune, photo_profil_url, statut")
+    .select("id, slug, nom_boutique, quartier, commune, photo_profil_url, statut")
     .in("id", vendeurIds)
     .eq("statut", "valide");
 
@@ -55,6 +63,7 @@ export async function getBoutiquesPopulaires(limit = 10): Promise<BoutiquePubliq
   return (vendeurs || [])
     .map((v: any) => ({
       id: v.id,
+      slug: v.slug,
       nom: v.nom_boutique || "Boutique Ayiba",
       logo: v.photo_profil_url,
       quartier: v.quartier,
@@ -72,16 +81,26 @@ export async function getBoutiquesPopulaires(limit = 10): Promise<BoutiquePubliq
  * vendeur. Retourne null si la boutique n'existe pas ou n'est pas validée
  * (cohérent avec la RLS : un vendeur non "valide" n'a pas d'articles publics
  * de toute façon).
+ *
+ * `identifiant` accepte soit le slug lisible (/boutiques/warda-mode), soit
+ * l'uuid brut (/boutiques/<uuid>) — les liens déjà partagés avant l'ajout du
+ * slug continuent donc de fonctionner sans jamais casser.
  */
-export async function getBoutiqueParId(id: string): Promise<BoutiquePublique | null> {
+export async function getBoutiqueParId(identifiant: string): Promise<BoutiquePublique | null> {
   const supabase = createClient();
 
-  const { data: vendeur, error: vendeurError } = await supabase
+  let query = supabase
     .from("vendeurs")
-    .select("id, nom_boutique, quartier, commune, photo_profil_url, statut")
-    .eq("id", id)
-    .eq("statut", "valide")
-    .maybeSingle();
+    .select("id, slug, nom_boutique, quartier, commune, photo_profil_url, statut")
+    .eq("statut", "valide");
+
+  // `id.eq.<valeur>` lève une erreur Postgres si <valeur> n'est pas un uuid
+  // valide — on ne l'inclut donc que quand l'identifiant y ressemble.
+  query = UUID_RE.test(identifiant)
+    ? query.or(`id.eq.${identifiant},slug.eq.${identifiant}`)
+    : query.eq("slug", identifiant);
+
+  const { data: vendeur, error: vendeurError } = await query.maybeSingle();
 
   if (vendeurError) throw vendeurError;
   if (!vendeur) return null;
@@ -89,7 +108,7 @@ export async function getBoutiqueParId(id: string): Promise<BoutiquePublique | n
   const { count, error: countError } = await supabase
     .from("articles")
     .select("*", { count: "exact", head: true })
-    .eq("vendeur_id", id)
+    .eq("vendeur_id", vendeur.id)
     .eq("statut", "publie")
     .eq("actif", true);
 
@@ -97,6 +116,7 @@ export async function getBoutiqueParId(id: string): Promise<BoutiquePublique | n
 
   return {
     id: vendeur.id,
+    slug: vendeur.slug,
     nom: vendeur.nom_boutique || "Boutique Ayiba",
     logo: vendeur.photo_profil_url,
     quartier: vendeur.quartier,

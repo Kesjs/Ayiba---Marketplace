@@ -14,7 +14,7 @@ import { Footer } from "@/components/home/Footer";
 import { AuthModal } from "@/components/ui/AuthModal";
 import { useRouter } from "next/navigation";
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
-import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
+import { getBoutiquesPopulaires, lienBoutique, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { resolveCategoryIcon } from "@/lib/constants/category-icons";
 import { useUser } from "@/lib/hooks/useUser";
 import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
@@ -658,7 +658,7 @@ export default function Home() {
                   {boutiques.map((store) => (
                     <Link
                       key={store.id}
-                      href={`/boutiques/${store.id}`}
+                      href={lienBoutique(store)}
                       className="group shrink-0 w-56 md:w-64 p-4 md:p-5 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
                     >
                       <div className="relative mb-3 md:mb-4">

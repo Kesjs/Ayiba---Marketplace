@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useVendeurBoutique, type Boutique, type Horaires, type Jour } from "../../hooks/useVendeurBoutique";
+import { useVendeurBoutique, type Horaires, type Jour } from "../../hooks/useVendeurBoutique";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { MobileMoneySelector } from "@/components/boutique/MobileMoneySelector";
 import { AdresseForm } from "@/components/adresse/AdresseForm";
-import { useToast } from "@/context/ToastContext";
-import { Check, Camera, ImagePlus, MapPin, Clock, Store, Link2, Copy, Share2 } from "lucide-react";
+import { Check, Camera, ImagePlus, MapPin, Clock, Store, Star, CheckCircle2, MessageCircle } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { fetchVendeurStats, type VendeurStats } from "@/lib/catalogue";
 
 // Préfixes (2 chiffres après le 01) par opérateur — Bénin, plan à 10 chiffres depuis nov. 2024
 const PREFIXES_RESEAU: Record<string, string[]> = {
@@ -56,128 +57,6 @@ function validerNumero(numero: string, reseau: string): string | null {
   return null;
 }
 
-function LienBoutiqueCard({
-  boutique,
-  nomBoutique,
-}: {
-  boutique: Boutique | null;
-  nomBoutique: string;
-}) {
-  const { showToast } = useToast();
-  const [origin, setOrigin] = useState("");
-  const [canShare, setCanShare] = useState(false);
-  const [copied, setCopied] = useState(false);
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-    setCanShare(typeof navigator !== "undefined" && !!navigator.share);
-  }, []);
-
-  const estValidee = boutique?.statut === "valide";
-  const lien = boutique && origin ? `${origin}/boutiques/${boutique.slug || boutique.id}` : "";
-
-  const handleCopier = async () => {
-    if (!lien) return;
-    try {
-      await navigator.clipboard.writeText(lien);
-      showToast("Lien copié", "success");
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      showToast("Impossible de copier le lien", "error");
-    }
-  };
-
-  const handlePartager = async () => {
-    if (!lien) return;
-    try {
-      await navigator.share({
-        title: nomBoutique || "Ma boutique sur Ayiba",
-        text: `Découvre et achète directement sur ma boutique Ayiba : ${nomBoutique || ""}`.trim(),
-        url: lien,
-      });
-    } catch {
-      // Partage annulé par le vendeur — rien à faire.
-    }
-  };
-
-  return (
-    <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-3">
-      <div className="flex items-center gap-2">
-        <Link2 size={18} className="text-gray-400" />
-        <h3 className="text-lg font-bold">Lien de ta boutique</h3>
-      </div>
-      <p className="text-sm text-gray-500">
-        Partage ce lien n'importe où — TikTok live, WhatsApp, Instagram... Toute personne qui
-        clique tombe directement sur ta boutique et peut acheter tes produits, même sans compte
-        Ayiba.
-      </p>
-
-      {estValidee ? (
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          <input
-            readOnly
-            value={lien}
-            onFocus={(e) => e.target.select()}
-            className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-600 truncate focus:outline-none"
-          />
-          <div className="flex gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleCopier}
-              disabled={!lien}
-              className={`flex-1 sm:flex-none px-4 py-3 rounded-2xl text-white text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50 transition-colors duration-300 ${
-                copied ? "bg-teal-500" : "bg-coral-500 hover:bg-coral-600"
-              }`}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {copied ? (
-                  <motion.span
-                    key="copied"
-                    initial={{ scale: 0.5, opacity: 0, rotate: -45 }}
-                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="flex items-center gap-1.5"
-                  >
-                    <Check size={16} /> Copié !
-                  </motion.span>
-                ) : (
-                  <motion.span
-                    key="copy"
-                    initial={{ scale: 0.5, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    exit={{ scale: 0.5, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: "easeOut" }}
-                    className="flex items-center gap-1.5"
-                  >
-                    <Copy size={16} /> Copier
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </button>
-            {canShare && (
-              <button
-                type="button"
-                onClick={handlePartager}
-                disabled={!lien}
-                className="px-4 py-3 rounded-2xl bg-gray-50 hover:bg-gray-100 border border-gray-100 text-gray-700 text-sm font-bold flex items-center justify-center gap-1.5 disabled:opacity-50"
-              >
-                <Share2 size={16} />
-                <span className="hidden sm:inline">Partager</span>
-              </button>
-            )}
-          </div>
-        </div>
-      ) : (
-        <p className="text-xs text-amber-600 font-medium">
-          Ton lien sera actif dès que ta boutique aura été validée par notre équipe.
-        </p>
-      )}
-    </div>
-  );
-}
-
 export default function VendeurBoutiquePage() {
   const { loading, saving, saved, error, boutique, updateBoutique, uploadImage } =
     useVendeurBoutique();
@@ -196,6 +75,23 @@ export default function VendeurBoutiquePage() {
   const [initialForm, setInitialForm] = useState(form);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
+
+  // Stats réelles (note moyenne, avis) pour que l'aperçu montre vraiment ce
+  // que les clients voient sur /boutiques/[id] — avant, l'aperçu ne montrait
+  // ni note ni bouton "Contacter", deux éléments bien présents sur la vraie
+  // page publique : le vendeur ne voyait donc jamais un aperçu fidèle.
+  const [stats, setStats] = useState<VendeurStats | null>(null);
+  useEffect(() => {
+    if (!boutique?.id) return;
+    let cancelled = false;
+    const supabase = createClient();
+    fetchVendeurStats(supabase, boutique.id).then((s) => {
+      if (!cancelled) setStats(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [boutique?.id]);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -268,7 +164,7 @@ export default function VendeurBoutiquePage() {
   };
 
   return (
-    <DashboardLayout role="vendeur" title="Boutique" backHref="/vendeur/dashboard" backLabel="Dashboard">
+    <DashboardLayout role="vendeur" title="Ma boutique" backHref="/vendeur/dashboard" backLabel="Dashboard">
       {error && (
         <div className="mb-6 rounded-2xl bg-red-50 border border-red-100 p-4">
           <p className="text-sm text-red-600 font-medium">{error}</p>
@@ -278,10 +174,7 @@ export default function VendeurBoutiquePage() {
       {loading ? (
         <DashboardSkeleton />
       ) : (
-        <div className="space-y-8">
-          <LienBoutiqueCard boutique={boutique} nomBoutique={form.nom_boutique} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-8">
             {boutique?.statut !== "valide" && (
               <div
@@ -548,7 +441,7 @@ export default function VendeurBoutiquePage() {
                 )}
               </div>
               <div className="px-6 pb-6">
-                <div className="-mt-8 mb-3 w-16 h-16 rounded-2xl bg-white border-4 border-white shadow-md overflow-hidden">
+                <div className="relative -mt-8 mb-3 w-16 h-16 rounded-2xl bg-white border-4 border-white shadow-md overflow-hidden">
                   {boutique?.photo_profil_url ? (
                     <img src={boutique.photo_profil_url} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -556,25 +449,55 @@ export default function VendeurBoutiquePage() {
                       <Store size={22} />
                     </div>
                   )}
+                  {boutique?.statut === "valide" && (
+                    <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                      <CheckCircle2 size={16} className="text-teal-500 fill-teal-50" />
+                    </div>
+                  )}
                 </div>
                 <h4 className="font-bold text-gray-900 truncate">
                   {form.nom_boutique || "Nom de ta boutique"}
                 </h4>
-                {(form.quartier || form.commune) && (
-                  <p className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                    <MapPin size={12} />
-                    {[form.quartier, form.commune].filter(Boolean).join(", ")}
-                  </p>
-                )}
+
+                <div className="flex flex-wrap items-center gap-2 mt-1.5">
+                  {stats && stats.reviewCount > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Star size={12} className="fill-amber-400 text-amber-400" />
+                      <span className="text-xs font-bold text-gray-700">{stats.rating}</span>
+                      <span className="text-[11px] text-gray-400">({stats.reviewCount})</span>
+                    </div>
+                  )}
+                  {(form.quartier || form.commune) && (
+                    <p className="flex items-center gap-1 text-xs text-gray-500">
+                      <MapPin size={12} />
+                      {[form.quartier, form.commune].filter(Boolean).join(", ")}
+                    </p>
+                  )}
+                </div>
+
+                {/* Description complète, non tronquée : contrairement à la
+                    carte affichée dans les listes (qui coupe à 2 lignes avec
+                    "Voir plus"), c'est ici, en train de la rédiger, que le
+                    vendeur doit pouvoir relire l'intégralité de son texte. */}
                 {form.description && (
-                  <p className="text-sm text-gray-600 mt-3 line-clamp-4">{form.description}</p>
+                  <p className="text-sm text-gray-600 mt-3 whitespace-pre-wrap">{form.description}</p>
                 )}
+
+                <button
+                  type="button"
+                  disabled
+                  className="mt-4 w-full inline-flex items-center justify-center gap-1.5 text-xs font-bold text-gray-400 px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 cursor-default"
+                >
+                  <MessageCircle size={13} />
+                  Contacter
+                </button>
+
                 <p className="text-xs text-gray-400 mt-4">
-                  Aperçu de ce que verront les clients — s'actualise pendant que tu remplis le formulaire.
+                  Aperçu de ce que verront les clients (sur ta page boutique et dans les
+                  listes de boutiques) — s'actualise pendant que tu remplis le formulaire.
                 </p>
               </div>
             </div>
-          </div>
           </div>
         </div>
       )}

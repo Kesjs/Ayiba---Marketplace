@@ -316,13 +316,22 @@ export default function VendeurBoutiquePage() {
                     longitude: form.longitude ?? undefined,
                   }}
                   onValider={(adresse) => {
-                    setForm((prev) => ({
-                      ...prev,
+                    // Enregistrement immédiat (comme le bouton "Enregistrer"
+                    // plus bas) — avant, la validation ne mettait à jour que
+                    // le state local `form`, ce qui donnait l'impression
+                    // d'être enregistré alors que ça disparaissait au
+                    // rechargement de la page tant qu'on n'avait pas cliqué
+                    // sur "Enregistrer" séparément.
+                    const next = {
+                      ...form,
                       quartier: adresse.quartier,
                       commune: adresse.commune,
                       latitude: adresse.latitude,
                       longitude: adresse.longitude,
-                    }));
+                    };
+                    setForm(next);
+                    setInitialForm(next);
+                    updateBoutique(next);
                   }}
                   labelBouton="Valider cette adresse"
                 />

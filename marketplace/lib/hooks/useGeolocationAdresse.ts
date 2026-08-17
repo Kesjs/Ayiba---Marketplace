@@ -53,7 +53,15 @@ export function detecterCommune(address: Record<string, string | undefined>): st
 // chaîne). On ne garde que le premier segment, seul niveau réellement
 // pertinent pour "quartier".
 export function extraireQuartier(address: Record<string, string | undefined>): string | null {
-  const brut = address.suburb || address.neighbourhood || address.quarter || address.village || null;
+  const brut =
+    address.suburb ||
+    address.neighbourhood ||
+    address.quarter ||
+    address.village ||
+    address.hamlet ||
+    address.city_district ||
+    address.locality ||
+    null;
   if (!brut) return null;
   return brut.split(",")[0].trim() || null;
 }

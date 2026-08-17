@@ -58,13 +58,21 @@ export function useAdresseAutocomplete(requete: string) {
         const data = await res.json();
         const resultats: SuggestionAdresse[] = (Array.isArray(data) ? data : []).map((item: any) => {
           const address = (item.address ?? {}) as Record<string, string | undefined>;
+          const commune = detecterCommune(address);
+          const quartier = extraireQuartier(address);
+          // On préfère "quartier, commune" (ex: "Tokan, Abomey-Calavi") au
+          // display_name brut de Nominatim, qui empile souvent plusieurs
+          // niveaux administratifs peu lisibles (ex: "Tokan, Somè, Togba,
+          // Abomey-Calavi, Atlantique, Bénin") — display_name reste un
+          // repli si on n'a réussi à extraire ni quartier ni commune.
+          const texte = [quartier, commune].filter(Boolean).join(", ") || (item.display_name as string);
           return {
             id: String(item.place_id),
-            texte: item.display_name as string,
+            texte,
             latitude: parseFloat(item.lat),
             longitude: parseFloat(item.lon),
-            commune: detecterCommune(address),
-            quartier: extraireQuartier(address),
+            commune,
+            quartier,
           };
         });
 

@@ -111,7 +111,7 @@ export default function FavorisPage() {
         notificationsCount={badges.notifications}
         notifications={badges.notificationsList}
         onAvatarClick={() => router.push('/profil')}
-        logoHref="/accueil"
+        logoHref="/"
       />
 
       {/* Product List */}

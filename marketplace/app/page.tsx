@@ -67,7 +67,7 @@ const lightItem: Variants = {
 
 // Prix affiché / prix barré à partir d'un article réel : la promo, si elle
 // existe, est le prix affiché ; le prix normal devient alors le prix barré
-// (même logique que /catalogue et /(client)/accueil).
+// (même logique que /catalogue).
 function prixAffiche(a: ArticlePublic) {
   return a.prix_promo ?? a.prix;
 }

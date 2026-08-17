@@ -195,14 +195,14 @@ export default function CheckoutPage() {
     if (userLoading) return
     if (!user) {
       showToast('Connecte-toi pour passer commande', 'info')
-      router.push('/accueil')
+      router.push('/')
       return
     }
     if (items.length === 0 && etape === 'livraison' && !paiementCheckoutId) {
       // Le panier peut être vidé depuis n'importe quel point d'entrée du
       // catalogue — public (/catalogue, home) ou celui d'un vendeur qui
       // achète depuis son propre dashboard (/vendeur/catalogue,
-      // /vendeur/achats). Rediriger tout le monde vers "/accueil" (une
+      // /vendeur/achats). Rediriger tout le monde vers "/" (une
       // page côté client) cassait l'expérience d'un vendeur : il se
       // retrouvait sur une page vide, dans le chrome de son propre
       // dashboard mais sur une route qui n'est pas prévue pour ce rôle.
@@ -212,7 +212,7 @@ export default function CheckoutPage() {
         livreur: '/catalogue',
         admin: '/catalogue',
       }
-      router.push(profile?.role ? (retourParRole[profile.role] ?? '/accueil') : '/accueil')
+      router.push(profile?.role ? (retourParRole[profile.role] ?? '/') : '/')
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLoading, user, items.length, paiementCheckoutId, profile?.role])
@@ -1055,7 +1055,7 @@ export default function CheckoutPage() {
       </div>
 
       <div className="hidden">
-        <Link href="/accueil">Continuer mes achats</Link>
+        <Link href="/">Continuer mes achats</Link>
       </div>
 
       <CheckoutFooter />

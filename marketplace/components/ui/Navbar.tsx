@@ -19,6 +19,7 @@ const supabase = createClient();
 // dropdown "profil" reflète qui est connecté (vendeur, livreur, admin) au
 // lieu de rester sur le libellé générique "Mon compte" pour tout le monde.
 const ROLE_BADGE: Record<string, { label: string; className: string }> = {
+  client: { label: "Client", className: "bg-gray-100 text-gray-600" },
   vendeur: { label: "Vendeur", className: "bg-coral-100 text-coral-600" },
   livreur: { label: "Livreur", className: "bg-teal-100 text-teal-600" },
   admin: { label: "Admin", className: "bg-gray-200 text-gray-600" },
@@ -324,7 +325,7 @@ export function Navbar() {
                     <div className="p-2 flex flex-col gap-1">
                       <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
                         <LayoutDashboard size={18} className="text-gray-400" />
-                        <span>{userRole === "client" ? "Découvrir la boutique" : "Mon dashboard"}</span>
+                        <span>Mon dashboard</span>
                       </a>
                       {userRole === "client" && (
                         <a href="/profil/devenir-vendeur" className="flex items-center gap-3 px-4 py-2.5 hover:bg-coral-50 rounded-xl transition-all text-sm text-coral-500 font-bold">

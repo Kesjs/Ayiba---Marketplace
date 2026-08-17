@@ -37,7 +37,7 @@ export function ClientDashboardHeader({
   notifications = [],
   onAvatarClick,
   onBellClick,
-  logoHref = "/accueil",
+  logoHref = "/",
   backHref,
 }: ClientDashboardHeaderProps) {
   const [showNotifs, setShowNotifs] = useState(false);

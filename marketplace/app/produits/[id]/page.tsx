@@ -266,7 +266,7 @@ export default function ProductDetailPage() {
     } catch (error) {
       console.error('Error fetching product:', error)
       showToast('Produit non trouvé', 'error')
-      router.push('/accueil')
+      router.push('/')
     } finally {
       setLoading(false)
     }

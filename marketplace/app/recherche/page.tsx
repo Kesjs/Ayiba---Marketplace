@@ -212,7 +212,7 @@ function SearchResults() {
             <Button variant="secondary" onClick={() => router.push('/')}>
               Retour à l'accueil
             </Button>
-            <Button onClick={() => router.push('/accueil')}>
+            <Button onClick={() => router.push('/')}>
               Voir le catalogue
             </Button>
           </div>

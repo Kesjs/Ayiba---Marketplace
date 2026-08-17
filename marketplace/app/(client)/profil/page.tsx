@@ -261,7 +261,7 @@ export default function ProfilPage() {
         fullName={profile?.full_name || undefined}
         notificationsCount={badges.notifications}
         notifications={badges.notificationsList}
-        logoHref="/accueil"
+        logoHref="/"
       />
 
       {/* Profile Info */}

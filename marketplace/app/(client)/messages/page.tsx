@@ -124,7 +124,7 @@ function MessagesContent() {
         notificationsCount={badges.notifications}
         notifications={badges.notificationsList}
         onAvatarClick={() => router.push('/profil')}
-        logoHref="/accueil"
+        logoHref="/"
       />
       <div className="bg-white border-b border-gray-100 flex-shrink-0">
         <div className="flex px-4 gap-1 overflow-x-auto">

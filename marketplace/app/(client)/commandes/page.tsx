@@ -219,7 +219,7 @@ export default function CommandesPage() {
         notificationsCount={badges.notifications}
         notifications={badges.notificationsList}
         onAvatarClick={() => router.push('/profil')}
-        logoHref="/accueil"
+        logoHref="/"
       />
 
       <div className="bg-white border-b border-gray-100">

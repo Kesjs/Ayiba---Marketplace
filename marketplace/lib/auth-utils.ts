@@ -1,7 +1,7 @@
 export type UserRole = 'client' | 'vendeur' | 'livreur' | 'admin';
 
 export const ROLE_REDIRECTS: Record<UserRole, string> = {
-  client: '/dashboard',
+  client: '/',
   vendeur: '/vendeur/dashboard',
   livreur: '/livreur/missions',
   admin: '/admin/dashboard',

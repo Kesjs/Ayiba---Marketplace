@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck } from "lucide-react";
+import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck, Heart } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AuthModal } from "@/components/ui/AuthModal";
 import { CartDrawer } from "@/components/ui/CartDrawer";
@@ -58,6 +58,21 @@ export function Navbar() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Menu compte au clic (et non plus au survol) : plus fiable sur desktop
+  // (trackpad, clic qui traverse la zone de survol) et fermeture au clic en
+  // dehors, comme ClientDashboardHeader/AccountDropdown le font déjà ailleurs.
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [userMenuOpen]);
 
   // Placeholder animé de la barre de recherche : quelques exemples concrets
   // qui tournent tant que le champ n'est ni focus ni rempli — remplace le
@@ -280,8 +295,11 @@ export function Navbar() {
             )}
 
             {user && (
-              <div className="relative group/user" onMouseEnter={() => setUserMenuOpen(true)} onMouseLeave={() => setUserMenuOpen(false)}>
-                <button className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-all duration-300">
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setUserMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-all duration-300"
+                >
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
                     {profile?.avatar_url ? (
                       <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
@@ -323,10 +341,16 @@ export function Navbar() {
                       )}
                     </div>
                     <div className="p-2 flex flex-col gap-1">
-                      <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
-                        <LayoutDashboard size={18} className="text-gray-400" />
-                        <span>Mon dashboard</span>
-                      </a>
+                      {/* Pour un client, "Accueil" (la redirection de rôle) pointe
+                          désormais vers "/" — déjà la page courante la plupart du
+                          temps et déjà accessible via le logo, donc pas de lien
+                          dédié ici. Les autres rôles gardent leur propre dashboard. */}
+                      {userRole !== "client" && (
+                        <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                          <LayoutDashboard size={18} className="text-gray-400" />
+                          <span>Mon dashboard</span>
+                        </a>
+                      )}
                       {userRole === "client" && (
                         <a href="/profil/devenir-vendeur" className="flex items-center gap-3 px-4 py-2.5 hover:bg-coral-50 rounded-xl transition-all text-sm text-coral-500 font-bold">
                           <Store size={18} className="text-coral-400" />
@@ -349,6 +373,18 @@ export function Navbar() {
                           <ShoppingBag size={18} className="text-gray-400" />
                           <span>Mes commandes</span>
                         </a>
+                      )}
+                      {userRole === "client" && (
+                        <>
+                          <a href="/favoris" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                            <Heart size={18} className="text-gray-400" />
+                            <span>Favoris</span>
+                          </a>
+                          <a href="/messages" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                            <MessageSquare size={18} className="text-gray-400" />
+                            <span>Messages</span>
+                          </a>
+                        </>
                       )}
                       <a href="/profil" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
                         <Settings size={18} className="text-gray-400" />

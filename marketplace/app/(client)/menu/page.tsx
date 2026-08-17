@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
+import { useClientDashboard } from "@/app/hooks/useClientDashboard";
 import { ClientDashboardHeader } from "@/components/client/ClientDashboardHeader";
 import {
   User,
@@ -68,6 +69,7 @@ export default function MenuPage() {
   const router = useRouter();
   const { profile } = useUser();
   const badges = useBadgeCounts(profile?.id, 'client');
+  const { stats, loading: statsLoading } = useClientDashboard();
 
   return (
     <main className="min-h-screen bg-gray-50/30">
@@ -81,6 +83,26 @@ export default function MenuPage() {
         logoHref="/"
       />
       <div className="px-4 md:px-8 py-6 md:py-10 max-w-2xl mx-auto w-full">
+
+      {/* Résumé achats — version allégée de l'ancien /dashboard (3 chiffres,
+          pas de graphique : les KPIs visuels sont un pattern vendeur, pas un
+          pattern acheteur sur les grandes marketplaces). */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <p className="text-xl font-bold text-gray-900">{statsLoading ? "—" : stats?.total_commandes ?? 0}</p>
+          <p className="text-[11px] text-gray-400 font-medium mt-0.5">Commandes</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <p className="text-xl font-bold text-gray-900">
+            {statsLoading ? "—" : new Intl.NumberFormat("fr-FR").format(stats?.total_depenses ?? 0)}
+          </p>
+          <p className="text-[11px] text-gray-400 font-medium mt-0.5">FCFA dépensés</p>
+        </div>
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <p className="text-xl font-bold text-gray-900">{statsLoading ? "—" : stats?.commandes_en_cours ?? 0}</p>
+          <p className="text-[11px] text-gray-400 font-medium mt-0.5">En cours</p>
+        </div>
+      </div>
 
       {SECTIONS.map((section) => (
         <div key={section.titre} className="mb-6">

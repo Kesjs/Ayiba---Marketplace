@@ -30,7 +30,7 @@ export default function BoutiqueDetailPage() {
   const boutiqueId = params.id as string;
   const { addItem } = useCart();
   const { showToast } = useToast();
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const supabase = createClient();
 
   const [store, setStore] = useState<BoutiquePublique | null>(null);
@@ -103,7 +103,10 @@ export default function BoutiqueDetailPage() {
       return;
     }
     if (!store) return;
-    router.push(`/messages?vendeur=${store.id}`);
+    // Un vendeur qui contacte une autre boutique reste dans son propre
+    // espace (dashboard vendeur) ; un client part vers l'espace client.
+    const base = profile?.role === "vendeur" ? "/vendeur/messages" : "/messages";
+    router.push(`${base}?vendeur=${store.id}`);
   };
 
   const handleToggleFavorite = async (productId: string) => {

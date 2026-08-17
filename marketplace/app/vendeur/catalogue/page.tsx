@@ -154,9 +154,8 @@ export default function VendeurCataloguePage() {
   // Le vendeur est toujours connecté sur cette page (dashboard), pas besoin
   // de AuthModal comme sur /boutiques (accessible aux visiteurs anonymes).
   const handleContactBoutique = (e: React.MouseEvent, storeId: string) => {
-    e.preventDefault();
     e.stopPropagation();
-    router.push(`/messages?vendeur=${storeId}`);
+    router.push(`/vendeur/messages?vendeur=${storeId}`);
   };
 
   return (
@@ -431,10 +430,15 @@ export default function VendeurCataloguePage() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {filteredBoutiques.map((store) => (
-                <Link
+                <div
                   key={store.id}
-                  href={`/boutiques/${store.id}`}
-                  className="group flex flex-col p-5 md:p-6 bg-gray-50/50 rounded-2xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
+                  role="link"
+                  tabIndex={0}
+                  onClick={() => router.push(`/boutiques/${store.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") router.push(`/boutiques/${store.id}`);
+                  }}
+                  className="group flex flex-col p-5 md:p-6 bg-gray-50/50 rounded-2xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer"
                 >
                   <div className="relative mb-4 inline-block w-fit">
                     <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 bg-coral-50 flex items-center justify-center">
@@ -482,7 +486,7 @@ export default function VendeurCataloguePage() {
                       Contacter
                     </button>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           )}

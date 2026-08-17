@@ -45,7 +45,7 @@ export default function ProfilPage() {
   }, [profile])
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
       setEmailConfirme(Boolean(data.user?.email_confirmed_at))
     })
   }, [supabase])

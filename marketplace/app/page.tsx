@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import {
   ShieldCheck, QrCode, Store, Bike, ArrowRight,
-  Wallet, Star, MapPin, Clock,
+  Wallet, Star, MapPin, Clock, MessageCircle,
   ChevronRight, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -102,6 +102,20 @@ export default function Home() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [contactTarget, setContactTarget] = useState<string | null>(null);
+
+  // Contacter directement depuis la carte "Explorer les boutiques", sans
+  // passer par la page détail — même comportement que /boutiques et
+  // /vendeur/catalogue, pour que les 3 listings restent cohérents.
+  const handleContactBoutique = (e: React.MouseEvent, storeId: string) => {
+    e.stopPropagation();
+    if (!user) {
+      setContactTarget(storeId);
+      setAuthModalOpen(true);
+      return;
+    }
+    router.push(`/messages?vendeur=${storeId}`);
+  };
 
   const [activeTab, setActiveTab] = useState("Tout");
   const [visibleProductsCount, setVisibleProductsCount] = useState(8);
@@ -656,10 +670,15 @@ export default function Home() {
 
                 <div className="flex gap-4 md:gap-6 overflow-x-auto pb-4 no-scrollbar">
                   {boutiques.map((store) => (
-                    <Link
+                    <div
                       key={store.id}
-                      href={`/boutiques/${store.id}`}
-                      className="group shrink-0 w-56 md:w-64 p-4 md:p-5 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300"
+                      role="link"
+                      tabIndex={0}
+                      onClick={() => router.push(`/boutiques/${store.id}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") router.push(`/boutiques/${store.id}`);
+                      }}
+                      className="group flex flex-col shrink-0 w-56 md:w-64 p-4 md:p-5 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer"
                     >
                       <div className="relative mb-3 md:mb-4">
                         <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 bg-coral-50 flex items-center justify-center">
@@ -679,12 +698,30 @@ export default function Home() {
                         </div>
                       )}
                       {(store.quartier || store.commune) && (
-                        <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100 w-fit">
+                        <div className="flex items-center gap-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 bg-white px-2 py-1 rounded-md border border-gray-100 w-fit mb-2">
                           <MapPin size={11} />
                           {[store.quartier, store.commune].filter(Boolean).join(', ')}
                         </div>
                       )}
-                    </Link>
+                      {store.description ? (
+                        <p className="text-xs text-gray-500 line-clamp-2 mb-3 flex-1">{store.description}</p>
+                      ) : (
+                        <div className="flex-1 mb-3" />
+                      )}
+                      <div className="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-gray-100">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-coral-500 group-hover:gap-1.5 transition-all">
+                          Voir plus
+                          <ArrowRight size={13} />
+                        </span>
+                        <button
+                          onClick={(e) => handleContactBoutique(e, store.id)}
+                          className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-coral-600 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-coral-200 bg-white transition-colors"
+                        >
+                          <MessageCircle size={13} />
+                          Contacter
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -835,6 +872,7 @@ export default function Home() {
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
         intendedRole={null}
+        redirectTo={contactTarget ? `/messages?vendeur=${contactTarget}` : undefined}
       />
     </div>
   );

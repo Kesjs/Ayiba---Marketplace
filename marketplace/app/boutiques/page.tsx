@@ -8,6 +8,7 @@ import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/ven
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/hooks/useUser";
 import { AuthModal } from "@/components/ui/AuthModal";
+import { ContactModal } from "@/components/modals/ContactModal";
 
 export default function BoutiquesPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function BoutiquesPage() {
   const [error, setError] = useState<string | null>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [contactTarget, setContactTarget] = useState<string | null>(null);
+  const [contactStore, setContactStore] = useState<BoutiquePublique | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,17 +41,18 @@ export default function BoutiquesPage() {
     };
   }, []);
 
-  // Contacter directement depuis la carte, sans passer par la page détail —
-  // même redirection que le bouton "Contacter" de /boutiques/[id].
-  const handleContact = (e: React.MouseEvent, storeId: string) => {
+  // Ouvre le modal Contacter (identique partout dans le site) au lieu de
+  // rediriger vers /messages — même comportement que /boutiques/[id],
+  // l'accueil et /vendeur/catalogue.
+  const handleContact = (e: React.MouseEvent, store: BoutiquePublique) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
-      setContactTarget(storeId);
+      setContactTarget(store.id);
       setAuthModalOpen(true);
       return;
     }
-    router.push(`${profile?.role === "vendeur" ? "/vendeur/messages" : "/messages"}?vendeur=${storeId}`);
+    setContactStore(store);
   };
 
   return (
@@ -137,7 +140,7 @@ export default function BoutiquesPage() {
                     <ArrowRight size={13} />
                   </span>
                   <button
-                    onClick={(e) => handleContact(e, store.id)}
+                    onClick={(e) => handleContact(e, store)}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-coral-600 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-coral-200 bg-white transition-colors"
                   >
                     <MessageCircle size={13} />
@@ -158,6 +161,16 @@ export default function BoutiquesPage() {
         intendedRole={null}
         redirectTo={contactTarget ? `/messages?vendeur=${contactTarget}` : undefined}
       />
+
+      {contactStore && user && (
+        <ContactModal
+          open={!!contactStore}
+          onOpenChange={(v) => !v && setContactStore(null)}
+          recipient={{ id: contactStore.id, nom: contactStore.nom, photo: contactStore.logo || undefined }}
+          userId={user.id}
+          messagesBasePath={profile?.role === "vendeur" ? "/vendeur/messages" : "/messages"}
+        />
+      )}
     </div>
   );
 }

@@ -15,6 +15,7 @@ import { Search, ChevronLeft, ChevronRight, MapPin, Zap, Star, ArrowLeft, ArrowR
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
+import { ContactModal } from "@/components/modals/ContactModal";
 import { Select } from "@/components/ui/Select";
 import Link from "next/link";
 
@@ -34,6 +35,7 @@ export default function VendeurCataloguePage() {
   const supabase = useMemo(() => createClient(), []);
   const [activeTab, setActiveTab] = useState<"produits" | "boutiques">("produits");
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
+  const [contactStore, setContactStore] = useState<BoutiquePublique | null>(null);
   const [boutiquesLoading, setBoutiquesLoading] = useState(false);
   const [boutiquesError, setBoutiquesError] = useState<string | null>(null);
   const [boutiqueFilter, setBoutiqueFilter] = useState("");
@@ -153,9 +155,9 @@ export default function VendeurCataloguePage() {
 
   // Le vendeur est toujours connecté sur cette page (dashboard), pas besoin
   // de AuthModal comme sur /boutiques (accessible aux visiteurs anonymes).
-  const handleContactBoutique = (e: React.MouseEvent, storeId: string) => {
+  const handleContactBoutique = (e: React.MouseEvent, store: BoutiquePublique) => {
     e.stopPropagation();
-    router.push(`/vendeur/messages?vendeur=${storeId}`);
+    setContactStore(store);
   };
 
   return (
@@ -479,7 +481,7 @@ export default function VendeurCataloguePage() {
                       <ArrowRight size={13} />
                     </span>
                     <button
-                      onClick={(e) => handleContactBoutique(e, store.id)}
+                      onClick={(e) => handleContactBoutique(e, store)}
                       className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-coral-600 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-coral-200 bg-white transition-colors"
                     >
                       <MessageCircle size={13} />
@@ -494,6 +496,16 @@ export default function VendeurCataloguePage() {
         )}
       </main>
       <Footer />
+
+      {contactStore && user && (
+        <ContactModal
+          open={!!contactStore}
+          onOpenChange={(v) => !v && setContactStore(null)}
+          recipient={{ id: contactStore.id, nom: contactStore.nom, photo: contactStore.logo || undefined }}
+          userId={user.id}
+          messagesBasePath="/vendeur/messages"
+        />
+      )}
     </div>
   );
 }

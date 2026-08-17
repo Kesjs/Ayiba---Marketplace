@@ -12,6 +12,7 @@ import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { AuthModal } from "@/components/ui/AuthModal";
+import { ContactModal } from "@/components/modals/ContactModal";
 import { useRouter } from "next/navigation";
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
@@ -103,18 +104,19 @@ export default function Home() {
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [contactTarget, setContactTarget] = useState<string | null>(null);
+  const [contactStore, setContactStore] = useState<BoutiquePublique | null>(null);
 
   // Contacter directement depuis la carte "Explorer les boutiques", sans
   // passer par la page détail — même comportement que /boutiques et
   // /vendeur/catalogue, pour que les 3 listings restent cohérents.
-  const handleContactBoutique = (e: React.MouseEvent, storeId: string) => {
+  const handleContactBoutique = (e: React.MouseEvent, store: BoutiquePublique) => {
     e.stopPropagation();
     if (!user) {
-      setContactTarget(storeId);
+      setContactTarget(store.id);
       setAuthModalOpen(true);
       return;
     }
-    router.push(`${profile?.role === "vendeur" ? "/vendeur/messages" : "/messages"}?vendeur=${storeId}`);
+    setContactStore(store);
   };
 
   const [activeTab, setActiveTab] = useState("Tout");
@@ -714,7 +716,7 @@ export default function Home() {
                           <ArrowRight size={13} />
                         </span>
                         <button
-                          onClick={(e) => handleContactBoutique(e, store.id)}
+                          onClick={(e) => handleContactBoutique(e, store)}
                           className="inline-flex items-center gap-1.5 text-xs font-bold text-gray-600 hover:text-coral-600 px-3 py-1.5 rounded-lg border border-gray-200 hover:border-coral-200 bg-white transition-colors"
                         >
                           <MessageCircle size={13} />
@@ -874,6 +876,16 @@ export default function Home() {
         intendedRole={null}
         redirectTo={contactTarget ? `/messages?vendeur=${contactTarget}` : undefined}
       />
+
+      {contactStore && user && (
+        <ContactModal
+          open={!!contactStore}
+          onOpenChange={(v) => !v && setContactStore(null)}
+          recipient={{ id: contactStore.id, nom: contactStore.nom, photo: contactStore.logo || undefined }}
+          userId={user.id}
+          messagesBasePath={profile?.role === "vendeur" ? "/vendeur/messages" : "/messages"}
+        />
+      )}
     </div>
   );
 }

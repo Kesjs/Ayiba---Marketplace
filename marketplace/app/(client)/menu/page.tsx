@@ -83,28 +83,31 @@ export default function MenuPage() {
         fullName={profile?.full_name || undefined}
         notificationsCount={badges.notifications}
         notifications={badges.notificationsList}
-        onAvatarClick={() => router.push('/profil')}
         logoHref="/"
       />
-      <div className="px-4 md:px-8 py-6 md:py-10 max-w-2xl mx-auto w-full">
+      <div className="px-4 md:px-8 py-6 md:py-10 max-w-3xl mx-auto w-full">
 
       {/* Résumé achats — version allégée de l'ancien /dashboard (3 chiffres,
           pas de graphique : les KPIs visuels sont un pattern vendeur, pas un
-          pattern acheteur sur les grandes marketplaces). */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-          <p className="text-xl font-bold text-gray-900">{statsLoading ? "—" : stats?.total_commandes ?? 0}</p>
-          <p className="text-[11px] text-gray-400 font-medium mt-0.5">Commandes</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-          <p className="text-xl font-bold text-gray-900">
-            {statsLoading ? "—" : new Intl.NumberFormat("fr-FR").format(stats?.total_depenses ?? 0)}
-          </p>
-          <p className="text-[11px] text-gray-400 font-medium mt-0.5">FCFA dépensés</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-          <p className="text-xl font-bold text-gray-900">{statsLoading ? "—" : stats?.commandes_en_cours ?? 0}</p>
-          <p className="text-[11px] text-gray-400 font-medium mt-0.5">En cours</p>
+          pattern acheteur sur les grandes marketplaces). Regroupées dans une
+          carte avec libellé plutôt que 3 blocs flottants. */}
+      <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-6 mb-6">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Vue d'ensemble</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-gray-50 rounded-2xl p-4 text-center">
+            <p className="text-xl font-bold text-gray-900">{statsLoading ? "—" : stats?.total_commandes ?? 0}</p>
+            <p className="text-[11px] text-gray-400 font-medium mt-0.5">Commandes</p>
+          </div>
+          <div className="bg-gray-50 rounded-2xl p-4 text-center">
+            <p className="text-xl font-bold text-gray-900">
+              {statsLoading ? "—" : new Intl.NumberFormat("fr-FR").format(stats?.total_depenses ?? 0)}
+            </p>
+            <p className="text-[11px] text-gray-400 font-medium mt-0.5">FCFA dépensés</p>
+          </div>
+          <div className="bg-gray-50 rounded-2xl p-4 text-center">
+            <p className="text-xl font-bold text-gray-900">{statsLoading ? "—" : stats?.commandes_en_cours ?? 0}</p>
+            <p className="text-[11px] text-gray-400 font-medium mt-0.5">En cours</p>
+          </div>
         </div>
       </div>
 

@@ -123,7 +123,6 @@ function MessagesContent() {
         fullName={profile?.full_name || undefined}
         notificationsCount={badges.notifications}
         notifications={badges.notificationsList}
-        onAvatarClick={() => router.push('/profil')}
         logoHref="/"
       />
       <div className="bg-white border-b border-gray-100 flex-shrink-0">

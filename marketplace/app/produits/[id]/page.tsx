@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
 import { AuthModal } from '@/components/ui/AuthModal'
-import { QuickContactModal } from '@/components/modals/QuickContactModal'
+import { ContactModal } from '@/components/modals/ContactModal'
 import { Footer } from '@/components/home/Footer'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -144,7 +144,7 @@ export default function ProductDetailPage() {
   const router = useRouter()
   const { showToast } = useToast()
   const { addItem } = useCart()
-  const { user } = useUser()
+  const { user, profile } = useUser()
   const supabase = createClient()
 
   const [product, setProduct] = useState<Product | null>(null)
@@ -1042,17 +1042,17 @@ export default function ProductDetailPage() {
       />
 
       {product && user && (
-        <QuickContactModal
+        <ContactModal
           open={contactModalOpen}
           onOpenChange={setContactModalOpen}
-          vendor={{
+          recipient={{
             id: product.vendeur.id,
             nom: product.vendeur.full_name,
             photo: product.vendeur.avatar_url || undefined
           }}
-          productName={product.nom}
-          productId={product.id}
+          contextLabel={`À propos de : ${product.nom}`}
           userId={user.id}
+          messagesBasePath={profile?.role === "vendeur" ? "/vendeur/messages" : "/messages"}
         />
       )}
     </div>

@@ -9,6 +9,7 @@ import { Footer } from "@/components/home/Footer";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { Button } from "@/components/ui/Button";
 import { AuthModal } from "@/components/ui/AuthModal";
+import { ContactModal } from "@/components/modals/ContactModal";
 import { getBoutiqueParId, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { useCart } from "@/context/CartContext";
@@ -38,6 +39,7 @@ export default function BoutiqueDetailPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [contactModalOpen, setContactModalOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -103,10 +105,7 @@ export default function BoutiqueDetailPage() {
       return;
     }
     if (!store) return;
-    // Un vendeur qui contacte une autre boutique reste dans son propre
-    // espace (dashboard vendeur) ; un client part vers l'espace client.
-    const base = profile?.role === "vendeur" ? "/vendeur/messages" : "/messages";
-    router.push(`${base}?vendeur=${store.id}`);
+    setContactModalOpen(true);
   };
 
   const handleToggleFavorite = async (productId: string) => {
@@ -273,6 +272,16 @@ export default function BoutiqueDetailPage() {
         intendedRole={null}
         redirectTo={`/messages?vendeur=${store.id}`}
       />
+
+      {user && (
+        <ContactModal
+          open={contactModalOpen}
+          onOpenChange={setContactModalOpen}
+          recipient={{ id: store.id, nom: store.nom, photo: store.logo || undefined }}
+          userId={user.id}
+          messagesBasePath={profile?.role === "vendeur" ? "/vendeur/messages" : "/messages"}
+        />
+      )}
     </div>
   );
 }

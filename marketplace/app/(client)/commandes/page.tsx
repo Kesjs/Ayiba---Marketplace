@@ -218,7 +218,6 @@ export default function CommandesPage() {
         fullName={profile?.full_name || undefined}
         notificationsCount={badges.notifications}
         notifications={badges.notificationsList}
-        onAvatarClick={() => router.push('/profil')}
         logoHref="/"
       />
 

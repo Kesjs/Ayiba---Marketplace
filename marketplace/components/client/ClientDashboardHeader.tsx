@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bell, ChevronLeft } from "lucide-react";
+import { Bell, ChevronLeft, LogOut, Settings, User } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { NotificationsDropdown, type Notification } from "@/components/dashboard/NotificationsDropdown";
+import { AccountDropdown } from "@/components/dashboard/AccountDropdown";
+import { createClient } from "@/lib/supabase/client";
 
 export type { Notification };
 
@@ -16,7 +19,6 @@ interface ClientDashboardHeaderProps {
   fullName?: string;
   notificationsCount?: number;
   notifications?: Notification[];
-  onAvatarClick?: () => void;
   onBellClick?: () => void;
   /** Cible du logo affiché en dessous du breakpoint md (là où l'aside client,
    * qui porte déjà le logo, est masqué). */
@@ -27,6 +29,11 @@ interface ClientDashboardHeaderProps {
   backHref?: string;
 }
 
+const ACCOUNT_LINKS = [
+  { label: "Mon profil", href: "/profil", icon: User },
+  { label: "Paramètres", href: "/profil/parametres", icon: Settings },
+];
+
 export function ClientDashboardHeader({
   title,
   greeting,
@@ -35,13 +42,18 @@ export function ClientDashboardHeader({
   fullName,
   notificationsCount = 0,
   notifications = [],
-  onAvatarClick,
   onBellClick,
   logoHref = "/",
   backHref,
 }: ClientDashboardHeaderProps) {
+  const router = useRouter();
   const [showNotifs, setShowNotifs] = useState(false);
-  // Deux instances de la cloche (bande unique mobile, ligne desktop réel)
+  // Le clic sur l'avatar ouvre un vrai menu (Mon profil / Paramètres /
+  // Déconnexion), comme AccountDropdown côté vendeur/livreur/admin — avant,
+  // l'avatar se contentait de pousser vers /profil, ce qui ne faisait
+  // rien de visible quand on était déjà sur cette page.
+  const [showAccount, setShowAccount] = useState(false);
+  // Deux instances de la cloche/de l'avatar (bande unique mobile, ligne desktop réel)
   // coexistent dans le DOM ; chacune a son propre conteneur pour le clic-dehors.
   const topBarRef = useRef<HTMLDivElement>(null);
   const desktopRef = useRef<HTMLDivElement>(null);
@@ -53,21 +65,35 @@ export function ClientDashboardHeader({
       const insideDesktop = desktopRef.current?.contains(target);
       if (!insideTopBar && !insideDesktop) {
         setShowNotifs(false);
+        setShowAccount(false);
       }
     }
-    if (showNotifs) {
+    if (showNotifs || showAccount) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showNotifs]);
+  }, [showNotifs, showAccount]);
 
   const initials = fullName
     ? fullName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : "?";
 
   function handleBellClick() {
+    setShowAccount(false);
     setShowNotifs((v) => !v);
     onBellClick?.();
+  }
+
+  function handleAvatarClick() {
+    setShowNotifs(false);
+    setShowAccount((v) => !v);
+  }
+
+  async function handleLogoutClick() {
+    setShowAccount(false);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
   }
 
   return (
@@ -105,12 +131,23 @@ export function ClientDashboardHeader({
                 viewAllHref="/profil/notifications"
               />
             )}
+
+            {showAccount && (
+              <AccountDropdown
+                fullName={fullName}
+                avatarUrl={avatarUrl}
+                subtitle="Client Ayiba"
+                links={ACCOUNT_LINKS}
+                onLogoutClick={handleLogoutClick}
+                onClose={() => setShowAccount(false)}
+              />
+            )}
           </div>
 
           <button
-            onClick={onAvatarClick}
+            onClick={handleAvatarClick}
             className="w-9 h-9 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0"
-            aria-label="Profil"
+            aria-label="Mon compte"
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt={fullName || "Avatar"} className="w-full h-full object-cover" />
@@ -186,12 +223,23 @@ export function ClientDashboardHeader({
                 viewAllHref="/profil/notifications"
               />
             )}
+
+            {showAccount && (
+              <AccountDropdown
+                fullName={fullName}
+                avatarUrl={avatarUrl}
+                subtitle="Client Ayiba"
+                links={ACCOUNT_LINKS}
+                onLogoutClick={handleLogoutClick}
+                onClose={() => setShowAccount(false)}
+              />
+            )}
           </div>
 
           <button
-            onClick={onAvatarClick}
+            onClick={handleAvatarClick}
             className="w-9 h-9 rounded-full bg-gray-100 border border-gray-100 flex items-center justify-center overflow-hidden shrink-0"
-            aria-label="Profil"
+            aria-label="Mon compte"
           >
             {avatarUrl ? (
               <img src={avatarUrl} alt={fullName || "Avatar"} className="w-full h-full object-cover" />

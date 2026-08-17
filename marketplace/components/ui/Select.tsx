@@ -14,13 +14,15 @@ interface SelectProps {
   options: SelectOption[];
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
+  error?: boolean;
 }
 
 // Sélecteur stylé maison — remplace le <select> natif du navigateur (dont
 // l'apparence système ne peut pas être personnalisée de façon cohérente
 // entre navigateurs/OS) par un bouton + menu déroulant qui suit le design
 // system du site (rounded-xl, halo coral au focus, etc).
-export function Select({ value, onChange, options, placeholder = "Sélectionner", className }: SelectProps) {
+export function Select({ value, onChange, options, placeholder = "Sélectionner", className, disabled, error }: SelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -40,10 +42,17 @@ export function Select({ value, onChange, options, placeholder = "Sélectionner"
     <div ref={ref} className={`relative ${className ?? ""}`}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => !disabled && setOpen((v) => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-coral-500/10 transition-colors"
+        disabled={disabled}
+        className={`w-full flex items-center justify-between gap-2 px-3 py-2 bg-white border rounded-xl text-sm font-medium text-gray-700 hover:border-gray-300 focus:outline-none focus:ring-2 transition-colors ${
+          error
+            ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+            : "border-gray-200 focus:border-coral-400 focus:ring-coral-100"
+        } ${
+          disabled ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""
+        }`}
       >
         <span className="truncate">{selected?.label ?? placeholder}</span>
         <ChevronDown

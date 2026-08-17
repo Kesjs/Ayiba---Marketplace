@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from "react";
 import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight, AlertCircle, FileText, Camera, Layers, Plus } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { Select } from "@/components/ui/Select";
 import { StepIndicator, type WizardStep } from "@/components/kyc/StepIndicator";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -825,50 +826,41 @@ function NouveauArticleForm() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Catégorie</label>
-                    <select
-                      name="parentCategorieId"
+                    <Select
                       value={parentCategorieId}
-                      onChange={(e) => {
-                        const id = e.target.value;
-                        setParentCategorieId(id);
-                        const parent = categories.find((c) => c.id === id);
+                      onChange={(id) => {
+                        setParentCategorieId(id || "");
+                        const parent = categories.find((c) => c.id === (id || ""));
                         setFormData((prev) => ({
                           ...prev,
-                          categorieId: parent && parent.sousCategories.length === 0 ? id : "",
+                          categorieId: parent && parent.sousCategories.length === 0 ? (id || "") : "",
                         }));
                         setFieldErrors((prev) => ({ ...prev, categorieId: "" }));
                       }}
                       disabled={loadingCategories}
-                      className={`w-full h-11 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-shadow ${
-                        fieldErrors.categorieId ? "border-red-300 focus:border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-coral-400 focus:ring-coral-100"
-                      }`}
-                    >
-                      <option value="">
-                        {loadingCategories ? "Chargement..." : "Sélectionner..."}
-                      </option>
-                      {categories.map((c) => (
-                        <option key={c.id} value={c.id}>{c.nom}</option>
-                      ))}
-                    </select>
+                      error={!!fieldErrors.categorieId}
+                      options={[
+                        { value: "", label: loadingCategories ? "Chargement..." : "Sélectionner..." },
+                        ...categories.map((c) => ({ value: c.id, label: c.nom })),
+                      ]}
+                    />
                     {categoriesError && <p className="text-xs text-red-500 mt-1.5">{categoriesError}</p>}
                   </div>
 
                   {aDesSousCategories && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Sous-catégorie</label>
-                      <select
-                        name="categorieId"
+                      <Select
                         value={formData.categorieId}
-                        onChange={handleInputChange}
-                        className={`w-full h-11 px-3 rounded-lg border text-sm focus:outline-none focus:ring-2 transition-shadow ${
-                          fieldErrors.categorieId ? "border-red-300 focus:border-red-400 focus:ring-red-100" : "border-gray-200 focus:border-coral-400 focus:ring-coral-100"
-                        }`}
-                      >
-                        <option value="">Sélectionner...</option>
-                        {categorieParente?.sousCategories.map((sc) => (
-                          <option key={sc.id} value={sc.id}>{sc.nom}</option>
-                        ))}
-                      </select>
+                        onChange={(id) => {
+                          setFormData((prev) => ({ ...prev, categorieId: id || "" }));
+                        }}
+                        error={!!fieldErrors.categorieId}
+                        options={[
+                          { value: "", label: "Sélectionner..." },
+                          ...(categorieParente?.sousCategories.map((sc) => ({ value: sc.id, label: sc.nom })) || []),
+                        ]}
+                      />
                     </div>
                   )}
                   {fieldErrors.categorieId && <p className="text-xs text-red-500 -mt-2">{fieldErrors.categorieId}</p>}

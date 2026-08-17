@@ -11,7 +11,7 @@ import useArticlesPublics from "@/lib/hooks/useArticlesPublics";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { createClient } from "@/lib/supabase/client";
 import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
-import { Search, ChevronLeft, ChevronRight, CheckCircle2, MapPin, Zap, Star, ArrowLeft, ArrowRight, MessageCircle } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, MapPin, Zap, Star, ArrowLeft, ArrowRight, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
@@ -444,11 +444,6 @@ export default function VendeurCataloguePage() {
                         <span className="text-coral-500 font-bold text-xl">{store.nom.charAt(0).toUpperCase()}</span>
                       )}
                     </div>
-                    {store.isVerified && (
-                      <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
-                        <CheckCircle2 size={18} className="text-teal-500 fill-teal-50" />
-                      </div>
-                    )}
                   </div>
                   <h3 className="font-bold text-gray-900 mb-1 group-hover:text-coral-600 transition-colors">{store.nom}</h3>
 

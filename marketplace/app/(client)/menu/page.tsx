@@ -12,8 +12,6 @@ import {
   Bell,
   Star,
   LifeBuoy,
-  Store,
-  Bike,
   ChevronRight,
   MapPin,
   ShieldCheck,
@@ -135,19 +133,6 @@ export default function MenuPage() {
         </div>
       ))}
 
-      <div className="mt-8">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-1">Devenir partenaire</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <Link href="/profil/devenir-vendeur" className="flex flex-col gap-3 p-4 bg-white rounded-2xl border border-coral-100 hover:shadow-lg hover:shadow-coral-500/5 transition-all">
-            <div className="w-10 h-10 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500"><Store size={20} /></div>
-            <div><p className="text-sm font-bold text-gray-900">Ouvrir ma boutique</p><p className="text-[11px] text-gray-400 mt-0.5">Vends tes produits en ligne</p></div>
-          </Link>
-          <Link href="/profil/devenir-livreur" className="flex flex-col gap-3 p-4 bg-white rounded-2xl border border-teal-100 hover:shadow-lg hover:shadow-teal-500/5 transition-all">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600"><Bike size={20} /></div>
-            <div><p className="text-sm font-bold text-gray-900">Devenir livreur</p><p className="text-[11px] text-gray-400 mt-0.5">Gagne de l&apos;argent en livrant</p></div>
-          </Link>
-        </div>
-      </div>
       </div>
     </main>
   );

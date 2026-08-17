@@ -114,20 +114,31 @@ export default function FavorisPage() {
       />
 
       {/* Product List */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-8 py-6 md:py-10">
         {loading ? (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {[...Array(4)].map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center py-16">
-            <i className="ti ti-heart-off text-4xl text-gray-400 mb-4" />
-            <p className="text-gray-600 mb-4">Aucun favori pour le moment</p>
+          <div className="flex flex-col items-center justify-center text-center py-20">
+            <div className="w-16 h-16 rounded-full bg-coral-50 flex items-center justify-center mb-4">
+              <i className="ti ti-heart-off text-3xl text-coral-400" />
+            </div>
+            <p className="font-semibold text-gray-800 mb-1">Aucun favori pour le moment</p>
+            <p className="text-sm text-gray-400 max-w-xs mb-5">
+              Les produits que tu ajoutes en favoris depuis le catalogue apparaîtront ici.
+            </p>
+            <button
+              onClick={() => router.push('/')}
+              className="px-5 py-2.5 rounded-xl bg-coral-500 text-white text-sm font-bold hover:bg-coral-600 transition-colors"
+            >
+              Découvrir des produits
+            </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {products.map((product) => (
               <div key={product.id} className="block">
                 <ProductCardModern

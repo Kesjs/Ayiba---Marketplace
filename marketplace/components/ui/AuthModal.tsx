@@ -299,8 +299,20 @@ const { data: userData } = await supabase
 
 onClose();
 
-if (redirectTo) {
-  router.push(redirectTo);
+// redirectTo est fourni pour les flux "Contacter" génériques (accueil,
+// /boutiques, /boutiques/[id]) sans connaître le rôle du compte à l'avance
+// puisque l'utilisateur n'était pas encore connecté. Une fois le rôle réel
+// connu, on corrige la destination pour rester dans le bon espace au lieu
+// d'envoyer un vendeur vers l'espace client (ou l'inverse).
+const resolvedRedirect =
+  redirectTo && userData?.role === "vendeur" && redirectTo.startsWith("/messages")
+    ? redirectTo.replace("/messages", "/vendeur/messages")
+    : redirectTo && userData?.role !== "vendeur" && redirectTo.startsWith("/vendeur/messages")
+    ? redirectTo.replace("/vendeur/messages", "/messages")
+    : redirectTo;
+
+if (resolvedRedirect) {
+  router.push(resolvedRedirect);
 } else if (userData?.role === "vendeur") {
   router.push("/vendeur/dashboard");
 } else if (userData?.role === "livreur") {

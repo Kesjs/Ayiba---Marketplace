@@ -12,7 +12,6 @@ import {
   Bell,
   Star,
   LifeBuoy,
-  Settings,
   Store,
   Bike,
   ChevronRight,
@@ -49,8 +48,7 @@ const SECTIONS: MenuSection[] = [
   {
     titre: "Livraison & paiement",
     liens: [
-      { label: "Mes adresses", href: "/profil", icon: MapPin },
-      { label: "Moyens de paiement", href: "/profil/paiements", icon: CreditCard },
+      { label: "Mes adresses", href: "/profil/adresses", icon: MapPin },
       { label: "Historique des paiements", href: "/profil/paiements", icon: CreditCard },
     ],
   },
@@ -60,10 +58,16 @@ const SECTIONS: MenuSection[] = [
       { label: "Notifications", href: "/profil/notifications", icon: Bell },
       { label: "Mes évaluations", href: "/profil/avis", icon: Star },
       { label: "Centre d'aide", href: "/profil/support", icon: LifeBuoy },
-      { label: "Paramètres", href: "/profil/parametres", icon: Settings },
     ],
   },
 ];
+// "Paramètres" retiré : son contenu (mot de passe, notifications, langue,
+// CGU/confidentialité) était entièrement redondant avec d'autres entrées de
+// ce menu — voir Centre de confiance (mot de passe), Notifications
+// (ci-dessus) et Centre d'aide (légal, désormais). "Moyens de paiement" a
+// été fusionné avec "Historique des paiements" : les deux pointaient déjà
+// vers la même page, qui n'a jamais géré autre chose qu'un historique (pas
+// de cartes/mobile money enregistrés côté Ayiba).
 
 export default function MenuPage() {
   const router = useRouter();
@@ -148,7 +152,9 @@ export default function MenuPage() {
 
 // NOTE D'IMPLÉMENTATION (à lire avant de considérer ce fichier "terminé") :
 //
-// 1. Toutes les pages du menu existent désormais : /profil (adresses y sont
-//    gérées directement), /profil/paiements, /profil/avis, /profil/support,
-//    /profil/parametres, /profil/notifications, /menu/confiance.
+// 1. Toutes les pages du menu existent désormais : /profil (identité —
+//    photo, nom, téléphone, vérification — plus d'adresses ici),
+//    /profil/adresses, /profil/paiements, /profil/avis, /profil/support,
+//    /profil/parametres (sécurité uniquement), /profil/notifications,
+//    /menu/confiance.
 //

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Mail, ChevronDown, LifeBuoy } from "lucide-react";
+import { ArrowLeft, Mail, ChevronDown, ChevronRight, FileText, ShieldCheck, LifeBuoy } from "lucide-react";
 
 interface Faq {
   question: string;
@@ -31,7 +31,8 @@ const FAQS: Faq[] = [
   },
   {
     question: "Comment supprimer mon compte ?",
-    reponse: "Depuis ton Profil, en bas de page, l'option \"Supprimer mon compte\" lance une suppression définitive.",
+    reponse:
+      "Depuis Compte > Centre de confiance > Sécurité, la zone sensible en bas de page propose \"Supprimer mon compte\" pour lancer une demande de suppression définitive.",
   },
 ];
 
@@ -104,6 +105,38 @@ export default function SupportPage() {
               <p className="text-xs text-gray-400">Réponse par email</p>
             </div>
           </a>
+        </div>
+
+        {/* Légal — récupéré de l'ancien "Paramètres" (supprimé de Compte,
+            faisait doublon avec le reste du menu). */}
+        <div>
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">Légal</h2>
+          <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
+            <a
+              href="/cgu"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 shrink-0">
+                <FileText size={16} />
+              </div>
+              <span className="flex-1 text-sm font-semibold text-gray-800">Conditions d'utilisation</span>
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+            </a>
+            <a
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
+            >
+              <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 shrink-0">
+                <ShieldCheck size={16} />
+              </div>
+              <span className="flex-1 text-sm font-semibold text-gray-800">Politique de confidentialité</span>
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+            </a>
+          </div>
         </div>
       </div>
     </main>

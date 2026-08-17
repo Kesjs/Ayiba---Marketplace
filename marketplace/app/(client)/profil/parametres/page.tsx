@@ -2,12 +2,29 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, ChevronRight, Globe, ShieldCheck, Bell } from "lucide-react";
+import { ArrowLeft, Check, LogOut, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { validatePasswordStrength } from "@/lib/validation";
 import { useToast } from "@/context/ToastContext";
+import { useUser } from "@/lib/hooks/useUser";
 import { Button } from "@/components/ui/Button";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
+import {
+  SettingsField,
+  DangerZoneCard,
+  DangerZoneRow,
+  DangerZoneModal,
+} from "@/components/settings/SettingsForm";
+
+// Recentrée sur la sécurité uniquement — c'est la seule chose que
+// pointait Centre de confiance ("Changer le mot de passe" → cette page).
+// Notifications et Langue ont leur propre entrée ailleurs dans Compte (ou,
+// pour Langue, ne justifiaient pas un item séparé vu qu'une seule langue
+// est disponible). CGU/Confidentialité ont migré vers Centre d'aide.
+// Déconnexion et suppression de compte, qui vivaient avant dans /profil
+// (devenue une page d'identité pure), trouvent ici leur place naturelle,
+// à côté du reste des actions de sécurité — même pattern "zone sensible"
+// que /vendeur/parametres.
 
 function translateAuthError(err: any): string {
   const message = (err?.message || "").toLowerCase();
@@ -28,11 +45,12 @@ export default function ParametresPage() {
   const router = useRouter();
   const supabase = createClient();
   const { showToast } = useToast();
+  const { profile } = useUser();
 
   const [passwordForm, setPasswordForm] = useState({ next: "", confirm: "" });
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
-  const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   const handleChangePassword = async () => {
     setPasswordError(null);
@@ -53,9 +71,10 @@ export default function ParametresPage() {
       const { error } = await supabase.auth.updateUser({ password: passwordForm.next });
       if (error) throw error;
 
-      setShowPasswordForm(false);
       setPasswordForm({ next: "", confirm: "" });
+      setPasswordSuccess(true);
       showToast("Mot de passe modifié avec succès.", "success");
+      setTimeout(() => setPasswordSuccess(false), 2500);
     } catch (err: any) {
       setPasswordError(translateAuthError(err));
     } finally {
@@ -63,133 +82,151 @@ export default function ParametresPage() {
     }
   };
 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
+    await supabase.auth.signOut();
+    router.push("/");
+  };
+
+  // Suppression : demande envoyée à l'équipe (table demandes_suppression),
+  // traitée sous 48h — même flux que vendeur/livreur, plutôt qu'un DELETE
+  // direct sur la ligne users (ce que faisait l'ancien code de /profil).
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteSent, setDeleteSent] = useState(false);
+
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmText !== "SUPPRIMER" || !profile) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const { error } = await supabase.from("demandes_suppression").insert({ user_id: profile.id });
+      if (error) throw error;
+      setDeleteSent(true);
+      setDeleteConfirmText("");
+    } catch (err: any) {
+      console.error("Demande suppression:", err);
+      setDeleteError(err?.message ? `Échec de l'envoi : ${err.message}` : "Impossible d'envoyer la demande — réessaie.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <main className="min-h-screen bg-gray-50/30 pb-10">
       <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => router.back()} className="text-gray-500">
+        <button onClick={() => router.push("/menu/confiance")} className="text-gray-500">
           <ArrowLeft size={20} />
         </button>
-        <h1 className="text-base font-bold text-gray-900">Paramètres</h1>
+        <h1 className="text-base font-bold text-gray-900">Sécurité</h1>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Sécurité */}
+        {/* Mot de passe */}
         <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">Sécurité</h2>
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <button
-              onClick={() => setShowPasswordForm((v) => !v)}
-              className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
-            >
-              <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 shrink-0">
-                <ShieldCheck size={16} />
-              </div>
-              <span className="flex-1 text-left text-sm font-semibold text-gray-800">
-                Modifier le mot de passe
-              </span>
-              <ChevronRight
-                size={16}
-                className={`text-gray-300 transition-transform ${showPasswordForm ? "rotate-90" : ""}`}
+          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">Mot de passe</h2>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
+            <SettingsField label="Nouveau mot de passe">
+              <input
+                type="password"
+                value={passwordForm.next}
+                onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
+                className="settings-input"
+                placeholder="8 caractères, 1 majuscule, 1 chiffre"
               />
-            </button>
-            {showPasswordForm && (
-              <div className="px-4 pb-4 space-y-3 border-t border-gray-50 pt-4">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Nouveau mot de passe</label>
-                  <input
-                    type="password"
-                    value={passwordForm.next}
-                    onChange={(e) => setPasswordForm((f) => ({ ...f, next: e.target.value }))}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Confirmer le mot de passe</label>
-                  <input
-                    type="password"
-                    value={passwordForm.confirm}
-                    onChange={(e) => setPasswordForm((f) => ({ ...f, confirm: e.target.value }))}
-                    className="w-full h-10 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
-                  />
-                </div>
-                {passwordError && <p className="text-xs font-semibold text-red-500">{passwordError}</p>}
-                <Button
-                  variant="primary"
-                  className="w-full"
-                  onClick={handleChangePassword}
-                  disabled={isSavingPassword || (!passwordForm.next && !passwordForm.confirm)}
-                >
-                  {isSavingPassword ? "Modification..." : "Enregistrer"}
-                </Button>
-              </div>
-            )}
+            </SettingsField>
+            <SettingsField label="Confirmer le mot de passe">
+              <input
+                type="password"
+                value={passwordForm.confirm}
+                onChange={(e) => setPasswordForm((f) => ({ ...f, confirm: e.target.value }))}
+                className="settings-input"
+              />
+            </SettingsField>
+            {passwordError && <p className="text-xs font-semibold text-red-500">{passwordError}</p>}
+            <Button
+              variant="primary"
+              className="w-full"
+              onClick={handleChangePassword}
+              disabled={isSavingPassword || (!passwordForm.next && !passwordForm.confirm)}
+            >
+              {isSavingPassword ? (
+                "Modification..."
+              ) : passwordSuccess ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Check size={16} /> Mot de passe modifié
+                </span>
+              ) : (
+                "Enregistrer"
+              )}
+            </Button>
           </div>
         </div>
 
-        {/* Notifications */}
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">Notifications</h2>
-          <Link
-            href="/profil/notifications"
-            className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 px-4 py-3.5 hover:bg-gray-50 transition-colors"
+        {/* Déconnexion */}
+        <button
+          onClick={() => setShowLogoutModal(true)}
+          className="w-full h-12 rounded-xl border border-red-100 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2"
+        >
+          <LogOut size={16} /> Déconnexion
+        </button>
+
+        {/* Zone sensible */}
+        {deleteSent ? (
+          <div className="w-full p-4 rounded-2xl border border-teal-100 bg-teal-50 text-teal-800 text-sm font-semibold flex items-center gap-3">
+            <Check size={18} />
+            Demande envoyée — notre équipe te contactera sous 48h.
+          </div>
+        ) : (
+          <DangerZoneCard
+            title="Zone sensible"
+            subtitle="Cette action concerne directement l'accès à ton compte."
           >
-            <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 shrink-0">
-              <Bell size={16} />
-            </div>
-            <span className="flex-1 text-sm font-semibold text-gray-800">Préférences de notifications</span>
-            <ChevronRight size={16} className="text-gray-300 shrink-0" />
-          </Link>
-        </div>
-
-        {/* Langue */}
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">Langue</h2>
-          <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 px-4 py-3.5">
-            <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 shrink-0">
-              <Globe size={16} />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-gray-800">Français</p>
-              <p className="text-xs text-gray-400">Seule langue disponible pour le moment</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Confidentialité */}
-        <div>
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
-            Confidentialité
-          </h2>
-          <div className="bg-white rounded-2xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-            <Link
-              href="/cgu"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors"
-            >
-              <span className="text-sm text-gray-800">Conditions d'utilisation</span>
-              <ChevronRight size={16} className="text-gray-300" />
-            </Link>
-            <Link
-              href="/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-between px-4 py-3.5 hover:bg-gray-50 transition-colors"
-            >
-              <span className="text-sm text-gray-800">Politique de confidentialité</span>
-              <ChevronRight size={16} className="text-gray-300" />
-            </Link>
-          </div>
-        </div>
-
-        <p className="text-xs text-gray-400 text-center">
-          Pour gérer tes adresses ou supprimer ton compte, rends-toi sur ton{" "}
-          <Link href="/profil" className="text-coral-400 font-medium">
-            profil
-          </Link>
-          .
-        </p>
+            <DangerZoneRow
+              icon={Trash2}
+              title="Supprimer mon compte"
+              description="Demande de suppression définitive, traitée sous 48h par notre équipe."
+              actionLabel="Supprimer"
+              tone="red"
+              onClick={() => setShowConfirmDelete(true)}
+            />
+          </DangerZoneCard>
+        )}
       </div>
+
+      <DangerZoneModal
+        open={showConfirmDelete}
+        tone="red"
+        title="Supprimer mon compte"
+        description="Cette action envoie une demande de suppression définitive. Notre équipe la traitera sous 48h, après vérification de l'historique de commandes en cours."
+        error={deleteError}
+        confirmLabel="Envoyer la demande"
+        confirmDisabled={deleteConfirmText !== "SUPPRIMER"}
+        loading={isDeleting}
+        onClose={() => {
+          setShowConfirmDelete(false);
+          setDeleteConfirmText("");
+        }}
+        onConfirm={handleConfirmDelete}
+      >
+        <div>
+          <p className="text-xs text-gray-500 font-medium mb-2">
+            Tape <strong className="text-gray-900">SUPPRIMER</strong> pour confirmer :
+          </p>
+          <input
+            type="text"
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            className="settings-input"
+            placeholder="SUPPRIMER"
+          />
+        </div>
+      </DangerZoneModal>
+
+      <LogoutConfirmModal open={showLogoutModal} onConfirm={confirmLogout} onCancel={() => setShowLogoutModal(false)} />
     </main>
   );
 }

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Minus, Plus, Trash2, ShoppingBag, X } from 'lucide-react'
 import { Sidebar } from '@/components/dashboard/Sidebar'
 import { useCart } from '@/context/CartContext'
+import { useUser } from '@/lib/hooks/useUser'
 import { Button } from '@/components/ui/Button'
 
 // Sidebar is provided by shared component `Sidebar`
@@ -11,11 +12,19 @@ import { Button } from '@/components/ui/Button'
 function ClientLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { isOpen, openCart, closeCart, items, total, itemCount, updateQty, removeItem } = useCart()
+  // Contrairement à DashboardLayout (vendeur/livreur/admin), ce layout
+  // n'allait pas chercher le profil : la sidebar recevait role="client"
+  // seul, sans avatarUrl ni userName, donc le bloc identité en bas de
+  // sidebar affichait toujours l'icône par défaut sur desktop même avec
+  // une photo de profil définie.
+  const { profile } = useUser()
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar
         role="client"
+        userName={profile?.full_name || undefined}
+        avatarUrl={profile?.avatar_url}
         isCollapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         onCartClick={openCart}

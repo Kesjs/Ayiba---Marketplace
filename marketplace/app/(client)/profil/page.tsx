@@ -1,34 +1,25 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import { User, Camera, ShieldCheck, ShieldAlert, ChevronRight } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useUser } from '@/lib/hooks/useUser'
-import { Button } from '@/components/ui/Button'
-import { Modal } from '@/components/ui/Modal'
-import { LogoutConfirmModal } from '@/components/ui/LogoutConfirmModal'
-import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
+import { useClientDashboard } from '@/app/hooks/useClientDashboard'
+import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
 import { validateBeninPhone } from '@/lib/validation'
-import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
-import { COMMUNES_COUVERTES } from '@/lib/constants/communes'
-import { AdresseAutocomplete } from '@/components/ui/AdresseAutocomplete'
-import type { SuggestionAdresse } from '@/lib/hooks/useAdresseAutocomplete'
-import { LocateFixed, Loader2 } from 'lucide-react'
+import { SettingsField } from '@/components/settings/SettingsForm'
 
-interface Address {
-  id: string
-  label: string
-  adresse_complete: string
-  quartier: string
-  commune: string
-  latitude: number | null
-  longitude: number | null
-  repere: string | null
-  est_defaut: boolean
-}
+// Page recentrée sur l'identité pure — "Informations, photo, vérification",
+// exactement ce que promet sa description dans Compte. Les adresses (qui
+// vivaient ici avant, avec un routing en doublon avec cet item) sont
+// désormais sur /profil/adresses ; sécurité, notifications, légal,
+// déconnexion et suppression de compte vivent ailleurs dans Compte. Bloc
+// photo + nom + téléphone en champs inline, repris du pattern déjà utilisé
+// sur /vendeur/parametres — même composant SettingsField, même logique
+// d'upload d'avatar — pour que les deux espaces se ressemblent.
 
 export default function ProfilPage() {
   const router = useRouter()
@@ -36,612 +27,211 @@ export default function ProfilPage() {
   const { showToast } = useToast()
   const { profile, loading: userLoading } = useUser()
   const badges = useBadgeCounts(profile?.id, 'client')
+  const { stats, loading: statsLoading } = useClientDashboard()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [addresses, setAddresses] = useState<Address[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showAddressModal, setShowAddressModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [showLogoutModal, setShowLogoutModal] = useState(false)
-  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false)
-  const [isDeletingAccount, setIsDeletingAccount] = useState(false)
-  const [newAddress, setNewAddress] = useState({
-    label: 'domicile',
-    adresse_complete: '',
-    quartier: '',
-    commune: '',
-    latitude: null as number | null,
-    longitude: null as number | null,
-    repere: '',
-    est_defaut: false
-  })
-  const { localiser, loading: localisationEnCours } = useGeolocationAdresse()
-  const [addressToDelete, setAddressToDelete] = useState<string | null>(null)
-
-  const [showEditModal, setShowEditModal] = useState(false)
-  const [editNomComplet, setEditNomComplet] = useState('')
-  const [editTelephone, setEditTelephone] = useState('')
-  const [editError, setEditError] = useState<string | null>(null)
-  const [savingProfile, setSavingProfile] = useState(false)
-  // Reflète la sauvegarde immédiatement à l'écran ; useUser() n'expose pas
-  // de refetch, ce petit overlay évite un rechargement complet de la page.
-  const [profileOverride, setProfileOverride] = useState<{ full_name?: string; phone?: string }>({})
-  const displayFullName = profileOverride.full_name ?? profile?.full_name
-  const displayPhone = profileOverride.phone ?? profile?.phone
-
-  const openEditModal = () => {
-    setEditNomComplet(displayFullName || '')
-    setEditTelephone(displayPhone || '')
-    setEditError(null)
-    setShowEditModal(true)
-  }
-
-  const handleSaveProfile = async () => {
-    if (!profile) return
-    if (editNomComplet.trim().length < 2) {
-      setEditError('Merci d\'indiquer ton nom complet')
-      return
-    }
-    const phoneValidation = validateBeninPhone(editTelephone)
-    if (!phoneValidation.isValid) {
-      setEditError(phoneValidation.error || 'Numéro de téléphone invalide')
-      return
-    }
-
-    setSavingProfile(true)
-    setEditError(null)
-    try {
-      const { error } = await supabase
-        .from('users')
-        .update({ full_name: editNomComplet.trim(), phone: phoneValidation.formatted })
-        .eq('id', profile.id)
-
-      if (error) throw error
-
-      setProfileOverride({ full_name: editNomComplet.trim(), phone: phoneValidation.formatted })
-      showToast('Informations mises à jour', 'success')
-      setShowEditModal(false)
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      setEditError('Une erreur est survenue. Réessaie.')
-    } finally {
-      setSavingProfile(false)
-    }
-  }
+  const [form, setForm] = useState({ fullName: '', phone: '' })
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(undefined)
+  const [emailConfirme, setEmailConfirme] = useState<boolean | null>(null)
 
   useEffect(() => {
     if (profile) {
-      fetchAddresses()
+      setForm({ fullName: profile.full_name || '', phone: profile.phone || '' })
+      setAvatarUrl((prev) => (prev === undefined ? profile.avatar_url : prev))
     }
-  }, [profile?.id])
+  }, [profile])
 
-  const fetchAddresses = async () => {
-    if (!profile) return
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setEmailConfirme(Boolean(data.user?.email_confirmed_at))
+    })
+  }, [supabase])
 
-    setLoading(true)
+  const handleAvatarClick = () => fileInputRef.current?.click()
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !profile) return
+    setUploadingAvatar(true)
     try {
-      const { data, error } = await supabase
-        .from('addresses')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('est_defaut', { ascending: false })
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `${profile.id}/avatar-${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(path, file, { upsert: true })
+      if (uploadError) throw uploadError
 
-      if (error) throw error
-      setAddresses(data || [])
-    } catch (error) {
-      console.error('Error fetching addresses:', error)
-      showToast('Erreur lors du chargement des adresses', 'error')
-    } finally {
-      setLoading(false)
-    }
-  }
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
 
-  const handleAddAddress = async () => {
-    if (!profile) return
-
-    if (!newAddress.quartier.trim() || !newAddress.commune.trim()) {
-      showToast('Le quartier et la commune sont obligatoires', 'error')
-      return
-    }
-
-    try {
-      const { error } = await supabase
-        .from('addresses')
-        .insert({
-          user_id: profile.id,
-          label: newAddress.label,
-          adresse_complete: newAddress.adresse_complete,
-          quartier: newAddress.quartier.trim(),
-          commune: newAddress.commune.trim(),
-          latitude: newAddress.latitude,
-          longitude: newAddress.longitude,
-          repere: newAddress.repere.trim() || null,
-          est_defaut: newAddress.est_defaut
-        })
-
-      if (error) throw error
-      showToast('Adresse ajoutée', 'success')
-      setShowAddressModal(false)
-      setNewAddress({ label: 'domicile', adresse_complete: '', quartier: '', commune: '', latitude: null, longitude: null, repere: '', est_defaut: false })
-      fetchAddresses()
-    } catch (error) {
-      console.error('Error adding address:', error)
-      showToast('Erreur lors de l\'ajout de l\'adresse', 'error')
-    }
-  }
-
-  const handleSetDefault = async (addressId: string) => {
-    try {
-      const { error } = await supabase
-        .from('addresses')
-        .update({ est_defaut: false })
-        .eq('user_id', profile!.id)
-
-      if (error) throw error
-
-      const { error: updateError } = await supabase
-        .from('addresses')
-        .update({ est_defaut: true })
-        .eq('id', addressId)
-
+      const { error: updateError } = await supabase.from('users').update({ avatar_url: publicUrl }).eq('id', profile.id)
       if (updateError) throw updateError
-      showToast('Adresse par défaut mise à jour', 'success')
-      fetchAddresses()
-    } catch (error) {
-      console.error('Error setting default:', error)
-      showToast('Erreur lors de la mise à jour', 'error')
+
+      setAvatarUrl(publicUrl)
+      showToast('Photo de profil mise à jour', 'success')
+    } catch (err) {
+      console.error('Upload avatar:', err)
+      showToast("Impossible d'envoyer la photo — réessaie.", 'error')
+    } finally {
+      setUploadingAvatar(false)
+      e.target.value = ''
     }
   }
 
-  const handleDeleteAddress = async () => {
-    if (!addressToDelete) return
+  const handleSave = useCallback(async () => {
+    if (!profile) return
+    const errors: Record<string, string> = {}
+    if (form.fullName.trim().length < 2) errors.fullName = 'Merci d\'indiquer ton nom complet'
+    const phoneCheck = validateBeninPhone(form.phone)
+    if (!phoneCheck.isValid) errors.phone = phoneCheck.error || 'Numéro de téléphone invalide'
+    setFieldErrors(errors)
+    if (Object.keys(errors).length > 0) return
 
-    try {
-      const { error } = await supabase
-        .from('addresses')
-        .delete()
-        .eq('id', addressToDelete)
-
-      if (error) throw error
-      showToast('Adresse supprimée', 'success')
-      setShowDeleteModal(false)
-      setAddressToDelete(null)
-      fetchAddresses()
-    } catch (error) {
-      console.error('Error deleting address:', error)
-      showToast('Erreur lors de la suppression', 'error')
-    }
-  }
-
-  const confirmLogout = async () => {
-    setShowLogoutModal(false)
-    await supabase.auth.signOut()
-    router.push('/')
-  }
-
-  const handleDeleteAccount = async () => {
-    setIsDeletingAccount(true)
+    setSaving(true)
     try {
       const { error } = await supabase
         .from('users')
-        .delete()
-        .eq('id', profile!.id)
-
+        .update({ full_name: form.fullName.trim(), phone: phoneCheck.formatted })
+        .eq('id', profile.id)
       if (error) throw error
-      await supabase.auth.signOut()
-      router.push('/')
-    } catch (error) {
-      console.error('Error deleting account:', error)
-      showToast('Erreur lors de la suppression du compte', 'error')
-      setIsDeletingAccount(false)
-      setShowDeleteAccountModal(false)
-    }
-  }
 
-  if (userLoading || loading) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <header className="bg-white border-b border-gray-100 p-4">
-          <div className="h-6 w-32 bg-gray-100 rounded animate-pulse" />
-        </header>
-        <div className="flex-1 p-4 space-y-4">
-          <div className="bg-white border border-gray-100 rounded-lg p-5 h-40 animate-pulse" />
-          <div className="bg-white border border-gray-100 rounded-lg p-5 h-32 animate-pulse" />
-        </div>
-      </div>
-    )
-  }
+      setForm({ fullName: form.fullName.trim(), phone: phoneCheck.formatted })
+      showToast('Informations mises à jour', 'success')
+    } catch (err) {
+      console.error('Error updating profile:', err)
+      showToast('Une erreur est survenue. Réessaie.', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }, [form, profile, supabase, showToast])
+
+  const displayAvatar = avatarUrl === undefined ? profile?.avatar_url : avatarUrl
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
+    <div className="flex flex-col min-h-screen bg-gray-50/30">
       <ClientDashboardHeader
-        title="Mon profil"
+        title="Profil"
         backHref="/menu"
-        avatarUrl={profile?.avatar_url}
+        avatarUrl={displayAvatar}
         fullName={profile?.full_name || undefined}
         notificationsCount={badges.notifications}
         notifications={badges.notificationsList}
         logoHref="/"
       />
 
-      {/* Profile Info */}
-      <div className="p-4">
-        <div className="bg-white border border-gray-100 rounded-lg p-5 mb-4">
-          <div className="flex items-center gap-4 mb-4">
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt={displayFullName || ''}
-                className="w-16 h-16 rounded-full object-cover"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-full bg-coral-100 flex items-center justify-center">
-                <span className="text-coral-800 text-xl font-medium">
-                  {displayFullName?.charAt(0).toUpperCase() || 'U'}
-                </span>
-              </div>
-            )}
-            <div>
-              <h2 className="text-base font-medium text-gray-900">{displayFullName || 'Non renseigné'}</h2>
-              <p className="text-sm text-gray-500">{displayPhone || ''}</p>
-            </div>
+      <div className="max-w-lg mx-auto w-full px-4 py-6 space-y-6">
+        {/* Stats — mêmes chiffres que sur Compte, pour rester cohérent avec
+            le dashboard vendeur qui affiche ses propres stats sur sa page
+            d'identité. */}
+        <div className="grid grid-cols-3 gap-3">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+            <p className="text-xl font-bold text-gray-900">{statsLoading ? '—' : stats?.total_commandes ?? 0}</p>
+            <p className="text-[11px] text-gray-400 font-medium mt-0.5">Commandes</p>
           </div>
-          <Button variant="secondary" className="w-full" onClick={openEditModal}>
-            Modifier mes informations
-          </Button>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+            <p className="text-xl font-bold text-gray-900">
+              {statsLoading ? '—' : new Intl.NumberFormat('fr-FR').format(stats?.total_depenses ?? 0)}
+            </p>
+            <p className="text-[11px] text-gray-400 font-medium mt-0.5">FCFA dépensés</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+            <p className="text-xl font-bold text-gray-900">{statsLoading ? '—' : stats?.commandes_en_cours ?? 0}</p>
+            <p className="text-[11px] text-gray-400 font-medium mt-0.5">En cours</p>
+          </div>
         </div>
 
-        {/* Addresses */}
-        <div className="bg-white border border-gray-100 rounded-lg p-5 mb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-base font-medium text-gray-900">Mes adresses</h3>
+        {/* Identité — photo + nom + téléphone, même pattern que
+            /vendeur/parametres (avatar cliquable, champs inline). */}
+        <div className="bg-white p-4 sm:p-6 rounded-3xl border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-4 mb-6">
             <button
-              onClick={() => router.push('/adresses/nouvelle?retour=/profil')}
-              className="text-sm text-coral-400 hover:text-coral-600"
+              onClick={handleAvatarClick}
+              disabled={userLoading}
+              className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-50 border border-gray-100 shrink-0 group"
             >
-              Ajouter
-            </button>
-          </div>
-          {addresses.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">Aucune adresse enregistrée</p>
-          ) : (
-            <div className="space-y-3">
-              {addresses.map((address) => (
-                <div
-                  key={address.id}
-                  className="border border-gray-100 rounded-lg p-3 flex items-start justify-between"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-gray-900 capitalize">{address.label}</span>
-                      {address.est_defaut && (
-                        <span className="text-[11px] bg-teal-50 text-teal-800 rounded-pill px-2 py-0.5">Défaut</span>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-600">{address.adresse_complete}</p>
-                    {address.repere && (
-                      <p className="text-xs text-gray-500 mt-0.5">Repère : {address.repere}</p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    {!address.est_defaut && (
-                      <button
-                        onClick={() => handleSetDefault(address.id)}
-                        className="text-gray-400 hover:text-gray-600"
-                      >
-                        <i className="ti ti-star text-lg" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => {
-                        setAddressToDelete(address.id)
-                        setShowDeleteModal(true)
-                      }}
-                      className="text-red-400 hover:text-red-600"
-                    >
-                      <i className="ti ti-trash text-lg" />
-                    </button>
-                  </div>
+              {displayAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={displayAvatar} alt={form.fullName || ''} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-300">
+                  <User size={32} />
                 </div>
-              ))}
+              )}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Camera size={20} className="text-white" />
+              </div>
+              {uploadingAvatar && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </button>
+            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-lg font-bold text-gray-900 mb-1 truncate">{form.fullName || 'Ton nom'}</h2>
+              <p className="text-xs text-gray-400">Touche la photo pour la changer</p>
             </div>
+          </div>
+
+          <div className="space-y-4">
+            <SettingsField label="Nom complet" error={fieldErrors.fullName}>
+              <input
+                type="text"
+                value={form.fullName}
+                onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
+                className="settings-input"
+                placeholder="Ton nom complet"
+              />
+            </SettingsField>
+            <SettingsField label="Téléphone" error={fieldErrors.phone}>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))}
+                className="settings-input"
+                placeholder="+229 00 00 00 00"
+              />
+            </SettingsField>
+          </div>
+
+          <button
+            onClick={handleSave}
+            disabled={saving || userLoading}
+            className="w-full mt-5 h-11 rounded-xl bg-coral-500 text-white text-sm font-bold hover:bg-coral-600 transition-colors disabled:opacity-50"
+          >
+            {saving ? 'Enregistrement...' : 'Enregistrer'}
+          </button>
+        </div>
+
+        {/* Vérification — un seul signal fiable existe aujourd'hui côté
+            Ayiba : la confirmation email Supabase Auth. Le téléphone n'a pas
+            de vérification par OTP à ce stade, donc pas de badge inventé
+            pour lui : mieux vaut ne rien afficher qu'afficher un statut
+            faux. */}
+        <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 flex items-center gap-3">
+          {emailConfirme ? (
+            <ShieldCheck size={18} className="text-teal-600 shrink-0" />
+          ) : (
+            <ShieldAlert size={18} className="text-amber-500 shrink-0" />
           )}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-800">
+              {emailConfirme === null ? 'Vérification du compte' : emailConfirme ? 'Email vérifié' : 'Email non vérifié'}
+            </p>
+            <p className="text-xs text-gray-400">
+              {emailConfirme === false ? 'Vérifie ta boîte mail pour confirmer ton adresse.' : 'Ton identité est confirmée sur Ayiba.'}
+            </p>
+          </div>
         </div>
 
-        {/* Settings */}
-        <div className="bg-white border border-gray-100 rounded-lg divide-y divide-gray-100">
-          <Link
-            href="/profil/notifications"
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <span className="text-sm text-gray-900">Notifications</span>
-            <i className="ti ti-chevron-right text-gray-400" />
-          </Link>
-          <Link
-            href="/profil/parametres"
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <span className="text-sm text-gray-900">Sécurité</span>
-            <i className="ti ti-chevron-right text-gray-400" />
-          </Link>
-          <Link
-            href="/cgu"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <span className="text-sm text-gray-900">Conditions d'utilisation</span>
-            <i className="ti ti-chevron-right text-gray-400" />
-          </Link>
-          <Link
-            href="/privacy"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
-          >
-            <span className="text-sm text-gray-900">Politique de confidentialité</span>
-            <i className="ti ti-chevron-right text-gray-400" />
-          </Link>
-        </div>
-
-        {/* Logout */}
         <button
-          onClick={() => setShowLogoutModal(true)}
-          className="w-full mt-4 py-3 rounded-lg border border-gray-100 text-sm font-medium text-red-400 hover:bg-red-50 transition-colors"
+          onClick={() => router.push('/menu')}
+          className="w-full flex items-center justify-between px-1 py-2 text-sm font-semibold text-coral-500"
         >
-          Déconnexion
-        </button>
-
-        {/* Delete Account */}
-        <button
-          onClick={() => setShowDeleteAccountModal(true)}
-          className="w-full mt-3 py-3 rounded-lg text-sm text-gray-400 hover:text-red-400 transition-colors"
-        >
-          Supprimer mon compte
+          <span>Retour à Compte</span>
+          <ChevronRight size={16} />
         </button>
       </div>
-
-      {/* Edit Profile Modal */}
-      {showEditModal && (
-        <Modal
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          title="Modifier mes informations"
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
-              <input
-                type="text"
-                value={editNomComplet}
-                onChange={(e) => setEditNomComplet(e.target.value)}
-                className="w-full h-11 px-3 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-coral-400"
-                placeholder="Nom complet"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-              <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400">
-                <span className="text-sm text-gray-400 pr-2 border-r border-gray-200 mr-2">+229</span>
-                <input
-                  type="tel"
-                  value={editTelephone}
-                  onChange={(e) => setEditTelephone(e.target.value)}
-                  className="flex-1 h-11 text-sm focus:outline-none"
-                  placeholder="01 23 45 67 89"
-                />
-              </div>
-            </div>
-            {editError && <p className="text-sm text-red-500">{editError}</p>}
-            <Button
-              variant="primary"
-              className="w-full"
-              onClick={handleSaveProfile}
-              disabled={savingProfile}
-            >
-              {savingProfile ? 'Enregistrement...' : 'Enregistrer'}
-            </Button>
-          </div>
-        </Modal>
-      )}
-
-      {/* Add Address Modal */}
-      {showAddressModal && (
-        <Modal
-          isOpen={showAddressModal}
-          onClose={() => {
-            setShowAddressModal(false)
-            setNewAddress({ label: 'domicile', adresse_complete: '', quartier: '', commune: '', latitude: null, longitude: null, repere: '', est_defaut: false })
-          }}
-          title="Ajouter une adresse"
-        >
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Type</label>
-              <select
-                value={newAddress.label}
-                onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })}
-                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
-              >
-                <option value="domicile">Domicile</option>
-                <option value="bureau">Bureau</option>
-                <option value="autre">Autre</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Rechercher une adresse</label>
-              <AdresseAutocomplete
-                placeholder="Rechercher ton adresse (rue, quartier, ville)..."
-                onSelect={(s: SuggestionAdresse) => {
-                  setNewAddress((prev) => ({
-                    ...prev,
-                    latitude: s.latitude,
-                    longitude: s.longitude,
-                    commune: s.commune || prev.commune,
-                    quartier: s.quartier || prev.quartier,
-                    adresse_complete: s.texte,
-                  }))
-                }}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={async () => {
-                try {
-                  const resultat = await localiser()
-                  setNewAddress((prev) => ({
-                    ...prev,
-                    latitude: resultat.latitude,
-                    longitude: resultat.longitude,
-                    commune: resultat.communeDetectee || prev.commune,
-                    quartier: resultat.quartierDetecte || prev.quartier,
-                  }))
-                  showToast('Position détectée', 'success')
-                } catch (err) {
-                  showToast(err instanceof Error ? err.message : 'Localisation impossible', 'error')
-                }
-              }}
-              disabled={localisationEnCours}
-              className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-coral-50 text-coral-700 font-semibold text-sm hover:bg-coral-100 transition-colors disabled:opacity-60"
-            >
-              {localisationEnCours ? <Loader2 size={16} className="animate-spin" /> : <LocateFixed size={16} />}
-              {localisationEnCours ? 'Localisation en cours...' : 'Utiliser ma position actuelle'}
-            </button>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Commune *</label>
-              <select
-                value={newAddress.commune}
-                onChange={(e) => setNewAddress({ ...newAddress, commune: e.target.value })}
-                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm bg-white focus:border-coral-400 outline-none"
-              >
-                <option value="">Choisir une commune...</option>
-                {COMMUNES_COUVERTES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-              <p className="text-[11px] text-gray-400 mt-1">
-                Pré-remplie automatiquement via la recherche ou la position — modifiable si besoin.
-              </p>
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Quartier *</label>
-              <input
-                type="text"
-                value={newAddress.quartier}
-                onChange={(e) => setNewAddress({ ...newAddress, quartier: e.target.value })}
-                placeholder="Ex: Godomey"
-                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Rue / description</label>
-              <textarea
-                value={newAddress.adresse_complete}
-                onChange={(e) => setNewAddress({ ...newAddress, adresse_complete: e.target.value })}
-                placeholder="Numéro, rue, précisions..."
-                className="w-full h-20 rounded-lg border border-gray-100 px-3 py-2 text-sm focus:border-coral-400 outline-none resize-none"
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-gray-600 mb-2">Point de repère (facultatif)</label>
-              <input
-                type="text"
-                value={newAddress.repere}
-                onChange={(e) => setNewAddress({ ...newAddress, repere: e.target.value })}
-                placeholder="Ex: près du carrefour, portail bleu..."
-                className="w-full h-10 rounded-lg border border-gray-100 px-3 text-sm focus:border-coral-400 outline-none"
-              />
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={newAddress.est_defaut}
-                onChange={(e) => setNewAddress({ ...newAddress, est_defaut: e.target.checked })}
-                className="w-4 h-4 rounded border-gray-100 text-coral-400 focus:ring-coral-400"
-              />
-              <span className="text-sm text-gray-900">Définir comme adresse par défaut</span>
-            </label>
-            <Button
-              variant="primary"
-              className="w-full"
-              onClick={handleAddAddress}
-              disabled={!newAddress.quartier.trim() || !newAddress.commune.trim()}
-            >
-              Ajouter
-            </Button>
-          </div>
-        </Modal>
-      )}
-
-      {/* Delete Address Modal */}
-      {showDeleteModal && (
-        <Modal
-          isOpen={showDeleteModal}
-          onClose={() => {
-            setShowDeleteModal(false)
-            setAddressToDelete(null)
-          }}
-          title="Supprimer l'adresse"
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">Êtes-vous sûr de vouloir supprimer cette adresse ?</p>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  setShowDeleteModal(false)
-                  setAddressToDelete(null)
-                }}
-              >
-                Annuler
-              </Button>
-              <Button variant="destructive" className="flex-1" onClick={handleDeleteAddress}>
-                Supprimer
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      <LogoutConfirmModal
-        open={showLogoutModal}
-        onConfirm={confirmLogout}
-        onCancel={() => setShowLogoutModal(false)}
-      />
-
-      {showDeleteAccountModal && (
-        <Modal
-          isOpen={showDeleteAccountModal}
-          onClose={() => setShowDeleteAccountModal(false)}
-          title="Supprimer définitivement mon compte"
-        >
-          <div className="space-y-4">
-            <p className="text-sm text-gray-600">
-              Cette action est <span className="font-semibold text-red-500">définitive et irréversible</span>.
-              Toutes tes données personnelles, adresses et favoris seront supprimés. Cette action ne peut pas être annulée.
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setShowDeleteAccountModal(false)}
-                disabled={isDeletingAccount}
-              >
-                Annuler
-              </Button>
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onClick={handleDeleteAccount}
-                disabled={isDeletingAccount}
-              >
-                {isDeletingAccount ? 'Suppression...' : 'Oui, supprimer'}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   )
 }

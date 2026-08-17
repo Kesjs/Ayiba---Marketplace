@@ -386,10 +386,17 @@ export function Navbar() {
                           </a>
                         </>
                       )}
-                      <a href="/profil" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
-                        <Settings size={18} className="text-gray-400" />
-                        <span>Mon profil</span>
-                      </a>
+                      {userRole === "client" ? (
+                        <a href="/menu" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                          <Settings size={18} className="text-gray-400" />
+                          <span>Compte</span>
+                        </a>
+                      ) : (
+                        <a href="/profil" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                          <Settings size={18} className="text-gray-400" />
+                          <span>Mon profil</span>
+                        </a>
+                      )}
                     </div>
                     <div className="h-px bg-gray-100 mx-2" />
                     <div className="p-2">

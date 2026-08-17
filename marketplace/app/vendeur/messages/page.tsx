@@ -27,7 +27,11 @@ function VendeurMessagesContent() {
 
   const searchParams = useSearchParams();
   const clientParam = searchParams.get("client");
+  // Un vendeur peut aussi acheter chez un autre vendeur depuis /vendeur/catalogue ;
+  // dans ce cas le partenaire de conversation arrive via ?vendeur= au lieu de ?client=.
+  const vendeurParam = searchParams.get("vendeur");
   const commandeParam = searchParams.get("commande");
+  const partnerParam = clientParam || vendeurParam;
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [texte, setTexte] = useState("");
@@ -37,12 +41,12 @@ function VendeurMessagesContent() {
   const { setHideBottomNav } = useUiChrome();
 
   useEffect(() => {
-    if (clientParam) {
-      openConversationWith(clientParam, commandeParam);
-      setSelectedId(clientParam);
+    if (partnerParam) {
+      openConversationWith(partnerParam, commandeParam);
+      setSelectedId(partnerParam);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientParam, commandeParam]);
+  }, [partnerParam, commandeParam]);
 
   const conversation = conversations.find((c) => c.partnerId === selectedId) || null;
 

@@ -177,11 +177,6 @@ export default function BoutiqueDetailPage() {
                 <span className="text-coral-500 font-bold text-2xl">{store.nom.charAt(0).toUpperCase()}</span>
               )}
             </div>
-            {store.isVerified && (
-              <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-1 shadow-sm">
-                <CheckCircle2 size={20} className="text-teal-500 fill-teal-50" />
-              </div>
-            )}
           </div>
 
           <div className="flex-1">

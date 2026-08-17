@@ -11,7 +11,7 @@ import { AuthModal } from "@/components/ui/AuthModal";
 
 export default function BoutiquesPage() {
   const router = useRouter();
-  const { user } = useUser();
+  const { user, profile } = useUser();
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +49,7 @@ export default function BoutiquesPage() {
       setAuthModalOpen(true);
       return;
     }
-    router.push(`/messages?vendeur=${storeId}`);
+    router.push(`${profile?.role === "vendeur" ? "/vendeur/messages" : "/messages"}?vendeur=${storeId}`);
   };
 
   return (

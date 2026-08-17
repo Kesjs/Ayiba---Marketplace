@@ -114,7 +114,7 @@ export default function Home() {
       setAuthModalOpen(true);
       return;
     }
-    router.push(`/messages?vendeur=${storeId}`);
+    router.push(`${profile?.role === "vendeur" ? "/vendeur/messages" : "/messages"}?vendeur=${storeId}`);
   };
 
   const [activeTab, setActiveTab] = useState("Tout");

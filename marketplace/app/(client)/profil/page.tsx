@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { User, Camera, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { User, Camera } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useUser } from '@/lib/hooks/useUser'
@@ -35,7 +35,6 @@ export default function ProfilPage() {
   const [saving, setSaving] = useState(false)
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null | undefined>(undefined)
-  const [emailConfirme, setEmailConfirme] = useState<boolean | null>(null)
 
   useEffect(() => {
     if (profile) {
@@ -43,12 +42,6 @@ export default function ProfilPage() {
       setAvatarUrl((prev) => (prev === undefined ? profile.avatar_url : prev))
     }
   }, [profile])
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }: Awaited<ReturnType<typeof supabase.auth.getUser>>) => {
-      setEmailConfirme(Boolean(data.user?.email_confirmed_at))
-    })
-  }, [supabase])
 
   const handleAvatarClick = () => fileInputRef.current?.click()
 
@@ -119,7 +112,11 @@ export default function ProfilPage() {
         logoHref="/"
       />
 
-      <div className="max-w-3xl mx-auto w-full px-4 py-6 space-y-6">
+      <div className="max-w-3xl lg:max-w-5xl mx-auto w-full px-4 lg:px-8 py-6 space-y-6">
+        {/* Sur desktop, Vue d'ensemble et Identité passent côte à côte pour
+            occuper l'espace latéral libre au lieu de rester en colonne
+            unique étroite ; sur mobile, comportement inchangé (empilé). */}
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start space-y-6 lg:space-y-0">
         {/* Stats — mêmes chiffres que sur Compte, pour rester cohérent avec
             le dashboard vendeur qui affiche ses propres stats sur sa page
             d'identité. Regroupées dans une carte avec libellé plutôt que 3
@@ -206,26 +203,6 @@ export default function ProfilPage() {
             {saving ? 'Enregistrement...' : 'Enregistrer'}
           </button>
         </div>
-
-        {/* Vérification — un seul signal fiable existe aujourd'hui côté
-            Ayiba : la confirmation email Supabase Auth. Le téléphone n'a pas
-            de vérification par OTP à ce stade, donc pas de badge inventé
-            pour lui : mieux vaut ne rien afficher qu'afficher un statut
-            faux. */}
-        <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 flex items-center gap-3">
-          {emailConfirme ? (
-            <ShieldCheck size={18} className="text-teal-600 shrink-0" />
-          ) : (
-            <ShieldAlert size={18} className="text-amber-500 shrink-0" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800">
-              {emailConfirme === null ? 'Vérification du compte' : emailConfirme ? 'Email vérifié' : 'Email non vérifié'}
-            </p>
-            <p className="text-xs text-gray-400">
-              {emailConfirme === false ? 'Vérifie ta boîte mail pour confirmer ton adresse.' : 'Ton identité est confirmée sur Ayiba.'}
-            </p>
-          </div>
         </div>
       </div>
     </div>

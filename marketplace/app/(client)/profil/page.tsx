@@ -7,7 +7,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useUser } from '@/lib/hooks/useUser'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
-import { useClientDashboard } from '@/app/hooks/useClientDashboard'
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { validateBeninPhone } from '@/lib/validation'
 import { SettingsField } from '@/components/settings/SettingsForm'
@@ -27,7 +26,6 @@ export default function ProfilPage() {
   const { showToast } = useToast()
   const { profile, loading: userLoading } = useUser()
   const badges = useBadgeCounts(profile?.id, 'client')
-  const { stats, loading: statsLoading } = useClientDashboard()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({ fullName: '', phone: '' })
@@ -106,30 +104,8 @@ export default function ProfilPage() {
         {/* Sur desktop, Vue d'ensemble et Identité passent côte à côte pour
             occuper l'espace latéral libre au lieu de rester en colonne
             unique étroite ; sur mobile, comportement inchangé (empilé). */}
-        <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start space-y-6 lg:space-y-0">
-        {/* Stats — mêmes chiffres que sur Compte, pour rester cohérent avec
-            le dashboard vendeur qui affiche ses propres stats sur sa page
-            d'identité. Regroupées dans une carte avec libellé plutôt que 3
-            blocs flottants, pour bien les rattacher visuellement au reste. */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-4 sm:p-6">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Vue d'ensemble</p>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-gray-50 rounded-2xl p-4 text-center">
-              <p className="text-xl font-bold text-gray-900">{statsLoading ? '—' : stats?.total_commandes ?? 0}</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-0.5">Commandes</p>
-            </div>
-            <div className="bg-gray-50 rounded-2xl p-4 text-center">
-              <p className="text-xl font-bold text-gray-900">
-                {statsLoading ? '—' : new Intl.NumberFormat('fr-FR').format(stats?.total_depenses ?? 0)}
-              </p>
-              <p className="text-[11px] text-gray-400 font-medium mt-0.5">FCFA dépensés</p>
-            </div>
-            <div className="bg-gray-50 rounded-2xl p-4 text-center">
-              <p className="text-xl font-bold text-gray-900">{statsLoading ? '—' : stats?.commandes_en_cours ?? 0}</p>
-              <p className="text-[11px] text-gray-400 font-medium mt-0.5">En cours</p>
-            </div>
-          </div>
-        </div>
+        <div className="lg:grid lg:grid-cols-1 lg:gap-6 lg:items-start space-y-6 lg:space-y-0">
+
 
         {/* Identité — photo + nom + téléphone, même pattern que
             /vendeur/parametres (avatar cliquable, champs inline). */}

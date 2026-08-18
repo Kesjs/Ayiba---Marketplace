@@ -98,7 +98,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
             .select(ARTICLE_CARD_SELECT)
             .eq("statut", "publie")
             .eq("actif", true)
-            .or(`nom.ilike.%${debouncedQuery}%,description.ilike.%${debouncedQuery}%`)
+            .or(`nom.ilike.%${debouncedQuery}%,description.ilike.%${debouncedQuery}%,tags_seo.ilike.%${debouncedQuery}%`)
             .limit(4),
           supabase
             .from("categories")

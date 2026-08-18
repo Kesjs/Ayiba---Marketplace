@@ -595,7 +595,7 @@ export default function AjoutExpressPage() {
           stock: parseInt(card.stock || "1", 10),
           statut,
           raison_refus: raison ?? null,
-          tags: finalTags, // Tags invisibles SEO injectés ici !
+          tags_seo: Array.isArray(finalTags) ? finalTags.join(" ") : finalTags, // Tags invisibles SEO stockés en texte simple !
         });
 
         if (!insertErr) successCount++;

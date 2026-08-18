@@ -442,12 +442,24 @@ export default function AjoutExpressPage() {
 
       handleUpdateCard(cardId, "aiLoading", true);
       try {
+        let imageBase64 = undefined;
+        if (card.photos && card.photos.length > 0 && card.photos[0].file) {
+          const file = card.photos[0].file;
+          imageBase64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        }
+
         const res = await fetch("/api/ai/enrichir", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             nom: card.nom,
-            categories: flatCategories, // On passe la liste pour que l'IA choisisse
+            categories: flatCategories,
+            image: imageBase64,
           }),
         });
 

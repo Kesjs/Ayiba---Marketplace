@@ -22,7 +22,7 @@ function generateFallback(nom: string, categoriesStr: string): any {
 
 export async function POST(req: NextRequest) {
   try {
-    const { nom, categories } = await req.json();
+    const { nom, categories, image } = await req.json();
 
     if (!nom || typeof nom !== "string") {
       return NextResponse.json({ error: "Le nom de l'article est requis." }, { status: 400 });
@@ -33,14 +33,14 @@ export async function POST(req: NextRequest) {
 
     if (groqKey) {
       try {
-        const prompt = `Tu es un assistant e-commerce africain. Ta mission est d'analyser cet article et de retourner un objet JSON strict.
+        const prompt = `Tu es un assistant e-commerce africain. Ta mission est d'analyser cet article (son nom et son image si fournie) et de retourner un objet JSON strict.
 Article : "${nom}"
 
 Liste des catégories valides :
 ${categoriesStr}
 
 Règles absolues :
-1. "description" : Rédige une description commerciale courte (2 phrases). Ne mentionne JAMAIS de prix. Aucun emoji. Ton professionnel.
+1. "description" : Rédige une description commerciale attrayante courte (2 phrases). Base-toi sur l'image fournie pour décrire l'aspect visuel et l'état. Ne mentionne JAMAIS de prix. Aucun emoji. Ton professionnel.
 2. "categorie_id" : Trouve l'ID de la catégorie la plus adaptée depuis la liste fournie.
 3. "tags" : Liste de 4 à 6 mots-clés pertinents pour le SEO et la recherche (en minuscules).
 4. Ne renvoie QUE le JSON, aucun texte avant ou après.
@@ -52,6 +52,20 @@ Format attendu :
   "tags": ["mot1", "mot2", "mot3"]
 }`;
 
+        let apiMessages: any[] = [{ role: "user", content: prompt }];
+        
+        if (image) {
+          apiMessages = [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: image } }
+              ]
+            }
+          ];
+        }
+
         const groqResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
           method: "POST",
           headers: {
@@ -59,8 +73,8 @@ Format attendu :
             Authorization: `Bearer ${groqKey}`,
           },
           body: JSON.stringify({
-            model: "openai/gpt-oss-120b",
-            messages: [{ role: "user", content: prompt }],
+            model: "qwen/qwen3.6-27b",
+            messages: apiMessages,
             max_tokens: 300,
             temperature: 0.1,
             response_format: { type: "json_object" }
@@ -70,13 +84,16 @@ Format attendu :
         if (groqResponse.ok) {
           const groqData = await groqResponse.json();
           let content = groqData.choices?.[0]?.message?.content?.trim() ?? "";
-          content = content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+          content = content.replace(/^```json/i, "").replace(/```$/i, "").trim();
 
           const result = JSON.parse(content);
           return NextResponse.json({ ...result, source: "groq" });
+        } else {
+          const errData = await groqResponse.text();
+          console.error("[AI Enrichir] Groq API Error:", errData);
         }
       } catch (groqError) {
-        console.warn("[AI Enrichir] Erreur Groq, fallback interne.");
+        console.error("[AI Enrichir] Erreur Groq, fallback interne:", groqError);
       }
     }
 

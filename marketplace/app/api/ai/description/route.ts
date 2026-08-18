@@ -91,7 +91,7 @@ Réponds uniquement avec la description, sans titre ni explication.`;
               Authorization: `Bearer ${groqKey}`,
             },
             body: JSON.stringify({
-              model: "llama-3.3-70b-versatile",
+              model: "openai/gpt-oss-120b",
               messages: [{ role: "user", content: prompt }],
               max_tokens: 150,
               temperature: 0.5,
@@ -101,8 +101,11 @@ Réponds uniquement avec la description, sans titre ni explication.`;
 
         if (groqResponse.ok) {
           const groqData = await groqResponse.json();
-          const description =
+          let description =
             groqData.choices?.[0]?.message?.content?.trim() ?? "";
+
+          // Nettoyer les balises <think>...</think> si présentes (certains modèles raisonnent à voix haute)
+          description = description.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 
           if (description.length > 20) {
             return NextResponse.json({

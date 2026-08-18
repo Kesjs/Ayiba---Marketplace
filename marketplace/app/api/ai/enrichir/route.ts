@@ -76,15 +76,19 @@ Format attendu :
             model: "qwen/qwen3.6-27b",
             messages: apiMessages,
             max_tokens: 300,
-            temperature: 0.1,
-            response_format: { type: "json_object" }
+            temperature: 0.1
           }),
         });
 
         if (groqResponse.ok) {
           const groqData = await groqResponse.json();
           let content = groqData.choices?.[0]?.message?.content?.trim() ?? "";
-          content = content.replace(/^```json/i, "").replace(/```$/i, "").trim();
+          
+          // Extraction robuste du JSON (au cas où le modèle ajoute du texte)
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            content = jsonMatch[0];
+          }
 
           const result = JSON.parse(content);
           return NextResponse.json({ ...result, source: "groq" });

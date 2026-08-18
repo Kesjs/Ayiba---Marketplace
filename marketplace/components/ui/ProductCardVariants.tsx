@@ -22,6 +22,7 @@ interface ProductCardProps {
   createdAt?: string;
   /** Nombre de photos disponibles pour ce produit, pour l'indicateur multi-photos. */
   photosCount?: number;
+  priority?: boolean;
   onAddToCart: () => void;
   onToggleFavorite: () => void;
   onClick?: () => void;
@@ -49,6 +50,7 @@ export function ProductCardModern({
   stock,
   createdAt,
   photosCount,
+  priority = false,
   onAddToCart,
   onToggleFavorite,
   onClick,
@@ -91,6 +93,8 @@ export function ProductCardModern({
           src={image}
           alt={name}
           fill
+          priority={priority}
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className={`object-cover transition-transform duration-500 group-hover/image:scale-105 ${
             enRupture ? "grayscale-[50%] opacity-70" : ""
           }`}

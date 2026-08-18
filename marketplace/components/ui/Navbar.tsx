@@ -566,28 +566,20 @@ export function Navbar() {
               )}
             </button>
 
-            {!user ? (
-              <button
-                onClick={() => setAuthModalOpen(true)}
-                className="bg-coral-500 hover:bg-coral-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition-all active:scale-95 ml-1 cursor-pointer"
-              >
-                Connexion
-              </button>
-            ) : (
-              <button
-                onClick={handleAccountIconClick}
-                className="h-9 flex items-center justify-center rounded-full border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden ml-1"
-                aria-label="Menu du compte"
-              >
-                <span className="flex items-center justify-center px-2.5 h-full">
-                  <User size={17} strokeWidth={2} className="text-gray-900" />
-                </span>
-                <span className="w-px h-4 bg-coral-200" />
-                <span className="flex items-center justify-center px-2 h-full">
-                  <ChevronDown size={12} strokeWidth={2.25} className="text-gray-900" />
-                </span>
-              </button>
-            )}
+            {/* Icône compte mobile (Pilule d'origine) */}
+            <button
+              onClick={handleAccountIconClick}
+              className="h-10 flex items-center justify-center rounded-full border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden shrink-0 ml-1 cursor-pointer"
+              aria-label={!user ? "Connexion ou inscription" : "Menu du compte"}
+            >
+              <span className="flex items-center justify-center px-3 h-full">
+                <User size={19} strokeWidth={2} className="text-gray-900" />
+              </span>
+              <span className="w-px h-5 bg-coral-200" />
+              <span className="flex items-center justify-center px-2.5 h-full">
+                <ChevronDown size={14} strokeWidth={2.25} className="text-gray-900" />
+              </span>
+            </button>
           </div>
         </div>
 

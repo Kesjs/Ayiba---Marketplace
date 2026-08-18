@@ -242,10 +242,21 @@ export function useAdminArticles() {
     const { data } = await supabase
       .from("articles")
       .select(
-        "id, nom, description, prix, prix_promo, stock, statut, raison_rejet, vendeur_id, created_at, categorie_id, categories(nom), article_images(id, image_url, ordre), vendeur:vendeurs(nom_boutique, nom_complet, statut, email)"
+        "id, nom, description, prix, prix_promo, stock, statut, raison_rejet, vendeur_id, created_at, categorie_id, categories(nom), article_images(id, image_url, ordre), vendeur:vendeurs(nom_boutique, nom_complet, statut, users!vendeurs_id_fkey(email))"
       )
       .order("created_at", { ascending: false });
-    setArticles((data as any) || []);
+    
+    const mapped = (data || []).map((a: any) => ({
+      ...a,
+      vendeur: a.vendeur ? {
+        nom_boutique: a.vendeur.nom_boutique,
+        nom_complet: a.vendeur.nom_complet,
+        statut: a.vendeur.statut,
+        email: a.vendeur.users?.email ?? null
+      } : null
+    }));
+    
+    setArticles(mapped as ArticleModeration[]);
     setLoading(false);
   }, []);
 

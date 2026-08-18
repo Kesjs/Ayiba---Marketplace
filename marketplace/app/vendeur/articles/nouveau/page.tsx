@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, Suspense } from "react";
-import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight, AlertCircle, FileText, Camera, Layers, Plus } from "lucide-react";
+import { ArrowLeft, Upload, X, CheckCircle2, Info, ChevronRight, AlertCircle, FileText, Camera, Layers, Plus, Zap } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { StepIndicator, type WizardStep } from "@/components/kyc/StepIndicator";
@@ -701,6 +701,13 @@ function NouveauArticleForm() {
         <div className="flex-1 min-w-0">
           {!success && <StepIndicator currentStep={step} steps={WIZARD_STEPS} />}
         </div>
+        <Link
+          href="/vendeur/articles/express"
+          className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold text-coral-600 hover:text-coral-700 bg-coral-50 hover:bg-coral-100 px-3 py-2 rounded-xl transition-colors"
+        >
+          <Zap size={13} strokeWidth={2.5} />
+          Ajout Express
+        </Link>
       </div>
 
       {success ? (

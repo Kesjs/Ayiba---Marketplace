@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Plus, Search, Trash2, Edit3, Copy, X, Loader2, PackageX, AlertCircle, RefreshCw,
-  LayoutGrid, List, Upload, Layers, Package, ShoppingBag, Clock3, XCircle, Eye,
+  LayoutGrid, List, Upload, Layers, Package, ShoppingBag, Clock3, XCircle, Eye, Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -1287,13 +1287,24 @@ return (
         </div>
       </div>
 
-      {/* Bouton d'ajout pleine largeur — cohérent avec le nouveau layout mobile */}
-      <Link href="/vendeur/articles/nouveau" className="block mb-6">
-        <Button className="w-full h-12 rounded-2xl flex items-center gap-2 justify-center bg-coral-500 hover:bg-coral-600">
-          <Plus size={20} />
-          Ajouter un article
-        </Button>
-      </Link>
+      {/* Boutons d'ajout — mode formulaire détaillé ou mode express */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <Link href="/vendeur/articles/nouveau" className="flex-1">
+          <Button className="w-full h-12 rounded-2xl flex items-center gap-2 justify-center bg-coral-500 hover:bg-coral-600">
+            <Plus size={18} />
+            Ajouter un article
+          </Button>
+        </Link>
+        <Link href="/vendeur/articles/express" className="flex-1 sm:flex-none">
+          <Button
+            variant="outline"
+            className="w-full h-12 rounded-2xl flex items-center gap-2 justify-center border-coral-300 text-coral-600 hover:bg-coral-50 font-bold"
+          >
+            <Zap size={16} />
+            Ajout Express par cartes
+          </Button>
+        </Link>
+      </div>
 
       {loadError && (
         <div className="bg-red-50 border border-red-100 rounded-3xl p-6 mb-8 flex items-start gap-3">

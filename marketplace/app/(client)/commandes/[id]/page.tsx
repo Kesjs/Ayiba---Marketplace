@@ -200,166 +200,171 @@ export default function CommandeDetailPage() {
         </div>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-        {/* Timeline */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Suivi</h2>
-          <div className="space-y-4">
-            {ETAPES.map((etape, i) => {
-              const atteinte = i <= etapeActuelle && !enLitige;
-              return (
-                <div key={etape.statut} className="flex items-center gap-3">
-                  <div
-                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
-                      atteinte ? "bg-teal-500 text-white" : "bg-gray-100 text-gray-300"
-                    }`}
-                  >
-                    {atteinte ? <CheckCircle2 size={14} /> : <span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />}
-                  </div>
-                  <span className={`text-sm font-medium ${atteinte ? "text-gray-900" : "text-gray-400"}`}>
-                    {etape.label}
-                  </span>
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <div className="grid md:grid-cols-12 gap-6">
+          
+          {/* Colonne Gauche (Suivi & Réassurance) */}
+          <div className="md:col-span-7 space-y-6">
+            {/* Timeline */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Suivi</h2>
+              <div className="space-y-4">
+                {ETAPES.map((etape, i) => {
+                  const atteinte = i <= etapeActuelle && !enLitige;
+                  return (
+                    <div key={etape.statut} className="flex items-center gap-3">
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${
+                          atteinte ? "bg-teal-500 text-white" : "bg-gray-100 text-gray-300"
+                        }`}
+                      >
+                        {atteinte ? <CheckCircle2 size={14} /> : <span className="w-1.5 h-1.5 bg-gray-300 rounded-full" />}
+                      </div>
+                      <span className={`text-sm font-medium ${atteinte ? "text-gray-900" : "text-gray-400"}`}>
+                        {etape.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Litige / en attente de vérification */}
+            {enLitige && (
+              <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 flex gap-3">
+                <ShieldAlert size={20} className="text-orange-500 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold text-orange-700 mb-1">En attente de vérification</p>
+                  <p className="text-xs text-orange-600 leading-relaxed">
+                    Ton colis reste à toi. Le paiement est bloqué le temps que notre équipe vérifie la
+                    livraison — nous te contacterons rapidement.
+                  </p>
                 </div>
-              );
-            })}
-          </div>
-        </div>
+              </div>
+            )}
 
-        {/* Litige / en attente de vérification */}
-        {enLitige && (
-          <div className="bg-orange-50 border border-orange-100 rounded-2xl p-5 flex gap-3">
-            <ShieldAlert size={20} className="text-orange-500 shrink-0" />
-            <div>
-              <p className="text-sm font-bold text-orange-700 mb-1">En attente de vérification</p>
-              <p className="text-xs text-orange-600 leading-relaxed">
-                Ton colis reste à toi. Le paiement est bloqué le temps que notre équipe vérifie la
-                livraison — nous te contacterons rapidement.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Qui s'occupe de votre commande — bloc de réassurance (ajout retenu
-            depuis la revue externe). Coût faible : ces données existent déjà
-            via le KYC vendeur/livreur. */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-            Qui s'occupe de votre commande ?
-          </h2>
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2.5 text-sm">
-              <ShieldCheck size={16} className="text-teal-500 shrink-0" />
-              <span className="text-gray-700">Boutique validée</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-sm">
-              <ShieldCheck size={16} className="text-teal-500 shrink-0" />
-              <span className="text-gray-700">Livreur vérifié</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-sm">
-              <ShieldCheck size={16} className="text-teal-500 shrink-0" />
-              <span className="text-gray-700">Paiement sécurisé</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-sm">
-              <ShieldCheck size={16} className="text-teal-500 shrink-0" />
-              <span className="text-gray-700">Fonds bloqués en escrow Ayiba</span>
+            {/* Qui s'occupe de votre commande */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+                Qui s'occupe de votre commande ?
+              </h2>
+              <div className="space-y-2.5">
+                <div className="flex items-center gap-2.5 text-sm">
+                  <ShieldCheck size={16} className="text-teal-500 shrink-0" />
+                  <span className="text-gray-700">Boutique validée</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-sm">
+                  <ShieldCheck size={16} className="text-teal-500 shrink-0" />
+                  <span className="text-gray-700">Livreur vérifié</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-sm">
+                  <ShieldCheck size={16} className="text-teal-500 shrink-0" />
+                  <span className="text-gray-700">Paiement sécurisé</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-sm">
+                  <ShieldCheck size={16} className="text-teal-500 shrink-0" />
+                  <span className="text-gray-700">Fonds bloqués en escrow Ayiba</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Infos */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Informations</h2>
-          <div className="flex items-center gap-3 text-sm">
-            <Package size={16} className="text-gray-400" />
-            <span className="text-gray-700">
-              {commande.montant_total.toLocaleString()} FCFA
-              {commande.frais_livraison ? ` + ${commande.frais_livraison.toLocaleString()} FCFA livraison` : ""}
-            </span>
-          </div>
-          {commande.adresse_livraison && (
-            <div className="flex items-center gap-3 text-sm">
-              <MapPin size={16} className="text-gray-400" />
-              <span className="text-gray-700">{commande.adresse_livraison}</span>
-            </div>
-          )}
-          {commande.vendeur?.nom_boutique && (
-            <div className="flex items-center gap-3 text-sm">
-              <Store size={16} className="text-gray-400" />
-              <span className="text-gray-700">{commande.vendeur.nom_boutique}</span>
-            </div>
-          )}
-          {commande.livreur?.nom && (
-            <div className="flex items-center gap-3 text-sm">
-              <Truck size={16} className="text-gray-400" />
-              <span className="text-gray-700">{commande.livreur.nom}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Communication */}
-        {(commande.vendeur?.telephone || commande.livreur?.telephone) && (
-          <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 h-11 border border-gray-200 rounded-xl text-sm font-bold text-gray-700">
-              <MessageSquare size={16} /> Discuter
-            </button>
-            <button className="flex items-center justify-center gap-2 h-11 border border-gray-200 rounded-xl text-sm font-bold text-gray-700">
-              <Phone size={16} /> Appeler
-            </button>
-          </div>
-        )}
-
-        {/* Laisser un avis — uniquement une fois la commande livrée. */}
-        {commande.statut === "livree" && userId && (
-          <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-1">
-              Ton avis
-            </h2>
-            <div className="space-y-3">
-              {commande.commande_articles?.map((ca) => {
-                const article = one(ca.article);
-                const key = `article:${ca.article_id}`;
-                return (
-                  <LaisserAvisCard
-                    key={key}
-                    type="article"
-                    cibleId={ca.article_id}
-                    label={article?.nom || "Produit"}
-                    commandeId={commande.id}
-                    userId={userId}
-                    avisExistant={avisMap[key] || null}
-                    onSaved={(avis) => setAvisMap((prev) => ({ ...prev, [key]: avis }))}
-                  />
-                );
-              })}
-              {commande.livreur_id && commande.livreur?.nom && (
-                <LaisserAvisCard
-                  type="livreur"
-                  cibleId={commande.livreur_id}
-                  label={commande.livreur.nom}
-                  commandeId={commande.id}
-                  userId={userId}
-                  avisExistant={avisMap[`livreur:${commande.livreur_id}`] || null}
-                  onSaved={(avis) =>
-                    setAvisMap((prev) => ({ ...prev, [`livreur:${commande.livreur_id}`]: avis }))
-                  }
-                />
+          {/* Colonne Droite (Infos, Actions, Avis) */}
+          <div className="md:col-span-5 space-y-6">
+            {/* Infos */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+              <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">Informations</h2>
+              <div className="flex items-center gap-3 text-sm">
+                <Package size={16} className="text-gray-400" />
+                <span className="text-gray-700">
+                  {commande.montant_total.toLocaleString()} FCFA
+                  {commande.frais_livraison ? ` + ${commande.frais_livraison.toLocaleString()} FCFA livraison` : ""}
+                </span>
+              </div>
+              {commande.adresse_livraison && (
+                <div className="flex items-center gap-3 text-sm">
+                  <MapPin size={16} className="text-gray-400" />
+                  <span className="text-gray-700">{commande.adresse_livraison}</span>
+                </div>
+              )}
+              {commande.vendeur?.nom_boutique && (
+                <div className="flex items-center gap-3 text-sm">
+                  <Store size={16} className="text-gray-400" />
+                  <span className="text-gray-700">{commande.vendeur.nom_boutique}</span>
+                </div>
+              )}
+              {commande.livreur?.nom && (
+                <div className="flex items-center gap-3 text-sm">
+                  <Truck size={16} className="text-gray-400" />
+                  <span className="text-gray-700">{commande.livreur.nom}</span>
+                </div>
               )}
             </div>
-          </div>
-        )}
 
-        {/* Confirmation de livraison — un seul bouton, bascule QR -> code6
-            automatique gérée entièrement dans ConfirmationLivraisonModal
-            (Décision 4 du dashboard-client.md). */}
-        {peutConfirmer && (
-          <button
-            onClick={() => setModalOuvert(true)}
-            className="w-full h-14 bg-gray-900 text-white font-bold rounded-2xl flex items-center justify-center gap-2"
-          >
-            <ScanLine size={20} />
-            Confirmer la livraison
-          </button>
-        )}
+            {/* Communication */}
+            {(commande.vendeur?.telephone || commande.livreur?.telephone) && (
+              <div className="grid grid-cols-2 gap-3">
+                <button className="flex items-center justify-center gap-2 h-11 border border-gray-200 rounded-xl text-sm font-bold text-gray-700">
+                  <MessageSquare size={16} /> Discuter
+                </button>
+                <button className="flex items-center justify-center gap-2 h-11 border border-gray-200 rounded-xl text-sm font-bold text-gray-700">
+                  <Phone size={16} /> Appeler
+                </button>
+              </div>
+            )}
+
+            {/* Laisser un avis */}
+            {commande.statut === "livree" && userId && (
+              <div>
+                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 px-1">
+                  Ton avis
+                </h2>
+                <div className="space-y-3">
+                  {commande.commande_articles?.map((ca) => {
+                    const article = one(ca.article);
+                    const key = `article:${ca.article_id}`;
+                    return (
+                      <LaisserAvisCard
+                        key={key}
+                        type="article"
+                        cibleId={ca.article_id}
+                        label={article?.nom || "Produit"}
+                        commandeId={commande.id}
+                        userId={userId}
+                        avisExistant={avisMap[key] || null}
+                        onSaved={(avis) => setAvisMap((prev) => ({ ...prev, [key]: avis }))}
+                      />
+                    );
+                  })}
+                  {commande.livreur_id && commande.livreur?.nom && (
+                    <LaisserAvisCard
+                      type="livreur"
+                      cibleId={commande.livreur_id}
+                      label={commande.livreur.nom}
+                      commandeId={commande.id}
+                      userId={userId}
+                      avisExistant={avisMap[`livreur:${commande.livreur_id}`] || null}
+                      onSaved={(avis) =>
+                        setAvisMap((prev) => ({ ...prev, [`livreur:${commande.livreur_id}`]: avis }))
+                      }
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Confirmation de livraison */}
+            {peutConfirmer && (
+              <button
+                onClick={() => setModalOuvert(true)}
+                className="w-full h-14 bg-gray-900 text-white font-bold rounded-2xl flex items-center justify-center gap-2"
+              >
+                <ScanLine size={20} />
+                Confirmer la livraison
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <ConfirmationLivraisonModal

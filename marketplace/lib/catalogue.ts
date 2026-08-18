@@ -221,3 +221,32 @@ export async function toggleFavorite(
   }
   return true;
 }
+
+export function slugify(text: string): string {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
+}
+
+export function getProductUrl(product: { id: string; nom: string }): string {
+  const slug = slugify(product.nom);
+  return slug ? `/produits/${slug}-${product.id}` : `/produits/${product.id}`;
+}
+
+export function getBoutiqueUrl(boutique: { id: string; nom_boutique?: string | null }): string {
+  const slug = slugify(boutique.nom_boutique || "");
+  return slug ? `/boutiques/${slug}-${boutique.id}` : `/boutiques/${boutique.id}`;
+}
+
+export function extractIdFromSlugParam(param: string): string {
+  if (!param) return "";
+  const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+  const match = param.match(uuidRegex);
+  if (match) return match[0];
+  return param;
+}

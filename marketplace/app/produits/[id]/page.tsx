@@ -18,7 +18,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart, Star, ShoppingBag, MessageCircle, Share2,
   ChevronLeft, ChevronRight, Minus, Plus,
-  Wallet, QrCode, ShieldCheck, MapPin, Truck
+  Wallet, QrCode, ShieldCheck, MapPin, Truck,
+  ZoomIn, X, Flame, Check, Globe
 } from 'lucide-react'
 import {
   ARTICLE_CARD_SELECT,
@@ -30,6 +31,8 @@ import {
   mapArticleRow,
   toggleFavorite,
   VendeurStats,
+  extractIdFromSlugParam,
+  getProductUrl,
 } from '@/lib/catalogue'
 import { ScrollToTop } from '@/components/ui/ScrollToTop'
 
@@ -165,6 +168,7 @@ export default function ProductDetailPage() {
   const [reviewsPage, setReviewsPage] = useState(0)
   const [totalReviewsCount, setTotalReviewsCount] = useState(0)
   const [loadingMoreReviews, setLoadingMoreReviews] = useState(false)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
   // Où renvoyer l'utilisateur une fois connecté : /checkout après un "Acheter
   // maintenant" en étant déconnecté, null pour les autres usages (favoris...)
   // où on veut juste rester sur la page produit.
@@ -195,7 +199,8 @@ export default function ProductDetailPage() {
   const fetchProduct = async () => {
     setLoading(true)
     try {
-      const articleId = params.id as string
+      const rawParam = params.id as string
+      const articleId = extractIdFromSlugParam(rawParam)
 
       // Select dédié (plutôt que ARTICLE_CARD_SELECT) pour éviter d'embarquer
       // deux fois la relation vendeurs avec des colonnes différentes : ici on
@@ -563,7 +568,8 @@ export default function ProductDetailPage() {
             className="min-w-0"
           >
             <div
-              className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-square touch-pan-y"
+              className="relative bg-gray-50 rounded-2xl overflow-hidden aspect-square touch-pan-y group/gallery cursor-zoom-in"
+              onClick={() => setLightboxOpen(true)}
               onTouchStart={(e) => {
                 (e.currentTarget as any)._touchStartX = e.touches[0].clientX
               }}
@@ -583,7 +589,7 @@ export default function ProductDetailPage() {
                 src={galleryPhotos[currentImageIndex] ?? galleryPhotos[0]}
                 alt={product.nom}
                 fill
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover group-hover/gallery:scale-105 transition-transform duration-500"
                 sizes="(max-width: 768px) 100vw, 50vw"
                 priority={currentImageIndex === 0}
               />
@@ -591,8 +597,11 @@ export default function ProductDetailPage() {
               {galleryPhotos.length > 1 && (
                 <>
                   <button
-                    onClick={() => setCurrentImageIndex((prev) => (prev - 1 + galleryPhotos.length) % galleryPhotos.length)}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex((prev) => (prev - 1 + galleryPhotos.length) % galleryPhotos.length)
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center z-10"
                     aria-label="Image précédente"
                   >
                     <span className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg">
@@ -600,19 +609,30 @@ export default function ProductDetailPage() {
                     </span>
                   </button>
                   <button
-                    onClick={() => setCurrentImageIndex((prev) => (prev + 1) % galleryPhotos.length)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setCurrentImageIndex((prev) => (prev + 1) % galleryPhotos.length)
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center z-10"
                     aria-label="Image suivante"
                   >
                     <span className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg">
                       <ChevronRight size={20} />
                     </span>
                   </button>
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+
+                  <div className="absolute bottom-4 left-4 bg-black/60 backdrop-blur-md text-white text-xs font-extrabold px-2.5 py-1 rounded-full z-10">
+                    {currentImageIndex + 1} / {galleryPhotos.length}
+                  </div>
+
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
                     {galleryPhotos.map((_, i) => (
                       <button
                         key={i}
-                        onClick={() => setCurrentImageIndex(i)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setCurrentImageIndex(i);
+                        }}
                         className={`w-2 h-2 rounded-full transition-colors ${
                           i === currentImageIndex ? 'bg-gray-900' : 'bg-white/60'
                         }`}
@@ -623,15 +643,28 @@ export default function ProductDetailPage() {
               )}
 
               {discount && (
-                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-red-600 text-white rounded-full px-3 py-1.5 text-sm font-black shadow-sm">
+                <div className="absolute top-4 left-4 flex items-center gap-1.5 bg-red-600 text-white rounded-full px-3 py-1.5 text-sm font-black shadow-sm z-10">
                   <Star size={13} className="fill-white text-white" />
                   -{discount}%
                 </div>
               )}
 
-              <div className="absolute top-4 right-4 flex gap-2">
+              <div className="absolute top-4 right-4 flex gap-2 z-10">
                 <button
-                  onClick={handleToggleFavorite}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLightboxOpen(true);
+                  }}
+                  className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg text-gray-700"
+                  title="Agrandir en plein écran"
+                >
+                  <ZoomIn size={18} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleFavorite();
+                  }}
                   className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
                 >
                   <Heart
@@ -640,7 +673,10 @@ export default function ProductDetailPage() {
                   />
                 </button>
                 <button
-                  onClick={handleShare}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleShare();
+                  }}
                   className="w-10 h-10 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-lg"
                 >
                   <Share2 size={20} className="text-gray-600" />
@@ -689,6 +725,30 @@ export default function ProductDetailPage() {
                   {displayAncienPrix.toLocaleString('fr-FR')} FCFA
                 </span>
               )}
+            </div>
+
+            {/* Badge d'urgence stock faible */}
+            {displayStock !== null && displayStock <= 5 && displayStock > 0 && (
+              <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-900 border border-amber-200/80 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-xs">
+                <Flame size={15} className="text-coral-500 fill-coral-500 shrink-0 animate-pulse" />
+                <span>Attention, plus que <strong className="text-coral-600 font-black">{displayStock} article(s)</strong> disponible(s) !</span>
+              </div>
+            )}
+
+            {/* Badges de Réassurance Clés */}
+            <div className="grid grid-cols-3 gap-2 pt-1">
+              <div className="flex flex-col items-center text-center gap-1 p-2.5 bg-amber-50/70 border border-amber-100 rounded-xl">
+                <Wallet size={16} className="text-amber-600" />
+                <span className="text-[10px] font-bold text-gray-800 leading-tight">Paiement Escrow</span>
+              </div>
+              <div className="flex flex-col items-center text-center gap-1 p-2.5 bg-coral-50/70 border border-coral-100 rounded-xl">
+                <QrCode size={16} className="text-coral-600" />
+                <span className="text-[10px] font-bold text-gray-800 leading-tight">Scan & Code Secret</span>
+              </div>
+              <div className="flex flex-col items-center text-center gap-1 p-2.5 bg-teal-50/70 border border-teal-100 rounded-xl">
+                <ShieldCheck size={16} className="text-teal-600" />
+                <span className="text-[10px] font-bold text-gray-800 leading-tight">Vendeur Vérifié</span>
+              </div>
             </div>
 
             {variantesError && (
@@ -889,11 +949,50 @@ export default function ProductDetailPage() {
           </motion.div>
         </div>
 
-        {/* Avis clients */}
+        {/* Avis clients avec Histogramme des notes */}
         <section className="mt-14 md:mt-20 pt-10 md:pt-14 border-t border-gray-100">
           <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-6 md:mb-8">
             Avis clients <span className="text-gray-400 font-medium">({product.reviewCount})</span>
           </h2>
+
+          {/* Histogramme synthétique des avis */}
+          {reviews.length > 0 && (
+            <div className="bg-gray-50 rounded-3xl p-6 mb-8 flex flex-col md:flex-row items-center gap-8">
+              <div className="text-center shrink-0">
+                <p className="text-5xl font-black text-gray-900 leading-none">{product.rating.toFixed(1)}</p>
+                <div className="flex items-center justify-center gap-1 my-2">
+                  {Array.from({ length: 5 }).map((_, s) => (
+                    <Star
+                      key={s}
+                      size={18}
+                      className={s < Math.round(product.rating) ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}
+                    />
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 font-semibold">{product.reviewCount} avis vérifiés</p>
+              </div>
+
+              <div className="w-full flex-1 space-y-2">
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const countForStar = reviews.filter((r) => r.note === star).length;
+                  const percent = totalReviewsCount > 0 ? Math.round((countForStar / reviews.length) * 100) : 0;
+                  return (
+                    <div key={star} className="flex items-center gap-3 text-xs">
+                      <span className="w-8 font-bold text-gray-700">{star} ★</span>
+                      <div className="flex-1 h-2.5 bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <span className="w-8 text-right text-gray-400 font-medium">{percent}%</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {reviews.length === 0 ? (
             <div className="py-12 text-center bg-gray-50 rounded-2xl">
               <Star size={28} className="mx-auto mb-3 text-gray-300" />
@@ -949,7 +1048,7 @@ export default function ProductDetailPage() {
           )}
         </section>
 
-        {/* Produits similaires */}
+        {/* Produits similaires avec des URLs SEO slugs */}
         {similarProducts.length > 0 && (
           <section className="mt-14 md:mt-20 pt-10 md:pt-14 border-t border-gray-100">
             <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-6 md:mb-8">
@@ -957,7 +1056,7 @@ export default function ProductDetailPage() {
             </h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
               {similarProducts.map((p) => (
-                <Link key={p.id} href={`/produits/${p.id}`} className="block">
+                <Link key={p.id} href={getProductUrl(p)} className="block">
                   <ProductCardModern
                     image={p.photos[0]}
                     category={p.categorieLabel}
@@ -985,47 +1084,128 @@ export default function ProductDetailPage() {
         )}
       </main>
 
-      {/* Barre sticky mobile — visible uniquement après scroll > 300px */}
-      <AnimatePresence>
-        {showStickyBar && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ duration: 0.25 }}
-            className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-[60] shadow-lg"
-            role="complementary"
-            aria-label="Panier mobile flottant"
+      {/* Barre sticky mobile toujours accessible avec sélecteur de quantité */}
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-gray-200 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] z-[60] shadow-2xl"
+        role="complementary"
+        aria-label="Panier mobile flottant"
+      >
+        <div className="flex items-center gap-2">
+          {/* Quantité interactive direct sur mobile */}
+          <div className="flex items-center border border-gray-200 rounded-2xl bg-gray-50 p-1 shrink-0">
+            <button
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white text-gray-700 font-bold"
+              aria-label="Diminuer la quantité"
+            >
+              <Minus size={14} />
+            </button>
+            <span className="w-6 text-center text-xs font-black text-gray-900">{quantity}</span>
+            <button
+              onClick={() => setQuantity(quantity + 1)}
+              className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-white text-gray-700 font-bold"
+              aria-label="Augmenter la quantité"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+
+          <div className="shrink-0 text-left min-w-0">
+            <p className="text-base font-black text-gray-900 leading-none truncate">
+              {totalPrice.toLocaleString('fr-FR')} <span className="text-[10px] font-bold text-gray-500">FCFA</span>
+            </p>
+          </div>
+
+          <button
+            onClick={handleAddToCart}
+            disabled={achatBloque}
+            className={`w-11 h-11 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+              justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900 hover:bg-gray-50'
+            }`}
+            aria-label="Ajouter au panier"
           >
-            <div className="flex items-center gap-3">
-              <div className="shrink-0">
-                <p className="text-2xl font-black text-gray-900 leading-none">
-                  {totalPrice.toLocaleString('fr-FR')} <span className="text-base font-bold text-gray-500">FCFA</span>
-                </p>
-                {quantity > 1 && (
-                  <p className="text-[11px] text-gray-400 mt-0.5">{quantity} article(s)</p>
-                )}
-              </div>
+            <ShoppingBag size={20} />
+          </button>
+
+          <button
+            onClick={handleBuyNow}
+            disabled={achatBloque}
+            className="flex-1 h-11 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-extrabold text-xs transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed truncate px-2"
+          >
+            {achatBloque && selectionIncomplete ? 'Choisis une option' : isOwnProduct ? 'Non disponible' : 'Acheter'}
+          </button>
+        </div>
+      </div>
+
+      {/* Lightbox Plein Écran pour les photos produits */}
+      <AnimatePresence>
+        {lightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/92 backdrop-blur-md flex flex-col items-center justify-between p-4"
+          >
+            <div className="w-full flex items-center justify-between text-white max-w-5xl">
+              <span className="text-xs font-bold bg-white/10 px-3 py-1.5 rounded-full">
+                {currentImageIndex + 1} / {galleryPhotos.length}
+              </span>
+              <p className="text-xs font-medium truncate max-w-xs text-gray-300 hidden md:block">
+                {product.nom}
+              </p>
               <button
-                onClick={handleAddToCart}
-                disabled={achatBloque}
-                className={`w-14 h-14 rounded-2xl border-2 flex items-center justify-center shrink-0 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
-                  justAdded ? 'border-teal-600 text-teal-600 bg-teal-50' : 'border-gray-900 text-gray-900 hover:bg-gray-50'
-                }`}
-                aria-label={justAdded ? 'Produit ajouté au panier' : 'Ajouter au panier'}
-                title={justAdded ? 'Produit ajouté ✓' : 'Ajouter au panier'}
+                onClick={() => setLightboxOpen(false)}
+                className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
+                aria-label="Fermer"
               >
-                <ShoppingBag size={26} />
-              </button>
-              <button
-                onClick={handleBuyNow}
-                disabled={achatBloque}
-                className="flex-1 h-14 rounded-2xl bg-coral-500 hover:bg-coral-600 active:bg-coral-700 text-white font-bold text-base transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label={achatBloque && selectionIncomplete ? 'Choisis une option pour continuer' : isOwnProduct ? 'Impossible - c\'est votre produit' : 'Acheter maintenant'}
-              >
-                {achatBloque && selectionIncomplete ? 'Choisis une option' : isOwnProduct ? 'Non disponible' : 'Acheter maintenant'}
+                <X size={22} />
               </button>
             </div>
+
+            <div className="relative w-full max-w-4xl h-[65vh] md:h-[75vh] flex items-center justify-center my-auto">
+              <Image
+                src={galleryPhotos[currentImageIndex] ?? galleryPhotos[0]}
+                alt={product.nom}
+                fill
+                className="object-contain"
+                sizes="100vw"
+                priority
+              />
+              {galleryPhotos.length > 1 && (
+                <>
+                  <button
+                    onClick={() => setCurrentImageIndex((prev) => (prev - 1 + galleryPhotos.length) % galleryPhotos.length)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Image précédente"
+                  >
+                    <ChevronLeft size={24} />
+                  </button>
+                  <button
+                    onClick={() => setCurrentImageIndex((prev) => (prev + 1) % galleryPhotos.length)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Image suivante"
+                  >
+                    <ChevronRight size={24} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            {galleryPhotos.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto max-w-full pb-2 no-scrollbar">
+                {galleryPhotos.map((photo, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentImageIndex(i)}
+                    className={`relative w-14 h-14 rounded-xl overflow-hidden shrink-0 border-2 transition-colors cursor-pointer ${
+                      i === currentImageIndex ? 'border-coral-500 ring-2 ring-coral-500/50' : 'border-transparent opacity-50 hover:opacity-100'
+                    }`}
+                  >
+                    <Image src={photo} alt="" fill className="object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

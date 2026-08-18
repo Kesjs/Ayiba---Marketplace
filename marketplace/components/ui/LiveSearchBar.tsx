@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, X, History, TrendingUp, Sparkles, ChevronRight, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
-import { ARTICLE_CARD_SELECT, ArticleCardRow, mapArticleRow, fetchArticleRatings, ArticleCard } from "@/lib/catalogue";
+import { ARTICLE_CARD_SELECT, ArticleCardRow, mapArticleRow, fetchArticleRatings, ArticleCard, getProductUrl } from "@/lib/catalogue";
 
 const LOCAL_STORAGE_KEY = "ayiba_recent_searches";
 const MAX_RECENT_SEARCHES = 5;
@@ -340,7 +340,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                                 saveSearchTerm(product.nom);
                                 setIsOpen(false);
                                 onSearchSubmit?.();
-                                router.push(`/produits/${product.id}`);
+                                router.push(getProductUrl(product));
                               }}
                               className="flex items-center gap-3 p-2 rounded-2xl hover:bg-coral-50/50 transition-colors cursor-pointer group"
                             >

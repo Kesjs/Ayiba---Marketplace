@@ -13,7 +13,7 @@ import { useToast } from '@/context/ToastContext'
 import { WelcomeAddressModal } from '@/components/onboarding/WelcomeAddressModal'
 import { AuthModal } from '@/components/ui/AuthModal'
 import { createClient } from '@/lib/supabase/client'
-import { fetchFavoriteIds, toggleFavorite } from '@/lib/catalogue'
+import { toggleFavorite, fetchFavoriteIds, getProductUrl } from '@/lib/catalogue'
 import { Search, SlidersHorizontal, LayoutGrid, List, X, ChevronDown } from 'lucide-react'
 import type { User } from '@supabase/supabase-js'
 
@@ -311,7 +311,7 @@ function CatalogueContent() {
                         onAddToCart={() => handleAddToCart(product)}
                         isFavorite={favoriteIds.has(product.id)}
                         onToggleFavorite={() => handleToggleFavorite(product.id)}
-                        onClick={() => router.push(`/produits/${product.id}`)}
+                        onClick={() => router.push(getProductUrl(product))}
                       />
                     </div>
                   ))}

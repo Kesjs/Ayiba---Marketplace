@@ -10,7 +10,7 @@ import { Footer } from "@/components/home/Footer";
 import useArticlesPublics from "@/lib/hooks/useArticlesPublics";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
 import { createClient } from "@/lib/supabase/client";
-import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
+import { fetchFavoriteIds, toggleFavorite, getProductUrl, getBoutiqueUrl } from "@/lib/catalogue";
 import { Search, ChevronLeft, ChevronRight, MapPin, Zap, Star, ArrowLeft, ArrowRight, MessageCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo } from "react";
@@ -238,7 +238,7 @@ export default function VendeurCataloguePage() {
                       onAddToCart={() => handleAdd(p)}
                       isFavorite={favoriteIds.has(p.id)}
                       onToggleFavorite={() => handleToggleFavorite(p.id)}
-                      onClick={() => router.push(`/produits/${p.id}`)}
+                      onClick={() => router.push(getProductUrl(p))}
                     />
                   </div>
                 ))}
@@ -274,7 +274,7 @@ export default function VendeurCataloguePage() {
                       onAddToCart={() => handleAdd(p)}
                       isFavorite={favoriteIds.has(p.id)}
                       onToggleFavorite={() => handleToggleFavorite(p.id)}
-                      onClick={() => router.push(`/produits/${p.id}`)}
+                      onClick={() => router.push(getProductUrl(p))}
                     />
                   </div>
                 ))}
@@ -363,7 +363,7 @@ export default function VendeurCataloguePage() {
                     onAddToCart={() => handleAdd(p)}
                     isFavorite={favoriteIds.has(p.id)}
                     onToggleFavorite={() => handleToggleFavorite(p.id)}
-                    onClick={() => router.push(`/produits/${p.id}`)}
+                    onClick={() => router.push(getProductUrl(p))}
                   />
                 </div>
               ))
@@ -436,9 +436,9 @@ export default function VendeurCataloguePage() {
                   key={store.id}
                   role="link"
                   tabIndex={0}
-                  onClick={() => router.push(`/boutiques/${store.id}`)}
+                  onClick={() => router.push(getBoutiqueUrl(store))}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") router.push(`/boutiques/${store.id}`);
+                    if (e.key === "Enter") router.push(getBoutiqueUrl(store));
                   }}
                   className="group flex flex-col p-5 md:p-6 bg-gray-50/50 rounded-2xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer"
                 >

@@ -18,6 +18,7 @@ import {
   fetchFavoriteIds,
   mapArticleRow,
   toggleFavorite,
+  getProductUrl,
 } from '@/lib/catalogue'
 
 export default function FavorisPage() {
@@ -145,7 +146,7 @@ export default function FavorisPage() {
                   isFavorite={favoriteIds.has(product.id)}
                   onAddToCart={() => handleAddToCart(product)}
                   onToggleFavorite={() => handleToggleFavorite(product.id)}
-                  onClick={() => router.push(`/produits/${product.id}`)}
+                  onClick={() => router.push(getProductUrl(product))}
                 />
               </div>
             ))}

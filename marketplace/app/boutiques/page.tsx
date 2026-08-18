@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getBoutiqueUrl } from "@/lib/catalogue";
 import { MapPin, Star, MessageCircle, ArrowRight } from "lucide-react";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
@@ -92,9 +93,9 @@ export default function BoutiquesPage() {
                 key={store.id}
                 role="link"
                 tabIndex={0}
-                onClick={() => router.push(`/boutiques/${store.id}`)}
+                onClick={() => router.push(getBoutiqueUrl(store))}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter") router.push(`/boutiques/${store.id}`);
+                  if (e.key === "Enter") router.push(getBoutiqueUrl(store));
                 }}
                 className="group flex flex-col p-5 md:p-6 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer"
               >

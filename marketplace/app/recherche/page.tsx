@@ -17,6 +17,7 @@ import {
   fetchFavoriteIds,
   mapArticleRow,
   toggleFavorite,
+  getProductUrl,
 } from '@/lib/catalogue'
 import { useCart } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
@@ -237,7 +238,7 @@ function SearchResults() {
                 isFavorite={favoriteIds.has(product.id)}
                 onAddToCart={() => handleAddToCart(product)}
                 onToggleFavorite={() => handleToggleFavorite(product.id)}
-                onClick={() => router.push(`/produits/${product.id}`)}
+                onClick={() => router.push(getProductUrl(product))}
               />
             </div>
           ))}

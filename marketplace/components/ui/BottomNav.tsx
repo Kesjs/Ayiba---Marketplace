@@ -137,7 +137,6 @@ export function BottomNav() {
       { label: "Accueil", icon: Home, href: "/" },
       { label: "Catalogue", icon: Search, href: "/catalogue" },
       { label: "Explorer", icon: MapPin, href: "/boutiques" },
-      { label: "Partenaire", icon: Briefcase, isAction: true },
     ],
     client: [
       { label: "Accueil", icon: Home, href: "/" },
@@ -391,49 +390,6 @@ export function BottomNav() {
 
   return (
     <>
-      <AnimatePresence>
-        {isPartnerOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setIsPartnerOpen(false)}
-              className="fixed inset-0 bg-gray-900/40 z-[60] backdrop-blur-sm"
-            />
-            <motion.div 
-              initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              drag="y"
-              dragControls={partnerDragControls}
-              dragListener={false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0, bottom: 1 }}
-              onDragEnd={(_, info) => { if (shouldCloseOnSwipeDown(info)) setIsPartnerOpen(false); }}
-              className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] shadow-2xl"
-            >
-              <div
-                onPointerDown={(e) => partnerDragControls.start(e)}
-                className="flex justify-center pt-3 pb-1 cursor-grab active:cursor-grabbing touch-none"
-              >
-                <div className="w-10 h-1 rounded-full bg-gray-200" />
-              </div>
-              <div className="p-6 pt-2">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold">Devenir Partenaire</h3>
-                  <button onClick={() => setIsPartnerOpen(false)}><X size={20}/></button>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <Link href={profile ? "/profil/devenir-vendeur" : "/devenir-vendeur"} onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-coral-50 rounded-2xl text-coral-600 font-bold">
-                    <Store /> Ouvrir ma boutique
-                  </Link>
-                  <Link href={profile ? "/profil/devenir-livreur" : "/devenir-livreur"} onClick={() => setIsPartnerOpen(false)} className="flex items-center gap-4 p-4 bg-teal-50 rounded-2xl text-teal-600 font-bold">
-                    <Bike /> Devenir livreur
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* Nav pleine largeur, collée au bord, fond opaque — plus d'effet flottant */}
       <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden">

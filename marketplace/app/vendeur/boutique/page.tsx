@@ -7,7 +7,7 @@ import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { MobileMoneySelector } from "@/components/boutique/MobileMoneySelector";
 import { AdresseForm } from "@/components/adresse/AdresseForm";
-import { Check, Camera, ImagePlus, MapPin, Clock, Store, Star, CheckCircle2, MessageCircle } from "lucide-react";
+import { Check, Camera, ImagePlus, MapPin, Clock, Store, Star, CheckCircle2, MessageCircle, Copy, ExternalLink, Share2, Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { fetchVendeurStats, type VendeurStats } from "@/lib/catalogue";
 
@@ -75,6 +75,19 @@ export default function VendeurBoutiquePage() {
   const [initialForm, setInitialForm] = useState(form);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const publicBoutiqueUrl = boutique?.id
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/boutiques/${boutique.id}`
+    : "";
+
+  const handleCopyLink = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (!publicBoutiqueUrl) return;
+    navigator.clipboard.writeText(publicBoutiqueUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
 
   // Stats réelles (note moyenne, avis) pour que l'aperçu montre vraiment ce
   // que les clients voient sur /boutiques/[id] — avant, l'aperçu ne montrait
@@ -176,6 +189,84 @@ export default function VendeurBoutiquePage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-8">
+            {/* CARTE LIEN PUBLIC BOUTIQUE & PARTAGE */}
+            {boutique?.id && (
+              <div className="bg-gradient-to-br from-coral-50/90 via-amber-50/40 to-teal-50/40 rounded-3xl border border-coral-200/80 p-6 shadow-sm space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-2xl bg-coral-500 text-white flex items-center justify-center shadow-xs">
+                      <Share2 size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900 leading-tight">Lien public de ta boutique</h3>
+                      <p className="text-xs text-gray-500 font-medium">Partage ce lien avec tes clients sur WhatsApp, Facebook ou Instagram</p>
+                    </div>
+                  </div>
+                  <span className="bg-teal-100 text-teal-700 text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                    <Globe size={12} /> Accessible sans connexion
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+                  <div className="relative w-full flex-1">
+                    <input
+                      type="text"
+                      readOnly
+                      value={publicBoutiqueUrl}
+                      className="w-full bg-white border border-gray-200 rounded-2xl py-3 pl-4 pr-4 text-xs md:text-sm font-semibold text-gray-800 outline-none select-all shadow-xs"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.95 }}
+                      onClick={handleCopyLink}
+                      className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl text-xs md:text-sm font-bold transition-all shadow-xs cursor-pointer ${
+                        copied
+                          ? "bg-teal-500 text-white shadow-teal-500/20"
+                          : "bg-coral-500 hover:bg-coral-600 text-white shadow-coral-500/20"
+                      }`}
+                    >
+                      <AnimatePresence mode="wait" initial={false}>
+                        {copied ? (
+                          <motion.span
+                            key="copied"
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.5 }}
+                            className="flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 size={16} /> Lien copié !
+                          </motion.span>
+                        ) : (
+                          <motion.span
+                            key="copy"
+                            initial={{ opacity: 0, scale: 0.5 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.5 }}
+                            className="flex items-center gap-1.5"
+                          >
+                            <Copy size={16} /> Copier le lien
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </motion.button>
+
+                    <a
+                      href={`/boutiques/${boutique.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center p-3 rounded-2xl bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 transition-colors shadow-xs cursor-pointer"
+                      title="Ouvrir ma boutique publique"
+                    >
+                      <ExternalLink size={18} />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {boutique?.statut !== "valide" && (
               <div
                 className={`p-4 rounded-2xl border text-sm font-medium ${

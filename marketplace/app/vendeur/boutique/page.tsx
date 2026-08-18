@@ -9,7 +9,7 @@ import { MobileMoneySelector } from "@/components/boutique/MobileMoneySelector";
 import { AdresseForm } from "@/components/adresse/AdresseForm";
 import { Check, Camera, ImagePlus, MapPin, Clock, Store, Star, CheckCircle2, MessageCircle, Copy, ExternalLink, Share2, Globe } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { fetchVendeurStats, type VendeurStats } from "@/lib/catalogue";
+import { fetchVendeurStats, type VendeurStats, getBoutiqueUrl } from "@/lib/catalogue";
 
 // Préfixes (2 chiffres après le 01) par opérateur — Bénin, plan à 10 chiffres depuis nov. 2024
 const PREFIXES_RESEAU: Record<string, string[]> = {
@@ -77,8 +77,12 @@ export default function VendeurBoutiquePage() {
   const [uploading, setUploading] = useState<"logo" | "cover" | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const publicBoutiqueUrl = boutique?.id
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/boutiques/${boutique.id}`
+  const publicBoutiquePath = boutique?.id
+    ? getBoutiqueUrl({ id: boutique.id, nom_boutique: form.nom_boutique || boutique.nom_boutique })
+    : "";
+
+  const publicBoutiqueUrl = publicBoutiquePath
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}${publicBoutiquePath}`
     : "";
 
   const handleCopyLink = (e: React.MouseEvent) => {
@@ -87,6 +91,25 @@ export default function VendeurBoutiquePage() {
     navigator.clipboard.writeText(publicBoutiqueUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
+  };
+
+  const handleNativeShare = async () => {
+    if (!publicBoutiqueUrl) return;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({
+          title: form.nom_boutique || boutique?.nom_boutique || "Ma boutique",
+          text: `Découvrez la boutique ${form.nom_boutique || boutique?.nom_boutique || ""} sur Ayiba Marketplace !`,
+          url: publicBoutiqueUrl,
+        });
+      } catch (err) {
+        // Annulation utilisateur
+      }
+    } else {
+      navigator.clipboard.writeText(publicBoutiqueUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
   };
 
   // Stats réelles (note moyenne, avis) pour que l'aperçu montre vraiment ce
@@ -198,8 +221,8 @@ export default function VendeurBoutiquePage() {
                       <Share2 size={18} />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-gray-900 leading-tight">Lien public de ta boutique</h3>
-                      <p className="text-xs text-gray-500 font-medium">Partage ce lien avec tes clients sur WhatsApp, Facebook ou Instagram</p>
+                      <h3 className="text-base font-bold text-gray-900 leading-tight">Lien public de votre boutique</h3>
+                      <p className="text-xs text-gray-500 font-medium">Partagez ce lien avec vos clients pour leur donner un accès direct à votre vitrine et vos produits.</p>
                     </div>
                   </div>
                   <span className="bg-teal-100 text-teal-700 text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
@@ -253,8 +276,17 @@ export default function VendeurBoutiquePage() {
                       </AnimatePresence>
                     </motion.button>
 
+                    <button
+                      type="button"
+                      onClick={handleNativeShare}
+                      className="inline-flex items-center justify-center p-3 rounded-2xl bg-white hover:bg-gray-100 text-coral-600 border border-gray-200 transition-colors shadow-xs cursor-pointer"
+                      title="Partager directement"
+                    >
+                      <Share2 size={18} />
+                    </button>
+
                     <a
-                      href={`/boutiques/${boutique.id}`}
+                      href={publicBoutiquePath}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center justify-center p-3 rounded-2xl bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 transition-colors shadow-xs cursor-pointer"

@@ -16,7 +16,7 @@ import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
-import { fetchFavoriteIds, toggleFavorite } from "@/lib/catalogue";
+import { fetchFavoriteIds, toggleFavorite, extractIdFromSlugParam, getProductUrl } from "@/lib/catalogue";
 
 function prixAffiche(a: ArticlePublic) {
   return a.prix_promo ?? a.prix;
@@ -28,7 +28,8 @@ function ancienPrixAffiche(a: ArticlePublic) {
 export default function BoutiqueDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const boutiqueId = params.id as string;
+  const rawParam = (params.id as string) || "";
+  const boutiqueId = extractIdFromSlugParam(rawParam);
   const { addItem } = useCart();
   const { showToast } = useToast();
   const { user, profile } = useUser();
@@ -257,7 +258,7 @@ export default function BoutiqueDetailPage() {
                 onAddToCart={() => handleAddToCart(product)}
                 isFavorite={favoriteIds.has(product.id)}
                 onToggleFavorite={() => handleToggleFavorite(product.id)}
-                onClick={() => router.push(`/produits/${product.id}`)}
+                onClick={() => router.push(getProductUrl(product))}
               />
             ))}
           </div>

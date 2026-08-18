@@ -540,8 +540,6 @@ export default function ProductDetailPage() {
   const specs = [
     { label: "Catégorie", value: product.categorieLabel },
     { label: "Vendu par", value: product.vendeur.full_name },
-    { label: "État", value: "Neuf" },
-    { label: "Livraison estimée", value: "24 à 48h" },
   ]
 
   return (
@@ -808,12 +806,6 @@ export default function ProductDetailPage() {
                     Vendeur basé à <strong>{product.vendeur.commune}</strong>
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Truck size={16} className="text-teal-600 shrink-0" />
-                  <span className="text-gray-700 font-medium">
-                    Livraison estimée : <strong>24 à 48h</strong>
-                  </span>
-                </div>
               </div>
             )}
 
@@ -869,20 +861,7 @@ export default function ProductDetailPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-amber-50 rounded-xl">
-                <Wallet size={18} className="text-amber-500" />
-                <span className="text-[10px] font-bold text-gray-700 leading-tight">Paiement Escrow</span>
-              </div>
-              <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-coral-50 rounded-xl">
-                <QrCode size={18} className="text-coral-500" />
-                <span className="text-[10px] font-bold text-gray-700 leading-tight">Scan & Code Secret</span>
-              </div>
-              <div className="flex flex-col items-center text-center gap-1.5 p-3 bg-teal-50 rounded-xl">
-                <ShieldCheck size={18} className="text-teal-500" />
-                <span className="text-[10px] font-bold text-gray-700 leading-tight">Vendeur Vérifié</span>
-              </div>
-            </div>
+
 
             {isOwnProduct && (
               <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-100 rounded-xl">

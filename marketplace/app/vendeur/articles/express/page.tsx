@@ -49,6 +49,7 @@ interface ExpressCard {
   categorieId: string;
   stock: string;
   description: string;
+  tags: string[];
   aiLoading: boolean;
 }
 
@@ -62,6 +63,7 @@ function createEmptyCard(categorieId = ""): ExpressCard {
     categorieId,
     stock: "1",
     description: "",
+    tags: [],
     aiLoading: false,
   };
 }
@@ -295,7 +297,7 @@ function ProductCard({
         <div>
           <div className="flex items-center justify-between mb-1.5">
             <label className="text-xs font-bold text-gray-700">
-              Description <span className="text-gray-400 font-normal">(opt.)</span>
+              Description & Catégorie <span className="text-gray-400 font-normal">(opt.)</span>
             </label>
             <button
               type="button"
@@ -308,7 +310,7 @@ function ProductCard({
               ) : (
                 <Sparkles size={12} />
               )}
-              {card.aiLoading ? "Génération..." : "Description auto"}
+              {card.aiLoading ? "Génération..." : "Magie IA"}
             </button>
           </div>
           <textarea
@@ -440,16 +442,12 @@ export default function AjoutExpressPage() {
 
       handleUpdateCard(cardId, "aiLoading", true);
       try {
-        const catLabel =
-          flatCategories.find((c) => c.id === card.categorieId)?.nom ?? "";
-
-        const res = await fetch("/api/ai/description", {
+        const res = await fetch("/api/ai/enrichir", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             nom: card.nom,
-            prix: Number(card.prix) || 0,
-            categorie: catLabel.split("—").pop()?.trim() ?? catLabel,
+            categories: flatCategories, // On passe la liste pour que l'IA choisisse
           }),
         });
 
@@ -457,8 +455,16 @@ export default function AjoutExpressPage() {
         if (data.description) {
           handleUpdateCard(cardId, "description", data.description);
         }
+        if (data.categorie_id) {
+          handleUpdateCard(cardId, "categorieId", data.categorie_id);
+        }
+        if (data.tags && Array.isArray(data.tags)) {
+          handleUpdateCard(cardId, "tags", data.tags);
+        }
+        
+        showToast("Carte enrichie par l'IA ✨", "success");
       } catch {
-        showToast("Impossible de générer la description, réessayez.", "error");
+        showToast("Impossible de générer les infos, réessayez.", "error");
       } finally {
         handleUpdateCard(cardId, "aiLoading", false);
       }
@@ -532,23 +538,25 @@ export default function AjoutExpressPage() {
           }
         }
 
-        // Générer description si vide
+        // Générer description si vide (Fallback de sécurité si l'utilisateur n'a pas cliqué sur Magie IA)
         let description = card.description.trim();
+        let finalTags = card.tags;
+        let finalCat = card.categorieId;
+
         if (!description) {
           try {
-            const catLabel =
-              flatCategories.find((c) => c.id === card.categorieId)?.nom ?? "";
-            const res = await fetch("/api/ai/description", {
+            const res = await fetch("/api/ai/enrichir", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 nom: card.nom,
-                prix: Number(card.prix),
-                categorie: catLabel.split("—").pop()?.trim() ?? catLabel,
+                categories: flatCategories,
               }),
             });
             const data = await res.json();
             description = data.description ?? `${card.nom} disponible sur Ayiba.`;
+            if (data.categorie_id && !finalCat) finalCat = data.categorie_id;
+            if (data.tags) finalTags = data.tags;
           } catch {
             description = `${card.nom} disponible sur Ayiba.`;
           }
@@ -570,11 +578,12 @@ export default function AjoutExpressPage() {
           prix: Number(card.prix),
           prix_promo: card.prixPromo ? Number(card.prixPromo) : null,
           description,
-          categorie_id: card.categorieId || null,
+          categorie_id: finalCat || null,
           photos: photoUrls,
           stock: parseInt(card.stock || "1", 10),
           statut,
           raison_refus: raison ?? null,
+          tags: finalTags, // Tags invisibles SEO injectés ici !
         });
 
         if (!insertErr) successCount++;

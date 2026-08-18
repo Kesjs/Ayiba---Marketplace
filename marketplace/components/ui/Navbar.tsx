@@ -13,6 +13,7 @@ import { useUser } from "@/lib/hooks/useUser";
 import { createClient } from "@/lib/supabase/client";
 import { getRedirectPathForRole, isValidRole } from "@/lib/auth-utils";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
+import { LiveSearchBar } from "@/components/ui/LiveSearchBar";
 
 const supabase = createClient();
 
@@ -239,46 +240,10 @@ export function Navbar() {
             </button>
           </div>
 
-          <form 
-            onSubmit={handleSearch} 
-            className={`hidden md:flex relative group items-center transition-all duration-300 ease-in-out ${
-              isSearchFocused ? "flex-[2] max-w-4xl" : "flex-1 max-w-2xl"
-            }`}
-          >
-            <div className={`absolute left-5 transition-colors pointer-events-none ${
-              isSearchFocused ? "text-coral-500" : "text-gray-400"
-            }`}>
-              <Search size={19} />
-            </div>
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder={`Chercher "${SEARCH_SUGGESTIONS[placeholderIndex]}"...`}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setIsSearchFocused(true)}
-              onBlur={() => setIsSearchFocused(false)}
-              className="w-full bg-white border border-gray-200/90 rounded-full py-2.5 pl-13 pr-32 text-[14px] font-medium outline-none focus:border-coral-400 focus:ring-4 focus:ring-coral-50/60 shadow-xs transition-all duration-300 placeholder:text-gray-400"
-            />
-            
-            <div className="absolute right-1.5 flex items-center gap-1">
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors mr-1"
-                >
-                  <X size={14} />
-                </button>
-              )}
-              <button
-                type="submit"
-                className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-5 py-2 rounded-full text-xs transition-all duration-200 shadow-md shadow-coral-500/20 active:scale-95 flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Rechercher</span>
-              </button>
-            </div>
-          </form>
+          {/* Barre de recherche dynamique LiveSearchBar (Desktop) */}
+          <div className="hidden md:flex flex-1 max-w-2xl">
+            <LiveSearchBar />
+          </div>
 
           <div className="hidden md:flex items-center gap-4 shrink-0">
             {!user && (
@@ -663,24 +628,9 @@ export function Navbar() {
           </div>
         </div>
 
-        {/* Ligne 2 mobile : barre de recherche pleine largeur, toujours
-            visible (plus une icône qu'il faut d'abord repérer et taper) —
-            même mise en avant que sur desktop. Le tap ouvre l'overlay plein
-            écran existant (recherches récentes, saisie confortable). */}
+        {/* Ligne 2 mobile : barre de recherche dynamique pleine largeur */}
         <div className="md:hidden px-4 pb-3">
-          <button
-            type="button"
-            onClick={() => {
-              setShowSearchOverlay(true);
-              setTimeout(() => mobileSearchInputRef.current?.focus(), 80);
-            }}
-            className="w-full flex items-center gap-3 bg-white border border-gray-100 rounded-full py-3 pl-4 pr-4 text-left shadow-sm"
-          >
-            <Search size={18} className="text-gray-400 shrink-0" />
-            <span className="text-[14px] font-medium text-gray-400 truncate">
-              Chercher &quot;{SEARCH_SUGGESTIONS[placeholderIndex]}&quot;...
-            </span>
-          </button>
+          <LiveSearchBar />
         </div>
       </header>
 

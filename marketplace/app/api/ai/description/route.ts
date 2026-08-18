@@ -70,15 +70,15 @@ export async function POST(req: NextRequest) {
         const prompt = `Tu es un assistant spécialisé en e-commerce africain. Rédige une description commerciale courte (2 à 3 phrases maximum) pour cet article :
 
 - Nom : ${nom}
-- Prix : ${prixNum > 0 ? `${prixNum.toLocaleString("fr-FR")} FCFA` : "non spécifié"}
 - Catégorie : ${categorieStr || "non spécifiée"}
 
 Règles absolues à respecter :
-- Aucun emoji, aucun symbole spécial
-- Ton sobre, direct et professionnel
-- Pas de formules excessives ni de superlatifs vides
-- 2 à 3 phrases seulement
-- Finir par une phrase mentionnant la disponibilité ou la livraison
+- Ne mentionne JAMAIS le prix de l'article dans la description (il est déjà affiché ailleurs).
+- Aucun emoji, aucun symbole spécial.
+- Ton sobre, direct et professionnel.
+- Pas de formules excessives ni de superlatifs vides.
+- 2 à 3 phrases seulement.
+- Finir par une phrase mentionnant la disponibilité ou la livraison.
 
 Réponds uniquement avec la description, sans titre ni explication.`;
 

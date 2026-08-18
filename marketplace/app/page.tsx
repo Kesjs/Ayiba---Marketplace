@@ -95,7 +95,7 @@ export default function Home() {
   const { user, profile, loading: userLoading } = useUser();
   const { addItem } = useCart();
   const { showToast } = useToast();
-  const supabase = createClient();
+  const supabase = useMemo(() => createClient(), []);
 
   const [articles, setArticles] = useState<ArticlePublic[]>([]);
   const [categories, setCategories] = useState<{ id: string; nom: string; slug: string; icone: string | null; couleur: string | null }[]>([]);

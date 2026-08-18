@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
@@ -34,7 +34,7 @@ interface Order {
 
 export default function CommandesPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { showToast } = useToast()
   const { profile } = useUser()
   const badges = useBadgeCounts(profile?.id, 'client')

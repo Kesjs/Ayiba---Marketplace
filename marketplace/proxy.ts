@@ -87,7 +87,7 @@ export async function proxy(req: NextRequest) {
     "/", "/catalogue", "/devenir-vendeur", "/devenir-livreur",
     "/cgu", "/privacy", "/compte-suspendu", "/auth", "/admin/login",
   ];
-  if (publicRoutes.some((route) => path.startsWith(route))) {
+  if (publicRoutes.some((route) => (route === "/" ? path === "/" : path.startsWith(route)))) {
     return applyCacheHeaders(res, path);
   }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
@@ -24,7 +24,7 @@ export default function FavorisPage() {
   const router = useRouter()
   const { profile } = useUser()
   const badges = useBadgeCounts(profile?.id, 'client')
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { showToast } = useToast()
   const { addItem } = useCart()
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense, useRef } from 'react'
+import { useState, useEffect, Suspense, useRef, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
@@ -20,7 +20,7 @@ import type { User } from '@supabase/supabase-js'
 function CatalogueContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const { addItem } = useCart()
   const { showToast } = useToast()
 

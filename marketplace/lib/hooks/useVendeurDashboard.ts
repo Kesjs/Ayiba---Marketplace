@@ -163,6 +163,13 @@ export function useVendeurDashboard() {
 
   useEffect(() => {
     fetchDashboard();
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        fetchDashboard();
+      }
+    });
+    return () => subscription.unsubscribe();
   }, [fetchDashboard]);
 
   return {

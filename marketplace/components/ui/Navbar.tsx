@@ -221,18 +221,18 @@ export function Navbar() {
               <LogoAyiba className="h-8 w-auto md:h-10" />
             </a>
 
-            {/* Bouton Localisation type Amazon (Visible sur Mobile et Desktop) */}
+            {/* Bouton Localisation type Amazon (Desktop uniquement) */}
             <button
               onClick={() => setLocationModalOpen(true)}
-              className="flex items-center gap-1.5 px-2 py-1 md:px-2.5 md:py-1 rounded-xl bg-gray-100/80 md:bg-transparent hover:bg-gray-200/80 md:hover:bg-gray-100/80 transition-all text-left shrink-0 border border-transparent md:hover:border-gray-200 group cursor-pointer"
+              className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-xl hover:bg-gray-100/80 transition-all text-left shrink-0 border border-transparent hover:border-gray-200 group cursor-pointer"
               title="Changer le lieu de livraison"
             >
-              <div className="w-6 h-6 md:w-7 md:h-7 rounded-lg bg-coral-100/70 flex items-center justify-center text-coral-600 group-hover:scale-105 transition-transform">
-                <MapPin size={13} className="md:w-[15px] md:h-[15px]" />
+              <div className="w-7 h-7 rounded-lg bg-coral-100/70 flex items-center justify-center text-coral-600 group-hover:scale-105 transition-transform">
+                <MapPin size={15} />
               </div>
               <div className="flex flex-col text-[11px] leading-tight">
-                <span className="text-gray-400 font-medium text-[9px] md:text-[10px] hidden sm:inline">Livrer au</span>
-                <span className="font-bold text-gray-800 flex items-center gap-0.5 max-w-[85px] sm:max-w-[110px] truncate text-[11px] md:text-xs">
+                <span className="text-gray-400 font-medium text-[10px]">Livrer au</span>
+                <span className="font-bold text-gray-800 flex items-center gap-0.5 max-w-[110px] truncate">
                   {userLocation} <ChevronDown size={10} className="text-gray-400 shrink-0" />
                 </span>
               </div>
@@ -547,14 +547,94 @@ export function Navbar() {
           </div>
 
           <div className="flex md:hidden items-center gap-1 shrink-0">
-            {/* Bouton Aide Mobile */}
-            <button
-              onClick={() => setHelpMenuOpen((v) => !v)}
-              className="p-1.5 text-gray-700 hover:text-coral-500 rounded-lg hover:bg-gray-50 transition-colors"
-              aria-label="Aide"
-            >
-              <HelpCircle size={19} />
-            </button>
+            {/* Bouton Aide Mobile avec menu déroulant */}
+            <div className="relative">
+              <button
+                onClick={() => setHelpMenuOpen((v) => !v)}
+                className="p-1.5 text-gray-700 hover:text-coral-500 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                aria-label="Aide"
+              >
+                <HelpCircle size={19} />
+              </button>
+
+              {helpMenuOpen && (
+                <div className="absolute right-0 top-full pt-2 w-64 origin-top-right z-50 shadow-2xl">
+                  <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden p-2">
+                    <div className="flex flex-col gap-1">
+                      <a 
+                        href="/faq" 
+                        onClick={() => setHelpMenuOpen(false)} 
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 rounded-xl text-gray-700 hover:text-coral-600 transition-all group/item"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                          <FileQuestion size={16} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold">Questions fréquentes (FAQ)</span>
+                          <span className="text-[10px] text-gray-400 font-medium">Réponses instantanées</span>
+                        </div>
+                      </a>
+
+                      <a 
+                        href="/centre-aide" 
+                        onClick={() => setHelpMenuOpen(false)} 
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-amber-50 rounded-xl text-gray-700 hover:text-amber-600 transition-all group/item"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 group-hover/item:bg-white shadow-xs shrink-0">
+                          <HelpCircle size={16} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold">Centre d'assistance</span>
+                          <span className="text-[10px] text-gray-400 font-medium">Guides & assistance client</span>
+                        </div>
+                      </a>
+
+                      <a 
+                        href="/politique-livraison" 
+                        onClick={() => setHelpMenuOpen(false)} 
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 rounded-xl text-gray-700 hover:text-teal-600 transition-all group/item"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                          <QrCode size={16} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold">Livraison & Code secret</span>
+                          <span className="text-[10px] text-gray-400 font-medium">Validation sécurisée de réception</span>
+                        </div>
+                      </a>
+
+                      <a 
+                        href="/politique-remboursement" 
+                        onClick={() => setHelpMenuOpen(false)} 
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-rose-50 rounded-xl text-gray-700 hover:text-rose-600 transition-all group/item"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 group-hover/item:bg-white shadow-xs shrink-0">
+                          <ShieldCheck size={16} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold">Paiement & Retours</span>
+                          <span className="text-[10px] text-gray-400 font-medium">Garantie Escrow & Remboursement</span>
+                        </div>
+                      </a>
+
+                      <a 
+                        href="/contact" 
+                        onClick={() => setHelpMenuOpen(false)} 
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-gray-50 rounded-xl text-gray-700 hover:text-gray-900 transition-all group/item border-t border-gray-100 mt-1 pt-3"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 group-hover/item:bg-white shadow-xs shrink-0">
+                          <MessageSquare size={16} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold">Nous contacter</span>
+                          <span className="text-[10px] text-gray-400 font-medium">Formulaire de support</span>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Bouton Panier Mobile */}
             <button onClick={openCart} className="relative p-1.5 text-gray-700 hover:text-coral-500 rounded-lg hover:bg-gray-50 transition-colors" aria-label="Voir le panier">

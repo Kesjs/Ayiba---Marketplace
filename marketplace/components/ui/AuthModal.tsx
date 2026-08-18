@@ -321,19 +321,17 @@ const resolvedRedirect =
     ? redirectTo.replace("/vendeur/messages", "/messages")
     : redirectTo;
 
-if (resolvedRedirect) {
-  router.push(resolvedRedirect);
-} else if (userData?.role === "vendeur") {
-  router.push("/vendeur/dashboard");
-} else if (userData?.role === "livreur") {
-  router.push("/livreur/missions");
-} else if (userData?.role === "admin") {
-  router.push("/admin/dashboard");
-} else {
-  router.push("/catalogue");
-}
+const destination = resolvedRedirect
+  ? resolvedRedirect
+  : userData?.role === "vendeur"
+  ? "/vendeur/dashboard"
+  : userData?.role === "livreur"
+  ? "/livreur/missions"
+  : userData?.role === "admin"
+  ? "/admin/dashboard"
+  : "/catalogue";
 
-router.refresh();
+window.location.href = destination;
       }
     } catch (err) {
       setLoading(false);

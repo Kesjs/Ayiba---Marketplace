@@ -185,7 +185,13 @@ export function useLivreurMissions() {
 
   useEffect(() => {
     loadMissions();
-  }, [loadMissions]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+      if (session?.user) {
+        loadMissions();
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [loadMissions, supabase]);
 
   const refuserMission = useCallback(
     async (id: string) => {

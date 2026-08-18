@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { validatePasswordStrength } from "@/lib/validation";
 import { useToast } from "@/context/ToastContext";
 import { useUser } from "@/lib/hooks/useUser";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/Button";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import {
@@ -116,15 +117,8 @@ export default function ParametresPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50/30 pb-10">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => router.push("/menu/confiance")} className="text-gray-500">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-base font-bold text-gray-900">Sécurité</h1>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <DashboardLayout role="client" title="Sécurité & Paramètres" backHref="/menu">
+      <div className="max-w-lg mx-auto space-y-6">
         {/* Mot de passe */}
         <div>
           <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">Mot de passe</h2>
@@ -227,6 +221,6 @@ export default function ParametresPage() {
       </DangerZoneModal>
 
       <LogoutConfirmModal open={showLogoutModal} onConfirm={confirmLogout} onCancel={() => setShowLogoutModal(false)} />
-    </main>
+    </DashboardLayout>
   );
 }

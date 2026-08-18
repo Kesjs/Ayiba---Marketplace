@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Mail, ChevronDown, ChevronRight, FileText, ShieldCheck, LifeBuoy } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 interface Faq {
   question: string;
@@ -59,15 +60,8 @@ export default function SupportPage() {
   const router = useRouter();
 
   return (
-    <main className="min-h-screen bg-gray-50/30 pb-10">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => router.back()} className="text-gray-500">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-base font-bold text-gray-900">Centre d'aide</h1>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <DashboardLayout role="client" title="Centre d'aide" backHref="/menu">
+      <div className="max-w-lg mx-auto space-y-6">
         <div className="bg-white rounded-2xl border border-coral-100 p-5 flex items-center gap-4">
           <div className="w-11 h-11 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
             <LifeBuoy size={20} />
@@ -139,6 +133,6 @@ export default function SupportPage() {
           </div>
         </div>
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

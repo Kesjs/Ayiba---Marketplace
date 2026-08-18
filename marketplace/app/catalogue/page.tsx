@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, Suspense, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
@@ -35,12 +35,25 @@ function CatalogueContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [sortBy, setSortBy] = useState('popular')
   const [showFilters, setShowFilters] = useState(false)
+  const [showSortMenu, setShowSortMenu] = useState(false)
+  const sortMenuRef = useRef<HTMLDivElement>(null)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
 
   // Utilisateur courant (pour l'état des favoris et savoir s'il est vendeur) — page publique, accessible aussi aux invités.
   const [userRole, setUserRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
+        setShowSortMenu(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data }: { data: { user: User | null } }) => {
       setUserId(data.user?.id ?? null)
@@ -212,15 +225,40 @@ function CatalogueContent() {
                   Filtres
                 </Button>
 
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="h-11 px-3 bg-white border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-coral-500/10"
-                >
-                  <option value="popular">Les plus populaires</option>
-                  <option value="price-asc">Prix croissant</option>
-                  <option value="price-desc">Prix décroissant</option>
-                </select>
+                <div className="relative" ref={sortMenuRef}>
+                  <button
+                    onClick={() => setShowSortMenu(!showSortMenu)}
+                    className="h-11 px-4 flex items-center justify-between min-w-[200px] bg-white border border-gray-200 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-coral-500/20 hover:border-gray-300 transition-colors shadow-sm"
+                  >
+                    <span>
+                      {sortBy === 'popular' ? 'Les plus populaires' : sortBy === 'price-asc' ? 'Prix croissant' : 'Prix décroissant'}
+                    </span>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${showSortMenu ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {showSortMenu && (
+                    <div className="absolute top-full left-0 mt-2 w-full bg-white border border-gray-100 rounded-xl shadow-xl z-50 overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                      <button
+                        onClick={() => { setSortBy('popular'); setShowSortMenu(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors ${sortBy === 'popular' ? 'text-coral-600 bg-coral-50/50' : 'text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        Les plus populaires
+                      </button>
+                      <button
+                        onClick={() => { setSortBy('price-asc'); setShowSortMenu(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors ${sortBy === 'price-asc' ? 'text-coral-600 bg-coral-50/50' : 'text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        Prix croissant
+                      </button>
+                      <button
+                        onClick={() => { setSortBy('price-desc'); setShowSortMenu(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-bold transition-colors ${sortBy === 'price-desc' ? 'text-coral-600 bg-coral-50/50' : 'text-gray-600 hover:bg-gray-50'}`}
+                      >
+                        Prix décroissant
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 <div className="ml-auto flex items-center gap-2 bg-white p-1 rounded-xl border border-gray-100 shadow-sm">
                   <button 

@@ -6,6 +6,7 @@ import { ArrowLeft, LocateFixed, Loader2, Star, Trash2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/context/ToastContext'
 import { useUser } from '@/lib/hooks/useUser'
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { useGeolocationAdresse } from '@/lib/hooks/useGeolocationAdresse'
@@ -156,15 +157,8 @@ export default function AdressesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50/30 pb-10">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => router.push('/menu')} className="text-gray-500">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-base font-bold text-gray-900">Mes adresses</h1>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-6">
+    <DashboardLayout role="client" title="Mes adresses" backHref="/menu">
+      <div className="max-w-lg mx-auto space-y-4">
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-gray-500">
             {addresses.length > 0 ? `${addresses.length} adresse${addresses.length > 1 ? 's' : ''} enregistrée${addresses.length > 1 ? 's' : ''}` : ''}
@@ -395,6 +389,6 @@ export default function AdressesPage() {
           </div>
         </Modal>
       )}
-    </main>
+    </DashboardLayout>
   )
 }

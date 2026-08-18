@@ -6,6 +6,7 @@ import { ArrowLeft, Star, Package, Bike } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useToast } from "@/context/ToastContext";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 interface AvisRow {
   id: string;
@@ -71,15 +72,8 @@ export default function AvisPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50/30 pb-10">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => router.back()} className="text-gray-500">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-base font-bold text-gray-900">Mes évaluations</h1>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-6">
+    <DashboardLayout role="client" title="Mes évaluations" backHref="/menu">
+      <div className="max-w-lg mx-auto space-y-4">
         {loading || userLoading ? (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
@@ -123,6 +117,6 @@ export default function AvisPage() {
           </div>
         )}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

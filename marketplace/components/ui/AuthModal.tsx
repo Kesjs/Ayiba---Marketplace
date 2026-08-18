@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { validateBeninPhone, validatePasswordStrength } from "@/lib/validation";
+import { useSmartGeolocation } from "@/lib/hooks/useSmartGeolocation";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -113,6 +114,7 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const emailInputRef = useRef<HTMLInputElement>(null);
+  const { syncGeoToProfileIfNeeded } = useSmartGeolocation();
 
   const [mode, setMode] = useState<Mode>("connexion");
   const [email, setEmail] = useState("");
@@ -280,6 +282,8 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
             full_name: nomComplet.trim(),
             role: "client",
           });
+          // Syncro géo : insère l'adresse détectée si disponible en localStorage
+          syncGeoToProfileIfNeeded(data.user.id).catch(() => {});
         }
 
         onClose();
@@ -290,6 +294,12 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
         if (signInError) return setError(translateError(signInError));
 
         const { data: { user } } = await supabase.auth.getUser();
+
+        // Syncro géolocalisation : si l'utilisateur a accepté la bannière géo
+        // avant de se connecter, on insère l'adresse détectée dans son profil.
+        if (user?.id) {
+          syncGeoToProfileIfNeeded(user.id).catch(() => {});
+        }
 
 const { data: userData } = await supabase
   .from("users")
@@ -383,6 +393,13 @@ router.refresh();
     (mode !== "mot-de-passe-oublie" && !password) ||
     (mode === "inscription" && !confirmPassword) ||
     (isClientSignup && (!nomComplet.trim() || !telephone.trim()));
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !isSubmitDisabled) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -546,6 +563,7 @@ router.refresh();
                       placeholder="Nom complet"
                       value={nomComplet}
                       onChange={(e) => setNomComplet(e.target.value)}
+                      onKeyDown={handleKeyDown}
                       className="flex-1 h-11 text-sm px-2 focus:outline-none"
                       autoComplete="name"
                     />
@@ -568,6 +586,7 @@ router.refresh();
                         setTelephone(e.target.value);
                         if (phoneError) setPhoneError(null);
                       }}
+                      onKeyDown={handleKeyDown}
                       className="flex-1 h-11 text-sm px-1 focus:outline-none"
                       autoComplete="tel"
                     />
@@ -595,6 +614,7 @@ router.refresh();
                   placeholder="Adresse email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={handleKeyDown}
                   className="flex-1 h-11 text-sm px-2 focus:outline-none"
                   autoComplete="email"
                 />
@@ -611,6 +631,7 @@ router.refresh();
                     placeholder="Mot de passe"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="flex-1 h-11 text-sm px-2 focus:outline-none"
                     autoComplete={mode === "inscription" ? "new-password" : "current-password"}
                   />
@@ -652,6 +673,7 @@ router.refresh();
                     placeholder="Confirmer le mot de passe"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     className="flex-1 h-11 text-sm px-2 focus:outline-none"
                     autoComplete="new-password"
                   />

@@ -148,8 +148,8 @@ export function Footer() {
         {/* Bas du footer */}
         <div className="mt-12 pt-8 border-t border-gray-200">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <p className="text-sm text-gray-400 font-medium">
-              © 2026 Ayiba • Marketplace Béninoise
+            <p className="text-sm text-gray-400 font-medium flex items-center gap-1.5">
+              © 2026 Ayiba • Marketplace 100% Béninoise 🇧🇯
             </p>
             <div className="flex items-center gap-6">
                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-xs">

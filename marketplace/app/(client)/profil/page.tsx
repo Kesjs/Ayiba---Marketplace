@@ -8,7 +8,7 @@ import { useToast } from '@/context/ToastContext'
 import { useUser } from '@/lib/hooks/useUser'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 import { useClientDashboard } from '@/app/hooks/useClientDashboard'
-import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { validateBeninPhone } from '@/lib/validation'
 import { SettingsField } from '@/components/settings/SettingsForm'
 
@@ -101,18 +101,8 @@ export default function ProfilPage() {
   const displayAvatar = avatarUrl === undefined ? profile?.avatar_url : avatarUrl
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50/30">
-      <ClientDashboardHeader
-        title="Profil"
-        backHref="/menu"
-        avatarUrl={displayAvatar}
-        fullName={profile?.full_name || undefined}
-        notificationsCount={badges.notifications}
-        notifications={badges.notificationsList}
-        logoHref="/"
-      />
-
-      <div className="max-w-3xl lg:max-w-5xl mx-auto w-full px-4 lg:px-8 py-6 space-y-6">
+    <DashboardLayout role="client" title="Mon profil" backHref="/menu">
+      <div className="max-w-3xl lg:max-w-5xl mx-auto w-full space-y-6">
         {/* Sur desktop, Vue d'ensemble et Identité passent côte à côte pour
             occuper l'espace latéral libre au lieu de rester en colonne
             unique étroite ; sur mobile, comportement inchangé (empilé). */}
@@ -205,6 +195,6 @@ export default function ProfilPage() {
         </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

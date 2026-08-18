@@ -7,7 +7,7 @@ import { useToast } from '@/context/ToastContext'
 import { useCart } from '@/context/CartContext'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
-import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { useUser } from '@/lib/hooks/useUser'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 import {
@@ -101,20 +101,8 @@ export default function FavorisPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      {/* Header */}
-      <ClientDashboardHeader
-        title="Favoris"
-        backHref="/menu"
-        avatarUrl={profile?.avatar_url}
-        fullName={profile?.full_name || undefined}
-        notificationsCount={badges.notifications}
-        notifications={badges.notificationsList}
-        logoHref="/"
-      />
-
-      {/* Product List */}
-      <div className="flex-1 max-w-7xl mx-auto w-full px-4 md:px-8 py-6 md:py-10">
+    <DashboardLayout role="client" title="Mes favoris" backHref="/menu">
+      <div className="w-full">
         {loading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {[...Array(4)].map((_, i) => (
@@ -164,6 +152,6 @@ export default function FavorisPage() {
           </div>
         )}
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

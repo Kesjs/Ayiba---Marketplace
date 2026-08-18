@@ -51,6 +51,7 @@ const ROLE_ACCOUNT_LINKS: Record<"admin" | "vendeur" | "livreur" | "client", Acc
   admin: [{ label: "Paramètres", href: "/admin/parametres", icon: Settings }],
   client: [
     { label: "Mon profil", href: "/profil", icon: User },
+    { label: "Mes commandes", href: "/commandes", icon: ShoppingBag },
     { label: "Paramètres", href: "/profil/parametres", icon: Settings },
   ],
 };
@@ -83,11 +84,6 @@ export function DashboardLayout({
   const displayName = userName || profile?.full_name || "Utilisateur";
   const prenom = displayName.split(" ")[0];
 
-  // Recherche globale du header désactivée par défaut sur tout le Dashboard
-  // vendeur : elle redirigeait vers /recherche (le catalogue public client,
-  // pas une vue scoped au vendeur), et faisait doublon avec la recherche
-  // locale déjà présente sur la page Articles. À réactiver page par page si
-  // un jour une vraie recherche scoped-vendeur est branchée derrière.
   const showSearch = searchable ?? false;
 
   const accountSubtitle: Record<"admin" | "vendeur" | "livreur" | "client", string> = {
@@ -124,7 +120,7 @@ export function DashboardLayout({
         <DashboardHeader
           boutiqueName={boutiqueName}
           title={title || "Tableau de bord"}
-          greeting={personalized ? `${saluerSelonHeure()} ${prenom} ` : undefined}
+          greeting={personalized ? `${saluerSelonHeure()} ${prenom} 👋` : undefined}
           subtitle={personalized ? "Bon retour sur Ayiba" : undefined}
           avatarUrl={profile?.avatar_url}
           fullName={displayName}
@@ -137,7 +133,7 @@ export function DashboardLayout({
           onLogout={handleLogout}
           showSearch={showSearch}
           searchPlaceholder={searchPlaceholder}
-          showCart={role === "vendeur"}
+          showCart={role === "vendeur" || role === "client"}
           onToggleSidebar={() => setIsCollapsed((c) => !c)}
           sidebarCollapsed={isCollapsed}
         />
@@ -163,10 +159,9 @@ export function DashboardLayout({
         </div>
       </main>
 
-      {/* CartDrawer global (sidebar depuis la droite) : monté uniquement
-          pour le vendeur, seul rôle du Dashboard qui achète sur la
-          plateforme (voir ROLE_ACCOUNT_LINKS plus haut). */}
-      {role === "vendeur" && <CartDrawer />}
+      {/* CartDrawer global (sidebar depuis la droite) : monté pour les vendeurs
+          et les clients qui achètent sur la plateforme. */}
+      {(role === "vendeur" || role === "client") && <CartDrawer />}
     </div>
   );
 }

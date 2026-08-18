@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck, Heart } from "lucide-react";
+import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck, Heart, MapPin, HelpCircle, PackageSearch, FileQuestion, QrCode } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { AuthModal } from "@/components/ui/AuthModal";
 import { CartDrawer } from "@/components/ui/CartDrawer";
@@ -49,6 +50,9 @@ export function Navbar() {
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [userLocation, setUserLocation] = useState<string>("Cotonou, Bénin");
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
+  const [helpMenuOpen, setHelpMenuOpen] = useState(false);
 
   const [user, setUser] = useState<any>(null);
   const { profile } = useUser();
@@ -59,6 +63,14 @@ export function Navbar() {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const mobileSearchInputRef = useRef<HTMLInputElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const helpMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("ayiba_user_location");
+      if (saved) setUserLocation(saved);
+    }
+  }, []);
 
   // Menu compte au clic (et non plus au survol) : plus fiable sur desktop
   // (trackpad, clic qui traverse la zone de survol) et fermeture au clic en
@@ -73,6 +85,17 @@ export function Navbar() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [userMenuOpen]);
+
+  useEffect(() => {
+    if (!helpMenuOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (helpMenuRef.current && !helpMenuRef.current.contains(e.target as Node)) {
+        setHelpMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [helpMenuOpen]);
 
   // Placeholder animé de la barre de recherche : quelques exemples concrets
   // qui tournent tant que le champ n'est ni focus ni rempli — remplace le
@@ -193,9 +216,28 @@ export function Navbar() {
         }`}
       >
         <div className="flex items-center justify-between h-14 md:h-full px-4 md:px-8 lg:px-12 max-w-7xl mx-auto w-full gap-4 md:gap-8">
-          <a href="/" className="flex items-center shrink-0 opacity-100 hover:opacity-80 transition-opacity duration-200">
-            <LogoAyiba className="h-8 w-auto md:h-10" />
-          </a>
+          <div className="flex items-center gap-3 md:gap-4 shrink-0">
+            <a href="/" className="flex items-center shrink-0 opacity-100 hover:opacity-80 transition-opacity duration-200">
+              <LogoAyiba className="h-8 w-auto md:h-10" />
+            </a>
+
+            {/* Bouton Localisation type Amazon (Visible sur Mobile et Desktop) */}
+            <button
+              onClick={() => setLocationModalOpen(true)}
+              className="flex items-center gap-1.5 px-2 py-1 md:px-2.5 md:py-1 rounded-xl bg-gray-100/80 md:bg-transparent hover:bg-gray-200/80 md:hover:bg-gray-100/80 transition-all text-left shrink-0 border border-transparent md:hover:border-gray-200 group cursor-pointer"
+              title="Changer le lieu de livraison"
+            >
+              <div className="w-6 h-6 md:w-7 md:h-7 rounded-lg bg-coral-100/70 flex items-center justify-center text-coral-600 group-hover:scale-105 transition-transform">
+                <MapPin size={13} className="md:w-[15px] md:h-[15px]" />
+              </div>
+              <div className="flex flex-col text-[11px] leading-tight">
+                <span className="text-gray-400 font-medium text-[9px] md:text-[10px] hidden sm:inline">Livrer au</span>
+                <span className="font-bold text-gray-800 flex items-center gap-0.5 max-w-[85px] sm:max-w-[110px] truncate text-[11px] md:text-xs">
+                  {userLocation} <ChevronDown size={10} className="text-gray-400 shrink-0" />
+                </span>
+              </div>
+            </button>
+          </div>
 
           <form 
             onSubmit={handleSearch} 
@@ -216,25 +258,25 @@ export function Navbar() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => setIsSearchFocused(true)}
               onBlur={() => setIsSearchFocused(false)}
-              className="w-full bg-gray-50/60 border border-gray-100 rounded-full py-3.5 pl-13 pr-14 text-[15px] font-medium outline-none focus:bg-white focus:border-coral-300 focus:ring-4 focus:ring-coral-50/60 transition-all duration-300 placeholder:text-gray-400 placeholder:font-normal"
+              className="w-full bg-white border border-gray-200/90 rounded-full py-2.5 pl-13 pr-32 text-[14px] font-medium outline-none focus:border-coral-400 focus:ring-4 focus:ring-coral-50/60 shadow-xs transition-all duration-300 placeholder:text-gray-400"
             />
             
-            <div className="absolute right-4 flex items-center gap-1.5">
-              {searchQuery ? (
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              ) : (
-                <div className={`flex items-center justify-center w-5 h-5 border border-gray-200 rounded text-[10px] text-gray-400 font-medium ${isSearchFocused ? "opacity-0" : "opacity-100"}`}>
-                  /
-                </div>
+            <div className="absolute right-1.5 flex items-center gap-1">
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors mr-1"
+                >
+                  <X size={14} />
+                </button>
               )}
+              <button
+                type="submit"
+                className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-5 py-2 rounded-full text-xs transition-all duration-200 shadow-md shadow-coral-500/20 active:scale-95 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Rechercher</span>
+              </button>
             </div>
           </form>
 
@@ -279,6 +321,99 @@ export function Navbar() {
               </div>
             )}
 
+            {/* Menu Aide Dropdown (Desktop & Mobile trigger) */}
+            <div 
+              className="relative group/help" 
+              ref={helpMenuRef}
+              onMouseEnter={() => setHelpMenuOpen(true)}
+              onMouseLeave={() => setHelpMenuOpen(false)}
+            >
+              <button
+                onClick={() => setHelpMenuOpen((v) => !v)}
+                className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 rounded-lg bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 cursor-pointer"
+              >
+                <HelpCircle size={16} className="text-gray-500 group-hover/help:text-coral-500 transition-colors" />
+                <span className="hidden sm:inline">Aide</span>
+                <ChevronDown size={14} className={`hidden sm:inline transition-transform duration-300 ${helpMenuOpen ? "rotate-180" : ""}`} />
+              </button>
+
+              <div className={`absolute right-0 top-full pt-2 w-64 origin-top-right transition-all duration-300 z-50 ${helpMenuOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}>
+                <div className="bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden p-2">
+                  <div className="flex flex-col gap-1">
+                    <a 
+                      href="/faq" 
+                      onClick={() => setHelpMenuOpen(false)} 
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 rounded-xl text-gray-700 hover:text-coral-600 transition-all group/item"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <FileQuestion size={16} />
+                      </div>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-bold">Questions fréquentes (FAQ)</span>
+                        <span className="text-[10px] text-gray-400 font-medium">Réponses instantanées</span>
+                      </div>
+                    </a>
+
+                    <a 
+                      href="/centre-aide" 
+                      onClick={() => setHelpMenuOpen(false)} 
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-amber-50 rounded-xl text-gray-700 hover:text-amber-600 transition-all group/item"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <HelpCircle size={16} />
+                      </div>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-bold">Centre d'assistance</span>
+                        <span className="text-[10px] text-gray-400 font-medium">Guides & assistance client</span>
+                      </div>
+                    </a>
+
+                    <a 
+                      href="/politique-livraison" 
+                      onClick={() => setHelpMenuOpen(false)} 
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 rounded-xl text-gray-700 hover:text-teal-600 transition-all group/item"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                        <QrCode size={16} />
+                      </div>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-bold">Livraison & Code secret</span>
+                        <span className="text-[10px] text-gray-400 font-medium">Validation sécurisée de réception</span>
+                      </div>
+                    </a>
+
+                    <a 
+                      href="/politique-remboursement" 
+                      onClick={() => setHelpMenuOpen(false)} 
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-rose-50 rounded-xl text-gray-700 hover:text-rose-600 transition-all group/item"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <ShieldCheck size={16} />
+                      </div>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-bold">Paiement & Retours</span>
+                        <span className="text-[10px] text-gray-400 font-medium">Garantie Escrow & Remboursement</span>
+                      </div>
+                    </a>
+
+                    <a 
+                      href="/contact" 
+                      onClick={() => setHelpMenuOpen(false)} 
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-gray-50 rounded-xl text-gray-700 hover:text-gray-900 transition-all group/item border-t border-gray-100 mt-1 pt-3"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 group-hover/item:bg-white shadow-xs shrink-0">
+                        <MessageSquare size={16} />
+                      </div>
+                      <div className="flex flex-col text-left">
+                        <span className="text-xs font-bold">Nous contacter</span>
+                        <span className="text-[10px] text-gray-400 font-medium">Formulaire de support</span>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <button onClick={openCart} className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors duration-200" aria-label="Voir le panier">
               <ShoppingCart size={20} className="text-gray-600" />
               {itemCount > 0 && (
@@ -289,7 +424,7 @@ export function Navbar() {
             </button>
 
             {!user && (
-              <button onClick={() => setAuthModalOpen(true)} className="bg-coral-400 text-white rounded-lg px-4 py-2 text-sm font-semibold hover:bg-coral-500 transition-all duration-300 active:scale-[0.97] shadow-lg shadow-coral-400/20">
+              <button onClick={() => setAuthModalOpen(true)} className="bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-xl px-5 py-2 text-sm transition-all duration-200 active:scale-95 shadow-md shadow-coral-500/20 cursor-pointer">
                 Connexion
               </button>
             )}
@@ -412,29 +547,47 @@ export function Navbar() {
           </div>
 
           <div className="flex md:hidden items-center gap-1 shrink-0">
-            <button onClick={openCart} className="relative w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-50">
-              <ShoppingCart size={20} className="text-gray-600" />
+            {/* Bouton Aide Mobile */}
+            <button
+              onClick={() => setHelpMenuOpen((v) => !v)}
+              className="p-1.5 text-gray-700 hover:text-coral-500 rounded-lg hover:bg-gray-50 transition-colors"
+              aria-label="Aide"
+            >
+              <HelpCircle size={19} />
+            </button>
+
+            {/* Bouton Panier Mobile */}
+            <button onClick={openCart} className="relative p-1.5 text-gray-700 hover:text-coral-500 rounded-lg hover:bg-gray-50 transition-colors" aria-label="Voir le panier">
+              <ShoppingCart size={19} />
               {itemCount > 0 && (
-                <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-coral-400 border border-white rounded-full" />
+                <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {itemCount > 9 ? '9+' : itemCount}
+                </span>
               )}
             </button>
 
-            {/* Visiteur non connecté : tap -> ouvre directement l'AuthModal (tabs Se connecter / S'inscrire).
-                Utilisateur connecté : tap -> ouvre le drawer (dashboard, commandes, messages...).
-                Le chevron reste car un user connecté a un vrai menu déroulant derrière. */}
-            <button
-              onClick={handleAccountIconClick}
-              className="h-10 flex items-center justify-center rounded-full border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden"
-              aria-label={!user ? "Connexion ou inscription" : "Menu du compte"}
-            >
-              <span className="flex items-center justify-center px-3 h-full">
-                <User size={19} strokeWidth={2} className="text-gray-900" />
-              </span>
-              <span className="w-px h-5 bg-coral-200" />
-              <span className="flex items-center justify-center px-2.5 h-full">
-                <ChevronDown size={14} strokeWidth={2.25} className="text-gray-900" />
-              </span>
-            </button>
+            {!user ? (
+              <button
+                onClick={() => setAuthModalOpen(true)}
+                className="bg-coral-500 hover:bg-coral-600 text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-sm transition-all active:scale-95 ml-1 cursor-pointer"
+              >
+                Connexion
+              </button>
+            ) : (
+              <button
+                onClick={handleAccountIconClick}
+                className="h-9 flex items-center justify-center rounded-full border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden ml-1"
+                aria-label="Menu du compte"
+              >
+                <span className="flex items-center justify-center px-2.5 h-full">
+                  <User size={17} strokeWidth={2} className="text-gray-900" />
+                </span>
+                <span className="w-px h-4 bg-coral-200" />
+                <span className="flex items-center justify-center px-2 h-full">
+                  <ChevronDown size={12} strokeWidth={2.25} className="text-gray-900" />
+                </span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -549,6 +702,21 @@ export function Navbar() {
               </a>
 
               <div className="h-px bg-gray-100 my-2 mx-4" />
+              <button
+                onClick={() => { setMobileOpen(false); setLocationModalOpen(true); }}
+                className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-coral-50 text-coral-600 transition-colors text-sm font-bold text-left"
+              >
+                <MapPin size={20} className="text-coral-500" />
+                <span>Lieu : {userLocation}</span>
+              </button>
+              <a href="/faq" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <FileQuestion size={20} className="text-gray-400" />
+                <span>Questions fréquentes (FAQ)</span>
+              </a>
+              <a href="/centre-aide" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <HelpCircle size={20} className="text-gray-400" />
+                <span>Centre d'assistance</span>
+              </a>
               <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                 <FileText size={20} className="text-gray-400" />
                 <span>Conditions générales</span>
@@ -587,13 +755,105 @@ export function Navbar() {
         </div>
       </div>
 
+
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <CartDrawer />
       <LogoutConfirmModal
         open={showLogoutModal}
-        onConfirm={confirmLogout}
         onCancel={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
       />
+
+      {/* Modale Choix de localisation (Style Amazon) */}
+      <AnimatePresence>
+        {locationModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
+            onClick={() => setLocationModalOpen(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="bg-white rounded-2xl p-6 max-w-md w-full relative shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setLocationModalOpen(false)}
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Choisir votre lieu de livraison</h3>
+                  <p className="text-xs text-gray-500">Les offres et délais seront adaptés à votre zone</p>
+                </div>
+              </div>
+
+              {/* Bouton Géolocalisation automatique */}
+              <button
+                onClick={() => {
+                  if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      () => {
+                        const loc = "Cotonou (détecté)";
+                        setUserLocation(loc);
+                        localStorage.setItem("ayiba_user_location", loc);
+                        setLocationModalOpen(false);
+                      },
+                      () => {
+                        setUserLocation("Cotonou, Bénin");
+                        localStorage.setItem("ayiba_user_location", "Cotonou, Bénin");
+                        setLocationModalOpen(false);
+                      }
+                    );
+                  }
+                }}
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-coral-500 text-white font-bold text-sm hover:bg-coral-600 transition-colors mb-4 shadow-md shadow-coral-500/20 cursor-pointer"
+              >
+                <MapPin size={16} />
+                Détecter ma position actuelle
+              </button>
+
+              <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-gray-100"></div>
+                <span className="shrink mx-3 text-xs text-gray-400 font-semibold uppercase">ou choisir une commune</span>
+                <div className="flex-grow border-t border-gray-100"></div>
+              </div>
+
+              {/* Liste des communes principales */}
+              <div className="grid grid-cols-2 gap-2 mt-3 max-h-60 overflow-y-auto no-scrollbar">
+                {["Cotonou", "Abomey-Calavi", "Porto-Novo", "Parakou", "Bohicon", "Ouidah", "Sèmè-Kpodji", "Natitingou", "Djougou", "Lokossa"].map((city) => (
+                  <button
+                    key={city}
+                    onClick={() => {
+                      const fullLoc = `${city}, Bénin`;
+                      setUserLocation(fullLoc);
+                      localStorage.setItem("ayiba_user_location", fullLoc);
+                      setLocationModalOpen(false);
+                    }}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
+                      userLocation.startsWith(city)
+                        ? "border-coral-500 bg-coral-50 text-coral-600"
+                        : "border-gray-100 hover:border-gray-200 bg-gray-50/50 text-gray-700"
+                    }`}
+                  >
+                    📍 {city}
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

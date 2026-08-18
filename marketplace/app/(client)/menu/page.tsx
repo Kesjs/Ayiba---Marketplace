@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
 import { useClientDashboard } from "@/app/hooks/useClientDashboard";
-import { ClientDashboardHeader } from "@/components/client/ClientDashboardHeader";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   User,
   CreditCard,
@@ -74,16 +74,8 @@ export default function MenuPage() {
   const { stats, loading: statsLoading } = useClientDashboard();
 
   return (
-    <main className="min-h-screen bg-gray-50/30">
-      <ClientDashboardHeader
-        title="Compte"
-        avatarUrl={profile?.avatar_url}
-        fullName={profile?.full_name || undefined}
-        notificationsCount={badges.notifications}
-        notifications={badges.notificationsList}
-        logoHref="/"
-      />
-      <div className="px-4 md:px-8 py-6 md:py-10 max-w-3xl mx-auto w-full">
+    <DashboardLayout role="client" title="Compte & Réglages" personalized>
+      <div className="max-w-3xl mx-auto w-full space-y-6">
 
       {/* Résumé achats — version allégée de l'ancien /dashboard (3 chiffres,
           pas de graphique : les KPIs visuels sont un pattern vendeur, pas un
@@ -134,7 +126,7 @@ export default function MenuPage() {
       ))}
 
       </div>
-    </main>
+    </DashboardLayout>
   );
 }
 

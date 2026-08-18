@@ -6,6 +6,7 @@ import { ArrowLeft, Wallet2, Smartphone, Banknote } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useToast } from "@/context/ToastContext";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { STATUT_BADGE_VARIANT, LABELS_STATUT_COMMANDE, type StatutCommande } from "@/lib/constants/commandes";
 
@@ -74,15 +75,8 @@ export default function PaiementsPage() {
     .reduce((sum, c) => sum + Number(c.montant_total), 0);
 
   return (
-    <main className="min-h-screen bg-gray-50/30 pb-10">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => router.back()} className="text-gray-500">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-base font-bold text-gray-900">Historique des paiements</h1>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-6">
+    <DashboardLayout role="client" title="Historique des paiements" backHref="/menu">
+      <div className="max-w-lg mx-auto space-y-6">
         {!userLoading && commandes.length > 0 && (
           <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6">
             <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-1">
@@ -138,6 +132,6 @@ export default function PaiementsPage() {
           </div>
         )}
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

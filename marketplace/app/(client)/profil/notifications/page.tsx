@@ -6,6 +6,7 @@ import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useUser } from "@/lib/hooks/useUser";
 import { useToast } from "@/context/ToastContext";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { SettingsToggle } from "@/components/settings/SettingsForm";
 
 type Canal = "notif_push" | "notif_whatsapp" | "notif_email";
@@ -57,15 +58,8 @@ export default function NotificationsPage() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-50/30 pb-10">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => router.back()} className="text-gray-500">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-base font-bold text-gray-900">Notifications</h1>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-2">
+    <DashboardLayout role="client" title="Notifications" backHref="/menu">
+      <div className="max-w-lg mx-auto space-y-4">
         <p className="text-xs text-gray-400 px-1 mb-2">
           Choisis comment tu veux être prévenu pour tes commandes, livraisons et paiements.
         </p>
@@ -91,6 +85,6 @@ export default function NotificationsPage() {
           )}
         </div>
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

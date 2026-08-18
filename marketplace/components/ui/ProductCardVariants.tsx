@@ -164,8 +164,8 @@ export function ProductCardModern({
         {/* Ligne prix + icône panier à droite, sans fond ni bordure */}
         <div className="flex items-center justify-between mt-0.5 gap-2">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <p className="text-base font-black text-gray-900 whitespace-nowrap">
-              {price.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
+            <p className={`text-base font-black whitespace-nowrap ${discount ? 'bg-gradient-to-r from-coral-500 to-rose-500 bg-clip-text text-transparent' : 'text-gray-900'}`}>
+              {price.toLocaleString("fr-FR")} <span className={`text-[11px] font-bold ${discount ? 'text-coral-500' : ''}`}>FCFA</span>
             </p>
             {discount && (
               <>

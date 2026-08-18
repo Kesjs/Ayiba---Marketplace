@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import {
   ShieldCheck, QrCode, Store, Bike, ArrowRight,
   Wallet, Star, MapPin, Clock, MessageCircle,
-  ChevronRight, Zap
+  ChevronRight, Zap, ChevronLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/client";
 import { toggleFavorite, fetchFavoriteIds } from "@/lib/catalogue";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
+import { LocationPermissionBanner } from "@/components/ui/LocationPermissionBanner";
 
 
 // ============================================
@@ -331,61 +332,122 @@ export default function Home() {
             </div>
           )}
 
-          {/* --- 1. CATÉGORIES + BANDE DE CONFIANCE ---
-              Remplace l'ancien hero marketing (titre/sous-titre/2 CTA/
-              illustration en filigrane). Une marketplace part du principe
-              que le visiteur est déjà venu pour acheter : on va direct à
-              l'essentiel (recherche dans la Navbar, catégories, catalogue)
-              plutôt que de le faire lire une tagline avant d'agir — donc
-              les catégories (contenu actionnable) passent avant la ligne de
-              confiance (texte à lire), jamais l'inverse. */}
-          {categoriesAvecProduits.length > 0 && (
-            <section className="pt-6 pb-3 md:pt-8">
-              <div className="max-w-7xl mx-auto pl-4 md:pl-8 lg:pl-12">
-                <div className="flex gap-2.5 md:gap-3 overflow-x-auto pr-4 md:pr-8 lg:pr-12 no-scrollbar snap-x snap-mandatory">
-                  {categoriesAvecProduits.map((cat) => {
-                    const Icon = resolveCategoryIcon(cat.icone);
-                    const couleur = cat.couleur || "#9CA3AF";
-                    return (
-                      <Link
-                        key={cat.id}
-                        href={`/catalogue?categorie=${cat.slug}`}
-                        className="group flex items-center gap-2 shrink-0 snap-start pl-2 pr-4 py-2 rounded-full border border-gray-100 hover:border-coral-100 hover:shadow-sm transition-all duration-200 bg-white"
-                      >
-                        <span
-                          className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-transform duration-200 group-hover:scale-110"
-                          style={{ backgroundColor: `${couleur}1a`, color: couleur }}
-                        >
-                          <Icon size={16} />
-                        </span>
-                        <span className="text-[13px] font-bold text-gray-700 whitespace-nowrap">{cat.nom}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
-          )}
-
-          {/* Bande de confiance : sous les catégories, en note discrète —
-              utile tant qu'on est en phase de développement (peu de
-              vendeurs/avis encore) pour rassurer sans jamais passer avant
-              du contenu actionnable. */}
-          <section className="pb-6 md:pb-8">
+          {/* --- 0. BANDE DE CONFIANCE --- */}
+          <section className="bg-amber-50 border-b border-amber-100 py-2">
             <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-1 text-[10px] md:text-[11px] font-medium text-gray-400">
-                <span className="flex items-center gap-1.5">
-                  <Wallet size={12} className="text-amber-400" /> Paiement Escrow
+              <div className="flex items-center justify-between md:justify-center gap-6 md:gap-10 overflow-x-auto no-scrollbar text-[11px] md:text-[12px] font-semibold text-gray-700 whitespace-nowrap">
+                <span className="flex items-center gap-1.5 shrink-0 bg-amber-100/70 text-amber-900 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                  🇧🇯 100% Béninoise
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <QrCode size={12} className="text-coral-400" /> Code de livraison secret
+                <span className="hidden md:block text-gray-300">|</span>
+                <span className="flex items-center gap-2 shrink-0">
+                  <Wallet size={13} className="text-amber-500" />
+                  Paiement Escrow sécurisé
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck size={12} className="text-teal-500" /> Vendeurs vérifiés
+                <span className="hidden md:block text-gray-300">|</span>
+                <span className="flex items-center gap-2 shrink-0">
+                  <QrCode size={13} className="text-coral-500" />
+                  Code de livraison secret
+                </span>
+                <span className="hidden md:block text-gray-300">|</span>
+                <span className="flex items-center gap-2 shrink-0">
+                  <ShieldCheck size={13} className="text-teal-600" />
+                  Vendeurs vérifiés
                 </span>
               </div>
             </div>
           </section>
+
+          {/* --- 1. CATÉGORIES (Style Airbnb) --- */}
+          {categories.length > 0 && (
+            <section className="border-b border-gray-200 bg-white sticky top-0 z-30">
+              <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+                {/* Conteneur avec dégradés et flèches au hover */}
+                <div className="relative group/nav">
+
+                  {/* Dégradé fondu à gauche */}
+                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent z-10 hidden md:block" />
+                  {/* Dégradé fondu à droite */}
+                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 hidden md:block" />
+
+                  {/* Flèche gauche — visible uniquement au hover du conteneur */}
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('cat-scroll');
+                      if (el) el.scrollBy({ left: -240, behavior: 'smooth' });
+                    }}
+                    className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center bg-white shadow-md border border-gray-200 rounded-full opacity-0 group-hover/nav:opacity-100 transition-opacity duration-200 hover:scale-105"
+                    aria-label="Faire défiler à gauche"
+                  >
+                    <ChevronLeft size={16} className="text-gray-700" />
+                  </button>
+
+                  {/* Liste scrollable */}
+                  <div
+                    id="cat-scroll"
+                    className="flex gap-8 md:gap-10 overflow-x-auto no-scrollbar snap-x py-4 md:px-10"
+                    onWheel={(e) => {
+                      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+                        e.currentTarget.scrollBy({ left: e.deltaY, behavior: 'auto' });
+                      }
+                    }}
+                  >
+                    {/* Bouton Tout */}
+                    <button
+                      onClick={() => {
+                        setActiveTab("Tout");
+                        setVisibleProductsCount(8);
+                        document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="group flex flex-col items-center gap-2 min-w-[56px] shrink-0 snap-start"
+                    >
+                      <div className={`transition-all duration-300 group-hover:scale-110 ${activeTab === 'Tout' ? 'text-coral-500 scale-110' : 'text-gray-400 group-hover:text-coral-500'}`}>
+                        <Store size={26} strokeWidth={1.5} />
+                      </div>
+                      <span className={`text-[11px] md:text-[12px] font-semibold whitespace-nowrap border-b-2 pb-1 transition-all duration-300 ${activeTab === 'Tout' ? 'text-gray-900 border-gray-900' : 'text-gray-500 group-hover:text-gray-900 border-transparent'}`}>
+                        Tout
+                      </span>
+                    </button>
+
+                    {categories.map((cat) => {
+                      const Icon = resolveCategoryIcon(cat.icone);
+                      const isSelected = activeTab === cat.nom;
+                      return (
+                        <button
+                          key={cat.id}
+                          onClick={() => {
+                            setActiveTab(cat.nom);
+                            setVisibleProductsCount(8);
+                            document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="group flex flex-col items-center gap-2 min-w-[72px] md:min-w-[80px] shrink-0 snap-start"
+                        >
+                          <div className={`transition-all duration-300 group-hover:scale-110 ${isSelected ? 'text-coral-500 scale-110' : 'text-gray-400 group-hover:text-coral-500'}`}>
+                            <Icon size={26} strokeWidth={1.5} />
+                          </div>
+                          <span className={`text-[11px] md:text-[12px] font-semibold whitespace-nowrap border-b-2 pb-1 transition-all duration-300 ${isSelected ? 'text-gray-900 border-gray-900' : 'text-gray-500 group-hover:text-gray-900 border-transparent'}`}>
+                            {cat.nom}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Flèche droite — visible uniquement au hover du conteneur */}
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('cat-scroll');
+                      if (el) el.scrollBy({ left: 240, behavior: 'smooth' });
+                    }}
+                    className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center bg-white shadow-md border border-gray-200 rounded-full opacity-0 group-hover/nav:opacity-100 transition-opacity duration-200 hover:scale-105"
+                    aria-label="Faire défiler à droite"
+                  >
+                    <ChevronRight size={16} className="text-gray-700" />
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* --- 2. BANDEAU CLIENT CONNECTÉ / LIVREUR EN ATTENTE ---
               Vendeur (dashboard non verrouillé) et admin sont redirigés
@@ -545,6 +607,7 @@ export default function Home() {
 
           {/* --- 4. POUR VOUS (produits + tabs) --- */}
           <motion.section
+            id="pour-vous"
             variants={sectionVariants}
             initial="hidden"
             whileInView="visible"
@@ -568,32 +631,18 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Navigation Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-4 md:pb-6 no-scrollbar mb-6 md:mb-8">
-                <button
-                  onClick={() => { setActiveTab("Tout"); setVisibleProductsCount(8); }}
-                  className={`shrink-0 px-5 md:px-6 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-bold whitespace-nowrap transition-all duration-300 ${
-                    activeTab === "Tout"
-                      ? 'bg-coral-50 text-coral-600 border-2 border-coral-200'
-                      : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-100'
-                  }`}
-                >
-                  Tout
-                </button>
-                {categoriesAvecProduits.map((cat) => (
+              {/* Filtre actif affiché */}
+              {activeTab !== 'Tout' && (
+                <div className="flex items-center gap-2 mb-6 md:mb-8">
+                  <span className="text-xs font-semibold text-gray-500">Filtré par :</span>
                   <button
-                    key={cat.id}
-                    onClick={() => { setActiveTab(cat.nom); setVisibleProductsCount(8); }}
-                    className={`shrink-0 px-5 md:px-6 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-bold whitespace-nowrap transition-all duration-300 ${
-                      activeTab === cat.nom
-                        ? 'bg-coral-50 text-coral-600 border-2 border-coral-200'
-                        : 'bg-white text-gray-500 hover:bg-gray-100 border border-gray-100'
-                    }`}
+                    onClick={() => { setActiveTab('Tout'); setVisibleProductsCount(8); }}
+                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-coral-50 text-coral-600 border border-coral-200 text-xs font-bold hover:bg-coral-100 transition-colors"
                   >
-                    {cat.nom}
+                    {activeTab} <span className="text-coral-400 ml-1">×</span>
                   </button>
-                ))}
-              </div>
+                </div>
+              )}
 
               {productsToShow.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-24 text-center">
@@ -831,6 +880,7 @@ export default function Home() {
             </div>
           </motion.section>
 
+          <LocationPermissionBanner />
           <Footer />
         </>
       )}

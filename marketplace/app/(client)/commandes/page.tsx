@@ -7,7 +7,7 @@ import { useToast } from '@/context/ToastContext'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/StatusBadge'
-import { ClientDashboardHeader } from '@/components/client/ClientDashboardHeader'
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout'
 import { useUser } from '@/lib/hooks/useUser'
 import { useBadgeCounts } from '@/lib/hooks/useBadgeCounts'
 
@@ -211,17 +211,8 @@ export default function CommandesPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <ClientDashboardHeader
-        title="Mes commandes"
-        avatarUrl={profile?.avatar_url}
-        fullName={profile?.full_name || undefined}
-        notificationsCount={badges.notifications}
-        notifications={badges.notificationsList}
-        logoHref="/"
-      />
-
-      <div className="bg-white border-b border-gray-100">
+    <DashboardLayout role="client" title="Mes commandes">
+      <div className="bg-white rounded-2xl border border-gray-100 mb-6 overflow-hidden">
         <div className="flex">
           <button
             onClick={() => setActiveTab('active')}
@@ -398,6 +389,6 @@ export default function CommandesPage() {
           </div>
         </Modal>
       )}
-    </div>
+    </DashboardLayout>
   )
 }

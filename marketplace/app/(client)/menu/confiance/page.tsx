@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { ArrowLeft, ShieldCheck, Lock, Smartphone, KeyRound, Fingerprint, ChevronRight } from "lucide-react";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 
 // Rend visible ce qui existe déjà côté sécurité (escrow, KYC vendeur/livreur,
 // confirmation de livraison QR/code) plutôt que de le laisser invisible pour
@@ -24,15 +25,8 @@ export default function CentreConfiancePage() {
   }, [supabase]);
 
   return (
-    <main className="min-h-screen bg-gray-50/30 pb-10">
-      <div className="bg-white border-b border-gray-100 px-4 py-4 flex items-center gap-3 sticky top-0 z-10">
-        <button onClick={() => router.back()} className="text-gray-500">
-          <ArrowLeft size={20} />
-        </button>
-        <h1 className="text-base font-bold text-gray-900">Centre de confiance</h1>
-      </div>
-
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <DashboardLayout role="client" title="Centre de confiance" backHref="/menu">
+      <div className="max-w-lg mx-auto space-y-6">
         <div className="bg-teal-50 border border-teal-100 rounded-2xl p-5 flex gap-3">
           <ShieldCheck size={22} className="text-teal-600 shrink-0" />
           <p className="text-sm text-teal-800 leading-relaxed">
@@ -94,6 +88,6 @@ export default function CentreConfiancePage() {
           prochaine version.
         </p>
       </div>
-    </main>
+    </DashboardLayout>
   );
 }

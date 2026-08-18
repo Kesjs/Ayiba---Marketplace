@@ -6,7 +6,7 @@ import { useClientMessages } from "@/lib/hooks/useClientMessages";
 import { useUser } from "@/lib/hooks/useUser";
 import { useBadgeCounts } from "@/lib/hooks/useBadgeCounts";
 import { useUiChrome } from "@/context/UiChromeContext";
-import { ClientDashboardHeader } from "@/components/client/ClientDashboardHeader";
+import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { MessageCircleOff, Send, User, ArrowLeft, Phone, Store, Bike, LifeBuoy, RotateCcw } from "lucide-react";
 
 const ONGLETS = [
@@ -112,19 +112,7 @@ function MessagesContent() {
   };
 
   return (
-    <div
-      className={`fixed inset-x-0 top-0 z-40 flex flex-col overflow-hidden bg-gray-50/30 md:static md:z-auto md:h-dvh ${
-        selectedId ? "bottom-0" : "bottom-24 md:bottom-0"
-      }`}
-    >
-      <ClientDashboardHeader
-        title="Messages"
-        avatarUrl={profile?.avatar_url}
-        fullName={profile?.full_name || undefined}
-        notificationsCount={badges.notifications}
-        notifications={badges.notificationsList}
-        logoHref="/"
-      />
+    <DashboardLayout role="client" title="Messagerie" fullHeight>
       <div className="bg-white border-b border-gray-100 flex-shrink-0">
         <div className="flex px-4 gap-1 overflow-x-auto">
           {ONGLETS.map((o) => {
@@ -414,7 +402,7 @@ function MessagesContent() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   )
 }
 

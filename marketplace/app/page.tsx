@@ -332,35 +332,39 @@ export default function Home() {
             </div>
           )}
 
-          {/* --- 0. BANDE DE CONFIANCE --- */}
-          <section className="bg-amber-50 border-b border-amber-100 py-2">
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="flex items-center justify-between md:justify-center gap-6 md:gap-10 overflow-x-auto no-scrollbar text-[11px] md:text-[12px] font-semibold text-gray-700 whitespace-nowrap">
-                <span className="flex items-center gap-1.5 shrink-0 bg-amber-100/70 text-amber-900 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                  🇧🇯 100% Béninoise
-                </span>
-                <span className="hidden md:block text-gray-300">|</span>
-                <span className="flex items-center gap-2 shrink-0">
-                  <Wallet size={13} className="text-amber-500" />
-                  Paiement Escrow sécurisé
-                </span>
-                <span className="hidden md:block text-gray-300">|</span>
-                <span className="flex items-center gap-2 shrink-0">
-                  <QrCode size={13} className="text-coral-500" />
-                  Code de livraison secret
-                </span>
-                <span className="hidden md:block text-gray-300">|</span>
-                <span className="flex items-center gap-2 shrink-0">
-                  <ShieldCheck size={13} className="text-teal-600" />
-                  Vendeurs vérifiés
-                </span>
-              </div>
+          {/* --- 0. BANDE DE CONFIANCE (Marquee Infini & Sticky sous Navbar) --- */}
+          <section className="sticky top-[104px] md:top-[72px] z-35 bg-amber-50/95 backdrop-blur-md border-b border-amber-100/80 py-2.5 overflow-hidden shadow-xs">
+            <div className="flex w-full overflow-hidden group/marquee">
+              <motion.div
+                className="flex items-center gap-8 md:gap-12 whitespace-nowrap shrink-0 pr-8"
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{ repeat: Infinity, ease: "linear", duration: 22 }}
+              >
+                {[
+                  { label: "🇧🇯 100% Béninoise & Locale", icon: null },
+                  { label: "Paiement Escrow Sécurisé", icon: <Wallet size={14} className="text-amber-600" /> },
+                  { label: "Code de livraison secret", icon: <QrCode size={14} className="text-coral-500" /> },
+                  { label: "Vendeurs vérifiés & fiables", icon: <ShieldCheck size={14} className="text-teal-600" /> },
+                  { label: "Livraison rapide Cotonou & Calavi", icon: <Zap size={14} className="text-amber-500" /> },
+                  { label: "🇧🇯 100% Béninoise & Locale", icon: null },
+                  { label: "Paiement Escrow Sécurisé", icon: <Wallet size={14} className="text-amber-600" /> },
+                  { label: "Code de livraison secret", icon: <QrCode size={14} className="text-coral-500" /> },
+                  { label: "Vendeurs vérifiés & fiables", icon: <ShieldCheck size={14} className="text-teal-600" /> },
+                  { label: "Livraison rapide Cotonou & Calavi", icon: <Zap size={14} className="text-amber-500" /> },
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-[11px] md:text-[12px] font-semibold text-gray-800 shrink-0">
+                    {item.icon}
+                    <span>{item.label}</span>
+                    <span className="text-amber-300/80 ml-6">•</span>
+                  </div>
+                ))}
+              </motion.div>
             </div>
           </section>
 
-          {/* --- 1. CATÉGORIES (Style Airbnb) --- */}
+          {/* --- 1. CATÉGORIES (Style Airbnb Sticky sous Bande de Confiance) --- */}
           {categories.length > 0 && (
-            <section className="border-b border-gray-200 bg-white sticky top-0 z-30">
+            <section className="border-b border-gray-200 bg-white/95 backdrop-blur-md sticky top-[138px] md:top-[106px] z-30 shadow-xs">
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
                 {/* Conteneur avec dégradés et flèches au hover */}
                 <div className="relative group/nav">

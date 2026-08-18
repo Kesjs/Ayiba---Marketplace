@@ -155,7 +155,7 @@ function extractStoragePath(url: string): string | null {
 }
 
 const MAX_PHOTOS = 5;
-const MIN_DIMENSION = 600;
+const MIN_DIMENSION = 250;
 
 function checkImageDimensions(file: File): Promise<{ ok: boolean; width: number; height: number }> {
   return new Promise((resolve) => {

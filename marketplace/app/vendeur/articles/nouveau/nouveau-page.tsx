@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { determinerStatutInitial } from "@/lib/articles/moderation";
 import { getCategoriesFormulaire, type CategorieArbre } from "@/lib/queries/articles";
+import { compressImage } from "@/lib/imageCompressor";
 
 const WIZARD_STEPS: WizardStep[] = [
   { label: "Informations", icon: FileText },
@@ -17,7 +18,7 @@ const WIZARD_STEPS: WizardStep[] = [
   { label: "Variantes", icon: Layers },
 ];
 const MAX_PHOTOS = 5;
-const MIN_DIMENSION = 600;
+const MIN_DIMENSION = 250;
 const TYPES_VARIANTE = [
   { value: "couleur", label: "Couleur" },
   { value: "taille", label: "Taille" },
@@ -401,15 +402,15 @@ function NouveauArticleForm() {
     setUploadingPhoto(true);
     const candidats = files.slice(0, remaining);
 
-    for (const file of candidats) {
+    for (let file of candidats) {
       if (!file.type.startsWith("image/")) {
-        setPhotoError("Seules les images sont acceptées (JPG, PNG).");
+        setPhotoError("Seules les images sont acceptées (JPG, PNG, WebP).");
         continue;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        setPhotoError(`"${file.name}" dépasse 5 Mo — compresse-la ou choisis-en une autre.`);
-        continue;
-      }
+
+      // Compression automatique côté client : redimensionne et convertit en WebP (~150 Ko)
+      file = await compressImage(file);
+
       const { ok, width, height } = await checkImageDimensions(file);
       if (!ok) {
         setPhotoError(

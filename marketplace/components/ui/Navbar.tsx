@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck, Heart, MapPin, HelpCircle, PackageSearch, FileQuestion, QrCode } from "lucide-react";
+import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck, Heart, MapPin, HelpCircle, PackageSearch, FileQuestion, QrCode, LogIn, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
 import { AuthModal } from "@/components/ui/AuthModal";
@@ -197,14 +197,9 @@ export function Navbar() {
     setShowSearchOverlay(false);
   };
 
-  // Icône compte mobile : visiteur non connecté -> ouvre l'AuthModal directement.
-  // Utilisateur connecté -> ouvre le drawer (dashboard, commandes, messages, déconnexion).
+  // Icône compte mobile : ouvre le drawer mobile (choix connexion, devenir vendeur/livreur pour visiteur, ou dashboard pour connecté)
   const handleAccountIconClick = () => {
-    if (!user) {
-      setAuthModalOpen(true);
-    } else {
-      setMobileOpen(true);
-    }
+    setMobileOpen(true);
   };
 
   return (
@@ -648,83 +643,188 @@ export function Navbar() {
           </div>
 
           <div className="p-4 flex flex-col gap-6 overflow-y-auto flex-1">
-            <div className="flex flex-col gap-1">
-              <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                <LayoutDashboard size={20} className="text-gray-400" />
-                <span>{userRole === "client" ? "Découvrir la boutique" : "Mon dashboard"}</span>
-              </a>
-              {userRole === "vendeur" ? (
-                <>
+            {!user ? (
+              <div className="flex flex-col gap-5">
+                {/* Bloc Client Connexion */}
+                <div className="p-4 rounded-2xl bg-coral-50/70 border border-coral-100 flex flex-col gap-3">
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">Espace Client</p>
+                    <p className="text-xs text-gray-500 mt-0.5">Connectez-vous pour passer des commandes, suivre vos colis et enregistrer vos favoris.</p>
+                  </div>
+                  <button
+                    onClick={() => { setMobileOpen(false); setAuthModalOpen(true); }}
+                    className="w-full bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-xl py-3 px-4 text-sm flex items-center justify-center gap-2 shadow-md shadow-coral-500/20 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <LogIn size={18} />
+                    <span>Se connecter / S'inscrire</span>
+                  </button>
+                </div>
+
+                {/* Section Devenir Partenaire */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
+                    Rejoindre Ayiba (Partenaire)
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <a
+                      href="/devenir-vendeur"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50/80 border border-gray-100 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-coral-50 text-coral-600 flex items-center justify-center shrink-0">
+                          <Store size={20} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-gray-900 truncate">Devenir Vendeur</p>
+                          <p className="text-xs text-gray-500 truncate">Ouvrez votre boutique en ligne</p>
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-gray-300 shrink-0" />
+                    </a>
+
+                    <a
+                      href="/devenir-livreur"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50/80 border border-gray-100 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                          <Bike size={20} />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-gray-900 truncate">Devenir Livreur</p>
+                          <p className="text-xs text-gray-500 truncate">Livrez des commandes et gagnez des revenus</p>
+                        </div>
+                      </div>
+                      <ChevronRight size={16} className="text-gray-300 shrink-0" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Liens Utiles */}
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
+                    Informations & Aide
+                  </p>
+                  <div className="flex flex-col gap-1">
+                    <button
+                      onClick={() => { setMobileOpen(false); setLocationModalOpen(true); }}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-coral-50 text-coral-600 transition-colors text-sm font-bold text-left"
+                    >
+                      <MapPin size={18} className="text-coral-500" />
+                      <span>Lieu : {userLocation}</span>
+                    </button>
+                    <a href="/faq" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                      <FileQuestion size={18} className="text-gray-400" />
+                      <span>Questions fréquentes (FAQ)</span>
+                    </a>
+                    <a href="/centre-aide" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                      <HelpCircle size={18} className="text-gray-400" />
+                      <span>Centre d'assistance</span>
+                    </a>
+                    <a href="/cgu" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                      <FileText size={18} className="text-gray-400" />
+                      <span>Conditions générales (CGU)</span>
+                    </a>
+                    <a href="/privacy" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                      <ShieldCheck size={18} className="text-gray-400" />
+                      <span>Confidentialité</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  <LayoutDashboard size={20} className="text-gray-400" />
+                  <span>{userRole === "client" ? "Découvrir la boutique" : "Mon dashboard"}</span>
+                </a>
+                {userRole === "vendeur" ? (
+                  <>
+                    <a href="/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                      <ShoppingBag size={20} className="text-gray-400" />
+                      <span>Mes achats</span>
+                    </a>
+                    <a href="/vendeur/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                      <Store size={20} className="text-gray-400" />
+                      <span>Mes ventes</span>
+                    </a>
+                  </>
+                ) : (
                   <a href="/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                     <ShoppingBag size={20} className="text-gray-400" />
-                    <span>Mes achats</span>
+                    <span>Mes commandes</span>
                   </a>
-                  <a href="/vendeur/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                    <Store size={20} className="text-gray-400" />
-                    <span>Mes ventes</span>
-                  </a>
-                </>
-              ) : (
-                <a href="/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                  <ShoppingBag size={20} className="text-gray-400" />
-                  <span>Mes commandes</span>
+                )}
+                <a href="/messages" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  <MessageSquare size={20} className="text-gray-400" />
+                  <span>Messages</span>
                 </a>
-              )}
-              <a href="/messages" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                <MessageSquare size={20} className="text-gray-400" />
-                <span>Messages</span>
-              </a>
 
-              <div className="h-px bg-gray-100 my-2 mx-4" />
-              <button
-                onClick={() => { setMobileOpen(false); setLocationModalOpen(true); }}
-                className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-coral-50 text-coral-600 transition-colors text-sm font-bold text-left"
-              >
-                <MapPin size={20} className="text-coral-500" />
-                <span>Lieu : {userLocation}</span>
-              </button>
-              <a href="/faq" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                <FileQuestion size={20} className="text-gray-400" />
-                <span>Questions fréquentes (FAQ)</span>
-              </a>
-              <a href="/centre-aide" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                <HelpCircle size={20} className="text-gray-400" />
-                <span>Centre d'assistance</span>
-              </a>
-              <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                <FileText size={20} className="text-gray-400" />
-                <span>Conditions générales</span>
-              </a>
-              <a href="/privacy" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                <ShieldCheck size={20} className="text-gray-400" />
-                <span>Confidentialité</span>
-              </a>
+                <div className="h-px bg-gray-100 my-2 mx-4" />
+                <button
+                  onClick={() => { setMobileOpen(false); setLocationModalOpen(true); }}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-coral-50 text-coral-600 transition-colors text-sm font-bold text-left"
+                >
+                  <MapPin size={20} className="text-coral-500" />
+                  <span>Lieu : {userLocation}</span>
+                </button>
+                <a href="/faq" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  <FileQuestion size={20} className="text-gray-400" />
+                  <span>Questions fréquentes (FAQ)</span>
+                </a>
+                <a href="/centre-aide" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  <HelpCircle size={20} className="text-gray-400" />
+                  <span>Centre d'assistance</span>
+                </a>
+                <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  <FileText size={20} className="text-gray-400" />
+                  <span>Conditions générales</span>
+                </a>
+                <a href="/privacy" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  <ShieldCheck size={20} className="text-gray-400" />
+                  <span>Confidentialité</span>
+                </a>
 
-              <button onClick={() => { setMobileOpen(false); setShowLogoutModal(true); }} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
-                <LogOut size={20} />
-                <span>Déconnexion</span>
-              </button>
-            </div>
+                <button onClick={() => { setMobileOpen(false); setShowLogoutModal(true); }} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
+                  <LogOut size={20} />
+                  <span>Déconnexion</span>
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="p-4 border-t border-gray-100 bg-gray-50">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
-                ) : (
-                  <User size={16} className="text-coral-400" />
-                )}
+            {user ? (
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
+                  ) : (
+                    <User size={16} className="text-coral-400" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 px-0 truncate">{displayName}</p>
+                  {roleBadge && (
+                    <span className={`inline-block mt-0.5 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${roleBadge.className}`}>
+                      {roleBadge.label}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-gray-900 px-0 truncate">{displayName}</p>
-                {roleBadge && (
-                  <span className={`inline-block mt-0.5 text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full ${roleBadge.className}`}>
-                    {roleBadge.label}
-                  </span>
-                )}
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                  <User size={18} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold text-gray-900">Visiteur non connecté</p>
+                  <p className="text-[11px] text-gray-400">Ayiba Marketplace</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

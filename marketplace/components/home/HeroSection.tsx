@@ -2,97 +2,221 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, HelpCircle, Sparkles } from "lucide-react";
-import { HowItWorksModal } from "@/components/modals/HowItWorksModal";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowRight, LucideIcon, Store, ShieldCheck, Star, Bike, Wallet, MapPin, PackageCheck, Sparkles } from "lucide-react";
+
+// ============================================
+// CONFIG PAR TAB — texte, CTA, images, badges
+// ============================================
+
+type TabKey = "acheter" | "vendre" | "livrer";
+
+interface TrustBadge {
+  icon: LucideIcon;
+  value: string;
+  label: string;
+}
+
+interface HeroTabConfig {
+  key: TabKey;
+  tabLabel: string;
+  title: string;
+  subtitle: string;
+  ctaLabel: string;
+  ctaHref: string;
+  // 3 images en éventail à droite — remplace ces chemins par tes propres visuels
+  // dans /public/images/hero/ (garde les mêmes noms ou change-les ici)
+  images: [string, string, string];
+  badges: [TrustBadge, TrustBadge, TrustBadge];
+}
+
+const HERO_TABS: HeroTabConfig[] = [
+  {
+    key: "acheter",
+    tabLabel: "Acheter",
+    title: "Trouvez vos pépites près de chez vous",
+    subtitle: "Des vendeurs vérifiés à Cotonou et Abomey-Calavi.",
+    ctaLabel: "Découvrir la marketplace",
+    ctaHref: "/catalogue",
+    images: [
+      "/images/hero/acheter-1.jpg",
+      "/images/hero/acheter-2.jpg",
+      "/images/hero/acheter-3.jpg",
+    ],
+    badges: [
+      { icon: Store, value: "120+", label: "Articles en ligne" },
+      { icon: Star, value: "4.8/5", label: "Note moyenne" },
+      { icon: ShieldCheck, value: "100%", label: "Paiement sécurisé" },
+    ],
+  },
+  {
+    key: "vendre",
+    tabLabel: "Vendre",
+    title: "Ouvrez votre boutique en quelques clics",
+    subtitle: "Publiez vos articles et recevez vos paiements en toute sécurité.",
+    ctaLabel: "Vendre mes articles",
+    ctaHref: "/devenir-vendeur",
+    images: [
+      "/images/hero/vendre-1.jpg",
+      "/images/hero/vendre-2.jpg",
+      "/images/hero/vendre-3.jpg",
+    ],
+    badges: [
+      { icon: Sparkles, value: "30+", label: "Vendeurs actifs" },
+      { icon: Wallet, value: "24h", label: "Paiement rapide" },
+      { icon: PackageCheck, value: "5 min", label: "Mise en ligne" },
+    ],
+  },
+  {
+    key: "livrer",
+    tabLabel: "Livrer",
+    title: "Livrez, gagnez, en toute liberté",
+    subtitle: "Rejoignez nos livreurs et touchez votre gain à chaque course.",
+    ctaLabel: "Devenir livreur",
+    ctaHref: "/devenir-livreur",
+    images: [
+      "/images/hero/livrer-1.jpg",
+      "/images/hero/livrer-2.jpg",
+      "/images/hero/livrer-3.jpg",
+    ],
+    badges: [
+      { icon: Bike, value: "15+", label: "Livreurs actifs" },
+      { icon: Wallet, value: "Instant", label: "Paiement par course" },
+      { icon: MapPin, value: "2 villes", label: "Cotonou · Abomey-Calavi" },
+    ],
+  },
+];
 
 export function HeroSection() {
-  const [isHowItWorksOpen, setIsHowItWorksOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>("acheter");
+  const active = HERO_TABS.find((t) => t.key === activeTab)!;
 
   return (
-    <>
-      <section className="relative w-full overflow-hidden min-h-[480px] sm:min-h-[540px] md:min-h-[600px] flex items-center bg-[#0d0d0f] text-white">
-        
-        {/* --- 100% FOND IMAGE PLEINE LARGEUR (EDGE-TO-EDGE) --- */}
-        <div className="absolute inset-0 z-0">
-          <img
-            src="/images/hero-gold-cart.jpg"
-            alt="Ayiba Shopping Chariot Doré"
-            className="w-full h-full object-cover object-left-center md:object-center scale-100"
-          />
-          {/* Overlay très léger et progressif à droite pour lisibilité du texte sans assombrir la photo */}
-          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/80 via-black/50 to-transparent md:from-black/40 md:via-black/70 md:to-black/90 z-10" />
+    <section className="relative w-full bg-white overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-10">
+        {/* --- TABS --- */}
+        <div className="flex items-center gap-2 mb-6">
+          {HERO_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-200 ${
+                activeTab === tab.key
+                  ? "bg-gray-900 text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {tab.tabLabel}
+            </button>
+          ))}
         </div>
 
-        {/* --- CONTENU TEXTE POSÉ DIRECTEMENT SUR L'IMAGE (À DROITE) --- */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-8 lg:px-12 w-full py-12 md:py-16 flex justify-center md:justify-end">
-          <div className="max-w-xl text-left">
-            
-            {/* Badge discret */}
+        <div className="grid md:grid-cols-2 gap-8 md:gap-12 items-center min-h-[280px] md:min-h-[320px]">
+          {/* --- COLONNE TEXTE --- */}
+          <AnimatePresence mode="wait">
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              key={active.key}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/15 backdrop-blur-md border border-white/20 text-white mb-4 shadow-lg"
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.3, ease: "easeOut" }}
             >
-              <Sparkles size={14} className="text-amber-400 animate-pulse" />
-              <span>Marketplace Sécurisée au Bénin</span>
-            </motion.div>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 tracking-tight leading-[1.15]">
+                {active.title}
+              </h1>
 
-            {/* Titre Puissant sur l'image */}
-            <motion.h1
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.12]"
-            >
-              Prêt à dénicher des <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF5A5F] via-amber-300 to-teal-300">pépites ?</span>
-            </motion.h1>
+              <p className="text-sm md:text-base text-gray-600 mt-3 leading-relaxed">
+                {active.subtitle}
+              </p>
 
-            {/* Sous-titre aéré */}
-            <motion.p
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-sm md:text-base text-gray-200 mt-4 leading-relaxed font-medium"
-            >
-              Vendez vos trésors cachés en toute simplicité et rejoignez la 1ère communauté passionnée de mode et d'articles d'exception au Bénin.
-            </motion.p>
-
-            {/* BOUTONS D'ACTION SUR L'IMAGE */}
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5"
-            >
-              {/* Bouton CTA Principal Coral */}
               <Link
-                href="/devenir-vendeur"
-                className="py-4 px-7 rounded-xl bg-[#FF5A5F] hover:bg-[#E0484D] text-white font-extrabold text-sm md:text-base flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-[0.98] shadow-lg shadow-rose-900/30"
+                href={active.ctaHref}
+                className="mt-6 inline-flex items-center gap-2.5 py-3.5 px-6 rounded-xl bg-[#FF5A5F] hover:bg-[#E0484D] text-white font-extrabold text-sm transition-all duration-200 active:scale-[0.98] shadow-lg shadow-rose-900/15"
               >
-                <span>Vendre mes articles</span>
+                <span>{active.ctaLabel}</span>
                 <ArrowRight size={18} strokeWidth={2.5} />
               </Link>
 
-              {/* Bouton Secondaire Contour */}
-              <button
-                onClick={() => setIsHowItWorksOpen(true)}
-                className="py-4 px-6 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] cursor-pointer"
-              >
-                <HelpCircle size={17} className="text-amber-400" />
-                <span>Comment ça marche ?</span>
-              </button>
+              {/* --- 3 BADGES DE CONFIANCE (varient selon le tab) --- */}
+              <div className="mt-8 grid grid-cols-3 gap-3 max-w-md">
+                {active.badges.map((badge, i) => {
+                  const Icon = badge.icon;
+                  return (
+                    <div key={i} className="flex flex-col gap-1">
+                      <Icon size={18} className="text-coral-400" strokeWidth={2} />
+                      <span className="text-sm md:text-base font-black text-gray-900 leading-none">
+                        {badge.value}
+                      </span>
+                      <span className="text-[11px] text-gray-500 font-medium leading-tight">
+                        {badge.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
             </motion.div>
+          </AnimatePresence>
 
+          {/* --- CLUSTER DE 3 IMAGES EN ÉVENTAIL --- */}
+          <div className="relative hidden md:flex items-center justify-center h-[300px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={active.key}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="relative w-full h-full flex items-center justify-center"
+              >
+                {/* Image gauche */}
+                <motion.div
+                  initial={{ rotate: -6, x: 0 }}
+                  animate={{ rotate: -8, x: -60 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl border-4 border-white"
+                  style={{ zIndex: 1 }}
+                >
+                  <img
+                    src={active.images[0]}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+
+                {/* Image centrale (au-dessus) */}
+                <motion.div
+                  initial={{ rotate: 0, y: 10 }}
+                  animate={{ rotate: 0, y: -10 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="relative w-44 h-56 md:w-48 md:h-64 rounded-2xl overflow-hidden shadow-2xl border-4 border-white"
+                  style={{ zIndex: 3 }}
+                >
+                  <img
+                    src={active.images[1]}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+
+                {/* Image droite */}
+                <motion.div
+                  initial={{ rotate: 6, x: 0 }}
+                  animate={{ rotate: 8, x: 60 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl border-4 border-white"
+                  style={{ zIndex: 2 }}
+                >
+                  <img
+                    src={active.images[2]}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
-      </section>
-
-      {/* Modal interactif Comment ça marche ? */}
-      <HowItWorksModal
-        isOpen={isHowItWorksOpen}
-        onClose={() => setIsHowItWorksOpen(false)}
-      />
-    </>
+      </div>
+    </section>
   );
 }

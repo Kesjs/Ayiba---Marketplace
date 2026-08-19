@@ -256,7 +256,7 @@ export default function ProductDetailPage() {
           avatar_url: vendeurRow?.photo_profil_url || null,
           commune: vendeurRow?.commune || null,
           isVerified: vendeurRow?.statut === 'valide',
-          created_at: (Array.isArray(vendeurRow?.users) ? vendeurRow?.users[0]?.created_at : vendeurRow?.users?.created_at) || undefined,
+          created_at: (Array.isArray((vendeurRow as any)?.users) ? (vendeurRow as any)?.users[0]?.created_at : (vendeurRow as any)?.users?.created_at) || undefined,
         },
         is_favorite: isFavorite,
         caracteristiques: articleRow.caracteristiques || [],
@@ -267,7 +267,7 @@ export default function ProductDetailPage() {
       if (vendeurRow?.id) {
         fetchVendeurStats(supabase, vendeurRow.id).then(setVendeurStats)
         getArticlesPublics({ vendeurId: vendeurRow.id, excludeArticleId: articleId })
-          .then(articles => setSellerProducts(articles.slice(0, 4)))
+          .then(articles => setSellerProducts(articles.slice(0, 4) as any))
           .catch(console.error)
       }
 

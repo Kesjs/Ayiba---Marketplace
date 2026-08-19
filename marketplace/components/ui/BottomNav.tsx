@@ -137,6 +137,8 @@ export function BottomNav() {
       { label: "Accueil", icon: Home, href: "/" },
       { label: "Catalogue", icon: Search, href: "/catalogue" },
       { label: "Explorer", icon: MapPin, href: "/boutiques" },
+      { label: "Partenaire", icon: Briefcase, isAction: true },
+      { label: "Compte", icon: User, href: "/menu" },
     ],
     client: [
       { label: "Accueil", icon: Home, href: "/" },
@@ -390,6 +392,89 @@ export function BottomNav() {
 
   return (
     <>
+      <AnimatePresence>
+        {isPartnerOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsPartnerOpen(false)}
+              className="fixed inset-0 bg-gray-900/40 z-[60] backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 28, stiffness: 320 }}
+              drag="y"
+              dragControls={partnerDragControls}
+              dragListener={false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0, bottom: 1 }}
+              onDragEnd={(_, info) => { if (shouldCloseOnSwipeDown(info)) setIsPartnerOpen(false); }}
+              className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-[32px] shadow-2xl p-6 pb-8 flex flex-col gap-5 max-h-[85vh] touch-pan-y"
+            >
+              <div
+                onPointerDown={(e) => partnerDragControls.start(e)}
+                className="relative flex justify-center pt-1 pb-1 shrink-0 cursor-grab active:cursor-grabbing touch-none"
+              >
+                <div className="w-10 h-1 rounded-full bg-gray-200" />
+                <button
+                  onClick={() => setIsPartnerOpen(false)}
+                  className="absolute right-0 -top-1 w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500 hover:bg-gray-100"
+                  aria-label="Fermer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-extrabold text-gray-900">Devenir Partenaire</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Développez votre activité et rejoignez l'écosystème Ayiba en Côte d'Ivoire.
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/devenir-vendeur"
+                  onClick={() => { triggerHaptic(); setIsPartnerOpen(false); }}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-coral-50/60 border border-coral-100 hover:bg-coral-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-12 h-12 rounded-2xl bg-coral-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-coral-500/20">
+                      <Store size={24} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-base font-bold text-gray-900">Devenir Vendeur</p>
+                      <p className="text-xs text-gray-500 truncate">Vendez vos produits sur notre marketplace</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-coral-400 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                </Link>
+
+                <Link
+                  href="/devenir-livreur"
+                  onClick={() => { triggerHaptic(); setIsPartnerOpen(false); }}
+                  className="flex items-center justify-between p-4 rounded-2xl bg-teal-50/60 border border-teal-100 hover:bg-teal-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-12 h-12 rounded-2xl bg-teal-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-teal-600/20">
+                      <Bike size={24} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-base font-bold text-gray-900">Devenir Livreur</p>
+                      <p className="text-xs text-gray-500 truncate">Effectuez des livraisons et gagnez des revenus</p>
+                    </div>
+                  </div>
+                  <ChevronRight size={18} className="text-teal-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+                </Link>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Nav pleine largeur, collée au bord, fond opaque — plus d'effet flottant */}
       <div className="fixed bottom-0 left-0 right-0 z-30 lg:hidden">

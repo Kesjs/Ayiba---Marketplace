@@ -431,7 +431,7 @@ export function BottomNav() {
               <div>
                 <h3 className="text-xl font-extrabold text-gray-900">Devenir Partenaire</h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Développez votre activité et rejoignez l'écosystème Ayiba en Côte d'Ivoire.
+                  Développez votre activité et rejoignez l'écosystème Ayiba au Bénin.
                 </p>
               </div>
 

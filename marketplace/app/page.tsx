@@ -319,22 +319,22 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
 
+      {/* --- HERO SECTION (Vinted Style) --- */}
+      <HeroSection />
+
       {dataLoading ? (
-        <div className="pt-20">
+        <div className="pt-4">
           <HomeSkeleton />
         </div>
       ) : (
         <>
           {dataError && (
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 pt-24">
+            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 pt-4">
               <div className="rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
                 {dataError}
               </div>
             </div>
           )}
-
-          {/* --- HERO SECTION (Vinted Style) --- */}
-          <HeroSection />
 
           {/* --- 0. BANDE DE CONFIANCE (Marquee Infini & Sticky sous Navbar) --- */}
           <section className="sticky top-[104px] md:top-[72px] z-35 bg-amber-50/95 backdrop-blur-md border-b border-amber-100/80 py-2.5 overflow-hidden shadow-xs">

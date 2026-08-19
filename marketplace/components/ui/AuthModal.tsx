@@ -209,7 +209,7 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
         if (!validateEmail(email)) return setError("Adresse email invalide");
         setLoading(true);
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
         });
         setLoading(false);
         if (resetError) return setError(translateError(resetError));
@@ -352,7 +352,7 @@ window.location.href = destination;
               options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
             })
           : await supabase.auth.resetPasswordForEmail(verifiedEmail, {
-              redirectTo: `${window.location.origin}/auth/callback`,
+              redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
             });
 
       if (resendError) return setError(translateError(resendError));

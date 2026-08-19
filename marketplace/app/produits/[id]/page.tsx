@@ -12,14 +12,17 @@ import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
 import { AuthModal } from '@/components/ui/AuthModal'
 import { ContactModal } from '@/components/modals/ContactModal'
+import { ReportProductModal } from '@/components/modals/ReportProductModal'
 import { Footer } from '@/components/home/Footer'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
+import { getArticleQuestions, askQuestion, type ArticleQuestion } from '@/lib/queries/questions'
+import { getArticlesPublics } from '@/lib/queries/articles'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Heart, Star, ShoppingBag, MessageCircle, Share2,
   ChevronLeft, ChevronRight, Minus, Plus,
   Wallet, QrCode, ShieldCheck, MapPin, Truck,
-  ZoomIn, X, Flame, Check, Globe
+  ZoomIn, X, Flame, Check, Globe, HelpCircle, ShieldAlert
 } from 'lucide-react'
 import {
   ARTICLE_CARD_SELECT,
@@ -42,11 +45,13 @@ interface VendeurInfo {
   avatar_url: string | null
   commune: string | null
   isVerified: boolean
+  created_at?: string
 }
 
 interface Product extends ArticleCard {
   vendeur: VendeurInfo
   is_favorite: boolean
+  caracteristiques?: { label: string; value: string }[] | null
 }
 
 interface Avis {
@@ -124,6 +129,7 @@ interface ArticleDetailRow {
   vendeur_id: string
   vues: number
   created_at: string
+  caracteristiques: { label: string; value: string }[] | null
   categories: { nom: string; slug: string } | { nom: string; slug: string }[] | null
   article_images: { image_url: string; ordre: number }[]
   vendeurs: VendeurDetailRow | VendeurDetailRow[] | null
@@ -165,6 +171,11 @@ export default function ProductDetailPage() {
   const [variantesError, setVariantesError] = useState<string | null>(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [contactModalOpen, setContactModalOpen] = useState(false)
+  const [reportModalOpen, setReportModalOpen] = useState(false)
+  const [questions, setQuestions] = useState<ArticleQuestion[]>([])
+  const [sellerProducts, setSellerProducts] = useState<ArticleCard[]>([])
+  const [newQuestion, setNewQuestion] = useState("")
+  const [submittingQuestion, setSubmittingQuestion] = useState(false)
   const [reviewsPage, setReviewsPage] = useState(0)
   const [totalReviewsCount, setTotalReviewsCount] = useState(0)
   const [loadingMoreReviews, setLoadingMoreReviews] = useState(false)
@@ -208,10 +219,10 @@ export default function ProductDetailPage() {
       const { data: row, error } = await supabase
         .from('articles')
         .select(`
-          id, nom, description, prix, prix_promo, categorie_id, vendeur_id, vues, created_at,
+          id, nom, description, prix, prix_promo, categorie_id, vendeur_id, vues, created_at, caracteristiques,
           categories ( nom, slug ),
           article_images ( image_url, ordre ),
-          vendeurs ( id, nom_boutique, photo_profil_url, commune, statut )
+          vendeurs ( id, nom_boutique, photo_profil_url, commune, statut, users!vendeurs_id_fkey(created_at) )
         `)
         .eq('id', articleId)
         .eq('statut', 'publie')
@@ -245,15 +256,24 @@ export default function ProductDetailPage() {
           avatar_url: vendeurRow?.photo_profil_url || null,
           commune: vendeurRow?.commune || null,
           isVerified: vendeurRow?.statut === 'valide',
+          created_at: (Array.isArray(vendeurRow?.users) ? vendeurRow?.users[0]?.created_at : vendeurRow?.users?.created_at) || undefined,
         },
         is_favorite: isFavorite,
+        caracteristiques: articleRow.caracteristiques || [],
       })
 
       fetchReviews(articleId)
       fetchSimilar(articleRow.categorie_id, articleId)
       if (vendeurRow?.id) {
         fetchVendeurStats(supabase, vendeurRow.id).then(setVendeurStats)
+        getArticlesPublics({ vendeurId: vendeurRow.id, excludeArticleId: articleId })
+          .then(articles => setSellerProducts(articles.slice(0, 4)))
+          .catch(console.error)
       }
+
+      getArticleQuestions(articleId)
+        .then(setQuestions)
+        .catch(console.error)
 
       const { data: variantesData, error: variantesErr } = await supabase
         .from('article_variantes')

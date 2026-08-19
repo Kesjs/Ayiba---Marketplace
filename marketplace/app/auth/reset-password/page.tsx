@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { validatePasswordStrength } from "@/lib/validation";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 
 export default function ResetPasswordPage() {
@@ -41,14 +42,25 @@ export default function ResetPasswordPage() {
   const handleSubmit = async () => {
     setError(null);
 
-    if (password.length < 6) return setError("Le mot de passe doit contenir au moins 6 caractères");
+    const strengthError = validatePasswordStrength(password);
+    if (strengthError) return setError(strengthError);
     if (password !== confirmPassword) return setError("Les deux mots de passe ne correspondent pas");
 
     setLoading(true);
     const { error: updateError } = await supabase.auth.updateUser({ password });
-    setLoading(false);
 
-    if (updateError) return setError(updateError.message);
+    if (updateError) {
+      setLoading(false);
+      return setError(updateError.message);
+    }
+
+    try {
+      await fetch("/api/auth/deconnexion-autres-sessions", { method: "POST" });
+    } catch {
+      // Best effort
+    }
+
+    setLoading(false);
     setDone(true);
   };
 

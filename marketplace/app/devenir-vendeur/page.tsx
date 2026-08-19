@@ -438,7 +438,7 @@ export default function DevenirVendeurPage() {
                   <div className="w-16 h-16 rounded-2xl bg-teal-100 border border-teal-200 flex items-center justify-center mb-6">
                     <Wallet className="w-8 h-8 text-teal-600" strokeWidth={2} />
                   </div>
-                  
+
                   <div className="mb-4">
                     <div className="text-6xl font-medium text-teal-600 mb-2 tracking-tight">
                       95%
@@ -474,7 +474,7 @@ export default function DevenirVendeurPage() {
                   <div className="w-16 h-16 rounded-2xl bg-coral-100 border border-coral-200 flex items-center justify-center mb-6">
                     <ShieldCheck className="w-8 h-8 text-coral-600" strokeWidth={2} />
                   </div>
-                  
+
                   <div className="mb-4">
                     <div className="text-6xl font-medium text-coral-400 mb-2 tracking-tight">
                       5%
@@ -626,7 +626,7 @@ export default function DevenirVendeurPage() {
                     const iconBg = step.color === "teal" ? "bg-teal-50" : "bg-coral-50";
                     const iconColor = step.color === "teal" ? "text-teal-600" : "text-coral-400";
                     const iconBorder = step.color === "teal" ? "border-teal-100" : "border-coral-100";
-                    
+
                     return (
                       <div key={i}>
                         <div className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-lg hover:shadow-md transition-shadow">
@@ -1367,7 +1367,7 @@ export default function DevenirVendeurPage() {
                   const bgColor = metric.color === "teal" ? "bg-teal-50" : "bg-coral-50";
                   const borderColor = metric.color === "teal" ? "border-teal-100" : "border-coral-100";
                   const iconColor = metric.color === "teal" ? "text-teal-600" : "text-coral-400";
-                  
+
                   return (
                     <div key={i} className={`${bgColor} border ${borderColor} rounded-xl p-6`}>
                       <Icon className={`w-8 h-8 ${iconColor} mb-4`} strokeWidth={1.75} />
@@ -1455,7 +1455,7 @@ export default function DevenirVendeurPage() {
                 const iconBorderColor = isCorral ? "border-coral-200" : "border-teal-200";
                 const iconColor = isCorral ? "text-coral-400" : "text-teal-600";
                 const hoverShadow = isCorral ? "hover:shadow-coral-400/10" : "hover:shadow-teal-400/10";
-                
+
                 return (
                   <motion.div
                     key={i}
@@ -1467,7 +1467,7 @@ export default function DevenirVendeurPage() {
                   >
                     {/* Decoration background */}
                     <div className={`absolute top-0 right-0 w-32 h-32 ${bgColor} rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity -z-0`} />
-                    
+
                     <div className="relative z-10">
                       {/* Icon container */}
                       <div className={`w-14 h-14 rounded-xl ${iconBgColor} border ${iconBorderColor} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}>
@@ -1532,9 +1532,8 @@ export default function DevenirVendeurPage() {
                     whileInView={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05, duration: 0.3 }}
                     viewport={{ once: true }}
-                    className={`bg-white border rounded-lg overflow-hidden transition-all duration-300 ${
-                      isOpen ? "border-coral-200 shadow-md" : "border-gray-100"
-                    }`}
+                    className={`bg-white border rounded-lg overflow-hidden transition-all duration-300 ${isOpen ? "border-coral-200 shadow-md" : "border-gray-100"
+                      }`}
                   >
                     <button
                       onClick={() => setOpenFaq(isOpen ? null : i)}
@@ -1542,9 +1541,8 @@ export default function DevenirVendeurPage() {
                     >
                       <span className="font-medium text-gray-900">{faq.q}</span>
                       <ChevronDown
-                        className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ${
-                          isOpen ? "rotate-180 text-coral-400" : ""
-                        }`}
+                        className={`w-5 h-5 text-gray-400 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-coral-400" : ""
+                          }`}
                       />
                     </button>
                     {isOpen && (

@@ -12,7 +12,8 @@ export interface ArticlePublic {
   photos: string[];
   created_at: string;
   categorie: { id: string; nom: string; slug: string } | null;
-  vendeur: { nom_boutique: string | null; quartier: string | null; commune: string | null } | null;
+  vendeur: { id: string; nom_boutique: string | null; quartier: string | null; commune: string | null; full_name: string; avatar_url: string | null; } | null;
+  caracteristiques: { label: string; value: string }[] | null;
 }
 
 /**
@@ -22,16 +23,16 @@ export interface ArticlePublic {
  * explicite ci-dessous est redondant avec la RLS mais garde l'intention
  * lisible côté front et évite de dépendre uniquement de la policy.
  */
-export async function getArticlesPublics(options?: { categorieSlug?: string; recherche?: string; vendeurId?: string; excludeVendeurId?: string }) {
+export async function getArticlesPublics(options?: { categorieSlug?: string; recherche?: string; vendeurId?: string; excludeVendeurId?: string; excludeArticleId?: string }) {
   const supabase = createClient();
 
   let query = supabase
     .from("articles")
     .select(
-      `id, nom, description, prix, prix_promo, date_fin_promo, stock, vendeur_id, created_at,
+      `id, nom, description, prix, prix_promo, date_fin_promo, stock, vendeur_id, created_at, caracteristiques,
        article_images ( image_url, ordre ),
        categories ( id, nom, slug ),
-       vendeurs ( nom_boutique, quartier, commune )`
+       vendeurs ( id, nom_boutique, quartier, commune, users!vendeurs_id_fkey(full_name, avatar_url) )`
     )
     .eq("statut", "publie")
     .eq("actif", true)
@@ -61,6 +62,10 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
     query = query.ilike("nom", `%${options.recherche}%`);
   }
 
+  if (options?.excludeArticleId) {
+    query = query.neq("id", options.excludeArticleId);
+  }
+
   const { data, error } = await query;
   if (error) throw error;
 
@@ -82,7 +87,15 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
       created_at: a.created_at,
       photos: images.map((img: any) => img.image_url),
       categorie: cat ? { id: cat.id, nom: cat.nom, slug: cat.slug } : null,
-      vendeur: vendeur ?? null,
+      vendeur: vendeur ? {
+        id: vendeur.id,
+        nom_boutique: vendeur.nom_boutique,
+        quartier: vendeur.quartier,
+        commune: vendeur.commune,
+        full_name: vendeur.users?.full_name || 'Vendeur Inconnu',
+        avatar_url: vendeur.users?.avatar_url || null,
+      } : null,
+      caracteristiques: a.caracteristiques || [],
     };
   });
 
@@ -102,6 +115,7 @@ export async function getArticlesPublicsPaged(options?: {
   recherche?: string;
   vendeurId?: string;
   excludeVendeurId?: string;
+  excludeArticleId?: string;
   sortBy?: string;
   ascending?: boolean;
 }) {
@@ -138,6 +152,7 @@ export async function getArticlesPublicsPaged(options?: {
     countQuery = countQuery.eq("statut", "publie").eq("actif", true);
     if (options?.vendeurId) countQuery = countQuery.eq("vendeur_id", options.vendeurId);
     if (options?.excludeVendeurId) countQuery = countQuery.neq("vendeur_id", options.excludeVendeurId);
+    if (options?.excludeArticleId) countQuery = countQuery.neq("id", options.excludeArticleId);
     if (categorieId) countQuery = countQuery.eq("categorie_id", categorieId);
     if (searchOr) countQuery = countQuery.or(searchOr);
     const { count, error: countErr } = await countQuery;
@@ -148,10 +163,10 @@ export async function getArticlesPublicsPaged(options?: {
   let query: any = supabase
     .from("articles")
     .select(
-      `id, nom, description, prix, prix_promo, stock, vendeur_id, vues, created_at,
+      `id, nom, description, prix, prix_promo, stock, vendeur_id, vues, created_at, caracteristiques,
        article_images ( image_url, ordre ),
        categories ( id, nom, slug ),
-       vendeurs ( nom_boutique, quartier, commune )`
+       vendeurs ( id, nom_boutique, quartier, commune, users!vendeurs_id_fkey(full_name, avatar_url) )`
     )
     .eq("statut", "publie")
     .eq("actif", true)
@@ -170,6 +185,7 @@ export async function getArticlesPublicsPaged(options?: {
 
   if (options?.vendeurId) query = query.eq("vendeur_id", options.vendeurId);
   if (options?.excludeVendeurId) query = query.neq("vendeur_id", options.excludeVendeurId);
+  if (options?.excludeArticleId) query = query.neq("id", options.excludeArticleId);
   if (categorieId) query = query.eq("categorie_id", categorieId);
   if (searchOr) query = query.or(searchOr);
 
@@ -194,7 +210,15 @@ export async function getArticlesPublicsPaged(options?: {
       created_at: a.created_at,
       photos: images.map((img: any) => img.image_url),
       categorie: cat ? { id: cat.id, nom: cat.nom, slug: cat.slug } : null,
-      vendeur: vendeur ?? null,
+      vendeur: vendeur ? {
+        id: vendeur.id,
+        nom_boutique: vendeur.nom_boutique,
+        quartier: vendeur.quartier,
+        commune: vendeur.commune,
+        full_name: vendeur.users?.full_name || 'Vendeur Inconnu',
+        avatar_url: vendeur.users?.avatar_url || null,
+      } : null,
+      caracteristiques: a.caracteristiques || [],
     };
   });
 

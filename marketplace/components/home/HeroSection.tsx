@@ -173,7 +173,7 @@ export function HeroSection() {
                   initial={{ rotate: -6, x: 0 }}
                   animate={{ rotate: -8, x: -60 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl border-4 border-white"
+                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
                   style={{ zIndex: 1 }}
                 >
                   <img
@@ -188,7 +188,7 @@ export function HeroSection() {
                   initial={{ rotate: 0, y: 10 }}
                   animate={{ rotate: 0, y: -10 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="relative w-44 h-56 md:w-48 md:h-64 rounded-2xl overflow-hidden shadow-2xl border-4 border-white"
+                  className="relative w-44 h-56 md:w-48 md:h-64 rounded-2xl overflow-hidden shadow-2xl"
                   style={{ zIndex: 3 }}
                 >
                   <img
@@ -203,7 +203,7 @@ export function HeroSection() {
                   initial={{ rotate: 6, x: 0 }}
                   animate={{ rotate: 8, x: 60 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl border-4 border-white"
+                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
                   style={{ zIndex: 2 }}
                 >
                   <img

@@ -138,7 +138,6 @@ export function BottomNav() {
       { label: "Catalogue", icon: Search, href: "/catalogue" },
       { label: "Explorer", icon: MapPin, href: "/boutiques" },
       { label: "Partenaire", icon: Briefcase, isAction: true },
-      { label: "Compte", icon: User, href: "/menu" },
     ],
     client: [
       { label: "Accueil", icon: Home, href: "/" },

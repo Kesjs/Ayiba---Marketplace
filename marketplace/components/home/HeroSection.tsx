@@ -13,27 +13,25 @@ export function HeroSection() {
   const ctaItems = [
     {
       role: "vendeur",
-      label: "Vendre mes articles",
-      sublabel: "Faites du tri & gagnez de l'argent",
+      label: "Vendre sur Ayiba",
+      sublabel: "Publiez vos articles gratuitement & gagnez des revenus",
       href: "/devenir-vendeur",
       icon: Store,
-      badgeText: "Vendeur",
-      badgeColor: "bg-coral-50 text-coral-600 border-coral-200",
-      btnBg: "bg-coral-500 hover:bg-coral-600 text-white shadow-coral-500/25",
+      badgeText: "Boutique",
+      btnBg: "bg-coral-500 hover:bg-coral-600 text-white shadow-xl shadow-coral-500/30",
     },
     {
       role: "livreur",
       label: "Devenir Livreur",
-      sublabel: "Effectuez des courses & gagnez des revenus",
+      sublabel: "Faites des courses à Cotonou & Calavi en toute liberté",
       href: "/devenir-livreur",
       icon: Bike,
-      badgeText: "Livreur",
-      badgeColor: "bg-teal-50 text-teal-700 border-teal-200",
-      btnBg: "bg-teal-600 hover:bg-teal-700 text-white shadow-teal-600/25",
+      badgeText: "Livraison",
+      btnBg: "bg-teal-500 hover:bg-teal-600 text-white shadow-xl shadow-teal-500/30",
     },
   ];
 
-  // Rotation automatique du CTA toutes les 3.5 secondes
+  // Rotation automatique du CTA principal toutes les 3.5 secondes
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveCtaIndex((prev) => (prev + 1) % ctaItems.length);
@@ -46,129 +44,161 @@ export function HeroSection() {
 
   return (
     <>
-      <section className="relative overflow-hidden pt-4 pb-8 md:py-12 bg-gradient-to-b from-coral-50/40 via-white to-white">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-          {/* Conteneur Hero Banner avec visuel d'arrière-plan */}
-          <div className="relative rounded-[32px] md:rounded-[40px] overflow-hidden min-h-[460px] md:min-h-[520px] flex items-center p-6 md:p-12 lg:p-14 border border-gray-100 shadow-xl shadow-gray-200/50">
+      <section className="relative w-full overflow-hidden min-h-[540px] md:min-h-[620px] flex items-center bg-gray-900 text-white">
+        {/* --- Image d'Arrière-Plan Africaine Fraîche & Pleine Largeur --- */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/hero-bg.jpg"
+            alt="Ayiba Marketplace Africa"
+            className="w-full h-full object-cover object-center scale-105 transition-transform duration-1000"
+          />
+          {/* Overlay élégant : Dégradé sombre directionnel pour lisibilité parfaite sans surcharger */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/65 to-black/40 z-10" />
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-[1px] z-10" />
+        </div>
+
+        {/* --- Contenu Texte & Boutons au-dessus --- */}
+        <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-8 lg:px-12 w-full py-12 md:py-16">
+          <div className="max-w-2xl">
             
-            {/* Visuel Arrière-plan Lifestyle */}
-            <div className="absolute inset-0 z-0">
-              <img
-                src="/images/hero-illustration.png"
-                alt="Ayiba Marketplace Hero"
-                className="w-full h-full object-cover object-center md:object-right opacity-85 md:opacity-100 scale-105 transition-transform duration-1000 hover:scale-100"
-              />
-              {/* Masque dégradé pour lisibilité parfaite sur mobile & desktop */}
-              <div className="absolute inset-0 bg-gradient-to-r from-white via-white/90 md:via-white/80 to-transparent z-10" />
-            </div>
+            {/* Badge d'en-tête lumineux */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/15 backdrop-blur-md border border-white/20 text-white mb-4 shadow-lg"
+            >
+              <Sparkles size={14} className="text-amber-400 animate-pulse" />
+              <span>La Marketplace 100% Locale & Sécurisée</span>
+            </motion.div>
 
-            {/* Carte Flottante Vinted-Style (Glassmorphism) */}
-            <div className="relative z-20 w-full max-w-lg lg:max-w-xl bg-white/90 backdrop-blur-xl border border-white/80 rounded-[28px] md:rounded-[36px] p-6 md:p-8 shadow-2xl shadow-gray-900/10">
-              
-              {/* Badge d'en-tête */}
-              <div className="flex items-center gap-2 mb-3">
-                <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-coral-50 text-coral-600 border border-coral-100/80 flex items-center gap-1.5 shadow-xs">
-                  <Sparkles size={13} className="text-coral-500 animate-pulse" />
-                  100% Béninoise & Sécurisée
-                </span>
-              </div>
+            {/* Titre Principal Épuré & Puissant */}
+            <motion.h1
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.12]"
+            >
+              Achetez, vendez et livreurs locaux en <span className="text-transparent bg-clip-text bg-gradient-to-r from-coral-400 via-amber-300 to-teal-300">toute confiance.</span>
+            </motion.h1>
 
-              {/* Titre Principal */}
-              <h1 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-[1.15]">
-                Prêt à faire du tri ou à dénicher des pépites ?
-              </h1>
+            {/* Sous-titre Aéré */}
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-sm md:text-base text-gray-200 mt-4 leading-relaxed font-medium max-w-xl"
+            >
+              Faites du tri dans vos placards, trouvez des pépites uniques ou rejoignez notre flotte de livraison à Cotonou, Calavi et environs.
+            </motion.p>
 
-              {/* Sous-titre */}
-              <p className="text-xs md:text-sm text-gray-600 mt-2.5 leading-relaxed font-medium">
-                Vendez vos articles en quelques clics, ou gagnez des revenus en effectuant des livraisons en toute simplicité.
-              </p>
-
-              {/* Zone CTA Principale : Bouton Animé Rotatif */}
-              <div className="mt-6 flex flex-col gap-3">
-                <div className="relative overflow-hidden rounded-2xl">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentCta.role}
-                      initial={{ opacity: 0, y: 14 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -14 }}
-                      transition={{ duration: 0.35, ease: "easeOut" }}
-                    >
-                      <Link
-                        href={currentCta.href}
-                        className={`w-full py-4 px-6 rounded-2xl font-extrabold text-sm md:text-base flex items-center justify-between shadow-lg transition-all duration-300 active:scale-[0.98] ${currentCta.btnBg}`}
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center shrink-0">
-                            <CurrentIcon size={22} />
-                          </div>
-                          <div className="text-left min-w-0">
-                            <p className="font-extrabold truncate">{currentCta.label}</p>
-                            <p className="text-[11px] font-medium opacity-90 truncate">{currentCta.sublabel}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="hidden sm:inline-block text-[10px] uppercase font-bold bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-xs">
-                            {currentCta.badgeText}
-                          </span>
-                          <ArrowRight size={18} strokeWidth={2.5} />
-                        </div>
-                      </Link>
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-
-                {/* Sélecteurs directs rapides Vendeur / Livreur (pour ne pas attendre l'animation) */}
-                <div className="flex items-center gap-2 justify-between px-1">
-                  <span className="text-[11px] text-gray-400 font-semibold">Accès direct :</span>
-                  <div className="flex items-center gap-2">
+            {/* Zone CTA Principale & Bouton "Comment ça marche ?" */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4"
+            >
+              {/* Bouton CTA Principal Rotatif Animé */}
+              <div className="relative overflow-hidden rounded-2xl min-w-[280px]">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={currentCta.role}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  >
                     <Link
-                      href="/devenir-vendeur"
-                      className="text-xs font-bold text-coral-600 hover:text-coral-700 bg-coral-50/80 hover:bg-coral-50 px-3 py-1.5 rounded-xl border border-coral-100 transition-colors flex items-center gap-1.5"
+                      href={currentCta.href}
+                      className={`w-full py-4 px-6 rounded-2xl font-extrabold text-sm md:text-base flex items-center justify-between transition-all duration-300 active:scale-[0.98] ${currentCta.btnBg}`}
                     >
-                      <Store size={14} />
-                      <span>Vendre</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                          <CurrentIcon size={22} />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-extrabold leading-tight">{currentCta.label}</p>
+                          <p className="text-[10px] opacity-90 font-medium">{currentCta.badgeText}</p>
+                        </div>
+                      </div>
+                      <ArrowRight size={18} strokeWidth={2.5} />
                     </Link>
-                    <Link
-                      href="/devenir-livreur"
-                      className="text-xs font-bold text-teal-700 hover:text-teal-800 bg-teal-50/80 hover:bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-100 transition-colors flex items-center gap-1.5"
-                    >
-                      <Bike size={14} />
-                      <span>Livrer</span>
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Bouton Secondaire "Comment ça marche ?" */}
-                <button
-                  onClick={() => setIsHowItWorksOpen(true)}
-                  className="w-full mt-1 py-3 px-5 rounded-2xl border border-gray-200 hover:border-gray-300 bg-white/80 hover:bg-white text-gray-700 hover:text-gray-900 font-bold text-xs md:text-sm flex items-center justify-center gap-2 transition-all duration-200 shadow-xs cursor-pointer active:scale-[0.98]"
-                >
-                  <HelpCircle size={16} className="text-coral-500" />
-                  <span>Comment ça marche ?</span>
-                </button>
+                  </motion.div>
+                </AnimatePresence>
               </div>
 
-              {/* Micro-puces de réassurance au bas de la carte */}
-              <div className="mt-6 pt-5 border-t border-gray-100 grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center text-center">
-                  <Wallet size={16} className="text-amber-500 mb-1" />
-                  <span className="text-[10px] font-bold text-gray-800 leading-tight">Paiement Sécurisé</span>
-                  <span className="text-[9px] text-gray-400">Escrow garanti</span>
+              {/* Bouton Secondaire "Comment ça marche ?" */}
+              <button
+                onClick={() => setIsHowItWorksOpen(true)}
+                className="py-4 px-6 rounded-2xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/25 text-white font-bold text-sm flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-[0.98] cursor-pointer"
+              >
+                <HelpCircle size={18} className="text-amber-400" />
+                <span>Comment ça marche ?</span>
+              </button>
+            </motion.div>
+
+            {/* Raccourcis d'accès direct rapide Vendeur / Livreur */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="mt-4 flex items-center gap-3 text-xs text-gray-300"
+            >
+              <span className="font-medium">Direct :</span>
+              <Link
+                href="/devenir-vendeur"
+                className="font-bold text-coral-300 hover:text-white underline underline-offset-4 flex items-center gap-1 transition-colors"
+              >
+                <Store size={13} />
+                <span>Créer ma boutique</span>
+              </Link>
+              <span>•</span>
+              <Link
+                href="/devenir-livreur"
+                className="font-bold text-teal-300 hover:text-white underline underline-offset-4 flex items-center gap-1 transition-colors"
+              >
+                <Bike size={13} />
+                <span>Postuler comme livreur</span>
+              </Link>
+            </motion.div>
+
+            {/* --- Bandeau Puces de Réassurance Translucides --- */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mt-10 pt-6 border-t border-white/15 grid grid-cols-3 gap-4 max-w-xl"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center shrink-0">
+                  <Wallet size={16} className="text-amber-400" />
                 </div>
-                <div className="flex flex-col items-center text-center border-x border-gray-100 px-1">
-                  <QrCode size={16} className="text-coral-500 mb-1" />
-                  <span className="text-[10px] font-bold text-gray-800 leading-tight">Code Secret</span>
-                  <span className="text-[9px] text-gray-400">À la remise</span>
-                </div>
-                <div className="flex flex-col items-center text-center">
-                  <ShieldCheck size={16} className="text-teal-600 mb-1" />
-                  <span className="text-[10px] font-bold text-gray-800 leading-tight">Vendeurs Vérifiés</span>
-                  <span className="text-[9px] text-gray-400">Confiance 100%</span>
+                <div>
+                  <p className="text-xs font-bold text-white leading-tight">Paiement Escrow</p>
+                  <p className="text-[10px] text-gray-300">100% Sécurisé</p>
                 </div>
               </div>
 
-            </div>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center shrink-0">
+                  <QrCode size={16} className="text-coral-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white leading-tight">Code Secret</p>
+                  <p className="text-[10px] text-gray-300">À la livraison</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md border border-white/15 flex items-center justify-center shrink-0">
+                  <ShieldCheck size={16} className="text-teal-400" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-white leading-tight">Vendeurs Vérifiés</p>
+                  <p className="text-[10px] text-gray-300">Confiance locale</p>
+                </div>
+              </div>
+            </motion.div>
 
           </div>
         </div>

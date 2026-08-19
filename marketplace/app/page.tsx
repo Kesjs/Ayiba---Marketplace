@@ -26,6 +26,7 @@ import { toggleFavorite, fetchFavoriteIds, getProductUrl, getBoutiqueUrl } from 
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
 import { LocationPermissionBanner } from "@/components/ui/LocationPermissionBanner";
+import { HeroSection } from "@/components/home/HeroSection";
 
 
 // ============================================
@@ -331,6 +332,9 @@ export default function Home() {
               </div>
             </div>
           )}
+
+          {/* --- HERO SECTION (Vinted Style) --- */}
+          <HeroSection />
 
           {/* --- 0. BANDE DE CONFIANCE (Marquee Infini & Sticky sous Navbar) --- */}
           <section className="sticky top-[104px] md:top-[72px] z-35 bg-amber-50/95 backdrop-blur-md border-b border-amber-100/80 py-2.5 overflow-hidden shadow-xs">

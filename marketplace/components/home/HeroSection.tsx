@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight, LucideIcon, Store, ShieldCheck, Star, Bike, Wallet, MapPin, PackageCheck, Sparkles } from "lucide-react";
 
@@ -176,10 +177,12 @@ export function HeroSection() {
                   className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
                   style={{ zIndex: 1 }}
                 >
-                  <img
+                  <Image
                     src={active.images[0]}
-                    alt=""
-                    className="w-full h-full object-cover"
+                    alt="Image 1"
+                    fill
+                    sizes="(max-width: 768px) 160px, 176px"
+                    className="object-cover"
                   />
                 </motion.div>
 
@@ -191,10 +194,12 @@ export function HeroSection() {
                   className="relative w-44 h-56 md:w-48 md:h-64 rounded-2xl overflow-hidden shadow-2xl"
                   style={{ zIndex: 3 }}
                 >
-                  <img
+                  <Image
                     src={active.images[1]}
-                    alt=""
-                    className="w-full h-full object-cover"
+                    alt="Image 2"
+                    fill
+                    sizes="(max-width: 768px) 176px, 192px"
+                    className="object-cover"
                   />
                 </motion.div>
 
@@ -206,10 +211,12 @@ export function HeroSection() {
                   className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
                   style={{ zIndex: 2 }}
                 >
-                  <img
+                  <Image
                     src={active.images[2]}
-                    alt=""
-                    className="w-full h-full object-cover"
+                    alt="Image 3"
+                    fill
+                    sizes="(max-width: 768px) 160px, 176px"
+                    className="object-cover"
                   />
                 </motion.div>
               </motion.div>

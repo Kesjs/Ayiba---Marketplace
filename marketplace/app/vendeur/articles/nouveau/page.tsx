@@ -701,13 +701,23 @@ function NouveauArticleForm() {
         <div className="flex-1 min-w-0">
           {!success && <StepIndicator currentStep={step} steps={WIZARD_STEPS} />}
         </div>
-        <Link
-          href="/vendeur/articles/express"
-          className="shrink-0 inline-flex items-center gap-1.5 text-xs font-bold text-coral-600 hover:text-coral-700 bg-coral-50 hover:bg-coral-100 px-3 py-2 rounded-xl transition-colors"
-        >
-          <Zap size={13} strokeWidth={2.5} />
-          Ajout Express
-        </Link>
+        <div className="relative shrink-0 group">
+          <button
+            disabled
+            type="button"
+            className="shrink-0 inline-flex items-center gap-1.5 text-xs font-semibold text-gray-400 bg-gray-100 border border-gray-200 px-3 py-2 rounded-xl cursor-not-allowed opacity-75"
+          >
+            <Zap size={13} strokeWidth={2.5} className="text-gray-400" />
+            <span>Ajout Express</span>
+            <span className="text-[9px] bg-amber-100 text-amber-800 font-medium px-1.5 py-0.5 rounded-full">
+              Bientôt
+            </span>
+          </button>
+          {/* Tooltip au survol */}
+          <div className="absolute top-full right-0 mt-1 hidden group-hover:flex items-center justify-center bg-gray-900 text-white text-xs py-1 px-2.5 rounded-lg shadow-xl whitespace-nowrap z-30 pointer-events-none">
+            Bientôt disponible
+          </div>
+        </div>
       </div>
 
       {success ? (

@@ -1295,15 +1295,24 @@ return (
             Ajouter un article
           </Button>
         </Link>
-        <Link href="/vendeur/articles/express" className="flex-1 sm:flex-none">
-          <Button
-            variant="outline"
-            className="w-full h-12 rounded-2xl flex items-center gap-2 justify-center border-coral-300 text-coral-600 hover:bg-coral-50 font-bold"
+        <div className="relative flex-1 sm:flex-none group">
+          <button
+            disabled
+            type="button"
+            className="w-full h-12 rounded-2xl flex items-center gap-2 justify-center border border-gray-200 bg-gray-100 text-gray-400 font-medium cursor-not-allowed opacity-75 px-4 transition-all"
           >
-            <Zap size={16} />
-            Ajout Express par cartes
-          </Button>
-        </Link>
+            <Zap size={16} className="text-gray-400" />
+            <span>Ajout Express par cartes</span>
+            <span className="text-[10px] bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded-full ml-1">
+              Bientôt disponible
+            </span>
+          </button>
+          {/* Tooltip au survol */}
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex items-center justify-center bg-gray-900 text-white text-xs font-medium py-1.5 px-3 rounded-xl shadow-xl whitespace-nowrap z-30 pointer-events-none">
+            Bientôt disponible
+            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900" />
+          </div>
+        </div>
       </div>
 
       {loadError && (

@@ -5,7 +5,7 @@ import Link from "next/link";
 import {
   ShieldCheck, QrCode, Store, Bike, ArrowRight,
   Wallet, Star, MapPin, Clock, MessageCircle,
-  ChevronRight, Zap, ChevronLeft
+  ChevronRight, Zap, ChevronLeft, Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
@@ -319,27 +319,8 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
 
-
-
-      {/* --- HERO SECTION (Image de fond pleine largeur avec overlay & texte epure) --- */}
-      <HeroSection />
-
-      {dataLoading ? (
-        <div className="pt-4">
-          <HomeSkeleton />
-        </div>
-      ) : (
-        <>
-          {dataError && (
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 pt-4">
-              <div className="rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
-                {dataError}
-              </div>
-            </div>
-          )}
-
-          {/* --- 1. CATÉGORIES (Style Airbnb Sticky sous Hero) --- */}
-          {categories.length > 0 && (
+{/* --- 1. CATÉGORIES (Style Airbnb Sticky sous Hero) --- */}
+          {!dataLoading && categories.length > 0 && (
             <section className="border-b border-gray-200 bg-white/95 backdrop-blur-md sticky top-[64px] z-30 shadow-xs">
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
                 {/* Conteneur avec dégradés et flèches au hover */}
@@ -382,7 +363,7 @@ export default function Home() {
                       className="group flex flex-col items-center gap-2 min-w-[56px] shrink-0 snap-start"
                     >
                       <div className={`transition-all duration-300 group-hover:scale-110 ${activeTab === 'Tout' ? 'text-coral-500 scale-110' : 'text-gray-400 group-hover:text-coral-500'}`}>
-                        <Store size={26} strokeWidth={1.5} />
+                        <Menu size={26} strokeWidth={1.5} />
                       </div>
                       <span className={`text-[11px] md:text-[12px] font-semibold whitespace-nowrap border-b-2 pb-1 transition-all duration-300 ${activeTab === 'Tout' ? 'text-gray-900 border-gray-900' : 'text-gray-500 group-hover:text-gray-900 border-transparent'}`}>
                         Tout
@@ -429,7 +410,27 @@ export default function Home() {
             </section>
           )}
 
-          {/* --- 2. BANDEAU CLIENT CONNECTÉ / LIVREUR EN ATTENTE ---
+
+
+
+      {/* --- HERO SECTION (Image de fond pleine largeur avec overlay & texte epure) --- */}
+      <HeroSection />
+
+      {dataLoading ? (
+        <div className="pt-4">
+          <HomeSkeleton />
+        </div>
+      ) : (
+        <>
+          {dataError && (
+            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 pt-4">
+              <div className="rounded-2xl bg-red-50 border border-red-100 p-4 text-sm text-red-600 font-medium">
+                {dataError}
+              </div>
+            </div>
+          )}
+
+                    {/* --- 2. BANDEAU CLIENT CONNECTÉ / LIVREUR EN ATTENTE ---
               Vendeur (dashboard non verrouillé) et admin sont redirigés
               avant ce rendu (cf. plus haut). Le livreur n'est lui redirigé
               vers son dashboard que s'il est validé (cf. useLivreurVerificationStatut

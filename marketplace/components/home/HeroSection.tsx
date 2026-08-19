@@ -82,7 +82,7 @@ const HERO_TABS: HeroTabConfig[] = [
     badges: [
       { icon: Bike, value: "15+", label: "Livreurs actifs" },
       { icon: Wallet, value: "Instant", label: "Paiement par course" },
-      { icon: MapPin, value: "2 villes", label: "Cotonou · Abomey-Calavi" },
+      { icon: MapPin, value: "Régional", label: "Ville et alentours" },
     ],
   },
 ];

@@ -241,8 +241,56 @@ export function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-4 shrink-0">
+            {/* Menu Devenir Partenaire Dropdown (Desktop) */}
             {!user && (
-              <></>
+              <div 
+                className="relative group/partner" 
+                onMouseEnter={() => setPartnerMenuOpen(true)}
+                onMouseLeave={() => setPartnerMenuOpen(false)}
+              >
+                <button
+                  onClick={() => setPartnerMenuOpen((v) => !v)}
+                  className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 rounded-lg bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 cursor-pointer"
+                >
+                  <Store size={16} className="text-gray-500 group-hover/partner:text-coral-500 transition-colors" />
+                  <span className="hidden sm:inline">Devenir Partenaire</span>
+                  <ChevronDown size={14} className={`hidden sm:inline transition-transform duration-300 ${partnerMenuOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                <div className={`absolute right-0 top-full pt-2 w-64 origin-top-right transition-all duration-300 z-50 ${partnerMenuOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}>
+                  <div className="bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden p-2">
+                    <div className="flex flex-col gap-1">
+                      <a 
+                        href="/devenir-vendeur" 
+                        onClick={() => setPartnerMenuOpen(false)} 
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 rounded-xl text-gray-700 hover:text-coral-600 transition-all group/item"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                          <Store size={16} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold">Devenir Vendeur</span>
+                          <span className="text-[10px] text-gray-400 font-medium">Ouvrez votre boutique</span>
+                        </div>
+                      </a>
+
+                      <a 
+                        href="/devenir-livreur" 
+                        onClick={() => setPartnerMenuOpen(false)} 
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 rounded-xl text-gray-700 hover:text-teal-600 transition-all group/item"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                          <Bike size={16} />
+                        </div>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-bold">Devenir Livreur</span>
+                          <span className="text-[10px] text-gray-400 font-medium">Gagnez des revenus</span>
+                        </div>
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
 
             {/* Menu Aide Dropdown (Desktop & Mobile trigger) */}

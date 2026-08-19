@@ -172,7 +172,7 @@ export function HeroSection() {
                 {/* Image gauche */}
                 <motion.div
                   initial={{ rotate: -6, x: 0 }}
-                  animate={{ rotate: -12, x: -100 }}
+                  animate={{ rotate: -12, x: -140 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
                   style={{ zIndex: 1 }}
@@ -181,6 +181,7 @@ export function HeroSection() {
                     src={active.images[0]}
                     alt="Image 1"
                     fill
+                    priority
                     sizes="(max-width: 768px) 160px, 176px"
                     className="object-cover"
                   />
@@ -198,6 +199,7 @@ export function HeroSection() {
                     src={active.images[1]}
                     alt="Image 2"
                     fill
+                    priority
                     sizes="(max-width: 768px) 176px, 192px"
                     className="object-cover"
                   />
@@ -206,7 +208,7 @@ export function HeroSection() {
                 {/* Image droite */}
                 <motion.div
                   initial={{ rotate: 6, x: 0 }}
-                  animate={{ rotate: 12, x: 100 }}
+                  animate={{ rotate: 12, x: 140 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
                   style={{ zIndex: 2 }}
@@ -215,6 +217,7 @@ export function HeroSection() {
                     src={active.images[2]}
                     alt="Image 3"
                     fill
+                    priority
                     sizes="(max-width: 768px) 160px, 176px"
                     className="object-cover"
                   />

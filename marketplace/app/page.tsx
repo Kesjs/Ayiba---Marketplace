@@ -547,10 +547,11 @@ export default function Home() {
                   viewport={{ once: true, margin: "-80px" }}
                   className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
                 >
-                  {flashDealsProducts.map((product) => (
+                  {flashDealsProducts.map((product, index) => (
                     <motion.div key={product.id} variants={gridItem}>
                       <div className="block">
                         <ProductCardModern
+                          priority={index < 4}
                           image={product.photos[0] || '/images/hero-illustration.png'}
                           category={product.categorie?.nom || 'Divers'}
                           name={product.nom}
@@ -639,10 +640,11 @@ export default function Home() {
                   viewport={{ once: true, margin: "-80px" }}
                   className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6 min-h-[400px]"
                 >
-                  {productsToShow.map((product) => (
+                  {productsToShow.map((product, index) => (
                     <motion.div key={product.id} variants={gridItem}>
                       <div className="block">
                         <ProductCardModern
+                          priority={index < 4}
                           image={product.photos[0] || '/images/hero-illustration.png'}
                           category={product.categorie?.nom || 'Divers'}
                           name={product.nom}
@@ -793,10 +795,11 @@ export default function Home() {
                   viewport={{ once: true, margin: "-80px" }}
                   className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6"
                 >
-                  {produitsDuMoment.map((product) => (
+                  {produitsDuMoment.map((product, index) => (
                     <motion.div key={product.id} variants={gridItem}>
                       <div className="block">
                         <ProductCardModern
+                          priority={index < 4}
                           image={product.photos[0] || '/images/hero-illustration.png'}
                           category={product.categorie?.nom || 'Divers'}
                           name={product.nom}

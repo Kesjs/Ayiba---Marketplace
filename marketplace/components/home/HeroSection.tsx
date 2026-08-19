@@ -172,7 +172,7 @@ export function HeroSection() {
                 {/* Image gauche */}
                 <motion.div
                   initial={{ rotate: -6, x: 0 }}
-                  animate={{ rotate: -8, x: -60 }}
+                  animate={{ rotate: -12, x: -100 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
                   style={{ zIndex: 1 }}
@@ -206,7 +206,7 @@ export function HeroSection() {
                 {/* Image droite */}
                 <motion.div
                   initial={{ rotate: 6, x: 0 }}
-                  animate={{ rotate: 8, x: 60 }}
+                  animate={{ rotate: 12, x: 100 }}
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
                   style={{ zIndex: 2 }}

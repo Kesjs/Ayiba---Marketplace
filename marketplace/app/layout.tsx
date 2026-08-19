@@ -36,10 +36,6 @@ export const metadata: Metadata = {
         type: "image/png",
         sizes: "32x32",
       },
-      {
-        url: "/favicon.svg",
-        type: "image/svg+xml",
-      },
     ],
     apple: "/logo.png",
   },
@@ -54,7 +50,6 @@ export default function RootLayout({
     <html lang="fr" className="h-full antialiased">
       <head>
         <link rel="icon" type="image/png" href="/favicon.png" />
-        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="apple-touch-icon" href="/logo.png" />
         <link
           rel="stylesheet"

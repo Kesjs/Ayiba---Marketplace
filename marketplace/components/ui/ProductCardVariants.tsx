@@ -88,7 +88,7 @@ export function ProductCardModern({
       className="flex flex-col w-full text-left cursor-pointer"
     >
       {/* IMAGE — carrée, aucune bordure, aucune ombre */}
-      <div className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden mb-2 group/image">
+      <div className="relative aspect-square bg-gray-50 overflow-hidden mb-2 group/image">
         <Image
           src={image}
           alt={name}
@@ -102,14 +102,14 @@ export function ProductCardModern({
 
         {/* Bandeau Rupture de stock */}
         {enRupture && (
-          <span className="absolute top-2 left-2 bg-white/95 text-gray-700 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">
+          <span className="absolute top-2 left-2 bg-white/95 text-gray-700 text-[10px] font-bold uppercase tracking-widest px-2 py-1">
             Rupture
           </span>
         )}
 
         {/* Indicateur multi-photos, en bas à gauche */}
         {photosCount != null && photosCount > 1 && (
-          <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm text-gray-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-1">
+          <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm text-gray-700 text-[10px] font-bold px-1.5 py-0.5 flex items-center gap-1">
             <i className="ti ti-photo text-[11px]" />
             {photosCount}
           </span>
@@ -120,7 +120,7 @@ export function ProductCardModern({
           onClick={handleFavorite}
           className="absolute top-1 right-1 w-10 h-10 flex items-center justify-center"
         >
-          <span className="w-7 h-7 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center hover:scale-110 transition-transform">
+          <span className="w-7 h-7 bg-white/90 backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform">
             <Heart
               size={13}
               className={favorite ? "fill-coral-500 text-coral-500" : "text-gray-500"}
@@ -166,7 +166,7 @@ export function ProductCardModern({
             </p>
             {discount && (
               <>
-                <span className="text-[10px] font-bold text-coral-500 bg-coral-50 px-1.5 py-0.5 rounded whitespace-nowrap">
+                <span className="text-[10px] font-bold text-coral-500 bg-coral-50 px-1.5 py-0.5 whitespace-nowrap">
                   -{discount}%
                 </span>
                 <span className="text-[11px] text-gray-400 line-through font-medium whitespace-nowrap">

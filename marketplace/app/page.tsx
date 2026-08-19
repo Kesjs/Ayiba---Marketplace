@@ -319,35 +319,7 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
 
-      {/* --- 0. BANDE DE CONFIANCE (Marquee Infini sous Navbar) --- */}
-      <section className="bg-amber-50/95 backdrop-blur-md border-b border-amber-100/80 py-2.5 overflow-hidden shadow-xs">
-        <div className="flex w-full overflow-hidden group/marquee">
-          <motion.div
-            className="flex items-center gap-8 md:gap-12 whitespace-nowrap shrink-0 pr-8"
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{ repeat: Infinity, ease: "linear", duration: 22 }}
-          >
-            {[
-              { label: "🇧🇯 100% Béninoise & Locale", icon: null },
-              { label: "Paiement Escrow Sécurisé", icon: <Wallet size={14} className="text-amber-600" /> },
-              { label: "Code de livraison secret", icon: <QrCode size={14} className="text-coral-500" /> },
-              { label: "Vendeurs vérifiés & fiables", icon: <ShieldCheck size={14} className="text-teal-600" /> },
-              { label: "Livraison rapide Cotonou & Calavi", icon: <Zap size={14} className="text-amber-500" /> },
-              { label: "🇧🇯 100% Béninoise & Locale", icon: null },
-              { label: "Paiement Escrow Sécurisé", icon: <Wallet size={14} className="text-amber-600" /> },
-              { label: "Code de livraison secret", icon: <QrCode size={14} className="text-coral-500" /> },
-              { label: "Vendeurs vérifiés & fiables", icon: <ShieldCheck size={14} className="text-teal-600" /> },
-              { label: "Livraison rapide Cotonou & Calavi", icon: <Zap size={14} className="text-amber-500" /> },
-            ].map((item, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-[11px] md:text-[12px] font-semibold text-gray-800 shrink-0">
-                {item.icon}
-                <span>{item.label}</span>
-                <span className="text-amber-300/80 ml-6">•</span>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+
 
       {/* --- HERO SECTION (Image de fond pleine largeur avec overlay & texte epure) --- */}
       <HeroSection />

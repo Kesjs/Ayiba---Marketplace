@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, HelpCircle } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowRight, HelpCircle, Sparkles } from "lucide-react";
 import { HowItWorksModal } from "@/components/modals/HowItWorksModal";
 
 export function HeroSection() {
@@ -10,52 +11,78 @@ export function HeroSection() {
 
   return (
     <>
-      <section className="w-full bg-[#F9F6F0] border-b border-stone-200/60 py-8 md:py-14">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+      <section className="relative w-full overflow-hidden min-h-[480px] sm:min-h-[540px] md:min-h-[600px] flex items-center bg-[#0d0d0f] text-white">
+        
+        {/* --- 100% FOND IMAGE PLEINE LARGEUR (EDGE-TO-EDGE) --- */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/images/hero-gold-cart.jpg"
+            alt="Ayiba Shopping Chariot Doré"
+            className="w-full h-full object-cover object-left-center md:object-center scale-100"
+          />
+          {/* Overlay très léger et progressif à droite pour lisibilité du texte sans assombrir la photo */}
+          <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-r from-black/80 via-black/50 to-transparent md:from-black/40 md:via-black/70 md:to-black/90 z-10" />
+        </div>
+
+        {/* --- CONTENU TEXTE POSÉ DIRECTEMENT SUR L'IMAGE (À DROITE) --- */}
+        <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-8 lg:px-12 w-full py-12 md:py-16 flex justify-center md:justify-end">
+          <div className="max-w-xl text-left">
             
-            {/* --- CARTE BLANCHE SOLIDE (STYLE VINTED AUTHENTIQUE) --- */}
-            <div className="lg:col-span-6 xl:col-span-5">
-              <div className="bg-white rounded-3xl p-7 sm:p-9 md:p-11 shadow-sm border border-stone-200/80">
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight leading-[1.15]">
-                  Prêt à faire du tri dans tes placards ?
-                </h1>
+            {/* Badge discret */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold bg-white/15 backdrop-blur-md border border-white/20 text-white mb-4 shadow-lg"
+            >
+              <Sparkles size={14} className="text-amber-400 animate-pulse" />
+              <span>Marketplace Sécurisée au Bénin</span>
+            </motion.div>
 
-                <p className="text-sm sm:text-base text-gray-600 mt-4 leading-relaxed font-medium">
-                  Donnez une seconde vie à vos vêtements et articles, ou dénichez des pépites uniques au Bénin.
-                </p>
+            {/* Titre Puissant sur l'image */}
+            <motion.h1
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.12]"
+            >
+              Prêt à dénicher des <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FF5A5F] via-amber-300 to-teal-300">pépites ?</span>
+            </motion.h1>
 
-                {/* BOUTONS CTA SIMPLES & SOLIDES */}
-                <div className="mt-8 flex flex-col gap-3.5">
-                  <Link
-                    href="/devenir-vendeur"
-                    className="w-full py-4 px-6 rounded-xl bg-[#FF5A5F] hover:bg-[#E0484D] text-white font-extrabold text-base flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] shadow-xs"
-                  >
-                    <span>Vendre mes articles</span>
-                    <ArrowRight size={18} strokeWidth={2.5} />
-                  </Link>
+            {/* Sous-titre aéré */}
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-sm md:text-base text-gray-200 mt-4 leading-relaxed font-medium"
+            >
+              Vendez vos trésors cachés en toute simplicité et rejoignez la 1ère communauté passionnée de mode et d'articles d'exception au Bénin.
+            </motion.p>
 
-                  <button
-                    onClick={() => setIsHowItWorksOpen(true)}
-                    className="w-full py-3.5 px-6 rounded-xl bg-transparent hover:bg-gray-50 text-gray-700 font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] cursor-pointer"
-                  >
-                    <HelpCircle size={17} className="text-amber-600" />
-                    <span>Découvrir comment ça marche</span>
-                  </button>
-                </div>
-              </div>
-            </div>
+            {/* BOUTONS D'ACTION SUR L'IMAGE */}
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5"
+            >
+              {/* Bouton CTA Principal Coral */}
+              <Link
+                href="/devenir-vendeur"
+                className="py-4 px-7 rounded-xl bg-[#FF5A5F] hover:bg-[#E0484D] text-white font-extrabold text-sm md:text-base flex items-center justify-center gap-2.5 transition-all duration-200 active:scale-[0.98] shadow-lg shadow-rose-900/30"
+              >
+                <span>Vendre mes articles</span>
+                <ArrowRight size={18} strokeWidth={2.5} />
+              </Link>
 
-            {/* --- PHOTO NATURELLE À DROITE (STYLE LIFE STYLE SHOPPING) --- */}
-            <div className="lg:col-span-6 xl:col-span-7 flex justify-center lg:justify-end">
-              <div className="relative w-full max-w-lg lg:max-w-none rounded-3xl overflow-hidden shadow-xs border border-stone-200/60">
-                <img
-                  src="/images/hero-woman-shopping.jpg"
-                  alt="Cliente Ayiba Marketplace Shopping"
-                  className="w-full h-[360px] sm:h-[440px] lg:h-[500px] object-cover object-center"
-                />
-              </div>
-            </div>
+              {/* Bouton Secondaire Contour */}
+              <button
+                onClick={() => setIsHowItWorksOpen(true)}
+                className="py-4 px-6 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98] cursor-pointer"
+              >
+                <HelpCircle size={17} className="text-amber-400" />
+                <span>Comment ça marche ?</span>
+              </button>
+            </motion.div>
 
           </div>
         </div>

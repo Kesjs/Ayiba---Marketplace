@@ -541,7 +541,7 @@ export default function Home() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
-              className="py-12 md:py-16 bg-gradient-to-br from-coral-50/60 via-white to-amber-50/30"
+              className="py-12 md:py-16 bg-white"
             >
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-6 md:mb-8">
@@ -620,7 +620,7 @@ export default function Home() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
-            className="py-14 md:py-20 bg-gray-50/50 border-y border-gray-100"
+            className="py-14 md:py-20 bg-white border-y border-gray-100"
           >
             <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-8 md:mb-12">

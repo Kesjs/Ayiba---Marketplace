@@ -92,7 +92,7 @@ export function HeroSection() {
   const active = HERO_TABS.find((t) => t.key === activeTab)!;
 
   return (
-    <section className="relative w-full bg-white overflow-hidden">
+    <section className="relative w-full bg-[#F8F9FA] overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-10">
         {/* --- TABS --- */}
         <div className="flex items-center gap-2 mb-6">
@@ -131,7 +131,7 @@ export function HeroSection() {
 
               <Link
                 href={active.ctaHref}
-                className="mt-6 inline-flex items-center gap-2.5 py-3.5 px-6 rounded-xl bg-[#FF5A5F] hover:bg-[#E0484D] text-white font-extrabold text-sm transition-all duration-200 active:scale-[0.98] shadow-lg shadow-rose-900/15"
+                className="mt-6 inline-flex items-center gap-2.5 py-3.5 px-6 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-extrabold text-sm transition-all duration-200 active:scale-[0.98] shadow-lg shadow-coral-500/20"
               >
                 <span>{active.ctaLabel}</span>
                 <ArrowRight size={18} strokeWidth={2.5} />

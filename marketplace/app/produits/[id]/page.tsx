@@ -219,7 +219,7 @@ export default function ProductDetailPage() {
       const { data: row, error } = await supabase
         .from('articles')
         .select(`
-          id, nom, description, prix, prix_promo, categorie_id, vendeur_id, vues, created_at, caracteristiques,
+          id, nom, description, prix, prix_promo, categorie_id, vendeur_id, vues, created_at,
           categories ( nom, slug ),
           article_images ( image_url, ordre ),
           vendeurs ( id, nom_boutique, photo_profil_url, commune, statut, users!vendeurs_id_fkey(created_at) )

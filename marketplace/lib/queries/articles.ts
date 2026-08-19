@@ -29,7 +29,7 @@ export async function getArticlesPublics(options?: { categorieSlug?: string; rec
   let query = supabase
     .from("articles")
     .select(
-      `id, nom, description, prix, prix_promo, date_fin_promo, stock, vendeur_id, created_at, caracteristiques,
+      `id, nom, description, prix, prix_promo, date_fin_promo, stock, vendeur_id, created_at,
        article_images ( image_url, ordre ),
        categories ( id, nom, slug ),
        vendeurs ( id, nom_boutique, quartier, commune, users!vendeurs_id_fkey(full_name, avatar_url) )`
@@ -163,7 +163,7 @@ export async function getArticlesPublicsPaged(options?: {
   let query: any = supabase
     .from("articles")
     .select(
-      `id, nom, description, prix, prix_promo, stock, vendeur_id, vues, created_at, caracteristiques,
+      `id, nom, description, prix, prix_promo, stock, vendeur_id, vues, created_at,
        article_images ( image_url, ordre ),
        categories ( id, nom, slug ),
        vendeurs ( id, nom_boutique, quartier, commune, users!vendeurs_id_fkey(full_name, avatar_url) )`

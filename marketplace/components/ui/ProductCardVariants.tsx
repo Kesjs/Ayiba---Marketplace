@@ -102,7 +102,8 @@ export function ProductCardModern({
 
         {/* Badge Nouveau, en haut à gauche */}
         {nouveau && (
-          <span className="absolute top-2 left-2 bg-gray-950 text-white text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full">
+          <span className="absolute top-2.5 left-2.5 bg-white/90 backdrop-blur-md text-coral-600 border border-coral-100 text-[11px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-coral-500 animate-pulse" />
             Nouveau
           </span>
         )}

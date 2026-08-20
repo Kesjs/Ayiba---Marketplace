@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
+import { getAppUrl } from '@/lib/url'
 
 // Action pour l'inscription
 export async function signUp(formData: FormData) {
@@ -14,7 +15,7 @@ export async function signUp(formData: FormData) {
     email,
     password,
     options: { 
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` 
+      emailRedirectTo: `${getAppUrl()}/auth/callback` 
     }
   })
 

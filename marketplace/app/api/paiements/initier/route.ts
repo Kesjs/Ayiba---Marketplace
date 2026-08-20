@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { declencherPaiementMobileMoney, declencherPaiementParCarte, extraireMessageErreurGeniusPay } from '@/lib/geniuspay'
 
+import { getAppUrl } from '@/lib/url'
+
 interface GroupeCommande {
   vendeur_id: string
   articles: { article_id: string; quantite: number; variante_id?: string | null }[]
@@ -155,8 +157,8 @@ export async function POST(req: NextRequest) {
         description,
         nomClient: nomClient?.trim() || 'Client Ayiba',
         emailClient: user.email || `client-${user.id}@ayiba.app`,
-        successUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout?success=true&paiement=${paiementCheckout.id}`,
-        errorUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/checkout?error=true&paiement=${paiementCheckout.id}`,
+        successUrl: `${getAppUrl()}/checkout?success=true&paiement=${paiementCheckout.id}`,
+        errorUrl: `${getAppUrl()}/checkout?error=true&paiement=${paiementCheckout.id}`,
         metadata: { paiement_checkout_id: paiementCheckout.id, user_id: user.id },
       })
 

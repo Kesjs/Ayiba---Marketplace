@@ -284,6 +284,48 @@ export function useLivreurMissions() {
     [supabase, loadMissions]
   );
 
+  // Mise à jour de la position GPS du livreur en temps réel sur la commande
+  const mettreAJourPositionGPS = useCallback(
+    async (commandeId: string, lat: number, lng: number) => {
+      try {
+        await supabase
+          .from("commandes")
+          .update({
+            livreur_latitude: lat,
+            livreur_longitude: lng,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", commandeId);
+      } catch (err) {
+        console.error("Erreur mise à jour GPS livreur:", err);
+      }
+    },
+    [supabase]
+  );
+
+  // Déclenchement automatique du suivi GPS dès qu'une mission est en cours (expediée)
+  useEffect(() => {
+    if (enCours.length === 0) return;
+    if (!("geolocation" in navigator)) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        enCours.forEach((m) => {
+          mettreAJourPositionGPS(m.id, latitude, longitude);
+        });
+      },
+      (err) => {
+        console.warn("Erreur suivi GPS livreur:", err);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [enCours, mettreAJourPositionGPS]);
+
   // Signale la position du livreur à l'arrivée chez le client. Purement
   // informatif côté serveur (ne bloque jamais la validation du QR/code) —
   // sert juste à l'admin en cas de litige. On ne bloque pas non plus ici si

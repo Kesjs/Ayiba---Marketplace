@@ -16,9 +16,15 @@ import {
   ShieldCheck,
   ScanLine,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { LABELS_STATUT_COMMANDE, STATUT_STYLE, type StatutCommande } from "@/lib/constants/commandes";
 import { ConfirmationLivraisonModal } from "@/components/client/ConfirmationLivraisonModal";
 import { LaisserAvisCard, type AvisExistant } from "@/components/client/LaisserAvisCard";
+
+const LiveDeliveryTracker = dynamic(
+  () => import("@/components/client/LiveDeliveryTracker"),
+  { ssr: false }
+);
 
 interface CommandeDetail {
   id: string;
@@ -28,9 +34,13 @@ interface CommandeDetail {
   frais_livraison: number | null;
   adresse_livraison: string | null;
   commune: string | null;
+  latitude_livraison: number | null;
+  longitude_livraison: number | null;
+  livreur_latitude: number | null;
+  livreur_longitude: number | null;
   created_at: string;
   livreur_id: string | null;
-  vendeur: { nom_boutique: string | null; telephone: string | null } | null;
+  vendeur: { nom_boutique: string | null; telephone: string | null; latitude: number | null; longitude: number | null } | null;
   livreur: { nom: string | null; telephone: string | null } | null;
   commande_articles: {
     article_id: string;
@@ -72,8 +82,8 @@ export default function CommandeDetailPage() {
     const { data, error } = await supabase
       .from("commandes")
       .select(
-        `id, numero, statut, montant_total, frais_livraison, adresse_livraison, commune, created_at, livreur_id,
-         vendeur:vendeurs ( nom_boutique, users!vendeurs_id_fkey ( phone ) ),
+        `id, numero, statut, montant_total, frais_livraison, adresse_livraison, commune, latitude_livraison, longitude_livraison, livreur_latitude, livreur_longitude, created_at, livreur_id,
+         vendeur:vendeurs ( nom_boutique, latitude, longitude, users!vendeurs_id_fkey ( phone ) ),
          livreur:livreurs!commandes_livreur_id_fkey ( nom_complet, users!livreurs_id_fkey ( phone ) ),
          commande_articles ( article_id, article:articles ( nom ) )`
       )
@@ -81,12 +91,8 @@ export default function CommandeDetailPage() {
       .single();
 
     if (!error && data) {
-      // vendeurs/livreurs n'ont pas de colonne telephone en propre — elle vit
-      // sur users (1:1 via id). On remet ici la forme plate attendue par le
-      // reste du composant (vendeur.telephone, livreur.nom) pour ne rien
-      // changer côté rendu.
       const raw = data as unknown as {
-        vendeur: { nom_boutique: string | null; users: { phone: string | null } | { phone: string | null }[] | null } | { nom_boutique: string | null; users: { phone: string | null } | { phone: string | null }[] | null }[] | null;
+        vendeur: { nom_boutique: string | null; latitude: number | null; longitude: number | null; users: { phone: string | null } | { phone: string | null }[] | null } | { nom_boutique: string | null; latitude: number | null; longitude: number | null; users: { phone: string | null } | { phone: string | null }[] | null }[] | null;
         livreur: { nom_complet: string | null; users: { phone: string | null } | { phone: string | null }[] | null } | { nom_complet: string | null; users: { phone: string | null } | { phone: string | null }[] | null }[] | null;
       } & Omit<CommandeDetail, "vendeur" | "livreur">;
 
@@ -96,7 +102,12 @@ export default function CommandeDetailPage() {
       setCommande({
         ...raw,
         vendeur: vendeurBrut
-          ? { nom_boutique: vendeurBrut.nom_boutique, telephone: one(vendeurBrut.users)?.phone ?? null }
+          ? {
+              nom_boutique: vendeurBrut.nom_boutique,
+              telephone: one(vendeurBrut.users)?.phone ?? null,
+              latitude: vendeurBrut.latitude,
+              longitude: vendeurBrut.longitude,
+            }
           : null,
         livreur: livreurBrut
           ? { nom: livreurBrut.nom_complet, telephone: one(livreurBrut.users)?.phone ?? null }
@@ -201,6 +212,44 @@ export default function CommandeDetailPage() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
+        {/* Suivi GPS en direct (Leaflet + Supabase Realtime) */}
+        {commande.statut === "expediee" && (
+          <div className="mb-6">
+            <LiveDeliveryTracker
+              commandeId={commande.id}
+              statutCommande={commande.statut}
+              vendeurCoords={
+                commande.vendeur?.latitude && commande.vendeur?.longitude
+                  ? {
+                      lat: Number(commande.vendeur.latitude),
+                      lng: Number(commande.vendeur.longitude),
+                      nom: commande.vendeur.nom_boutique || "Boutique",
+                    }
+                  : null
+              }
+              clientCoords={
+                commande.latitude_livraison && commande.longitude_livraison
+                  ? {
+                      lat: Number(commande.latitude_livraison),
+                      lng: Number(commande.longitude_livraison),
+                      adresse: commande.adresse_livraison || commande.commune || "Adresse client",
+                    }
+                  : null
+              }
+              initialLivreurCoords={
+                commande.livreur_latitude && commande.livreur_longitude
+                  ? {
+                      lat: Number(commande.livreur_latitude),
+                      lng: Number(commande.livreur_longitude),
+                    }
+                  : null
+              }
+              livreurNom={commande.livreur?.nom}
+              livreurTelephone={commande.livreur?.telephone}
+            />
+          </div>
+        )}
+
         <div className="grid md:grid-cols-12 gap-6">
           
           {/* Colonne Gauche (Suivi & Réassurance) */}

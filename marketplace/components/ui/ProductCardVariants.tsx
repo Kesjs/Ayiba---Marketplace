@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Heart, Star, ShoppingBag } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ProductCardProps {
   image: string;
@@ -57,6 +57,12 @@ export function ProductCardModern({
 }: ProductCardProps) {
   const [favorite, setFavorite] = useState(isFavorite);
   const [justAdded, setJustAdded] = useState(false);
+  const DEFAULT_IMAGE = "/images/hero-illustration.png";
+  const [imgSrc, setImgSrc] = useState(image || DEFAULT_IMAGE);
+
+  useEffect(() => {
+    setImgSrc(image || DEFAULT_IMAGE);
+  }, [image]);
 
   const discount = oldPrice ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const enRupture = stock === 0;
@@ -90,7 +96,7 @@ export function ProductCardModern({
       {/* IMAGE — carrée, aucune bordure, aucune ombre */}
       <div className="relative aspect-square bg-gray-50 overflow-hidden mb-2 group/image">
         <Image
-          src={image}
+          src={imgSrc}
           alt={name}
           fill
           priority={priority}
@@ -98,6 +104,11 @@ export function ProductCardModern({
           className={`object-cover transition-transform duration-500 group-hover/image:scale-105 ${
             enRupture ? "grayscale-[50%] opacity-70" : ""
           }`}
+          onError={() => {
+            if (imgSrc !== DEFAULT_IMAGE) {
+              setImgSrc(DEFAULT_IMAGE);
+            }
+          }}
         />
 
         {/* Bandeau Rupture de stock */}

@@ -142,3 +142,20 @@ html, body {
   display: none;
 }
 
+/* Animation liquide pour boutons CTA */
+@keyframes liquidSpin {
+  0% {
+    transform: translate(-50%, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-50%, -6px) rotate(180deg);
+  }
+  100% {
+    transform: translate(-50%, 0) rotate(360deg);
+  }
+}
+
+.animate-liquid-spin {
+  animation: liquidSpin 6s ease-in-out infinite;
+}
+

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 interface ProductCardProps {
   image: string;
@@ -35,6 +36,13 @@ export function ProductCard({
   onToggleFavorite,
   onClick,
 }: ProductCardProps) {
+  const DEFAULT_IMAGE = "/images/hero-illustration.png";
+  const [imgSrc, setImgSrc] = useState(image || DEFAULT_IMAGE);
+
+  useEffect(() => {
+    setImgSrc(image || DEFAULT_IMAGE);
+  }, [image]);
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -49,11 +57,16 @@ export function ProductCard({
       {/* BLOC IMAGE */}
       <div className="relative h-[240px] bg-gray-50 overflow-hidden">
         <Image
-          src={image}
+          src={imgSrc}
           alt={name}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className="object-cover transition-transform duration-500 group-hover/card:scale-110"
+          onError={() => {
+            if (imgSrc !== DEFAULT_IMAGE) {
+              setImgSrc(DEFAULT_IMAGE);
+            }
+          }}
         />
         
         {/* Badge promo */}

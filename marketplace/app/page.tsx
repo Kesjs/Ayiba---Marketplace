@@ -451,14 +451,18 @@ export default function Home() {
                 <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
                   <div className="bg-gray-50 rounded-[28px] md:rounded-[32px] p-5 md:p-8 border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-5 md:gap-6 shadow-sm">
                     <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-coral-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-sm shrink-0">
-                        {profile.avatar_url ? (
-                          <img src={profile.avatar_url} className="w-full h-full object-cover" alt="" />
-                        ) : (
-                          <span className="text-coral-500 font-bold text-lg">
-                            {(profile.full_name || "A").charAt(0).toUpperCase()}
-                          </span>
+                      <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-coral-100 flex items-center justify-center overflow-hidden border-4 border-white shadow-sm shrink-0 relative">
+                        {profile.avatar_url && (
+                          <img 
+                            src={profile.avatar_url} 
+                            className="w-full h-full object-cover absolute inset-0" 
+                            alt="" 
+                            onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                          />
                         )}
+                        <span className="text-coral-500 font-bold text-lg">
+                          {(profile.full_name || "A").charAt(0).toUpperCase()}
+                        </span>
                       </div>
                       <div>
                         <h2 className="text-lg md:text-xl font-bold text-gray-900">Bienvenue, {profile.full_name || "l'ami"} !</h2>
@@ -715,12 +719,16 @@ export default function Home() {
                       className="group flex flex-col shrink-0 w-56 md:w-64 p-4 md:p-5 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer"
                     >
                       <div className="relative mb-3 md:mb-4">
-                        <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 bg-coral-50 flex items-center justify-center">
-                          {store.logo ? (
-                            <img src={store.logo} alt={store.nom} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-coral-500 font-bold text-xl">{store.nom.charAt(0).toUpperCase()}</span>
+                        <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl overflow-hidden border-2 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 bg-coral-50 flex items-center justify-center relative">
+                          {store.logo && (
+                            <img
+                              src={store.logo}
+                              alt={store.nom}
+                              className="w-full h-full object-cover absolute inset-0 z-10"
+                              onError={(e) => { (e.currentTarget as HTMLElement).style.display = 'none'; }}
+                            />
                           )}
+                          <span className="text-coral-500 font-bold text-xl">{store.nom.charAt(0).toUpperCase()}</span>
                         </div>
                       </div>
                       <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1 group-hover:text-coral-500 transition-colors truncate">{store.nom}</h3>

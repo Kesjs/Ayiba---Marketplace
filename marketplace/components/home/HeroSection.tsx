@@ -132,10 +132,20 @@ export function HeroSection() {
 
               <Link
                 href={active.ctaHref}
-                className="mt-6 inline-flex items-center gap-2.5 py-3.5 px-6 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-extrabold text-sm transition-all duration-200 active:scale-[0.98] shadow-lg shadow-coral-500/20"
+                className="group relative mt-6 inline-flex items-center gap-3 py-3.5 px-7 rounded-2xl bg-white border-2 border-coral-500 font-black text-sm text-coral-600 shadow-md shadow-coral-500/10 hover:shadow-xl hover:shadow-coral-500/20 active:scale-[0.98] overflow-hidden transition-all duration-300 ring-2 ring-coral-500/20 ring-offset-2 ring-offset-white"
               >
-                <span>{active.ctaLabel}</span>
-                <ArrowRight size={18} strokeWidth={2.5} />
+                {/* Couche Vague Liquide montée au survol */}
+                <div className="absolute left-1/2 bottom-0 translate-y-full group-hover:translate-y-0 w-[220%] h-[320%] bg-gradient-to-tr from-coral-600 via-coral-500 to-rose-500 rounded-[38%] animate-liquid-spin transition-transform duration-700 ease-out pointer-events-none z-0" />
+
+                {/* Contenu textuel et icône au-dessus */}
+                <span className="relative z-10 transition-colors duration-300 group-hover:text-white">
+                  {active.ctaLabel}
+                </span>
+                <ArrowRight
+                  size={18}
+                  strokeWidth={2.5}
+                  className="relative z-10 text-coral-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-300"
+                />
               </Link>
 
               {/* --- 3 BADGES DE CONFIANCE (varient selon le tab) --- */}

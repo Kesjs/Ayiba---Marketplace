@@ -34,22 +34,30 @@ export function OptimizedImage({
   quality = 75,
   placeholder = 'empty',
 }: OptimizedImageProps) {
+  const DEFAULT_FALLBACK = "/images/hero-illustration.png";
   const [isLoading, setIsLoading] = useState(true);
+  const [currentSrc, setCurrentSrc] = useState(src || DEFAULT_FALLBACK);
 
-  // Si c'est une URL externe et pas une image optimisée Supabase, utiliser img standard
-  const isExternalUrl = src.startsWith('http://') || src.startsWith('https://');
-  const isSvg = src.endsWith('.svg');
+  const isExternalUrl = currentSrc.startsWith('http://') || currentSrc.startsWith('https://');
+  const isSvg = currentSrc.endsWith('.svg');
 
-  if (isSvg || (isExternalUrl && !src.includes('supabase'))) {
+  const handleError = () => {
+    if (currentSrc !== DEFAULT_FALLBACK) {
+      setCurrentSrc(DEFAULT_FALLBACK);
+    }
+  };
+
+  if (isSvg || (isExternalUrl && !currentSrc.includes('supabase'))) {
     return (
       <img
-        src={src}
+        src={currentSrc}
         alt={alt}
         className={clsx(
           className,
           objectFit === 'cover' && 'object-cover',
           objectFit === 'contain' && 'object-contain',
         )}
+        onError={handleError}
       />
     );
   }
@@ -57,7 +65,7 @@ export function OptimizedImage({
   if (fill) {
     return (
       <Image
-        src={src}
+        src={currentSrc}
         alt={alt}
         fill
         className={clsx(
@@ -70,13 +78,14 @@ export function OptimizedImage({
         quality={quality}
         placeholder={placeholder}
         onLoadingComplete={() => setIsLoading(false)}
+        onError={handleError}
       />
     );
   }
 
   return (
     <Image
-      src={src}
+      src={currentSrc}
       alt={alt}
       width={width || 400}
       height={height || 400}
@@ -90,6 +99,7 @@ export function OptimizedImage({
       quality={quality}
       placeholder={placeholder}
       onLoadingComplete={() => setIsLoading(false)}
+      onError={handleError}
     />
   );
 }

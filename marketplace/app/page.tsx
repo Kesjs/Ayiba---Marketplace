@@ -122,7 +122,7 @@ export default function Home() {
   };
 
   const [activeTab, setActiveTab] = useState("Tout");
-  const [visibleProductsCount, setVisibleProductsCount] = useState(8);
+  const [visibleProductsCount, setVisibleProductsCount] = useState(20);
 
   // Mouse Drag Scroll pour les catégories sur Desktop
   const [isDraggingCat, setIsDraggingCat] = useState(false);
@@ -359,7 +359,7 @@ export default function Home() {
                     <button
                       onClick={() => {
                         setActiveTab("Tout");
-                        setVisibleProductsCount(8);
+                        setVisibleProductsCount(20);
                         document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
                       }}
                       className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border ${
@@ -402,7 +402,7 @@ export default function Home() {
                           onClick={() => {
                             if (catDragDistanceRef.current > 10) return;
                             setActiveTab(cat.nom);
-                            setVisibleProductsCount(8);
+                            setVisibleProductsCount(20);
                             document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
                           }}
                           className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 snap-start border ${
@@ -848,45 +848,6 @@ export default function Home() {
               </div>
             </motion.section>
           )}
-
-          {/* --- 7. DUAL CTA SECTION --- */}
-          <motion.section
-            variants={sectionVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="py-14 md:py-20 bg-white"
-          >
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="flex flex-col md:flex-row items-stretch gap-5 md:gap-6">
-                <div className="flex-1 bg-coral-50/50 rounded-3xl p-7 md:p-10 flex flex-col items-center text-center group">
-                  <div className="w-11 h-11 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center text-coral-500 mb-5 md:mb-6 shadow-xs border border-coral-100/50">
-                    <Store size={22} />
-                  </div>
-                  <h2 className="text-lg md:text-2xl font-semibold text-gray-900 mb-2 md:mb-3 tracking-tight">Ouvrez votre boutique.</h2>
-                  <p className="text-gray-500 text-sm mb-6 md:mb-8 font-medium max-w-xs leading-relaxed">Vendez vos produits en toute sérénité. Ayiba gère la logistique et sécurise vos paiements.</p>
-                  <Link href="/devenir-vendeur" className="mt-auto">
-                    <Button className="h-11 px-6 text-sm font-bold rounded-xl shadow-lg shadow-coral-500/10">
-                      Commencer à vendre
-                    </Button>
-                  </Link>
-                </div>
-
-                <div className="flex-1 bg-teal-50/50 rounded-3xl p-7 md:p-10 flex flex-col items-center text-center group">
-                  <div className="w-11 h-11 md:w-12 md:h-12 bg-white rounded-xl flex items-center justify-center text-teal-600 mb-5 md:mb-6 shadow-xs border border-teal-100/50">
-                    <Bike size={22} />
-                  </div>
-                  <h2 className="text-lg md:text-2xl font-semibold text-gray-900 mb-2 md:mb-3 tracking-tight">Livrez et Gagnez.</h2>
-                  <p className="text-gray-500 text-sm mb-6 md:mb-8 font-medium max-w-xs leading-relaxed">Devenez partenaire livreur. Gérez votre temps et encaissez vos gains instantanément via Mobile Money.</p>
-                  <Link href="/devenir-livreur" className="mt-auto">
-                    <Button className="h-11 px-6 text-sm font-bold rounded-xl bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-500/10">
-                      Devenir livreur
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </motion.section>
 
           <LocationPermissionBanner />
           <Footer />

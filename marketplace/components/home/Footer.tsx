@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import LogoAyiba from "@/components/ui/LogoAyiba";
-import Image from "next/image";
-import { Share, PlusSquare } from "lucide-react";
+import Link from "next/link";
+import { Share, PlusSquare, Store, Bike, ArrowRight } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { useInstallApp } from "@/context/InstallAppContext";
 
@@ -40,6 +40,47 @@ export function Footer() {
   return (
     <footer className="py-12 px-4 bg-gray-50 border-t border-gray-100 md:px-8 lg:px-12">
       <div className="max-w-7xl mx-auto">
+
+        {/* --- Cartes CTA Vendeur & Livreur Compactes & Remarquables --- */}
+        <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link
+            href="/devenir-vendeur"
+            className="group relative overflow-hidden bg-gradient-to-r from-coral-500 via-coral-500 to-coral-600 rounded-2xl p-5 text-white shadow-md shadow-coral-500/10 hover:shadow-xl hover:shadow-coral-500/20 hover:scale-[1.01] transition-all duration-300 flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3.5 min-w-0 z-10">
+              <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
+                <Store size={20} />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-extrabold text-sm sm:text-base leading-snug truncate">Ouvrir une boutique sur Ayiba</h4>
+                <p className="text-xs text-white/85 font-medium truncate">Vendez vos produits en toute sécurité</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 bg-white text-coral-600 font-extrabold text-xs px-3.5 py-2 rounded-xl shrink-0 group-hover:bg-coral-50 transition-colors shadow-xs z-10">
+              <span>Commencer</span>
+              <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </Link>
+
+          <Link
+            href="/devenir-livreur"
+            className="group relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-900 to-slate-800 rounded-2xl p-5 text-white shadow-md shadow-gray-900/10 hover:shadow-xl hover:shadow-gray-900/25 hover:scale-[1.01] transition-all duration-300 flex items-center justify-between gap-4"
+          >
+            <div className="flex items-center gap-3.5 min-w-0 z-10">
+              <div className="w-10 h-10 rounded-xl bg-teal-500/25 border border-teal-400/30 backdrop-blur-md flex items-center justify-center text-teal-300 shrink-0 group-hover:scale-110 transition-transform">
+                <Bike size={20} />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-extrabold text-sm sm:text-base leading-snug truncate">Devenir Livreur partenaire</h4>
+                <p className="text-xs text-slate-300 font-medium truncate">Livrez des courses et gagnez à votre rythme</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 bg-teal-500 text-white font-extrabold text-xs px-3.5 py-2 rounded-xl shrink-0 group-hover:bg-teal-400 transition-colors shadow-xs z-10">
+              <span>Rejoindre</span>
+              <ArrowRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
+            </div>
+          </Link>
+        </div>
 
         {/* PWA / App Banner - Section responsive mobile-first */}
         {showInstallBanner && (

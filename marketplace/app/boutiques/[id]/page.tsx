@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { CheckCircle2, MessageCircle, ArrowLeft, MapPin, Star } from "lucide-react";
+import { CheckCircle2, MessageCircle, ArrowLeft, MapPin, Star, LayoutGrid, List, SlidersHorizontal, Heart } from "lucide-react";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
@@ -42,6 +42,44 @@ export default function BoutiqueDetailPage() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+
+  const [selectedCategory, setSelectedCategory] = useState("Tout");
+  const [sortBy, setSortBy] = useState<"nouveautes" | "prix-croissant" | "prix-decroissant" | "promo">("nouveautes");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+
+  const availableCategories = useMemo(() => {
+    const catsMap = new Map<string, number>();
+    storeProducts.forEach((p) => {
+      const catName = p.categorie?.nom || "Divers";
+      catsMap.set(catName, (catsMap.get(catName) || 0) + 1);
+    });
+    return Array.from(catsMap.entries());
+  }, [storeProducts]);
+
+  const displayedProducts = useMemo(() => {
+    let list = [...storeProducts];
+
+    if (selectedCategory !== "Tout") {
+      list = list.filter((p) => (p.categorie?.nom || "Divers") === selectedCategory);
+    }
+
+    list.sort((a, b) => {
+      if (sortBy === "prix-croissant") {
+        return prixAffiche(a) - prixAffiche(b);
+      }
+      if (sortBy === "prix-decroissant") {
+        return prixAffiche(b) - prixAffiche(a);
+      }
+      if (sortBy === "promo") {
+        const aHasPromo = !!a.prix_promo ? 1 : 0;
+        const bHasPromo = !!b.prix_promo ? 1 : 0;
+        if (bHasPromo !== aHasPromo) return bHasPromo - aHasPromo;
+      }
+      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    });
+
+    return list;
+  }, [storeProducts, selectedCategory, sortBy]);
 
   useEffect(() => {
     if (!user) {
@@ -231,17 +269,100 @@ export default function BoutiqueDetailPage() {
           </div>
         )}
 
-        <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-5 md:mb-6">
-          Produits ({storeProducts.length})
-        </h2>
+        {/* --- BARRE DE CONTRÔLES (Filtres Catégories + Tri + Grille/Liste) --- */}
+        {storeProducts.length > 0 && (
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 pb-4 border-b border-gray-100">
+            {/* Onglets Filtres par Catégorie */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+              <button
+                onClick={() => setSelectedCategory("Tout")}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all shrink-0 border ${
+                  selectedCategory === "Tout"
+                    ? "bg-coral-500 text-white border-coral-500 shadow-xs"
+                    : "bg-gray-50 hover:bg-white text-gray-700 border-gray-200"
+                }`}
+              >
+                Tout ({storeProducts.length})
+              </button>
+              {availableCategories.map(([catName, count]) => (
+                <button
+                  key={catName}
+                  onClick={() => setSelectedCategory(catName)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all shrink-0 border ${
+                    selectedCategory === catName
+                      ? "bg-coral-500 text-white border-coral-500 shadow-xs"
+                      : "bg-gray-50 hover:bg-white text-gray-700 border-gray-200"
+                  }`}
+                >
+                  {catName} ({count})
+                </button>
+              ))}
+            </div>
+
+            {/* Tri & Bascule Grille / Liste */}
+            <div className="flex items-center justify-between md:justify-end gap-3 shrink-0">
+              {/* Select de Tri */}
+              <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700">
+                <SlidersHorizontal size={14} className="text-gray-400 shrink-0" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-transparent font-bold text-gray-900 border-none outline-none cursor-pointer pr-1"
+                >
+                  <option value="nouveautes">Nouveautés</option>
+                  <option value="prix-croissant">Prix : croissant</option>
+                  <option value="prix-decroissant">Prix : décroissant</option>
+                  <option value="promo">En promo</option>
+                </select>
+              </div>
+
+              {/* Bascule Grille / Liste */}
+              <div className="flex items-center bg-gray-50 p-1 rounded-xl border border-gray-200">
+                <button
+                  onClick={() => setViewMode("grid")}
+                  title="Vue Grille"
+                  className={`p-1.5 rounded-lg transition-all ${
+                    viewMode === "grid"
+                      ? "bg-white text-coral-500 shadow-xs font-bold"
+                      : "text-gray-400 hover:text-gray-700"
+                  }`}
+                >
+                  <LayoutGrid size={16} />
+                </button>
+                <button
+                  onClick={() => setViewMode("list")}
+                  title="Vue Liste"
+                  className={`p-1.5 rounded-lg transition-all ${
+                    viewMode === "list"
+                      ? "bg-white text-coral-500 shadow-xs font-bold"
+                      : "text-gray-400 hover:text-gray-700"
+                  }`}
+                >
+                  <List size={16} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {storeProducts.length === 0 ? (
-          <p className="text-gray-400 text-sm py-10 text-center">
-            Cette boutique n'a pas encore de produits en ligne.
-          </p>
-        ) : (
+          <div className="py-16 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+            <p className="text-gray-500 font-bold mb-1">Cette boutique n'a pas encore de produits en ligne</p>
+            <p className="text-xs text-gray-400">Revenez bientôt pour découvrir ses nouveautés.</p>
+          </div>
+        ) : displayedProducts.length === 0 ? (
+          <div className="py-16 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+            <p className="text-gray-500 font-bold mb-1">Aucun produit dans la catégorie "{selectedCategory}"</p>
+            <button
+              onClick={() => setSelectedCategory("Tout")}
+              className="mt-2 text-xs font-bold text-coral-500 hover:underline"
+            >
+              Afficher tous les produits
+            </button>
+          </div>
+        ) : viewMode === "grid" ? (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {storeProducts.map((product) => (
+            {displayedProducts.map((product) => (
               <ProductCardModern
                 key={product.id}
                 image={product.photos[0] || "/images/hero-illustration.png"}
@@ -260,6 +381,79 @@ export default function BoutiqueDetailPage() {
                 onToggleFavorite={() => handleToggleFavorite(product.id)}
                 onClick={() => router.push(getProductUrl(product))}
               />
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {displayedProducts.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white rounded-3xl border border-gray-100 p-4 md:p-5 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 hover:border-coral-200 hover:shadow-lg transition-all group"
+              >
+                <div
+                  onClick={() => router.push(getProductUrl(product))}
+                  className="relative w-full sm:w-36 h-36 rounded-2xl overflow-hidden bg-gray-50 shrink-0 cursor-pointer"
+                >
+                  <img
+                    src={product.photos[0] || "/images/hero-illustration.png"}
+                    alt={product.nom}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  />
+                  {!!product.prix_promo && (
+                    <span className="absolute top-2 left-2 bg-coral-500 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-full shadow-xs">
+                      PROMO
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
+                  <div>
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-coral-500 mb-1 block">
+                      {product.categorie?.nom || "Divers"}
+                    </span>
+                    <Link
+                      href={getProductUrl(product)}
+                      className="font-extrabold text-base text-gray-900 hover:text-coral-500 transition-colors line-clamp-1"
+                    >
+                      {product.nom}
+                    </Link>
+                    {product.description && (
+                      <p className="text-xs text-gray-500 line-clamp-2 mt-1 font-medium leading-relaxed">
+                        {product.description}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between gap-3 mt-4 pt-3 border-t border-gray-50">
+                    <div>
+                      <p className="text-lg font-black text-coral-500">
+                        {prixAffiche(product).toLocaleString("fr-FR")} F
+                      </p>
+                      {!!ancienPrixAffiche(product) && (
+                        <p className="text-xs text-gray-400 line-through font-medium">
+                          {ancienPrixAffiche(product)?.toLocaleString("fr-FR")} F
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => handleToggleFavorite(product.id)}
+                        className={`p-2.5 rounded-xl border transition-colors ${
+                          favoriteIds.has(product.id)
+                            ? "bg-rose-50 text-rose-500 border-rose-200"
+                            : "bg-gray-50 text-gray-400 border-gray-100 hover:text-gray-600"
+                        }`}
+                      >
+                        <Heart size={16} className={favoriteIds.has(product.id) ? "fill-rose-500" : ""} />
+                      </button>
+                      <Button
+                        onClick={() => handleAddToCart(product)}
+                        className="h-10 px-4 text-xs font-bold rounded-xl shadow-xs"
+                      >
+                        Ajouter au panier
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}

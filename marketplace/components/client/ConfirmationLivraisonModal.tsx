@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ScanLine, ShieldAlert, CheckCircle2, Camera, KeyRound } from "lucide-react";
 import { useConfirmationLivraison } from "@/lib/hooks/useConfirmationLivraison";
 import { LaisserAvisCard, type AvisExistant } from "@/components/client/LaisserAvisCard";
+import { Html5Qrcode } from "html5-qrcode";
 
 interface ArticleACommenter {
   id: string;
@@ -16,27 +17,12 @@ interface ConfirmationLivraisonModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirmee?: () => void;
-  // Ce qu'il faut pour proposer l'avis tout de suite après la confirmation,
-  // sans attendre que le client retourne sur la page (et sans dupliquer la
-  // logique déjà écrite dans LaisserAvisCard) :
   userId?: string;
   livreurId?: string | null;
   livreurNom?: string | null;
   articles?: ArticleACommenter[];
   avisMap?: Record<string, AvisExistant | null>;
   onAvisSaved?: (cle: string, avis: AvisExistant) => void;
-}
-
-// Scanner QR natif (BarcodeDetector) — pas de dépendance npm supplémentaire.
-// Support : Chrome/Edge desktop et Android récents. Sur les navigateurs sans
-// BarcodeDetector (ex. Safari iOS à ce jour), on affiche directement le
-// fallback "code de secours" avec une explication, plutôt qu'un scanner cassé.
-function useBarcodeDetectorDisponible() {
-  const [disponible, setDisponible] = useState<boolean | null>(null);
-  useEffect(() => {
-    setDisponible(typeof window !== "undefined" && "BarcodeDetector" in window);
-  }, []);
-  return disponible;
 }
 
 export function ConfirmationLivraisonModal({
@@ -52,10 +38,10 @@ export function ConfirmationLivraisonModal({
   onAvisSaved,
 }: ConfirmationLivraisonModalProps) {
   const { etat, soumettre, reinitialiser } = useConfirmationLivraison(commandeId);
-  const barcodeDetectorOk = useBarcodeDetectorDisponible();
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const html5QrcodeRef = useRef<Html5Qrcode | null>(null);
   const [scanActif, setScanActif] = useState(false);
   const [code6Saisi, setCode6Saisi] = useState("");
 
@@ -72,50 +58,66 @@ export function ConfirmationLivraisonModal({
     if (etat.etape === "confirmee") {
       arreterCamera();
       onConfirmee?.();
-      // On ne ferme plus le modal automatiquement ici : on laisse le client
-      // voir tout de suite les cartes d'avis ci-dessous, et c'est lui qui
-      // ferme via "Terminé".
     }
   }, [etat.etape, onConfirmee]);
 
   const arreterCamera = () => {
+    if (html5QrcodeRef.current) {
+      html5QrcodeRef.current.stop().then(() => html5QrcodeRef.current?.clear()).catch(() => {});
+      html5QrcodeRef.current = null;
+    }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
     setScanActif(false);
   };
 
   const demarrerScan = async () => {
-    if (!barcodeDetectorOk) return;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-      streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
       setScanActif(true);
 
-      // @ts-expect-error BarcodeDetector n'est pas encore dans les types TS standards
-      const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
-
-      const boucle = async () => {
-        if (!videoRef.current || !streamRef.current) return;
-        try {
-          const codes = await detector.detect(videoRef.current);
-          if (codes.length > 0) {
-            const valeur = codes[0].rawValue as string;
-            arreterCamera();
-            await soumettre("qr", valeur);
-            return;
-          }
-        } catch {
-          // frame illisible, on retente au prochain tick
+      // Support natif si disponible (Chrome/Edge)
+      if (typeof window !== "undefined" && "BarcodeDetector" in window) {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
         }
-        if (streamRef.current) requestAnimationFrame(boucle);
-      };
-      requestAnimationFrame(boucle);
+
+        // @ts-expect-error BarcodeDetector
+        const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+        const boucle = async () => {
+          if (!videoRef.current || !streamRef.current) return;
+          try {
+            const codes = await detector.detect(videoRef.current);
+            if (codes.length > 0) {
+              const valeur = codes[0].rawValue as string;
+              arreterCamera();
+              await soumettre("qr", valeur);
+              return;
+            }
+          } catch {}
+          if (streamRef.current) requestAnimationFrame(boucle);
+        };
+        requestAnimationFrame(boucle);
+        return;
+      }
+
+      // Scanner universel Html5Qrcode pour iOS Safari et autres navigateurs
+      const scanner = new Html5Qrcode("qr-client-reader-box");
+      html5QrcodeRef.current = scanner;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        async (decodedText) => {
+          arreterCamera();
+          await soumettre("qr", decodedText);
+        },
+        () => {}
+      );
     } catch (err) {
       console.error("[ConfirmationLivraisonModal] accès caméra refusé:", err);
+      setScanActif(false);
     }
   };
 
@@ -226,40 +228,34 @@ export function ConfirmationLivraisonModal({
 
           {etat.etape === "qr" && (
             <div className="flex flex-col items-center gap-4">
-              {barcodeDetectorOk === false ? (
-                <div className="w-full p-4 bg-amber-50 border border-amber-100 rounded-2xl text-sm text-amber-700">
-                  Le scan QR n'est pas disponible sur ce navigateur. Demande au livreur le code de
-                  secours à 6 chiffres affiché sous son QR.
-                </div>
-              ) : (
-                <>
-                  <div className="w-full aspect-square bg-gray-900 rounded-2xl overflow-hidden relative">
-                    <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
-                    {!scanActif && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <button
-                          onClick={demarrerScan}
-                          className="flex flex-col items-center gap-2 text-white"
-                        >
-                          <Camera size={32} />
-                          <span className="text-sm font-bold">Activer la caméra</span>
-                        </button>
-                      </div>
-                    )}
-                    {scanActif && (
-                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <ScanLine size={40} className="text-teal-400 animate-pulse" />
-                      </div>
-                    )}
+              <div
+                id="qr-client-reader-box"
+                className="w-full aspect-square bg-gray-900 rounded-2xl overflow-hidden relative"
+              >
+                <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
+                {!scanActif && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <button
+                      onClick={demarrerScan}
+                      className="flex flex-col items-center gap-2 text-white"
+                    >
+                      <Camera size={32} />
+                      <span className="text-sm font-bold">Activer la caméra</span>
+                    </button>
                   </div>
-                  <button
-                    onClick={avertirCode6TropTot}
-                    className="text-xs font-semibold text-gray-400 hover:text-gray-600"
-                  >
-                    Le code de secours est déjà affiché ? Saisis-le manuellement
-                  </button>
-                </>
-              )}
+                )}
+                {scanActif && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <ScanLine size={40} className="text-teal-400 animate-pulse" />
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={avertirCode6TropTot}
+                className="text-xs font-semibold text-gray-400 hover:text-gray-600"
+              >
+                Le code de secours est déjà affiché ? Saisis-le manuellement
+              </button>
 
               {etat.erreur && <p className="text-xs text-red-500 text-center">{etat.erreur}</p>}
             </div>

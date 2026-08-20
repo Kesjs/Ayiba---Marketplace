@@ -350,11 +350,11 @@ export default function Home() {
 
 {/* --- 1. CATÉGORIES (Style Pilules Fixé sous le Header + Sticky Tout + Drag Souris Desktop) --- */}
           {!dataLoading && categories.length > 0 && (
-            <section className="border-b border-gray-100 bg-white/95 backdrop-blur-md sticky top-[64px] z-30 shadow-2xs">
+            <section className="border-b border-gray-100 bg-white sticky top-[64px] z-30 shadow-2xs">
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-2.5">
-                <div className="relative flex items-center gap-2">
-                  {/* Bouton Tout STICKY à gauche — Ne disparaît JAMAIS au scroll */}
-                  <div className="sticky left-0 z-20 shrink-0 bg-white pr-3 py-0.5 flex items-center border-r border-gray-200/80">
+                <div className="relative flex items-center gap-1.5">
+                  {/* Bouton Tout STICKY à gauche avec Trait Vertical Propre et Net */}
+                  <div className="sticky left-0 z-20 shrink-0 bg-white pr-2 py-0.5 flex items-center gap-2">
                     <button
                       onClick={() => {
                         setActiveTab("Tout");
@@ -374,6 +374,8 @@ export default function Home() {
                       </div>
                       <span>Tout</span>
                     </button>
+                    {/* Trait vertical de séparation 100% propre et net (sans flou) */}
+                    <div className="h-6 w-[1px] bg-gray-200/80 shrink-0" />
                   </div>
 
                   {/* Liste scrollable des catégories sous forme de Pilules avec Glissement Souris + Molette + Tactile */}

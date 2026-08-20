@@ -42,8 +42,8 @@ export function CookieBanner() {
         initial={{ y: "100%", opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: "100%", opacity: 0 }}
-        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="fixed bottom-0 left-0 right-0 w-full z-[100] bg-white/95 backdrop-blur-xl border-t border-gray-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.08)]"
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="fixed bottom-0 left-0 right-0 w-full z-[100] bg-white border-t border-gray-200 shadow-lg"
         aria-label="Bandeau d'information sur les cookies"
       >
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-3.5 md:py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 md:gap-6">

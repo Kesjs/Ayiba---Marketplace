@@ -94,18 +94,25 @@ export function HeroSection() {
   return (
     <section className="relative w-full bg-[#F8F9FA] overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-10">
-        {/* --- TABS --- */}
-        <div className="flex items-center gap-2 mb-6">
+        {/* --- TABS ANIMEES --- */}
+        <div className="inline-flex p-1 bg-gray-200/80 rounded-full gap-1 mb-6 relative">
           {HERO_TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all duration-200 ${
+              className={`relative px-5 py-2 rounded-full text-sm font-extrabold transition-colors duration-200 z-10 ${
                 activeTab === tab.key
-                  ? "bg-gray-900 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "text-white"
+                  : "text-gray-600 hover:text-gray-900"
               }`}
             >
+              {activeTab === tab.key && (
+                <motion.div
+                  layoutId="hero-tab-active-pill"
+                  transition={{ type: "spring", stiffness: 450, damping: 32 }}
+                  className="absolute inset-0 bg-gray-900 rounded-full z-[-1] shadow-sm"
+                />
+              )}
               {tab.tabLabel}
             </button>
           ))}
@@ -131,19 +138,19 @@ export function HeroSection() {
 
               <Link
                 href={active.ctaHref}
-                className="group relative mt-6 inline-flex items-center gap-3 py-3.5 px-7 rounded-2xl bg-white border-2 border-coral-500 font-black text-sm text-coral-600 shadow-md shadow-coral-500/10 hover:shadow-xl hover:shadow-coral-500/20 active:scale-[0.98] overflow-hidden transition-all duration-300 ring-2 ring-coral-500/20 ring-offset-2 ring-offset-white"
+                className="group relative mt-6 inline-flex items-center gap-3 py-3.5 px-7 rounded-2xl bg-white hover:bg-coral-500 border-2 border-coral-500 font-black text-sm text-coral-600 shadow-md shadow-coral-500/10 hover:shadow-xl hover:shadow-coral-500/25 active:scale-[0.98] overflow-hidden transition-all duration-300 ring-2 ring-coral-500/20 ring-offset-2 ring-offset-white"
               >
-                {/* Couche Vague Liquide montée au survol */}
-                <div className="absolute left-1/2 bottom-0 translate-y-full group-hover:translate-y-0 w-[220%] h-[320%] bg-gradient-to-tr from-coral-600 via-coral-500 to-rose-500 rounded-[38%] animate-liquid-spin transition-transform duration-700 ease-out pointer-events-none z-0" />
+                {/* Couche Vague Liquide montée au survol - 100% Corail (Pas de Rose) */}
+                <div className="absolute left-1/2 bottom-0 translate-y-full group-hover:translate-y-0 w-[220%] h-[320%] bg-gradient-to-tr from-coral-700 via-coral-600 to-coral-500 rounded-[38%] animate-liquid-spin transition-transform duration-700 ease-out pointer-events-none z-0" />
 
-                {/* Contenu textuel et icône au-dessus */}
-                <span className="relative z-10 transition-colors duration-300 group-hover:text-white">
+                {/* Contenu textuel et icône avec lisibilité optimale et ombre portée au survol */}
+                <span className="relative z-10 font-black text-coral-600 group-hover:text-white transition-colors duration-200 group-hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
                   {active.ctaLabel}
                 </span>
                 <ArrowRight
                   size={18}
                   strokeWidth={2.5}
-                  className="relative z-10 text-coral-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-300"
+                  className="relative z-10 text-coral-500 group-hover:text-white group-hover:translate-x-1 group-hover:drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)] transition-all duration-300"
                 />
               </Link>
 

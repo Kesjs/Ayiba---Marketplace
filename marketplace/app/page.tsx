@@ -323,19 +323,7 @@ export default function Home() {
           {!dataLoading && categories.length > 0 && (
             <section className="border-b border-gray-100 bg-white/95 backdrop-blur-md sticky top-[64px] z-30 shadow-2xs">
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-2.5">
-                <div className="relative group/nav flex items-center">
-                  {/* Flèche gauche */}
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById('cat-scroll');
-                      if (el) el.scrollBy({ left: -240, behavior: 'smooth' });
-                    }}
-                    className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center bg-white shadow-md border border-gray-200 rounded-full opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-200 text-gray-700"
-                    aria-label="Faire défiler à gauche"
-                  >
-                    <ChevronLeft size={16} />
-                  </button>
-
+                <div className="relative flex items-center">
                   {/* Liste scrollable sous forme de Pilules / Chips épurées */}
                   <div
                     id="cat-scroll"
@@ -394,18 +382,6 @@ export default function Home() {
                       );
                     })}
                   </div>
-
-                  {/* Flèche droite */}
-                  <button
-                    onClick={() => {
-                      const el = document.getElementById('cat-scroll');
-                      if (el) el.scrollBy({ left: 240, behavior: 'smooth' });
-                    }}
-                    className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center bg-white shadow-md border border-gray-200 rounded-full opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-200 text-gray-700"
-                    aria-label="Faire défiler à droite"
-                  >
-                    <ChevronRight size={16} />
-                  </button>
                 </div>
               </div>
             </section>

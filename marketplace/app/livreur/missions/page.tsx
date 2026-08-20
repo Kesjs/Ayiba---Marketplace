@@ -586,6 +586,10 @@ function MissionEnCoursCard({
       <h3 className="text-lg sm:text-xl font-bold mb-6 flex flex-wrap items-center gap-3 pr-6">
         Commande {mission.numero}
         <span className="text-xs font-bold px-2 py-0.5 bg-teal-50 text-teal-600 rounded-md">EN COURS</span>
+        <span className="text-xs font-bold px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-md flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          GPS en direct actif
+        </span>
       </h3>
 
       {/* Stepper de progression */}

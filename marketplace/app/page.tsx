@@ -361,7 +361,7 @@ export default function Home() {
                         setVisibleProductsCount(20);
                         document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border ${
+                      className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border ${
                         activeTab === 'Tout'
                           ? 'bg-coral-500 text-white border-coral-500 shadow-md shadow-coral-500/20 scale-[1.02]'
                           : 'bg-gray-50 hover:bg-white text-gray-700 hover:text-coral-600 border-gray-200/70 hover:border-coral-300 shadow-2xs'
@@ -406,7 +406,7 @@ export default function Home() {
                             setVisibleProductsCount(20);
                             document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
                           }}
-                          className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 snap-start border ${
+                          className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 snap-start border ${
                             isSelected
                               ? 'bg-coral-500 text-white border-coral-500 shadow-md shadow-coral-500/20 scale-[1.02]'
                               : 'bg-gray-50 hover:bg-white text-gray-700 hover:text-coral-600 border-gray-200/70 hover:border-coral-300 shadow-2xs'

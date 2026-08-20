@@ -598,7 +598,7 @@ export function Navbar() {
             {/* Icône compte mobile (Pilule d'origine) */}
             <button
               onClick={handleAccountIconClick}
-              className="h-10 flex items-center justify-center rounded-full border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden shrink-0 ml-1 cursor-pointer"
+              className="h-10 flex items-center justify-center rounded-xl border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden shrink-0 ml-1 cursor-pointer"
               aria-label={!user ? "Connexion ou inscription" : "Menu du compte"}
             >
               <span className="flex items-center justify-center px-3 h-full">

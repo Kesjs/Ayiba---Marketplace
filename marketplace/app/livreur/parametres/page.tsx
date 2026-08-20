@@ -155,7 +155,12 @@ export default function LivreurParametresPage() {
   };
 
   const handleSave = async () => {
-    await save(form);
+    try {
+      await save(form);
+      showToast("Modifications enregistrées avec succès !", "success");
+    } catch {
+      showToast("Erreur lors de la sauvegarde.", "error");
+    }
   };
 
   const confirmLogout = async () => {
@@ -481,16 +486,21 @@ export default function LivreurParametresPage() {
             whileTap={{ scale: 0.98 }}
             onClick={handleSave}
             disabled={saving}
-            className="w-full h-14 bg-gray-900 text-white font-bold rounded-2xl hover:bg-black transition-all disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
+            className="w-full h-14 bg-coral-500 hover:bg-coral-600 text-white font-extrabold rounded-2xl transition-all shadow-lg shadow-coral-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
           >
             {saving ? (
-              "Enregistrement..."
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Enregistrement en cours...</span>
+              </>
             ) : successMessage ? (
               <>
                 <Check size={18} /> {successMessage}
               </>
             ) : (
-              "Enregistrer les modifications"
+              <>
+                <Check size={18} /> Enregistrer mes modifications
+              </>
             )}
           </motion.button>
 

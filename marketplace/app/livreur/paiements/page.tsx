@@ -8,7 +8,7 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { LABELS_STATUT_PAIEMENT, STATUT_PAIEMENT_BADGE_VARIANT, type StatutPaiement } from "@/lib/constants/paiements";
 import {
-  Wallet, Zap, X, ArrowDownToLine, ArrowUpFromLine, Truck,
+  Wallet, Zap, X, ArrowDownToLine, ArrowUpFromLine, Truck, RotateCw
 } from "lucide-react";
 
 function GainCard({ g }: { g: { id: string; numero: string; montant_net_livreur: number; commune: string | null; updated_at: string } }) {
@@ -92,9 +92,18 @@ export default function LivreurPaiementsPage() {
 
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
               <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Wallet size={16} className="text-white/80" />
-                <span className="text-white/80 text-sm">Solde disponible</span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Wallet size={16} className="text-white/80" />
+                  <span className="text-white/80 text-sm font-medium">Solde disponible</span>
+                </div>
+                <button
+                  onClick={refresh}
+                  title="Rafraîchir le solde"
+                  className="p-1.5 rounded-full bg-white/15 hover:bg-white/25 text-white transition-all active:scale-95"
+                >
+                  <RotateCw size={14} className={loading ? "animate-spin" : ""} />
+                </button>
               </div>
               <p className="text-4xl sm:text-5xl font-bold tracking-tight mb-5">
                 {soldeDisponible.toLocaleString("fr-FR")} F

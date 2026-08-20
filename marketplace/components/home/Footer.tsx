@@ -197,13 +197,6 @@ export function Footer() {
                   <i className="ti ti-shield-check text-teal-500 text-base" />
                   <span className="text-[10px] font-bold text-gray-600 uppercase tracking-tight">Paiement Sécurisé</span>
                </div>
-               <div className="flex items-center gap-3">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Partenaire :</span>
-                  <div className="px-3 py-1 bg-white rounded border border-gray-100 flex items-center shadow-xs">
-                    <span className="text-xs font-black text-coral-600">Genius</span>
-                    <span className="text-xs font-black text-gray-900">Pay</span>
-                  </div>
-               </div>
             </div>
           </div>
         </div>

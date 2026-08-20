@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import {
   History,
@@ -67,6 +68,22 @@ export default function LivreurHistoriquePage() {
   const { loading, loadingMore, error, missions, hasMore, loadMore, stats, refresh } =
     useLivreurHistorique();
 
+  const [periodFilter, setPeriodFilter] = useState<"all" | "7days" | "month">("all");
+
+  const filteredMissions = missions.filter((m) => {
+    if (periodFilter === "all") return true;
+    const date = new Date(m.updated_at);
+    const now = new Date();
+    if (periodFilter === "7days") {
+      const diffDays = (now.getTime() - date.getTime()) / (1000 * 3600 * 24);
+      return diffDays <= 7;
+    }
+    if (periodFilter === "month") {
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }
+    return true;
+  });
+
   const statCards = [
     {
       label: "Livraisons réussies",
@@ -127,20 +144,43 @@ export default function LivreurHistoriquePage() {
             ))}
           </div>
 
-          {missions.length === 0 ? (
+          {/* Filtre de période */}
+          <div className="flex items-center gap-2 mb-4 overflow-x-auto no-scrollbar py-1">
+            <span className="text-xs font-bold text-gray-400 mr-1 shrink-0">Filtrer :</span>
+            {[
+              { id: "all", label: "Toutes les périodes" },
+              { id: "7days", label: "7 derniers jours" },
+              { id: "month", label: "Ce mois-ci" },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPeriodFilter(p.id as any)}
+                className={`px-3 py-1.5 rounded-full text-xs font-extrabold transition-all shrink-0 border ${
+                  periodFilter === p.id
+                    ? "bg-coral-500 text-white border-coral-500 shadow-xs"
+                    : "bg-white text-gray-600 hover:bg-gray-50 border-gray-200"
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+
+          {filteredMissions.length === 0 ? (
             <div className="py-16 text-center bg-white rounded-3xl border border-dashed border-gray-200 px-4">
               <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300">
                 <History size={26} />
               </div>
-              <p className="font-bold text-gray-700 mb-1">Aucune mission terminée</p>
+              <p className="font-bold text-gray-700 mb-1">Aucune mission trouvée</p>
               <p className="text-sm text-gray-400 max-w-xs mx-auto">
-                Tes livraisons livrées ou annulées apparaîtront ici.
+                Aucune livraison ne correspond à la période sélectionnée.
               </p>
             </div>
           ) : (
             <>
               <div className="bg-white rounded-3xl border border-gray-100 shadow-sm divide-y divide-gray-50 overflow-hidden">
-                {missions.map((mission) => (
+                {filteredMissions.map((mission) => (
                   <MissionRow key={mission.id} mission={mission} />
                 ))}
               </div>

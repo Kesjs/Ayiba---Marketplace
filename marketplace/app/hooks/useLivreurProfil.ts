@@ -3,11 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 export type StatutVerification =
-
-  | "en_attente"
-
+  | "valide"
   | "verifie"
-
+  | "en_attente"
+  | "refuse"
   | "rejete";
 
 

@@ -668,7 +668,7 @@ export function Navbar() {
         <div className={`absolute top-0 right-0 h-full w-[85%] max-w-xs bg-white shadow-xl transition-transform duration-300 ease-out flex flex-col ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
           <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100">
             <LogoAyiba className="h-8 w-auto" />
-            <button onClick={() => setMobileOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50">
+            <button onClick={() => setMobileOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50" aria-label="Fermer le menu">
               <X size={20} className="text-gray-600" />
             </button>
           </div>
@@ -676,21 +676,6 @@ export function Navbar() {
           <div className="p-4 flex flex-col gap-6 overflow-y-auto flex-1">
             {!user ? (
               <div className="flex flex-col gap-5">
-                {/* Bloc Client Connexion */}
-                <div className="p-4 rounded-2xl bg-coral-50/70 border border-coral-100 flex flex-col gap-3">
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">Espace Client</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Connectez-vous pour passer des commandes, suivre vos colis et enregistrer vos favoris.</p>
-                  </div>
-                  <button
-                    onClick={() => { setMobileOpen(false); setAuthModalOpen(true); }}
-                    className="w-full bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-xl py-3 px-4 text-sm flex items-center justify-center gap-2 shadow-md shadow-coral-500/20 active:scale-95 transition-all cursor-pointer"
-                  >
-                    <LogIn size={18} />
-                    <span>Se connecter / S'inscrire</span>
-                  </button>
-                </div>
-
                 {/* Section Devenir Partenaire */}
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
@@ -729,38 +714,6 @@ export function Navbar() {
                         </div>
                       </div>
                       <ChevronRight size={16} className="text-gray-300 shrink-0" />
-                    </a>
-                  </div>
-                </div>
-
-                {/* Liens Utiles */}
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2 px-1">
-                    Informations & Aide
-                  </p>
-                  <div className="flex flex-col gap-1">
-                    <button
-                      onClick={() => { setMobileOpen(false); setLocationModalOpen(true); }}
-                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg hover:bg-coral-50 text-coral-600 transition-colors text-sm font-bold text-left"
-                    >
-                      <MapPin size={18} className="text-coral-500" />
-                      <span>Lieu : {userLocation}</span>
-                    </button>
-                    <a href="/faq" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                      <FileQuestion size={18} className="text-gray-400" />
-                      <span>Questions fréquentes (FAQ)</span>
-                    </a>
-                    <a href="/centre-aide" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                      <HelpCircle size={18} className="text-gray-400" />
-                      <span>Centre d'assistance</span>
-                    </a>
-                    <a href="/cgu" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                      <FileText size={18} className="text-gray-400" />
-                      <span>Conditions générales (CGU)</span>
-                    </a>
-                    <a href="/privacy" className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
-                      <ShieldCheck size={18} className="text-gray-400" />
-                      <span>Confidentialité</span>
                     </a>
                   </div>
                 </div>
@@ -846,15 +799,13 @@ export function Navbar() {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 shrink-0">
-                  <User size={18} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-gray-900">Visiteur non connecté</p>
-                  <p className="text-[11px] text-gray-400">Ayiba Marketplace</p>
-                </div>
-              </div>
+              <button
+                onClick={() => { setMobileOpen(false); setAuthModalOpen(true); }}
+                className="w-full bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-xl py-3 px-4 text-sm flex items-center justify-center gap-2 shadow-md shadow-coral-500/20 active:scale-95 transition-all cursor-pointer"
+              >
+                <LogIn size={18} />
+                <span>Se connecter / S'inscrire</span>
+              </button>
             )}
           </div>
         </div>

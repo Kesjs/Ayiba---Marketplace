@@ -12,6 +12,7 @@ export function useVendeurPaiements() {
 
   const [vendeur, setVendeur] = useState<any>(null);
   const [paiements, setPaiements] = useState<any[]>([]);
+  const [commandes, setCommandes] = useState<any[]>([]);
   const [retraits, setRetraits] = useState<any[]>([]);
 
   const loadData = useCallback(async () => {
@@ -35,8 +36,6 @@ export function useVendeurPaiements() {
 
       if (vendeurError) throw vendeurError;
 
-      // On joint la commande liée pour connaître son statut de livraison —
-      // c'est ce qui détermine si l'argent est en escrow ou disponible.
       const { data: paiementsData, error: paiementsError } = await supabase
         .from("paiements")
         .select("*, commande:commande_id(numero, statut)")
@@ -44,6 +43,11 @@ export function useVendeurPaiements() {
         .order("created_at", { ascending: false });
 
       if (paiementsError) throw paiementsError;
+
+      const { data: commandesData } = await supabase
+        .from("commandes")
+        .select("id, numero, montant_total, statut")
+        .eq("vendeur_id", user.id);
 
       const { data: retraitsData, error: retraitsError } = await supabase
         .from("retraits")
@@ -55,6 +59,7 @@ export function useVendeurPaiements() {
 
       setVendeur(vendeurData);
       setPaiements(paiementsData || []);
+      setCommandes(commandesData || []);
       setRetraits(retraitsData || []);
     } catch (err: any) {
       console.error("Paiements vendeur:", err);
@@ -68,14 +73,19 @@ export function useVendeurPaiements() {
     loadData();
   }, [loadData]);
 
-  // Un paiement "paye" ne veut pas dire "disponible" — il faut aussi
-  // que la commande liée soit livrée (escrow libéré).
-  const totalRecuLivre = paiements
+  // Un paiement "paye" ou une commande "livree" libère l'escrow vers le solde disponible.
+  const totalRecuPaiements = paiements
     .filter((p) => p.statut === "paye" && p.commande?.statut === "livree")
     .reduce((sum, p) => sum + Number(p.montant_net ?? p.montant ?? 0), 0);
 
+  const totalRecuCommandes = (commandes || [])
+    .filter((c) => c.statut === "livree")
+    .reduce((sum, c) => sum + Number(c.montant_total || 0), 0);
+
+  const totalRecuLivre = Math.max(totalRecuPaiements, totalRecuCommandes);
+
   // Argent payé par le client mais bloqué en escrow (livraison pas encore confirmée)
-  const totalEnAttenteLivraison = paiements
+  const totalEnAttentePaiements = paiements
     .filter(
       (p) =>
         p.statut === "paye" &&
@@ -83,6 +93,12 @@ export function useVendeurPaiements() {
         !["livree", "annulee", "remboursee"].includes(p.commande.statut)
     )
     .reduce((sum, p) => sum + Number(p.montant_net ?? p.montant ?? 0), 0);
+
+  const totalEnAttenteCommandes = (commandes || [])
+    .filter((c) => ["en_attente", "confirmee", "preparee", "expediee"].includes(c.statut))
+    .reduce((sum, c) => sum + Number(c.montant_total || 0), 0);
+
+  const totalEnAttenteLivraison = Math.max(totalEnAttentePaiements, totalEnAttenteCommandes);
 
   const totalRetire = retraits
     .filter((r) => r.statut === "valide" || r.statut === "paye")

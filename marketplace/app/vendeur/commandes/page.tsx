@@ -97,6 +97,16 @@ const STATUTS_ASSIGNATION_BLOQUEE = new Set<StatutCommande>([
   STATUTS_COMMANDE.REMBOURSEE,
 ]);
 
+function formatDistancePrecise(distKm: number | null): string {
+  if (distKm == null) return "—";
+  if (distKm <= 0) return "< 100 m";
+  if (distKm < 1) {
+    const meters = Math.round(distKm * 1000);
+    return meters < 100 ? "< 100 m" : `${meters} m`;
+  }
+  return `${distKm.toFixed(1)} km`;
+}
+
 interface ArticleLigne {
   id: string;
   article_id: string;
@@ -1927,31 +1937,33 @@ function VendeurCommandesPageContent() {
                           type="button"
                           disabled={!!assigningId}
                           onClick={() => choisirLivreur(l)}
-                          className="w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-2xl border border-gray-100 hover:border-coral-200 hover:bg-coral-50/40 transition-colors disabled:opacity-50 text-left"
+                          className="w-full flex items-center justify-between gap-3 px-3.5 py-3 rounded-2xl border border-gray-150 hover:border-coral-300 hover:bg-coral-50/40 transition-colors disabled:opacity-50 text-left group"
                         >
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">
-                              {l.nom_complet || "Livreur"}
-                            </p>
-                            <p className="text-[11px] text-gray-400 truncate">
-                              {[l.quartier, l.commune].filter(Boolean).join(", ") || "Zone non renseignée"}
-                            </p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2 mb-0.5">
+                              <p className="text-sm font-bold text-gray-900 truncate group-hover:text-coral-600 transition-colors">
+                                {l.nom_complet || "Livreur"}
+                              </p>
+                              <div className="shrink-0 flex items-center gap-1 bg-coral-50 text-coral-600 px-2 py-0.5 rounded-full text-xs font-extrabold border border-coral-100">
+                                <Navigation size={11} className="text-coral-500 shrink-0" />
+                                <span>{formatDistancePrecise(l.distance_km)}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1 text-[11px] text-gray-500 truncate">
+                              <MapPin size={11} className="text-gray-400 shrink-0" />
+                              <span className="truncate">
+                                {[l.quartier, l.commune].filter(Boolean).join(", ") || "Zone non renseignée"}
+                              </span>
+                              {!l.distance_fiable && (
+                                <span className="text-[10px] text-amber-500 font-semibold shrink-0">(est.)</span>
+                              )}
+                            </div>
                           </div>
-                          <div className="shrink-0 text-right">
-                            {assigningId === l.livreur_id ? (
+                          {assigningId === l.livreur_id && (
+                            <div className="shrink-0 pl-1">
                               <Loader2 size={16} className="animate-spin text-coral-500" />
-                            ) : (
-                              <>
-                                <p className="text-xs font-bold text-gray-900 flex items-center gap-1 justify-end">
-                                  <Navigation size={11} className="text-gray-400" />
-                                  {l.distance_km != null ? `${l.distance_km} km` : "—"}
-                                </p>
-                                {!l.distance_fiable && (
-                                  <p className="text-[10px] text-amber-500">estimation</p>
-                                )}
-                              </>
-                            )}
-                          </div>
+                            </div>
+                          )}
                         </button>
                       ))}
                     </div>

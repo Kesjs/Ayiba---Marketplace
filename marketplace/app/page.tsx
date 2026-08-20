@@ -355,7 +355,7 @@ export default function Home() {
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-2.5">
                 <div className="relative flex items-center gap-2">
                   {/* Bouton Tout STICKY à gauche — Ne disparaît JAMAIS au scroll */}
-                  <div className="sticky left-0 z-20 shrink-0 bg-white/95 backdrop-blur-md pr-2 flex items-center relative after:absolute after:right-0 after:top-0 after:bottom-0 after:w-4 after:bg-gradient-to-r after:from-white/95 after:to-transparent pointer-events-auto">
+                  <div className="sticky left-0 z-20 shrink-0 bg-white/95 backdrop-blur-md pr-3 flex items-center border-r border-gray-100/80">
                     <button
                       onClick={() => {
                         setActiveTab("Tout");

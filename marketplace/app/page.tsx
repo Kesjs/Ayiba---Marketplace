@@ -350,7 +350,7 @@ export default function Home() {
 
 {/* --- 1. CATÉGORIES (Style Pilules Fixé sous le Header + Sticky Tout + Drag Souris Desktop) --- */}
           {!dataLoading && categories.length > 0 && (
-            <section className="border-b border-gray-100 bg-white sticky top-[64px] z-30 shadow-2xs">
+            <section className="border-b border-gray-100 bg-white sticky top-14 md:top-16 z-30 shadow-2xs">
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-2.5">
                 <div className="relative flex items-center gap-1.5">
                   {/* Bouton Tout STICKY à gauche avec Trait Vertical Propre et Net */}
@@ -375,7 +375,7 @@ export default function Home() {
                       <span>Tout</span>
                     </button>
                     {/* Trait vertical de séparation 100% propre et net (sans flou) */}
-                    <div className="h-6 w-[1px] bg-gray-200/80 shrink-0" />
+                    <div className="h-6 w-[1.5px] bg-gray-300 shrink-0" />
                   </div>
 
                   {/* Liste scrollable des catégories sous forme de Pilules avec Glissement Souris + Molette + Tactile */}

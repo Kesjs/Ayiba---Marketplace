@@ -3,6 +3,7 @@
 import { ReactNode } from "react";
 import { PageTransition } from "@/components/ui/PageTransition";
 import { BottomNav } from "@/components/ui/BottomNav";
+import { CookieBanner } from "@/components/ui/CookieBanner";
 import { useUiChrome } from "@/context/UiChromeContext";
 
 // Extrait de app/layout.tsx (qui doit rester un Server Component pour
@@ -16,6 +17,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <PageTransition>{children}</PageTransition>
       </main>
       <BottomNav />
+      <CookieBanner />
     </>
   );
 }

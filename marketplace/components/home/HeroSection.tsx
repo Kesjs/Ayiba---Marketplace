@@ -26,7 +26,6 @@ interface HeroTabConfig {
   ctaLabel: string;
   ctaHref: string;
   // 3 images en éventail à droite — remplace ces chemins par tes propres visuels
-  // dans /public/images/hero/ (garde les mêmes noms ou change-les ici)
   images: [string, string, string];
   badges: [TrustBadge, TrustBadge, TrustBadge];
 }

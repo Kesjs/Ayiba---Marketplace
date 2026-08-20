@@ -216,23 +216,6 @@ export function Navbar() {
             <a href="/" className="flex items-center shrink-0 opacity-100 hover:opacity-80 transition-opacity duration-200">
               <LogoAyiba className="h-8 w-auto md:h-10" />
             </a>
-
-            {/* Bouton Localisation type Amazon (Desktop uniquement) */}
-            <button
-              onClick={() => setLocationModalOpen(true)}
-              className="hidden lg:flex items-center gap-2 px-2.5 py-1 rounded-xl hover:bg-gray-100/80 transition-all text-left shrink-0 border border-transparent hover:border-gray-200 group cursor-pointer"
-              title="Changer le lieu de livraison"
-            >
-              <div className="w-7 h-7 rounded-lg bg-coral-100/70 flex items-center justify-center text-coral-600 group-hover:scale-105 transition-transform">
-                <MapPin size={15} />
-              </div>
-              <div className="flex flex-col text-[11px] leading-tight">
-                <span className="text-gray-400 font-medium text-[10px]">Livrer au</span>
-                <span className="font-bold text-gray-800 flex items-center gap-0.5 max-w-[110px] truncate">
-                  {userLocation} <ChevronDown size={10} className="text-gray-400 shrink-0" />
-                </span>
-              </div>
-            </button>
           </div>
 
           {/* Barre de recherche dynamique LiveSearchBar (Desktop) */}

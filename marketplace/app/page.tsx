@@ -319,34 +319,27 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
 
-{/* --- 1. CATÉGORIES (Style Airbnb Sticky sous Hero) --- */}
+{/* --- 1. CATÉGORIES (Style Pilules Fixé sous le Header) --- */}
           {!dataLoading && categories.length > 0 && (
-            <section className="border-b border-gray-200 bg-white/95 backdrop-blur-md sticky top-[64px] z-30 shadow-xs">
-              <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-                {/* Conteneur avec dégradés et flèches au hover */}
-                <div className="relative group/nav">
-
-                  {/* Dégradé fondu à gauche */}
-                  <div className="pointer-events-none absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white to-transparent z-10 hidden md:block" />
-                  {/* Dégradé fondu à droite */}
-                  <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white to-transparent z-10 hidden md:block" />
-
-                  {/* Flèche gauche — visible uniquement au hover du conteneur */}
+            <section className="border-b border-gray-100 bg-white/95 backdrop-blur-md sticky top-[64px] z-30 shadow-2xs">
+              <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-2.5">
+                <div className="relative group/nav flex items-center">
+                  {/* Flèche gauche */}
                   <button
                     onClick={() => {
                       const el = document.getElementById('cat-scroll');
                       if (el) el.scrollBy({ left: -240, behavior: 'smooth' });
                     }}
-                    className="hidden md:flex absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center bg-white shadow-md border border-gray-200 rounded-full opacity-0 group-hover/nav:opacity-100 transition-opacity duration-200 hover:scale-105"
+                    className="hidden md:flex absolute -left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center bg-white shadow-md border border-gray-200 rounded-full opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-200 text-gray-700"
                     aria-label="Faire défiler à gauche"
                   >
-                    <ChevronLeft size={16} className="text-gray-700" />
+                    <ChevronLeft size={16} />
                   </button>
 
-                  {/* Liste scrollable */}
+                  {/* Liste scrollable sous forme de Pilules / Chips épurées */}
                   <div
                     id="cat-scroll"
-                    className="flex gap-8 md:gap-10 overflow-x-auto no-scrollbar snap-x py-4 md:px-10"
+                    className="flex items-center gap-2.5 overflow-x-auto no-scrollbar snap-x py-1 px-1 w-full"
                     onWheel={(e) => {
                       if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
                         e.currentTarget.scrollBy({ left: e.deltaY, behavior: 'auto' });
@@ -360,14 +353,18 @@ export default function Home() {
                         setVisibleProductsCount(8);
                         document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className="group flex flex-col items-center gap-2 min-w-[56px] shrink-0 snap-start"
+                      className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 snap-start border ${
+                        activeTab === 'Tout'
+                          ? 'bg-coral-500 text-white border-coral-500 shadow-md shadow-coral-500/20 scale-[1.02]'
+                          : 'bg-gray-50 hover:bg-white text-gray-700 hover:text-coral-600 border-gray-200/70 hover:border-coral-300 shadow-2xs'
+                      }`}
                     >
-                      <div className={`transition-all duration-300 group-hover:scale-110 ${activeTab === 'Tout' ? 'text-coral-500 scale-110' : 'text-gray-400 group-hover:text-coral-500'}`}>
-                        <Menu size={26} strokeWidth={1.5} />
+                      <div className={`p-1 rounded-full flex items-center justify-center ${
+                        activeTab === 'Tout' ? 'bg-white/25 text-white' : 'bg-white text-coral-500 shadow-xs group-hover:scale-110'
+                      } transition-transform duration-200`}>
+                        <Menu size={14} strokeWidth={2.2} />
                       </div>
-                      <span className={`text-[11px] md:text-[12px] font-semibold whitespace-nowrap border-b-2 pb-1 transition-all duration-300 ${activeTab === 'Tout' ? 'text-gray-900 border-gray-900' : 'text-gray-500 group-hover:text-gray-900 border-transparent'}`}>
-                        Tout
-                      </span>
+                      <span>Tout</span>
                     </button>
 
                     {categories.map((cat) => {
@@ -381,29 +378,33 @@ export default function Home() {
                             setVisibleProductsCount(8);
                             document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
                           }}
-                          className="group flex flex-col items-center gap-2 min-w-[72px] md:min-w-[80px] shrink-0 snap-start"
+                          className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 snap-start border ${
+                            isSelected
+                              ? 'bg-coral-500 text-white border-coral-500 shadow-md shadow-coral-500/20 scale-[1.02]'
+                              : 'bg-gray-50 hover:bg-white text-gray-700 hover:text-coral-600 border-gray-200/70 hover:border-coral-300 shadow-2xs'
+                          }`}
                         >
-                          <div className={`transition-all duration-300 group-hover:scale-110 ${isSelected ? 'text-coral-500 scale-110' : 'text-gray-400 group-hover:text-coral-500'}`}>
-                            <Icon size={26} strokeWidth={1.5} />
+                          <div className={`p-1 rounded-full flex items-center justify-center ${
+                            isSelected ? 'bg-white/25 text-white' : 'bg-white text-coral-500 shadow-xs group-hover:scale-110'
+                          } transition-transform duration-200`}>
+                            <Icon size={14} strokeWidth={2.2} />
                           </div>
-                          <span className={`text-[11px] md:text-[12px] font-semibold whitespace-nowrap border-b-2 pb-1 transition-all duration-300 ${isSelected ? 'text-gray-900 border-gray-900' : 'text-gray-500 group-hover:text-gray-900 border-transparent'}`}>
-                            {cat.nom}
-                          </span>
+                          <span>{cat.nom}</span>
                         </button>
                       );
                     })}
                   </div>
 
-                  {/* Flèche droite — visible uniquement au hover du conteneur */}
+                  {/* Flèche droite */}
                   <button
                     onClick={() => {
                       const el = document.getElementById('cat-scroll');
                       if (el) el.scrollBy({ left: 240, behavior: 'smooth' });
                     }}
-                    className="hidden md:flex absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 items-center justify-center bg-white shadow-md border border-gray-200 rounded-full opacity-0 group-hover/nav:opacity-100 transition-opacity duration-200 hover:scale-105"
+                    className="hidden md:flex absolute -right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 items-center justify-center bg-white shadow-md border border-gray-200 rounded-full opacity-90 hover:opacity-100 hover:scale-110 transition-all duration-200 text-gray-700"
                     aria-label="Faire défiler à droite"
                   >
-                    <ChevronRight size={16} className="text-gray-700" />
+                    <ChevronRight size={16} />
                   </button>
                 </div>
               </div>

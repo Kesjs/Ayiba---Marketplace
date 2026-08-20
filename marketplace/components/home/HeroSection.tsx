@@ -174,8 +174,8 @@ export function HeroSection() {
             </motion.div>
           </AnimatePresence>
 
-          {/* --- CLUSTER DE 3 IMAGES EN ÉVENTAIL --- */}
-          <div className="relative hidden md:flex items-center justify-center h-[300px]">
+          {/* --- CLUSTER DE 3 IMAGES EN ÉVENTAIL ANIME ET FLOTTANT --- */}
+          <div className="relative hidden md:flex items-center justify-center h-[320px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={active.key}
@@ -185,58 +185,98 @@ export function HeroSection() {
                 transition={{ duration: 0.3 }}
                 className="relative w-full h-full flex items-center justify-center"
               >
+                {/* Halo lumineux d'arrière-plan */}
+                <div className="absolute w-72 h-72 bg-gradient-to-tr from-coral-400/20 via-amber-300/20 to-teal-400/20 rounded-full blur-3xl -z-10 animate-pulse pointer-events-none" />
+
                 {/* Image gauche */}
                 <motion.div
-                  initial={{ rotate: -6, x: 0 }}
-                  animate={{ rotate: -12, x: -140 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
+                  initial={{ opacity: 0, scale: 0.7, rotate: 0, x: 0, y: 30 }}
+                  animate={{ opacity: 1, scale: 1, rotate: -12, x: -140, y: 0 }}
+                  whileHover={{ scale: 1.08, rotate: -4, y: -12, zIndex: 10 }}
+                  transition={{
+                    opacity: { duration: 0.5, delay: 0.05 },
+                    scale: { duration: 0.5, delay: 0.05, type: "spring", stiffness: 260, damping: 22 },
+                    rotate: { duration: 0.5, delay: 0.05, type: "spring", stiffness: 260, damping: 22 },
+                    x: { duration: 0.5, delay: 0.05, type: "spring", stiffness: 260, damping: 22 },
+                    y: { duration: 0.5, delay: 0.05, type: "spring", stiffness: 260, damping: 22 },
+                  }}
+                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-3xl overflow-hidden shadow-xl border-4 border-white bg-stone-100 cursor-pointer"
                   style={{ zIndex: 1 }}
                 >
-                  <Image
-                    src={active.images[0]}
-                    alt="Image 1"
-                    fill
-                    priority
-                    sizes="(max-width: 768px) 160px, 176px"
-                    className="object-cover"
-                  />
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ repeat: Infinity, duration: 4.2, ease: "easeInOut", delay: 0.5 }}
+                    className="w-full h-full relative"
+                  >
+                    <Image
+                      src={active.images[0]}
+                      alt="Image 1"
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 160px, 176px"
+                      className="object-cover transition-transform duration-500 hover:scale-110"
+                    />
+                  </motion.div>
                 </motion.div>
 
                 {/* Image centrale (au-dessus) */}
                 <motion.div
-                  initial={{ rotate: 0, y: 10 }}
-                  animate={{ rotate: 0, y: -10 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="relative w-44 h-56 md:w-48 md:h-64 rounded-2xl overflow-hidden shadow-2xl"
+                  initial={{ opacity: 0, scale: 0.7, rotate: 0, y: 40 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 0, y: -10 }}
+                  whileHover={{ scale: 1.08, y: -20, zIndex: 10 }}
+                  transition={{
+                    opacity: { duration: 0.5, delay: 0.15 },
+                    scale: { duration: 0.5, delay: 0.15, type: "spring", stiffness: 260, damping: 22 },
+                    y: { duration: 0.5, delay: 0.15, type: "spring", stiffness: 260, damping: 22 },
+                  }}
+                  className="relative w-44 h-56 md:w-48 md:h-64 rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-stone-100 cursor-pointer"
                   style={{ zIndex: 3 }}
                 >
-                  <Image
-                    src={active.images[1]}
-                    alt="Image 2"
-                    fill
-                    priority
-                    sizes="(max-width: 768px) 176px, 192px"
-                    className="object-cover"
-                  />
+                  <motion.div
+                    animate={{ y: [0, -8, 0] }}
+                    transition={{ repeat: Infinity, duration: 4.8, ease: "easeInOut", delay: 0.7 }}
+                    className="w-full h-full relative"
+                  >
+                    <Image
+                      src={active.images[1]}
+                      alt="Image 2"
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 176px, 192px"
+                      className="object-cover transition-transform duration-500 hover:scale-110"
+                    />
+                  </motion.div>
                 </motion.div>
 
                 {/* Image droite */}
                 <motion.div
-                  initial={{ rotate: 6, x: 0 }}
-                  animate={{ rotate: 12, x: 140 }}
-                  transition={{ duration: 0.4, ease: "easeOut" }}
-                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-2xl overflow-hidden shadow-xl"
+                  initial={{ opacity: 0, scale: 0.7, rotate: 0, x: 0, y: 30 }}
+                  animate={{ opacity: 1, scale: 1, rotate: 12, x: 140, y: 0 }}
+                  whileHover={{ scale: 1.08, rotate: 4, y: -12, zIndex: 10 }}
+                  transition={{
+                    opacity: { duration: 0.5, delay: 0.25 },
+                    scale: { duration: 0.5, delay: 0.25, type: "spring", stiffness: 260, damping: 22 },
+                    rotate: { duration: 0.5, delay: 0.25, type: "spring", stiffness: 260, damping: 22 },
+                    x: { duration: 0.5, delay: 0.25, type: "spring", stiffness: 260, damping: 22 },
+                    y: { duration: 0.5, delay: 0.25, type: "spring", stiffness: 260, damping: 22 },
+                  }}
+                  className="absolute w-40 h-52 md:w-44 md:h-60 rounded-3xl overflow-hidden shadow-xl border-4 border-white bg-stone-100 cursor-pointer"
                   style={{ zIndex: 2 }}
                 >
-                  <Image
-                    src={active.images[2]}
-                    alt="Image 3"
-                    fill
-                    priority
-                    sizes="(max-width: 768px) 160px, 176px"
-                    className="object-cover"
-                  />
+                  <motion.div
+                    animate={{ y: [0, -6, 0] }}
+                    transition={{ repeat: Infinity, duration: 4.5, ease: "easeInOut", delay: 0.9 }}
+                    className="w-full h-full relative"
+                  >
+                    <Image
+                      src={active.images[2]}
+                      alt="Image 3"
+                      fill
+                      priority
+                      sizes="(max-width: 768px) 160px, 176px"
+                      className="object-cover transition-transform duration-500 hover:scale-110"
+                    />
+                  </motion.div>
                 </motion.div>
               </motion.div>
             </AnimatePresence>

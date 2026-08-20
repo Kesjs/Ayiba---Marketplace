@@ -159,3 +159,14 @@ html, body {
   animation: liquidSpin 6s ease-in-out infinite;
 }
 
+/* Animation Border Beam (Magic UI / Aceternity style) */
+@keyframes borderBeam {
+  100% {
+    offset-distance: 100%;
+  }
+}
+
+.animate-border-beam {
+  animation: borderBeam var(--duration, 10s) infinite linear;
+}
+

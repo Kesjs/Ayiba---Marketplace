@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Share, PlusSquare, Store, Bike, ArrowRight } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import { useInstallApp } from "@/context/InstallAppContext";
+import { BorderBeam } from "@/components/ui/BorderBeam";
 
 const footerLinks = {
   acheter: [
@@ -47,6 +48,7 @@ export function Footer() {
             href="/devenir-vendeur"
             className="group relative overflow-hidden bg-gradient-to-r from-coral-500 via-coral-500 to-coral-600 rounded-2xl p-5 text-white shadow-md shadow-coral-500/10 hover:shadow-xl hover:shadow-coral-500/20 hover:scale-[1.01] transition-all duration-300 flex items-center justify-between gap-4"
           >
+            <BorderBeam size={180} duration={8} colorFrom="#FFFFFF" colorTo="#FCD34D" borderWidth={2} />
             <div className="flex items-center gap-3.5 min-w-0 z-10">
               <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shrink-0 group-hover:scale-110 transition-transform">
                 <Store size={20} />
@@ -66,6 +68,7 @@ export function Footer() {
             href="/devenir-livreur"
             className="group relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-900 to-slate-800 rounded-2xl p-5 text-white shadow-md shadow-gray-900/10 hover:shadow-xl hover:shadow-gray-900/25 hover:scale-[1.01] transition-all duration-300 flex items-center justify-between gap-4"
           >
+            <BorderBeam size={180} duration={8} colorFrom="#14B8A6" colorTo="#38BDF8" borderWidth={2} delay={4} />
             <div className="flex items-center gap-3.5 min-w-0 z-10">
               <div className="w-10 h-10 rounded-xl bg-teal-500/25 border border-teal-400/30 backdrop-blur-md flex items-center justify-center text-teal-300 shrink-0 group-hover:scale-110 transition-transform">
                 <Bike size={20} />

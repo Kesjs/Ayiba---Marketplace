@@ -4,9 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Store, Star, ShieldCheck, Sparkles, Wallet, PackageCheck } from "lucide-react";
+import { ArrowRight, Store, Star, ShieldCheck, Sparkles, Wallet, PackageCheck, Bike, MapPin } from "lucide-react";
 
-type TabKey = "acheter" | "vendre";
+type TabKey = "acheter" | "vendre" | "livrer";
 
 interface HeroTabConfig {
   key: TabKey;
@@ -46,6 +46,20 @@ const HERO_TABS: HeroTabConfig[] = [
       { icon: Sparkles, value: "30+", label: "Boutiques" },
       { icon: Wallet, value: "Instant", label: "Paiement Mobile" },
       { icon: PackageCheck, value: "0 F", label: "Frais de création" },
+    ],
+  },
+  {
+    key: "livrer",
+    tabLabel: "Livrer",
+    title: "Livrez, gagnez, en toute liberté",
+    subtitle: "Rejoignez nos livreurs partenaires et touchez votre gain à chaque course.",
+    ctaLabel: "Devenir livreur",
+    ctaHref: "/devenir-livreur",
+    image: "/images/hero-illustration.png",
+    badges: [
+      { icon: Bike, value: "15+", label: "Livreurs actifs" },
+      { icon: Wallet, value: "Instant", label: "Paiement par course" },
+      { icon: MapPin, value: "Régional", label: "Cotonou & environs" },
     ],
   },
 ];

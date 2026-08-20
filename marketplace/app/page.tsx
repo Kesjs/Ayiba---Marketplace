@@ -124,6 +124,36 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("Tout");
   const [visibleProductsCount, setVisibleProductsCount] = useState(8);
 
+  // Mouse Drag Scroll pour les catégories sur Desktop
+  const [isDraggingCat, setIsDraggingCat] = useState(false);
+  const [catStartX, setCatStartX] = useState(0);
+  const [catScrollLeft, setCatScrollLeft] = useState(0);
+  const catDragDistanceRef = useRef(0);
+
+  const handleCatMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setIsDraggingCat(true);
+    catDragDistanceRef.current = 0;
+    setCatStartX(e.pageX - e.currentTarget.offsetLeft);
+    setCatScrollLeft(e.currentTarget.scrollLeft);
+  };
+
+  const handleCatMouseLeave = () => {
+    setIsDraggingCat(false);
+  };
+
+  const handleCatMouseUp = () => {
+    setIsDraggingCat(false);
+  };
+
+  const handleCatMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!isDraggingCat) return;
+    e.preventDefault();
+    const x = e.pageX - e.currentTarget.offsetLeft;
+    const walk = (x - catStartX) * 1.6;
+    catDragDistanceRef.current += Math.abs(e.movementX);
+    e.currentTarget.scrollLeft = catScrollLeft - walk;
+  };
+
   // Countdown pour les ventes flash — basé sur la vraie date_fin_promo de
   // chaque article en promo (fixée par le vendeur), pas sur un cycle
   // artificiel. On affiche le temps restant avant la PROCHAINE expiration
@@ -319,29 +349,20 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased">
       <Navbar />
 
-{/* --- 1. CATÉGORIES (Style Pilules Fixé sous le Header) --- */}
+{/* --- 1. CATÉGORIES (Style Pilules Fixé sous le Header + Sticky Tout + Drag Souris Desktop) --- */}
           {!dataLoading && categories.length > 0 && (
             <section className="border-b border-gray-100 bg-white/95 backdrop-blur-md sticky top-[64px] z-30 shadow-2xs">
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-2.5">
-                <div className="relative flex items-center">
-                  {/* Liste scrollable sous forme de Pilules / Chips épurées */}
-                  <div
-                    id="cat-scroll"
-                    className="flex items-center gap-2.5 overflow-x-auto no-scrollbar snap-x py-1 px-1 w-full"
-                    onWheel={(e) => {
-                      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-                        e.currentTarget.scrollBy({ left: e.deltaY, behavior: 'auto' });
-                      }
-                    }}
-                  >
-                    {/* Bouton Tout */}
+                <div className="relative flex items-center gap-2">
+                  {/* Bouton Tout STICKY à gauche — Ne disparaît JAMAIS au scroll */}
+                  <div className="sticky left-0 z-20 shrink-0 bg-white/95 backdrop-blur-md pr-2 flex items-center relative after:absolute after:right-0 after:top-0 after:bottom-0 after:w-4 after:bg-gradient-to-r after:from-white/95 after:to-transparent pointer-events-auto">
                     <button
                       onClick={() => {
                         setActiveTab("Tout");
                         setVisibleProductsCount(8);
                         document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 snap-start border ${
+                      className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border ${
                         activeTab === 'Tout'
                           ? 'bg-coral-500 text-white border-coral-500 shadow-md shadow-coral-500/20 scale-[1.02]'
                           : 'bg-gray-50 hover:bg-white text-gray-700 hover:text-coral-600 border-gray-200/70 hover:border-coral-300 shadow-2xs'
@@ -354,7 +375,24 @@ export default function Home() {
                       </div>
                       <span>Tout</span>
                     </button>
+                  </div>
 
+                  {/* Liste scrollable des catégories sous forme de Pilules avec Glissement Souris + Molette + Tactile */}
+                  <div
+                    id="cat-scroll"
+                    onMouseDown={handleCatMouseDown}
+                    onMouseLeave={handleCatMouseLeave}
+                    onMouseUp={handleCatMouseUp}
+                    onMouseMove={handleCatMouseMove}
+                    onWheel={(e) => {
+                      if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
+                        e.currentTarget.scrollBy({ left: e.deltaY, behavior: 'auto' });
+                      }
+                    }}
+                    className={`flex items-center gap-2.5 overflow-x-auto no-scrollbar snap-x py-1 w-full select-none ${
+                      isDraggingCat ? 'cursor-grabbing' : 'cursor-grab'
+                    }`}
+                  >
                     {categories.map((cat) => {
                       const Icon = resolveCategoryIcon(cat.icone);
                       const isSelected = activeTab === cat.nom;
@@ -362,6 +400,7 @@ export default function Home() {
                         <button
                           key={cat.id}
                           onClick={() => {
+                            if (catDragDistanceRef.current > 10) return;
                             setActiveTab(cat.nom);
                             setVisibleProductsCount(8);
                             document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });

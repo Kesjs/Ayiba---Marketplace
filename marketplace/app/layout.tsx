@@ -11,6 +11,7 @@ import { ScrollToTop } from "@/components/ui/ScrollToTop";
 import { MaintenanceBanner } from "@/components/ui/MaintenanceBanner";
 import { AppShell } from "@/components/layout/AppShell";
 import { Toast } from "@/components/ui/Toast";
+import { PwaSplashScreen } from "@/components/ui/PwaSplashScreen";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -82,6 +83,7 @@ export default function RootLayout({
           shadow="0 0 10px #FF6653,0 0 5px #FF6653"
         />
         <MaintenanceBanner />
+        <PwaSplashScreen />
         <InstallAppProvider>
         <CartProvider>
           <ToastProvider>

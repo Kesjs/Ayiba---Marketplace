@@ -7,6 +7,7 @@ import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, E
 import { createClient } from "@/lib/supabase/client";
 import { validateBeninPhone, validatePasswordStrength } from "@/lib/validation";
 import { useSmartGeolocation } from "@/lib/hooks/useSmartGeolocation";
+import { getAppUrl } from "@/lib/url";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -209,7 +210,7 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
         if (!validateEmail(email)) return setError("Adresse email invalide");
         setLoading(true);
         const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+          redirectTo: `${getAppUrl()}/auth/callback?next=/auth/reset-password`,
         });
         setLoading(false);
         if (resetError) return setError(translateError(resetError));
@@ -245,7 +246,7 @@ export function AuthModal({ isOpen, onClose, intendedRole, redirectTo }: AuthMod
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${getAppUrl()}/auth/callback`,
             data: {
               role: intendedRole ?? "client",
               ...(isClientSignup
@@ -349,10 +350,10 @@ window.location.href = destination;
           ? await supabase.auth.resend({
               type: "signup",
               email: verifiedEmail,
-              options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+              options: { emailRedirectTo: `${getAppUrl()}/auth/callback` },
             })
           : await supabase.auth.resetPasswordForEmail(verifiedEmail, {
-              redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset-password`,
+              redirectTo: `${getAppUrl()}/auth/callback?next=/auth/reset-password`,
             });
 
       if (resendError) return setError(translateError(resendError));

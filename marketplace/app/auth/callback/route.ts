@@ -5,6 +5,9 @@ import type { EmailOtpType } from "@supabase/supabase-js";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ? process.env.NEXT_PUBLIC_SITE_URL.trim().replace(/\/$/, '') : '';
+  const targetOrigin = siteUrl.startsWith('http') ? siteUrl : origin;
+
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type");
@@ -25,7 +28,7 @@ export async function GET(request: Request) {
 
     if (!error && user) {
       if (type === "recovery" || next?.startsWith("/auth")) {
-        return NextResponse.redirect(`${origin}/auth/reset-password`);
+        return NextResponse.redirect(`${targetOrigin}/auth/reset-password`);
       }
 
       // Si l'inscription attendait la confirmation par email, la ligne
@@ -79,15 +82,15 @@ export async function GET(request: Request) {
         const estValide = profil && (profil as Record<string, string>)[statutField] === "valide";
 
         if (estValide) {
-          return NextResponse.redirect(`${origin}/${userData.role}/dashboard`);
+          return NextResponse.redirect(`${targetOrigin}/${userData.role}/dashboard`);
         }
-        return NextResponse.redirect(`${origin}/${userData.role}/kyc`);
+        return NextResponse.redirect(`${targetOrigin}/${userData.role}/kyc`);
       }
 
       const shouldWelcome = isNewRow && userData?.role === "client";
-      return NextResponse.redirect(`${origin}/catalogue${shouldWelcome ? "?welcome=1" : ""}`);
+      return NextResponse.redirect(`${targetOrigin}/catalogue${shouldWelcome ? "?welcome=1" : ""}`);
     }
   }
 
-  return NextResponse.redirect(`${origin}/catalogue?error=Lien invalide ou expiré`);
+  return NextResponse.redirect(`${targetOrigin}/catalogue?error=Lien invalide ou expiré`);
 }

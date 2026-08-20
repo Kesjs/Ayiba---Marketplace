@@ -138,19 +138,19 @@ export function HeroSection() {
 
               <Link
                 href={active.ctaHref}
-                className="group relative mt-6 inline-flex items-center gap-3 py-3.5 px-7 rounded-2xl bg-white hover:bg-coral-500 border-2 border-coral-500 font-black text-sm text-coral-600 shadow-md shadow-coral-500/10 hover:shadow-xl hover:shadow-coral-500/25 active:scale-[0.98] overflow-hidden transition-colors duration-200 ring-2 ring-coral-500/20 ring-offset-2 ring-offset-white"
+                className="group relative mt-6 inline-flex items-center gap-3 py-3.5 px-7 rounded-2xl bg-white hover:bg-coral-500 border-2 border-coral-500 font-black text-sm text-coral-600 shadow-md shadow-coral-500/10 hover:shadow-xl hover:shadow-coral-500/25 active:scale-[0.98] overflow-hidden transition-all duration-200 ring-2 ring-coral-500/20 ring-offset-2 ring-offset-white"
               >
-                {/* Couche Vague Liquide animée au survol - Corail Ayiba intense */}
-                <div className="absolute left-1/2 bottom-0 translate-y-full group-hover:translate-y-0 w-[220%] h-[320%] bg-gradient-to-tr from-coral-700 via-coral-600 to-coral-500 rounded-[38%] animate-liquid-spin transition-transform duration-500 ease-out pointer-events-none z-0" />
+                {/* Couche Vague Liquide animée — 100% invisible et inactive hors survol pour une lisibilité parfaite */}
+                <div className="absolute left-1/2 bottom-0 translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 w-[220%] h-[320%] bg-gradient-to-tr from-coral-700 via-coral-600 to-coral-500 rounded-[38%] group-hover:animate-liquid-spin transition-all duration-300 ease-out pointer-events-none z-0" />
 
-                {/* Texte et flèche : passage instantané en blanc pur au survol */}
-                <span className="relative z-10 font-black text-coral-600 group-hover:text-white transition-colors duration-200 drop-shadow-none group-hover:drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
+                {/* Texte et flèche : lisibilité maximale en mode repos (corail sur blanc) et survol (blanc sur corail) */}
+                <span className="relative z-10 font-black text-coral-600 group-hover:text-white transition-colors duration-200">
                   {active.ctaLabel}
                 </span>
                 <ArrowRight
                   size={18}
                   strokeWidth={2.5}
-                  className="relative z-10 text-coral-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-200 group-hover:drop-shadow-[0_1px_3px_rgba(0,0,0,0.3)]"
+                  className="relative z-10 text-coral-500 group-hover:text-white group-hover:translate-x-1 transition-all duration-200"
                 />
               </Link>
 

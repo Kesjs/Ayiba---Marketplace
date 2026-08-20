@@ -10,7 +10,7 @@ import { ArrowRight, LucideIcon, Store, ShieldCheck, Star, Bike, Wallet, MapPin,
 // CONFIG PAR TAB — texte, CTA, images, badges
 // ============================================
 
-type TabKey = "acheter" | "vendre" | "livrer";
+type TabKey = "acheter" | "vendre";
 
 interface TrustBadge {
   icon: LucideIcon;
@@ -65,24 +65,6 @@ const HERO_TABS: HeroTabConfig[] = [
       { icon: Sparkles, value: "30+", label: "Vendeurs actifs" },
       { icon: Wallet, value: "24h", label: "Paiement rapide" },
       { icon: PackageCheck, value: "5 min", label: "Mise en ligne" },
-    ],
-  },
-  {
-    key: "livrer",
-    tabLabel: "Livrer",
-    title: "Livrez, gagnez, en toute liberté",
-    subtitle: "Rejoignez nos livreurs et touchez votre gain à chaque course.",
-    ctaLabel: "Devenir livreur",
-    ctaHref: "/devenir-livreur",
-    images: [
-      "/images/hero/livrer-1.jpg",
-      "/images/hero/livrer-2.jpg",
-      "/images/hero/livrer-3.jpg",
-    ],
-    badges: [
-      { icon: Bike, value: "15+", label: "Livreurs actifs" },
-      { icon: Wallet, value: "Instant", label: "Paiement par course" },
-      { icon: MapPin, value: "Régional", label: "Ville et alentours" },
     ],
   },
 ];

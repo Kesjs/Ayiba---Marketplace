@@ -238,8 +238,9 @@ export function getProductUrl(product: { id: string; nom: string }): string {
   return slug ? `/produits/${slug}-${product.id}` : `/produits/${product.id}`;
 }
 
-export function getBoutiqueUrl(boutique: { id: string; nom_boutique?: string | null }): string {
-  const slug = slugify(boutique.nom_boutique || "");
+export function getBoutiqueUrl(boutique: { id: string; nom_boutique?: string | null; nom?: string | null }): string {
+  const name = boutique.nom_boutique || boutique.nom || "";
+  const slug = slugify(name);
   return slug ? `/boutiques/${slug}-${boutique.id}` : `/boutiques/${boutique.id}`;
 }
 

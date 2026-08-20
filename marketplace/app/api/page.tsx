@@ -22,7 +22,7 @@ import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerification
 import { useCart } from "@/context/CartContext";
 import { useToast } from "@/context/ToastContext";
 import { createClient } from "@/lib/supabase/client";
-import { toggleFavorite, fetchFavoriteIds } from "@/lib/catalogue";
+import { toggleFavorite, fetchFavoriteIds, getBoutiqueUrl } from "@/lib/catalogue";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
 import type { BentoData } from "@/lib/queries/bento";
@@ -696,9 +696,9 @@ export default function Home() {
                       key={store.id}
                       role="link"
                       tabIndex={0}
-                      onClick={() => router.push(`/boutiques/${store.id}`)}
+                      onClick={() => router.push(getBoutiqueUrl(store))}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") router.push(`/boutiques/${store.id}`);
+                        if (e.key === "Enter") router.push(getBoutiqueUrl(store));
                       }}
                       className="group flex flex-col shrink-0 w-56 md:w-64 p-4 md:p-5 bg-gray-50/50 rounded-3xl border border-gray-100 hover:border-coral-100 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer"
                     >

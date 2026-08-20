@@ -88,14 +88,14 @@ export default function SupportPage() {
             Nous contacter
           </h2>
           <a
-            href="mailto:support@ayiba.bj"
+            href="mailto:ayiba.marketplace@gmail.com"
             className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 px-4 py-3.5 hover:bg-gray-50 transition-colors"
           >
             <div className="w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center text-gray-500 shrink-0">
               <Mail size={16} />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-800">support@ayiba.bj</p>
+              <p className="text-sm font-semibold text-gray-800">ayiba.marketplace@gmail.com</p>
               <p className="text-xs text-gray-400">Réponse par email</p>
             </div>
           </a>

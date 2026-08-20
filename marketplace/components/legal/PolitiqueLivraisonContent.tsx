@@ -90,11 +90,10 @@ export function PolitiqueLivraisonContent() {
           </p>
         </SectionCard>
 
-        <SectionCard id="delais" icon={Clock} title="Délais de livraison">
+        <SectionCard id="delais" icon={Clock} title="Délais & Suivi GPS en direct">
           <p>
-            Le délai estimé dépend de la distance et de la disponibilité des livreurs dans votre zone. Une
-            fois votre commande prise en charge, vous pouvez suivre son avancement en temps réel dans
-            l'application.
+            Le délai estimé dépend de la distance entre le vendeur et votre adresse. Une
+            fois votre commande prise en charge, vous suivez la position du livreur en temps réel sur la carte interactive avec heure d'arrivée estimée.
           </p>
         </SectionCard>
 

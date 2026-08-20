@@ -114,17 +114,15 @@ export function CGUContent() {
 
         <SectionCard id="paiement" icon={ShieldCheck} title="Paiement sécurisé (escrow)">
           <p>
-            Ayiba utilise un système de paiement sécurisé. Les fonds du client sont bloqués par la plateforme et ne
-            sont libérés au vendeur qu'après confirmation de la livraison par le client via un code OTP unique,
+            Ayiba utilise un système de paiement sécurisé via GeniusPay. Les fonds du client sont bloqués par la plateforme et ne
+            sont libérés au vendeur qu'après confirmation de la livraison par le client via le scan d'un QR Code ou la saisie d'un code OTP à 6 chiffres,
             assurant une protection totale contre les arnaques.
           </p>
         </SectionCard>
 
-        <SectionCard id="livraison" icon={PackageCheck} title="Livraison et code OTP">
+        <SectionCard id="livraison" icon={PackageCheck} title="Livraison, suivi GPS & QR Code / OTP">
           <p>
-            La livraison est validée par un code secret (OTP) généré par le client. Le livreur doit saisir ce code
-            sur son application pour prouver la remise effective du colis. Sans ce code, la transaction n'est pas
-            considérée comme terminée.
+            La livraison s'accompagne d'un suivi GPS en temps réel sur la carte. Elle est validée soit par le scan du QR Code du client depuis l'application du livreur, soit par la saisie du code secret (OTP) à 6 chiffres. Sans cette validation, la transaction n'est pas considérée comme terminée.
           </p>
         </SectionCard>
 

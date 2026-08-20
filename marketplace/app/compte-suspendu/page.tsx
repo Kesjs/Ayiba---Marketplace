@@ -26,7 +26,7 @@ export default function CompteSuspenduPage() {
           
           <p className="text-sm text-gray-600 mb-6 leading-relaxed">
             Votre compte a été suspendu temporairement. Pour plus d'informations, 
-            veuillez contacter notre support par email à support@ayiba.bj
+            veuillez contacter notre support par email à ayiba.marketplace@gmail.com
           </p>
 
           <button

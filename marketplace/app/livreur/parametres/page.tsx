@@ -470,12 +470,12 @@ export default function LivreurParametresPage() {
               </div>
               <ChevronRight size={18} className="text-gray-300 group-hover:text-gray-500 group-hover:translate-x-1 transition-all shrink-0" />
             </button>
-            <a href="mailto:support@ayiba.bj" className="w-full flex items-center justify-between py-2 group">
+            <a href="mailto:ayiba.marketplace@gmail.com" className="w-full flex items-center justify-between py-2 group">
               <div className="flex items-center gap-3">
                 <Mail size={16} className="text-gray-400 shrink-0" />
                 <span className="text-sm font-bold text-gray-900">Contacter le support</span>
               </div>
-              <span className="text-xs text-gray-400 font-medium shrink-0">support@ayiba.bj</span>
+              <span className="text-xs text-gray-400 font-medium shrink-0">ayiba.marketplace@gmail.com</span>
             </a>
           </SettingsSection>
 

@@ -36,9 +36,9 @@ export default function CommentCaMarchePage() {
       {
         step: 1,
         title: "Paiement 100% Sécurisé (Escrow)",
-        subtitle: "Vos fonds sont protégés",
+        subtitle: "Vos fonds sont protégés par GeniusPay",
         description:
-          "Lorsque vous passez commande, votre argent est bloqué en toute sécurité sur un compte de garantie neutre Ayiba. Le vendeur ne touche pas un sous tant que vous n'avez pas validé votre livraison.",
+          "Lorsque vous passez commande via Mobile Money (MTN, Moov, Celtiis), vos fonds sont bloqués en toute sécurité sur un compte de garantie neutre Ayiba. Le vendeur n'est payé que lorsque vous recevez et validez votre produit.",
         icon: Wallet,
         color: "text-amber-600",
         bgColor: "bg-amber-50 border-amber-200/60",
@@ -46,21 +46,21 @@ export default function CommentCaMarchePage() {
       },
       {
         step: 2,
-        title: "Code Secret & Tracking en Direct",
-        subtitle: "Votre clé de déverrouillage",
+        title: "Suivi GPS & QR Code / Code OTP",
+        subtitle: "Suivez votre livreur en direct",
         description:
-          "Dès l'expédition, un Code Secret unique à 6 chiffres vous est généré dans votre espace client. Ce code reste confidentiel : vous ne le donnez à personne à l'avance.",
+          "Dès l'expédition, suivez la position de votre livreur en temps réel sur la carte interactive. Un QR Code scannable et un Code OTP confidentiel à 6 chiffres sont générés dans votre compte.",
         icon: QrCode,
-        color: "text-[#FF5A5F]",
-        bgColor: "bg-rose-50 border-rose-200/60",
-        badge: "Code Confidentiel",
+        color: "text-coral-500",
+        bgColor: "bg-coral-50 border-coral-100",
+        badge: "Tracking GPS & QR Code",
       },
       {
         step: 3,
-        title: "Vérification & Remise du Code",
-        subtitle: "Paiement libéré au vendeur",
+        title: "Inspection & Validation",
+        subtitle: "Paiement libéré après votre accord",
         description:
-          "Le livreur se présente chez vous à Cotonou ou Calavi. Vous inspectez votre colis. Tout est conforme ? Transmettez-lui votre Code Secret pour valider la réception. Le vendeur est payé.",
+          "Le livreur arrive chez vous à Cotonou ou Calavi. Vous inspectez le colis. Tout est conforme ? Laissez le livreur scanner votre QR Code (ou donnez-lui le Code OTP) pour clôturer la commande et libérer le paiement.",
         icon: ShieldCheck,
         color: "text-teal-600",
         bgColor: "bg-teal-50 border-teal-200/60",
@@ -73,18 +73,18 @@ export default function CommentCaMarchePage() {
         title: "Créez votre boutique gratuitement",
         subtitle: "En 2 minutes chrono",
         description:
-          "Inscrivez-vous sur Ayiba, définissez le nom de votre boutique et complétez votre profil avec vos informations de contact et votre quartier au Bénin.",
+          "Inscrivez-vous sur Ayiba, personnalisez le nom de votre boutique et renseignez votre quartier au Bénin (Cotonou, Calavi, Godomey, Akpakpa...).",
         icon: Store,
-        color: "text-[#FF5A5F]",
-        bgColor: "bg-rose-50 border-rose-200/60",
+        color: "text-coral-500",
+        bgColor: "bg-coral-50 border-coral-100",
         badge: "Boutique Offerte",
       },
       {
         step: 2,
         title: "Publiez vos articles",
-        subtitle: "Photos & Description",
+        subtitle: "Visibilité auprès des clients locaux",
         description:
-          "Ajoutez vos photos, fixez vos prix et précisez les caractéristiques. Vos produits sont instantanément visibles par des milliers d'acheteurs locaux.",
+          "Ajoutez vos photos, fixez vos prix et variantes. Vos produits sont immédiatement mis en avant auprès de milliers d'acheteurs vérifiés.",
         icon: ShoppingBag,
         color: "text-amber-600",
         bgColor: "bg-amber-50 border-amber-200/60",
@@ -92,10 +92,10 @@ export default function CommentCaMarchePage() {
       },
       {
         step: 3,
-        title: "Expédiez & Recevez votre argent",
-        subtitle: "Paiement garanti",
+        title: "Remettez au livreur & Encaissez",
+        subtitle: "Retraits Mobile Money instantanés",
         description:
-          "Dès qu'une commande est passée, remettez le colis au livreur. Dès que l'acheteur saisit le code secret, vos fonds sont crédités sur votre solde Mobile Money ou bancaire.",
+          "Remettez le colis au livreur partenaire assigné. Dès la livraison validée par QR Code ou Code OTP chez le client, votre argent est crédité sur votre portefeuille Ayiba et retiré par Mobile Money.",
         icon: Wallet,
         color: "text-teal-600",
         bgColor: "bg-teal-50 border-teal-200/60",
@@ -105,10 +105,10 @@ export default function CommentCaMarchePage() {
     livreur: [
       {
         step: 1,
-        title: "Postulez & Validez votre profil",
-        subtitle: "Rejoignez la flotte",
+        title: "Rejoignez la flotte partenaire",
+        subtitle: "Profil vérifié (KYC)",
         description:
-          "Soumettez votre pièce d'identité et vos informations de livraison (Cotonou, Calavi, Godomey, etc.). Notre équipe valide rapidement votre compte.",
+          "Soumettez votre pièce d'identité et votre zone d'action (Cotonou, Calavi, etc.). Notre équipe modère et active votre profil en moins de 24h.",
         icon: Bike,
         color: "text-teal-600",
         bgColor: "bg-teal-50 border-teal-200/60",
@@ -116,24 +116,24 @@ export default function CommentCaMarchePage() {
       },
       {
         step: 2,
-        title: "Acceptez des missions à proximité",
-        subtitle: "Flexibilité totale",
+        title: "Acceptez les courses & Guidage GPS",
+        subtitle: "Missions à proximité",
         description:
-          "Recevez des demandes de courses selon votre zone géographique. Récupérez le colis auprès du vendeur et acheminez-le chez l'acheteur.",
+          "Consultez les commandes disponibles avec la distance exacte et votre gain net affiché. Lancez le guidage GPS et partagez votre position en direct.",
         icon: Clock,
         color: "text-amber-600",
         bgColor: "bg-amber-50 border-amber-200/60",
-        badge: "Liberté d'horaires",
+        badge: "GPS & Autonomie",
       },
       {
         step: 3,
-        title: "Scannez le Code Secret & Encaissez",
-        subtitle: "Preuve de livraison",
+        title: "Scannez le QR Code / OTP & Encaissez",
+        subtitle: "Validation sécurisée",
         description:
-          "Arrivé chez l'acheteur, demandez le Code Secret à 6 chiffres et validez-le sur votre application. Votre commission de livraison est immédiatement créditée.",
+          "Arrivé chez le client, scannez son QR Code ou entrez son Code OTP à 6 chiffres. La course est validée et votre gain est immédiatement versé sur votre compte.",
         icon: QrCode,
-        color: "text-[#FF5A5F]",
-        bgColor: "bg-rose-50 border-rose-200/60",
+        color: "text-coral-500",
+        bgColor: "bg-coral-50 border-coral-100",
         badge: "Gains Immédiats",
       },
     ],
@@ -141,24 +141,24 @@ export default function CommentCaMarchePage() {
 
   const faqs = [
     {
+      question: "Comment se déroule la validation de livraison avec le QR Code et le Code OTP ?",
+      answer:
+        "Lorsque le livreur arrive chez vous, vous pouvez soit lui présenter le QR Code affiché sur la page de votre commande pour qu'il le scanne avec son téléphone, soit lui dicter votre Code OTP à 6 chiffres. Les deux méthodes valident instantanément la livraison et libèrent le paiement au vendeur.",
+    },
+    {
+      question: "Puis-je suivre le livreur en direct sur la carte ?",
+      answer:
+        "Oui ! Dès que le livreur prend en charge votre commande, un suivi GPS en direct s'active. Vous pouvez visualiser le temps estimé d'arrivée et le déplacement du livreur sur la carte en temps réel.",
+    },
+    {
       question: "Que se passe-t-il si l'article reçu ne correspond pas à la commande ?",
       answer:
-        "C'est l'avantage de la sécurité Ayiba ! Vous pouvez refuser de communiquer votre Code Secret au livreur si le colis n'est pas conforme. L'argent reste bloqué sur notre compte neutre. Notre équipe de support intervient immédiatement pour annuler la transaction et vous rembourser intégralement.",
+        "C'est l'avantage de la sécurité Ayiba ! Vous pouvez refuser de présenter votre QR Code ou Code OTP au livreur si le colis n'est pas conforme. L'argent reste bloqué en toute sécurité sur notre compte Escrow. Notre équipe de support (ayiba.marketplace@gmail.com) intervient immédiatement pour annuler la transaction et vous rembourser intégralement.",
     },
     {
-      question: "Comment se déroule la livraison à Cotonou, Calavi et Porto-Novo ?",
+      question: "Quels sont les moyens de paiement acceptés ?",
       answer:
-        "Nos livreurs partenaires sillonnent quotidiennement les communes du Bénin. Les frais de livraison sont calculés automatiquement au checkout en fonction de la distance exacte entre la boutique du vendeur et votre adresse de livraison.",
-    },
-    {
-      question: "Combien de temps l'argent reste-t-il bloqué ?",
-      answer:
-        "Les fonds sont débloqués 24 heures après la saisie valide du Code Secret par l'acheteur lors de la remise physique du colis.",
-    },
-    {
-      question: "Y a-t-il des frais pour créer une boutique sur Ayiba ?",
-      answer:
-        "Non, la création de boutique et la publication d'articles sont 100% gratuites sur Ayiba. Une petite commission fixe est prélevée uniquement lors d'une vente réussie.",
+        "Toutes les transactions sont sécurisées via GeniusPay et prennent en charge les réseaux Mobile Money (MTN Mobile Money, Moov Money, Celtiis Cash) ainsi que les cartes bancaires.",
     },
   ];
 
@@ -180,11 +180,11 @@ export default function CommentCaMarchePage() {
 
             {/* Titre Principal */}
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-gray-900 max-w-4xl mx-auto leading-[1.15]">
-              Zéro risque. <span className="text-[#FF5A5F]">100% Sérénité.</span>
+              Zéro risque. <span className="text-coral-500">100% Sérénité.</span>
             </h1>
 
             <p className="mt-4 text-base sm:text-lg text-gray-600 font-medium max-w-2xl mx-auto leading-relaxed">
-              Découvrez comment Ayiba protège vos achats, vos ventes et vos livraisons partout au Bénin grâce au paiement Escrow et au Code Secret.
+              Découvrez comment Ayiba protège vos achats, vos ventes et vos livraisons partout au Bénin grâce au paiement Escrow, au suivi GPS en direct et aux QR Codes / Codes OTP.
             </p>
 
             {/* --- ONGLET SECTEUR DE RÔLE (ACHETEUR / VENDEUR / LIVREUR) --- */}
@@ -231,7 +231,7 @@ export default function CommentCaMarchePage() {
           <div className="text-center mb-12">
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-gray-900">
               Comment ça marche pour un{" "}
-              <span className="text-[#FF5A5F]">
+              <span className="text-coral-500">
                 {activeRole === "acheteur"
                   ? "Acheteur"
                   : activeRole === "vendeur"
@@ -294,7 +294,7 @@ export default function CommentCaMarchePage() {
         <section className="py-14 md:py-20 bg-white border-y border-stone-200/60">
           <div className="max-w-5xl mx-auto px-4 md:px-8">
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-[#FF5A5F] border border-rose-100 mb-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold bg-coral-50 text-coral-600 border border-coral-100 mb-3">
                 <ShieldAlert size={14} />
                 <span>Pourquoi choisir Ayiba ?</span>
               </div>
@@ -308,22 +308,22 @@ export default function CommentCaMarchePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Carte SANS Ayiba */}
-              <div className="bg-rose-50/50 rounded-3xl p-7 md:p-8 border border-rose-100">
-                <div className="flex items-center gap-2.5 text-rose-700 font-extrabold text-base mb-6">
-                  <XCircle size={22} className="text-rose-500 shrink-0" />
+              <div className="bg-red-50/50 rounded-3xl p-7 md:p-8 border border-red-100">
+                <div className="flex items-center gap-2.5 text-red-700 font-extrabold text-base mb-6">
+                  <XCircle size={22} className="text-red-500 shrink-0" />
                   <span>Achat classique sur les réseaux sociaux</span>
                 </div>
                 <ul className="space-y-4 text-sm font-medium text-gray-700">
                   <li className="flex items-start gap-3">
-                    <XCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                    <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
                     <span>Payer par Mobile Money avant même de voir le produit.</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <XCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                    <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
                     <span>Risque de recevoir un produit non conforme ou abîmé.</span>
                   </li>
                   <li className="flex items-start gap-3">
-                    <XCircle size={16} className="text-rose-500 shrink-0 mt-0.5" />
+                    <XCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
                     <span>Aucun recours possible en cas de vendeur fantôme.</span>
                   </li>
                 </ul>
@@ -342,7 +342,7 @@ export default function CommentCaMarchePage() {
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 size={16} className="text-teal-600 shrink-0 mt-0.5" />
-                    <span>Inspection du colis avant de donner votre Code Secret.</span>
+                    <span>Suivi GPS en direct & inspection du colis avant scan QR Code ou code OTP.</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle2 size={16} className="text-teal-600 shrink-0 mt-0.5" />
@@ -379,7 +379,7 @@ export default function CommentCaMarchePage() {
                   <ChevronDown
                     size={18}
                     className={`text-gray-500 transition-transform duration-200 shrink-0 ${
-                      openFaq === idx ? "rotate-180 text-[#FF5A5F]" : ""
+                      openFaq === idx ? "rotate-180 text-coral-500" : ""
                     }`}
                   />
                 </button>
@@ -416,7 +416,7 @@ export default function CommentCaMarchePage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/catalogue"
-                className="w-full sm:w-auto py-4 px-8 rounded-xl bg-[#FF5A5F] hover:bg-[#E0484D] text-white font-extrabold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg"
+                className="w-full sm:w-auto py-4 px-8 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-extrabold text-base flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-lg shadow-coral-500/20"
               >
                 <span>Explorer le Catalogue</span>
                 <ArrowRight size={18} />

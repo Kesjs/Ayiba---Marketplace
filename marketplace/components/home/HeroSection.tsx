@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, Store, Star, ShieldCheck, Sparkles, Wallet, PackageCheck, Bike, MapPin } from "lucide-react";
+import { ArrowRight, Search, MapPin, Store, Star, ShieldCheck, Sparkles, Wallet, PackageCheck, Bike } from "lucide-react";
 
 type TabKey = "acheter" | "vendre" | "livrer";
 
@@ -24,13 +25,13 @@ const HERO_TABS: HeroTabConfig[] = [
     key: "acheter",
     tabLabel: "Acheter",
     title: "Trouvez vos pépites près de chez vous",
-    subtitle: "Des vendeurs vérifiés et des remises en main propre à Cotonou et Calavi.",
+    subtitle: "Des milliers d'annonces vérifiées et des remises en main propre à Cotonou et Calavi.",
     ctaLabel: "Explorer les annonces",
     ctaHref: "/catalogue",
     image: "/images/hero-illustration.png",
     badges: [
-      { icon: Store, value: "120+", label: "Articles" },
-      { icon: Star, value: "4.8/5", label: "Note vendeurs" },
+      { icon: Store, value: "120+", label: "Articles en ligne" },
+      { icon: Star, value: "4.8/5", label: "Note moyenne" },
       { icon: ShieldCheck, value: "100%", label: "Paiement direct" },
     ],
   },
@@ -38,13 +39,13 @@ const HERO_TABS: HeroTabConfig[] = [
     key: "vendre",
     tabLabel: "Vendre",
     title: "Ouvrez votre boutique en 2 minutes",
-    subtitle: "Publiez gratuitement vos articles et recevez vos paiements sur Mobile Money.",
+    subtitle: "Publiez gratuitement vos articles et recevez vos paiements directement sur Mobile Money.",
     ctaLabel: "Créer ma boutique",
     ctaHref: "/devenir-vendeur",
     image: "/images/hero-illustration.png",
     badges: [
-      { icon: Sparkles, value: "30+", label: "Boutiques" },
-      { icon: Wallet, value: "Instant", label: "Paiement Mobile" },
+      { icon: Sparkles, value: "30+", label: "Boutiques actives" },
+      { icon: Wallet, value: "Instant", label: "Mobile Money" },
       { icon: PackageCheck, value: "0 F", label: "Frais de création" },
     ],
   },
@@ -66,18 +67,34 @@ const HERO_TABS: HeroTabConfig[] = [
 
 export function HeroSection() {
   const [activeTab, setActiveTab] = useState<TabKey>("acheter");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("Toutes les villes");
+  const router = useRouter();
+
   const active = HERO_TABS.find((t) => t.key === activeTab)!;
 
+  const handleHeroSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() && selectedLocation === "Toutes les villes") {
+      router.push("/catalogue");
+      return;
+    }
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) params.set("q", searchQuery.trim());
+    if (selectedLocation !== "Toutes les villes") params.set("ville", selectedLocation);
+    router.push(`/catalogue?${params.toString()}`);
+  };
+
   return (
-    <section className="relative w-full bg-[#FAF9F6] border-b border-gray-100 overflow-hidden">
+    <section className="relative w-full bg-[#FAF9F6] border-b border-gray-200/60 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-8 md:py-12">
-        {/* --- ONGLETS SOBRES ET ÉLÉGANTS --- */}
-        <div className="inline-flex p-1 bg-gray-100/90 rounded-xl gap-1 mb-6 border border-gray-200/60">
+        {/* --- ONGLETS HERO STYLE CLASSIFIED TNC (ROBUSTES & NETS) --- */}
+        <div className="inline-flex p-1 bg-gray-100/90 rounded-xl gap-1 mb-6 border border-gray-200/80">
           {HERO_TABS.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`relative px-5 py-2 rounded-lg text-xs md:text-sm font-extrabold transition-colors duration-200 z-10 ${
+              className={`relative px-5 py-2 rounded-lg text-xs md:text-sm font-black transition-colors duration-200 z-10 ${
                 activeTab === tab.key
                   ? "text-white"
                   : "text-gray-600 hover:text-gray-900"
@@ -96,7 +113,7 @@ export function HeroSection() {
         </div>
 
         <div className="grid md:grid-cols-12 gap-8 md:gap-12 items-center">
-          {/* --- COLONNE TEXTE (7 cols) --- */}
+          {/* --- COLONNE CONTENU & RECHERCHE (7 cols) --- */}
           <div className="md:col-span-7">
             <AnimatePresence mode="wait">
               <motion.div
@@ -114,17 +131,62 @@ export function HeroSection() {
                   {active.subtitle}
                 </p>
 
-                <div className="mt-6 md:mt-8 flex items-center gap-4">
-                  <Link
-                    href={active.ctaHref}
-                    className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-extrabold text-xs md:text-sm shadow-md shadow-coral-500/20 active:scale-[0.98] transition-all duration-200"
+                {/* --- BARRE DE RECHERCHE INTÉGRÉE STYLE CLASSIFIED TNC (Uniquement sur l'onglet Acheter) --- */}
+                {activeTab === "acheter" ? (
+                  <form
+                    onSubmit={handleHeroSearch}
+                    className="mt-6 p-2 bg-white rounded-2xl border border-gray-200 shadow-lg shadow-gray-200/50 flex flex-col sm:flex-row items-stretch gap-2"
                   >
-                    <span>{active.ctaLabel}</span>
-                    <ArrowRight size={16} strokeWidth={2.5} />
-                  </Link>
-                </div>
+                    {/* Champ mot-clé */}
+                    <div className="flex-1 flex items-center gap-2.5 px-3.5 py-2.5 bg-gray-50/70 rounded-xl border border-gray-100">
+                      <Search size={18} className="text-coral-500 shrink-0" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Que cherchez-vous ? (iPhone, Sac, Robe...)"
+                        className="w-full bg-transparent text-xs md:text-sm font-bold text-gray-900 placeholder:text-gray-400 outline-none"
+                      />
+                    </div>
 
-                {/* --- 3 BADGES SOBRES --- */}
+                    {/* Sélecteur Ville / Commune */}
+                    <div className="flex items-center gap-2 px-3 py-2.5 bg-gray-50/70 rounded-xl border border-gray-100 shrink-0">
+                      <MapPin size={16} className="text-gray-400 shrink-0" />
+                      <select
+                        value={selectedLocation}
+                        onChange={(e) => setSelectedLocation(e.target.value)}
+                        className="bg-transparent text-xs font-bold text-gray-700 outline-none cursor-pointer pr-1"
+                      >
+                        <option value="Toutes les villes">Toutes les villes</option>
+                        <option value="Cotonou">Cotonou</option>
+                        <option value="Abomey-Calavi">Abomey-Calavi</option>
+                        <option value="Porto-Novo">Porto-Novo</option>
+                        <option value="Parakou">Parakou</option>
+                      </select>
+                    </div>
+
+                    {/* Bouton Lancer la recherche */}
+                    <button
+                      type="submit"
+                      className="px-5 py-3 rounded-xl bg-coral-500 hover:bg-coral-600 active:scale-98 text-white font-black text-xs md:text-sm flex items-center justify-center gap-2 shadow-md shadow-coral-500/20 transition-all duration-200 whitespace-nowrap cursor-pointer"
+                    >
+                      <Search size={16} strokeWidth={2.5} />
+                      <span>Chercher</span>
+                    </button>
+                  </form>
+                ) : (
+                  <div className="mt-6 md:mt-8 flex items-center gap-4">
+                    <Link
+                      href={active.ctaHref}
+                      className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-coral-500 hover:bg-coral-600 text-white font-extrabold text-xs md:text-sm shadow-md shadow-coral-500/20 active:scale-[0.98] transition-all duration-200"
+                    >
+                      <span>{active.ctaLabel}</span>
+                      <ArrowRight size={16} strokeWidth={2.5} />
+                    </Link>
+                  </div>
+                )}
+
+                {/* --- BADGES SOBRES & SOIGNÉS EN BAS DU HERO --- */}
                 <div className="mt-8 pt-6 border-t border-gray-200/60 grid grid-cols-3 gap-4 max-w-lg">
                   {active.badges.map((badge, i) => {
                     const Icon = badge.icon;
@@ -132,7 +194,7 @@ export function HeroSection() {
                       <div key={i} className="flex flex-col gap-0.5">
                         <div className="flex items-center gap-1.5 text-coral-600">
                           <Icon size={16} strokeWidth={2.2} />
-                          <span className="text-sm md:text-base font-extrabold text-gray-900 leading-none">
+                          <span className="text-sm md:text-base font-black text-gray-900 leading-none">
                             {badge.value}
                           </span>
                         </div>
@@ -147,7 +209,7 @@ export function HeroSection() {
             </AnimatePresence>
           </div>
 
-          {/* --- 1 SEULE GRANDE IMAGE DE FOND / BANNIÈRE NORMALE ET PROPRE PAR TAB (5 cols) --- */}
+          {/* --- BANNIÈRE IMAGE DE COUVERTURE DU HERO (5 cols) --- */}
           <div className="md:col-span-5 h-[280px] md:h-[360px] relative w-full rounded-2xl overflow-hidden border border-gray-200/80 bg-white shadow-sm">
             <AnimatePresence mode="wait">
               <motion.div

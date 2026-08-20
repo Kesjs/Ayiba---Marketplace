@@ -28,6 +28,7 @@ import {
   Archive,
   Truck,
   Navigation,
+  CheckCircle2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
@@ -38,7 +39,7 @@ import {
   LABELS_STATUT_COMMANDE,
   STATUT_STYLE,
   STATUT_SPINE_COLOR,
-  PROCHAINS_STATUTS,
+  PROCHAINS_STATUTS_VENDEUR,
   type StatutCommande,
 } from "@/lib/constants/commandes";
 
@@ -749,7 +750,7 @@ function VendeurCommandesPageContent() {
 
   const transitionsCommunes = useMemo(() => {
     if (selectedOrders.length === 0) return [];
-    const listes = selectedOrders.map((o) => PROCHAINS_STATUTS[o.statut] || []);
+    const listes = selectedOrders.map((o) => PROCHAINS_STATUTS_VENDEUR[o.statut] || []);
     return listes.reduce((acc, liste) => acc.filter((s) => liste.includes(s)), listes[0] ?? []);
   }, [selectedOrders]);
 
@@ -1266,7 +1267,7 @@ function VendeurCommandesPageContent() {
               <div className="space-y-3 pb-24">
                 {commandesFiltrees.map((order, i) => {
                   const isExpanded = expandedId === order.id;
-                  const prochains = PROCHAINS_STATUTS[order.statut] || [];
+                  const prochains = PROCHAINS_STATUTS_VENDEUR[order.statut] || [];
                   const spineColor = STATUT_SPINE_COLOR[order.statut] || "#D1D5DB";
                   const detail = details[order.id];
                   const enRetard = estEnRetardSLA(order);
@@ -1564,13 +1565,30 @@ function VendeurCommandesPageContent() {
                                 <span className="font-bold text-gray-900">{formatMontant(order.montant_total)}</span>
                               </div>
 
+                              {order.statut === STATUTS_COMMANDE.PREPAREE && (
+                                <div className="w-full p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 font-medium flex items-center gap-2 mb-2">
+                                  <Package size={15} />
+                                  Colis préparé. En attente de récupération par le livreur.
+                                </div>
+                              )}
+
+                              {order.statut === STATUTS_COMMANDE.EXPEDIEE && (
+                                <div className="w-full p-3 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-700 font-medium flex items-center gap-2 mb-2">
+                                  <Truck size={15} />
+                                  Colis en cours de livraison par le livreur. Validation par le scan QR client.
+                                </div>
+                              )}
+
+                              {order.statut === STATUTS_COMMANDE.LIVREE && (
+                                <div className="w-full p-3 bg-green-50 border border-green-100 rounded-xl text-xs text-green-700 font-medium flex items-center gap-2 mb-2">
+                                  <CheckCircle2 size={15} />
+                                  Commande livrée — Les fonds ont été débloqués sur votre solde disponible.
+                                </div>
+                              )}
+
                               <div className="flex flex-col sm:flex-row gap-2 w-full">
                                 {prochains.map((next) => {
                                   const isCancel = next === STATUTS_COMMANDE.ANNULEE;
-                                  // On ne peut pas confirmer une commande sans livreur assigné —
-                                  // rien ne le garantissait avant (ni côté DB, ni côté client).
-                                  // Au lieu d'un bouton juste désactivé (sans issue pour le
-                                  // vendeur), on ouvre directement le modal d'assignation.
                                   const requiertLivreur = next === STATUTS_COMMANDE.CONFIRMEE && !order.livreur_id;
                                   return (
                                     <button

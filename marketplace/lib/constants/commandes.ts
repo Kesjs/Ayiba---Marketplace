@@ -76,3 +76,17 @@ export const PROCHAINS_STATUTS: Record<StatutCommande, StatutCommande[]> = {
   [STATUTS_COMMANDE.ANNULEE]: [STATUTS_COMMANDE.REMBOURSEE],
   [STATUTS_COMMANDE.REMBOURSEE]: [],
 };
+
+// Transitions permises spécifiquement pour le rôle Vendeur.
+// Le vendeur ne peut passer une commande que vers "confirmee", "preparee" ou "annulee".
+// Il ne peut JAMAIS marquer "expediee" (remise au livreur) ni "livree" (reservé au scan QR client).
+export const PROCHAINS_STATUTS_VENDEUR: Record<StatutCommande, StatutCommande[]> = {
+  [STATUTS_COMMANDE.EN_ATTENTE]: [STATUTS_COMMANDE.CONFIRMEE, STATUTS_COMMANDE.ANNULEE],
+  [STATUTS_COMMANDE.CONFIRMEE]: [STATUTS_COMMANDE.PREPAREE, STATUTS_COMMANDE.ANNULEE],
+  [STATUTS_COMMANDE.PREPAREE]: [STATUTS_COMMANDE.ANNULEE],
+  [STATUTS_COMMANDE.EXPEDIEE]: [],
+  [STATUTS_COMMANDE.EN_ATTENTE_VERIFICATION]: [],
+  [STATUTS_COMMANDE.LIVREE]: [],
+  [STATUTS_COMMANDE.ANNULEE]: [],
+  [STATUTS_COMMANDE.REMBOURSEE]: [],
+};

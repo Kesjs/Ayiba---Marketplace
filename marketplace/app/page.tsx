@@ -25,7 +25,6 @@ import { createClient } from "@/lib/supabase/client";
 import { toggleFavorite, fetchFavoriteIds, getProductUrl, getBoutiqueUrl } from "@/lib/catalogue";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
-import { LocationPermissionBanner } from "@/components/ui/LocationPermissionBanner";
 import { HeroSection } from "@/components/home/HeroSection";
 
 
@@ -849,7 +848,6 @@ export default function Home() {
             </motion.section>
           )}
 
-          <LocationPermissionBanner />
           <Footer />
         </>
       )}

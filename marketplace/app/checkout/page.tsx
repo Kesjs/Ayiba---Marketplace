@@ -16,6 +16,7 @@ import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
 import { getDistanceRoutiereKm } from '@/lib/osrm'
 import { validateBeninPhone } from '@/lib/validation'
+import { AuthModal } from '@/components/ui/AuthModal'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
   Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, MapPin,
@@ -192,12 +193,7 @@ export default function CheckoutPage() {
   }, [])
 
   useEffect(() => {
-    if (userLoading) return
-    if (!user) {
-      showToast('Connecte-toi pour passer commande', 'info')
-      router.push('/')
-      return
-    }
+    if (userLoading || !user) return
     if (items.length === 0 && etape === 'livraison' && !paiementCheckoutId) {
       // Le panier peut être vidé depuis n'importe quel point d'entrée du
       // catalogue — public (/catalogue, home) ou celui d'un vendeur qui
@@ -584,7 +580,28 @@ export default function CheckoutPage() {
       : `Payer ${totalGeneral.toLocaleString('fr-FR')} F`
     : `Payer par carte ${totalGeneral.toLocaleString('fr-FR')} F`
 
-  if (userLoading || !user || (items.length === 0 && etape === 'livraison' && !paiementCheckoutId)) {
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="animate-spin text-gray-300" size={28} />
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Navbar />
+        <AuthModal
+          isOpen={true}
+          onClose={() => router.push('/')}
+          redirectTo="/checkout"
+        />
+      </div>
+    )
+  }
+
+  if (items.length === 0 && etape === 'livraison' && !paiementCheckoutId) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <Loader2 className="animate-spin text-gray-300" size={28} />

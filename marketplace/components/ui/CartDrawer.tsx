@@ -1,14 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { X, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { useCart, cartKey } from "@/context/CartContext";
+import { useUser } from "@/lib/hooks/useUser";
+import { AuthModal } from "@/components/ui/AuthModal";
 
 export function CartDrawer() {
   const router = useRouter();
+  const { user } = useUser();
   const { items, isOpen, total, itemCount, removeItem, updateQty, closeCart } = useCart();
+  const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const handleCheckout = () => {
+    if (!user) {
+      closeCart();
+      setAuthModalOpen(true);
+      return;
+    }
     closeCart();
     router.push("/checkout");
   };
@@ -141,6 +151,12 @@ export function CartDrawer() {
           </>
         )}
       </div>
+
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        redirectTo="/checkout"
+      />
     </div>
   );
 }

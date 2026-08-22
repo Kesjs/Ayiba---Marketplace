@@ -1,159 +1,111 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
-import { ArrowRight, MapPin, Store, Star, ShieldCheck, Sparkles, Wallet, PackageCheck, Bike } from "lucide-react";
-
-type TabKey = "acheter" | "vendre" | "livrer";
-
-interface HeroTabConfig {
-  key: TabKey;
-  tabLabel: string;
-  title: string;
-  subtitle: string;
-  ctaLabel: string;
-  ctaHref: string;
-  image: string;
-  badges: { icon: any; value: string; label: string }[];
-}
-
-const HERO_TABS: HeroTabConfig[] = [
-  {
-    key: "acheter",
-    tabLabel: "Acheter",
-    title: "Trouvez vos pépites près de chez vous",
-    subtitle: "Des milliers d'annonces vérifiées et des remises en main propre à Cotonou et Calavi.",
-    ctaLabel: "Explorer les annonces",
-    ctaHref: "/catalogue",
-    image: "/images/hero/acheter-1.jpg",
-    badges: [
-      { icon: Store, value: "120+", label: "Articles en ligne" },
-      { icon: Star, value: "4.8/5", label: "Note moyenne" },
-      { icon: ShieldCheck, value: "100%", label: "Paiement direct" },
-    ],
-  },
-  {
-    key: "vendre",
-    tabLabel: "Vendre",
-    title: "Ouvrez votre boutique en 2 minutes",
-    subtitle: "Publiez gratuitement vos articles et recevez vos paiements directement sur Mobile Money.",
-    ctaLabel: "Créer ma boutique",
-    ctaHref: "/devenir-vendeur",
-    image: "/images/hero/vendre-1.jpg",
-    badges: [
-      { icon: Sparkles, value: "30+", label: "Boutiques actives" },
-      { icon: Wallet, value: "Instant", label: "Mobile Money" },
-      { icon: PackageCheck, value: "0 F", label: "Frais de création" },
-    ],
-  },
-  {
-    key: "livrer",
-    tabLabel: "Livrer",
-    title: "Livrez, gagnez, en toute liberté",
-    subtitle: "Rejoignez nos livreurs partenaires et touchez votre gain à chaque course.",
-    ctaLabel: "Devenir livreur",
-    ctaHref: "/devenir-livreur",
-    image: "/images/hero/livrer-1.jpg",
-    badges: [
-      { icon: Bike, value: "15+", label: "Livreurs actifs" },
-      { icon: Wallet, value: "Instant", label: "Paiement par course" },
-      { icon: MapPin, value: "Régional", label: "Cotonou & environs" },
-    ],
-  },
-];
+import { motion } from "framer-motion";
+import { ArrowRight, Store, Star, ShieldCheck, Sparkles, MapPin } from "lucide-react";
 
 export function HeroSection() {
-  const [activeTab, setActiveTab] = useState<TabKey>("acheter");
-  const active = HERO_TABS.find((t) => t.key === activeTab)!;
-
   return (
-    <section className="relative w-full h-[560px] md:h-[620px] overflow-hidden bg-gray-100">
-      {/* --- PHOTO PLEINE LARGEUR EN FOND, PAR ONGLET --- */}
-      <AnimatePresence mode="wait">
+    <section className="relative w-full min-h-[540px] md:min-h-[600px] overflow-hidden bg-[#F1EFE8] flex items-center">
+      {/* Background Subtle Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-[#F1EFE8] via-[#F1EFE8]/90 to-transparent z-10 w-full md:w-3/4 pointer-events-none" />
+
+      {/* Hero Visual Image */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/images/hero/acheter-1.jpg"
+          alt="Artisanat et création locale au Bénin"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-right md:object-center opacity-85"
+          onError={(e) => {
+            // Fallback si l'image n'est pas encore présente
+            (e.currentTarget as HTMLElement).style.display = 'none';
+          }}
+        />
+        {/* Soft Warm Vignette Overlay */}
+        <div className="absolute inset-0 bg-[#4A1B0C]/10 mix-blend-multiply pointer-events-none" />
+      </div>
+
+      {/* Hero Content Container */}
+      <div className="relative z-20 max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-16 md:py-24 w-full">
         <motion.div
-          key={active.key}
-          initial={{ opacity: 0, scale: 1.04 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          className="absolute inset-0"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-xl bg-white/95 backdrop-blur-md p-6 sm:p-8 md:p-10 rounded-3xl border border-gray-100 shadow-xl shadow-gray-900/5"
         >
-          <Image
-            src={active.image}
-            alt={active.title}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center"
-          />
+          {/* Badge Chaleureux */}
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-coral-50 border border-coral-100 mb-5">
+            <Sparkles size={14} className="text-coral-500" />
+            <span className="text-xs font-bold text-coral-800 tracking-wide uppercase">
+              Marché Local & Artisanal Béninois
+            </span>
+          </div>
+
+          {/* Titre Principal Éditorial */}
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight leading-[1.15] mb-4">
+            Trouvez des pépites uniques créées près de chez vous.
+          </h1>
+
+          {/* Sous-titre */}
+          <p className="text-sm sm:text-base text-gray-600 font-medium leading-relaxed mb-8">
+            Mode, décoration, gadgets et créations locales à Cotonou, Calavi et Porto-Novo. Achetez directement auprès de créateurs et vendeurs locaux vérifiés.
+          </p>
+
+          {/* CTA Principal & Secondaire */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+            <Link
+              href="/catalogue"
+              className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-coral-500 hover:bg-coral-600 active:scale-[0.98] text-white font-extrabold text-sm rounded-2xl shadow-md shadow-coral-500/20 transition-all duration-200"
+            >
+              <span>Explorer le catalogue</span>
+              <ArrowRight size={16} strokeWidth={2.5} />
+            </Link>
+
+            <Link
+              href="#pour-vous"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-800 font-bold text-sm rounded-2xl border border-gray-200/70 transition-all duration-200"
+            >
+              <span>Voir les tendances</span>
+            </Link>
+          </div>
+
+          {/* Badges de Réassurance */}
+          <div className="mt-8 pt-6 border-t border-gray-100 grid grid-cols-3 gap-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
+                <Store size={15} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-gray-900">Vendeurs</span>
+                <span className="text-[10px] font-medium text-gray-500">Vérifiés</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shrink-0">
+                <ShieldCheck size={15} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-gray-900">Mobile Money</span>
+                <span className="text-[10px] font-medium text-gray-500">Escrow 100%</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
+                <MapPin size={15} />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xs font-black text-gray-900">Livraison</span>
+                <span className="text-[10px] font-medium text-gray-500">Code OTP</span>
+              </div>
+            </div>
+          </div>
         </motion.div>
-      </AnimatePresence>
-
-      {/* --- CARTE BLANCHE POSÉE SUR LA PHOTO, ANGLES DROITS --- */}
-      <div className="relative z-10 h-full max-w-7xl mx-auto px-4 md:px-8 lg:px-12 flex items-center">
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={active.key}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            className="w-full max-w-md md:max-w-lg bg-white shadow-2xl p-6 md:p-8"
-          >
-            {/* Onglets — angles droits, pas de pilule */}
-            <div className="inline-flex border border-gray-200 mb-5">
-              {HERO_TABS.map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setActiveTab(tab.key)}
-                  className={`px-4 py-2 text-xs md:text-sm font-black transition-colors duration-200 cursor-pointer ${
-                    activeTab === tab.key
-                      ? "bg-coral-500 text-white"
-                      : "bg-white text-gray-600 hover:text-gray-900"
-                  }`}
-                >
-                  {tab.tabLabel}
-                </button>
-              ))}
-            </div>
-
-            <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-gray-900 tracking-tight leading-[1.15]">
-              {active.title}
-            </h1>
-
-            <p className="text-sm text-gray-600 mt-3 leading-relaxed">
-              {active.subtitle}
-            </p>
-
-            <div className="mt-5">
-              <Link
-                href={active.ctaHref}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-coral-500 hover:bg-coral-600 text-white font-extrabold text-xs md:text-sm active:scale-[0.98] transition-all duration-200"
-              >
-                <span>{active.ctaLabel}</span>
-                <ArrowRight size={15} strokeWidth={2.5} />
-              </Link>
-            </div>
-
-            {/* --- BADGES --- */}
-            <div className="mt-5 pt-4 border-t border-gray-100 flex flex-wrap gap-x-5 gap-y-2">
-              {active.badges.map((badge, i) => {
-                const Icon = badge.icon;
-                return (
-                  <div key={i} className="flex items-center gap-2">
-                    <Icon size={14} strokeWidth={2.2} className="text-coral-500 shrink-0" />
-                    <div className="flex flex-col leading-tight">
-                      <span className="text-xs font-black text-gray-900">{badge.value}</span>
-                      <span className="text-[10px] text-gray-500 font-medium">{badge.label}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </motion.div>
-        </AnimatePresence>
       </div>
     </section>
   );

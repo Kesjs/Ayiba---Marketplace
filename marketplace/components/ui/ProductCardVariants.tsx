@@ -93,8 +93,8 @@ export function ProductCardModern({
       onClick={onClick}
       className="flex flex-col w-full text-left cursor-pointer"
     >
-      {/* IMAGE — carrée, aucune bordure, aucune ombre */}
-      <div className="relative aspect-square bg-gray-50 overflow-hidden mb-2 group/image">
+      {/* IMAGE — carrée avec masque photo-neutralizer et coins arrondis éditoriaux */}
+      <div className="relative aspect-square bg-[#F1EFE8] rounded-2xl overflow-hidden mb-2.5 group/image photo-neutralizer shadow-xs">
         <Image
           src={imgSrc}
           alt={name}
@@ -111,17 +111,24 @@ export function ProductCardModern({
           }}
         />
 
+        {/* Badge Nouveau si récent */}
+        {nouveau && (
+          <span className="absolute top-2.5 left-2.5 bg-coral-500 text-white text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md shadow-xs">
+            Nouveau
+          </span>
+        )}
+
         {/* Bandeau Rupture de stock */}
         {enRupture && (
-          <span className="absolute top-2 left-2 bg-white/95 text-gray-700 text-[10px] font-bold uppercase tracking-widest px-2 py-1">
+          <span className="absolute top-2.5 left-2.5 bg-gray-900/90 text-white text-[10px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-md">
             Rupture
           </span>
         )}
 
-        {/* Indicateur multi-photos, en bas à gauche */}
+        {/* Indicateur multi-photos */}
         {photosCount != null && photosCount > 1 && (
-          <span className="absolute bottom-2 left-2 bg-white/90 backdrop-blur-sm text-gray-700 text-[10px] font-bold px-1.5 py-0.5 flex items-center gap-1">
-            <i className="ti ti-photo text-[11px]" />
+          <span className="absolute bottom-2.5 left-2.5 bg-white/90 backdrop-blur-md text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
+            <span>📷</span>
             {photosCount}
           </span>
         )}
@@ -129,29 +136,28 @@ export function ProductCardModern({
         <button
           type="button"
           onClick={handleFavorite}
-          className="absolute top-1 right-1 w-10 h-10 flex items-center justify-center"
+          className="absolute top-2 right-2 w-9 h-9 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm hover:scale-110 active:scale-95 transition-all shadow-2xs"
+          aria-label={favorite ? "Retirer des favoris" : "Ajouter aux favoris"}
         >
-          <span className="w-7 h-7 bg-white/90 backdrop-blur-sm flex items-center justify-center hover:scale-110 transition-transform">
-            <Heart
-              size={13}
-              className={favorite ? "fill-coral-500 text-coral-500" : "text-gray-500"}
-            />
-          </span>
+          <Heart
+            size={14}
+            className={favorite ? "fill-coral-500 text-coral-500" : "text-gray-600 hover:text-coral-500"}
+          />
         </button>
       </div>
 
-      {/* TEXTE — aucune carte, directement sur fond blanc */}
-      <div className="flex flex-col gap-1 px-0.5">
-        <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest truncate">
+      {/* TEXTE — typographie éditoriale épurée sur fond blanc */}
+      <div className="flex flex-col gap-1 px-1">
+        <p className="text-[10px] font-extrabold text-coral-600 uppercase tracking-widest truncate">
           {category}
         </p>
 
-        <p className="text-xs text-gray-600 font-medium truncate">
+        <p className="text-xs text-gray-900 font-semibold truncate leading-tight group-hover:text-coral-600 transition-colors">
           {name}
         </p>
 
         {(sellerName || location) && (
-          <p className="text-[10px] text-gray-400 truncate">
+          <p className="text-[11px] text-gray-500 truncate">
             {sellerName}
             {sellerName && location && " · "}
             {location}
@@ -159,25 +165,25 @@ export function ProductCardModern({
         )}
 
         {reviewCount > 0 && (
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 mt-0.5">
             <div className="flex items-center gap-0.5">
-              <Star size={10} className="fill-amber-400 text-amber-400" />
-              <span className="text-[10px] font-bold text-gray-600">{rating}</span>
+              <Star size={11} className="fill-amber-400 text-amber-400" />
+              <span className="text-[11px] font-extrabold text-gray-800">{rating}</span>
             </div>
             <span className="text-[10px] text-gray-300">•</span>
-            <span className="text-[10px] text-gray-400">{reviewCount} avis</span>
+            <span className="text-[11px] text-gray-500">{reviewCount} avis</span>
           </div>
         )}
 
-        {/* Ligne prix + icône panier à droite, sans fond ni bordure */}
-        <div className="flex items-center justify-between mt-0.5 gap-2">
+        {/* Ligne prix + bouton panier */}
+        <div className="flex items-center justify-between mt-1 gap-2">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <p className={`text-base font-black whitespace-nowrap ${discount ? 'text-coral-600' : 'text-gray-900'}`}>
-              {price.toLocaleString("fr-FR")} <span className={`text-[11px] font-bold ${discount ? 'text-coral-500' : ''}`}>FCFA</span>
+            <p className={`text-base font-extrabold whitespace-nowrap tracking-tight ${discount ? 'text-coral-600' : 'text-gray-900'}`}>
+              {price.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
             </p>
             {discount && (
               <>
-                <span className="text-[10px] font-bold text-coral-500 bg-coral-50 px-1.5 py-0.5 whitespace-nowrap">
+                <span className="text-[10px] font-extrabold text-coral-600 bg-coral-50 px-1.5 py-0.5 rounded-md whitespace-nowrap">
                   -{discount}%
                 </span>
                 <span className="text-[11px] text-gray-400 line-through font-medium whitespace-nowrap">
@@ -192,20 +198,17 @@ export function ProductCardModern({
             onClick={handleAddToCart}
             disabled={enRupture}
             aria-disabled={enRupture}
-            className={`shrink-0 p-3 -m-3 flex items-center justify-center ${
-              enRupture ? "cursor-not-allowed" : ""
+            className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+              enRupture
+                ? "bg-gray-100 text-gray-300 cursor-not-allowed"
+                : justAdded
+                ? "bg-teal-500 text-white shadow-md shadow-teal-500/20"
+                : "bg-gray-100 hover:bg-coral-500 text-gray-800 hover:text-white"
             }`}
             aria-label={enRupture ? "Produit en rupture de stock" : "Ajouter au panier"}
           >
             <ShoppingBag
-              size={19}
-              className={`transition-colors duration-300 ${
-                enRupture
-                  ? "text-gray-300"
-                  : justAdded
-                  ? "text-teal-600"
-                  : "text-gray-900 hover:text-coral-500"
-              }`}
+              size={15}
             />
           </button>
         </div>

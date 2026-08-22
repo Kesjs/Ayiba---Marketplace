@@ -88,8 +88,9 @@ html, body {
   touch-action: pan-y;
   max-width: 100vw;
   position: relative;
+  background-color: #FFFFFF;
+  color: #2C2C2A;
 }
-
 
 /* Permettre le swipe horizontal sur les conteneurs scrollables */
 .overflow-x-auto {
@@ -109,31 +110,29 @@ html, body {
   }
 }
 
-/* Champ de formulaire — pages Paramètres (livreur + vendeur) */
+/* Champ de formulaire — pages Paramètres */
 .settings-input {
   width: 100%;
   height: 3rem;
   padding: 0 1rem;
   border-radius: 0.875rem;
-  border: 1px solid rgb(229 231 235);
+  border: 1px solid #D3D1C7;
   font-size: 0.875rem;
   font-weight: 600;
-  color: rgb(17 24 39);
+  color: #2C2C2A;
   background: white;
 }
 .settings-input:focus {
   outline: none;
-  border-color: rgb(20 184 166);
-  box-shadow: 0 0 0 3px rgb(20 184 166 / 0.1);
+  border-color: #1D9E75;
+  box-shadow: 0 0 0 3px rgba(29, 158, 117, 0.1);
 }
 .settings-input:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
 
-/* Masque la barre de scroll d'un conteneur défilable horizontalement (ex:
-   rangée de catégories sous le header) tout en gardant le scroll tactile/
-   molette fonctionnel. */
+/* Masque la barre de scroll */
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -142,31 +141,57 @@ html, body {
   display: none;
 }
 
+/* Encadrement et neutralisation des photos produits médiocres */
+.photo-neutralizer {
+  position: relative;
+  overflow: hidden;
+  background-color: #F1EFE8;
+  border-radius: 12px;
+}
+.photo-neutralizer img {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  transition: transform 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+}
+.photo-neutralizer:hover img {
+  transform: scale(1.05);
+}
+.photo-neutralizer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 1px rgba(44, 44, 42, 0.06);
+  pointer-events: none;
+}
+
 /* Animation liquide pour boutons CTA */
 @keyframes liquidSpin {
-  0% {
-    transform: translate(-50%, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate(-50%, -6px) rotate(180deg);
-  }
-  100% {
-    transform: translate(-50%, 0) rotate(360deg);
-  }
+  0% { transform: translate(-50%, 0) rotate(0deg); }
+  50% { transform: translate(-50%, -6px) rotate(180deg); }
+  100% { transform: translate(-50%, 0) rotate(360deg); }
 }
 
 .animate-liquid-spin {
   animation: liquidSpin 6s ease-in-out infinite;
 }
 
-/* Animation Border Beam (Magic UI / Aceternity style) */
+/* Animation Border Beam (Magic UI style) */
 @keyframes borderBeam {
-  100% {
-    offset-distance: 100%;
-  }
+  100% { offset-distance: 100%; }
 }
 
 .animate-border-beam {
   animation: borderBeam var(--duration, 10s) infinite linear;
 }
+
+/* Texture warm-paper pour sections éditoriales */
+.bg-warm-paper {
+  background-color: #F1EFE8;
+}
+.bg-warm-paper-light {
+  background-color: #F7F6F2;
+}
+
 

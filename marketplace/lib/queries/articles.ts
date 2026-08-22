@@ -284,12 +284,16 @@ export interface CategorieArbre {
  * déduire le type de taille pertinent (pointures pour les chaussures,
  * S/M/L pour les vêtements) sans dépendre du libellé affiché.
  */
-export async function getCategoriesFormulaire(): Promise<CategorieArbre[]> {
+export async function getCategoriesFormulaire(options?: { activesUniquement?: boolean }): Promise<CategorieArbre[]> {
   const supabase = createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("categories")
-    .select("id, nom, slug, parent_id")
+    .select("id, nom, slug, parent_id, active")
     .order("ordre", { ascending: true });
+  if (options?.activesUniquement) {
+    query = query.eq("active", true);
+  }
+  const { data, error } = await query;
   if (error) throw error;
 
   interface CategorieBrute {

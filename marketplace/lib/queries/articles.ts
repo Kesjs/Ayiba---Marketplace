@@ -266,7 +266,7 @@ export interface CategorieArbre {
   id: string;
   nom: string;
   slug: string;
-  sousCategories: { id: string; nom: string; slug: string }[];
+  sousCategories: { id: string; nom: string; slug: string; icone: string | null }[];
 }
 
 /**
@@ -288,7 +288,7 @@ export async function getCategoriesFormulaire(options?: { activesUniquement?: bo
   const supabase = createClient();
   let query = supabase
     .from("categories")
-    .select("id, nom, slug, parent_id, active")
+    .select("id, nom, slug, parent_id, icone, active")
     .order("ordre", { ascending: true });
   if (options?.activesUniquement) {
     query = query.eq("active", true);
@@ -301,6 +301,7 @@ export async function getCategoriesFormulaire(options?: { activesUniquement?: bo
     nom: string;
     slug: string;
     parent_id: string | null;
+    icone: string | null;
   }
 
   const toutes: CategorieBrute[] = data || [];
@@ -311,6 +312,6 @@ export async function getCategoriesFormulaire(options?: { activesUniquement?: bo
     slug: p.slug,
     sousCategories: toutes
       .filter((c: CategorieBrute) => c.parent_id === p.id)
-      .map((c: CategorieBrute) => ({ id: c.id, nom: c.nom, slug: c.slug })),
+      .map((c: CategorieBrute) => ({ id: c.id, nom: c.nom, slug: c.slug, icone: c.icone })),
   }));
 }

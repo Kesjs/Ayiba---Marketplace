@@ -280,8 +280,10 @@ export default function Home() {
       <DeliveryAssuranceBanner />
 
       {/* --- 1. BARRE DE CATÉGORIES (Sticky Pilules) --- */}
+      {/* Mobile uniquement : sur desktop, le MegaMenu de la Navbar remplit déjà ce rôle
+          (évite d'avoir deux barres de catégories qui font doublon). */}
       {!dataLoading && categories.length > 0 && (
-        <section className="border-b border-gray-100 bg-white sticky top-14 md:top-16 z-30 shadow-2xs">
+        <section className="md:hidden border-b border-gray-100 bg-white sticky top-14 z-30 shadow-2xs">
           <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-2.5">
             <div className="relative flex items-center gap-1.5">
               <div className="sticky left-0 z-20 shrink-0 bg-white pr-2 py-0.5 flex items-center gap-2">

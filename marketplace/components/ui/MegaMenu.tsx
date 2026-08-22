@@ -11,11 +11,8 @@ export function MegaMenu() {
   const [isHovering, setIsHovering] = useState(false);
 
   useEffect(() => {
-    getCategoriesFormulaire()
-      .then(data => {
-        // Optionnel : on peut filtrer pour ne garder que les catégories parentes "actives" si on veut
-        setCategories(data);
-      })
+    getCategoriesFormulaire({ activesUniquement: true })
+      .then(data => setCategories(data))
       .catch(console.error);
   }, []);
 

@@ -69,31 +69,6 @@ function melanger<T>(liste: T[]): T[] {
   return copie;
 }
 
-// Témoignages clients locaux
-const TESTIMONIALS = [
-  {
-    quote: "J'ai trouvé une robe sur mesure magnifique faite à Cotonou. Livrée le jour même chez moi avec validation par code OTP !",
-    author: "Aminata S.",
-    location: "Cotonou, Fidjrossè",
-    role: "Acheteuse vérifiée",
-    rating: 5,
-  },
-  {
-    quote: "Le paiement par MTN Mobile Money en escrow me rassure énormément. L'argent est bloqué tant que je n'ai pas vérifié le colis.",
-    author: "Koffi A.",
-    location: "Abomey-Calavi",
-    role: "Acheteur récurrent",
-    rating: 5,
-  },
-  {
-    quote: "J'achète mes produits locaux directement auprès des artisans béninois. La qualité est incomparable et la livraison très rapide.",
-    author: "Grace D.",
-    location: "Porto-Novo",
-    role: "Acheteuse vérifiée",
-    rating: 5,
-  },
-];
-
 export default function Home() {
   const router = useRouter();
   const { user, profile, loading: userLoading } = useUser();
@@ -688,105 +663,6 @@ export default function Home() {
               </div>
             </motion.section>
           )}
-
-          {/* --- 5. RÉASSURANCE & ENGAGEMENT (Escrow, OTP, Proximité) --- */}
-          <motion.section
-            variants={sectionVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="py-16 md:py-24 bg-[#F1EFE8] border-b border-gray-200/60"
-          >
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="text-center max-w-2xl mx-auto mb-12 md:mb-16">
-                <span className="text-xs font-extrabold text-teal-700 uppercase tracking-widest bg-teal-50 px-3 py-1 rounded-full border border-teal-100">
-                  Achetez en toute sérénité
-                </span>
-                <h2 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight mt-3">
-                  Pourquoi nos clients adorent Ayiba
-                </h2>
-                <p className="text-sm md:text-base text-gray-600 font-medium mt-2">
-                  Chaque commande est sécurisée par le système d'escrow Mobile Money et vérifiée à la livraison par un code OTP confidentiel.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-                <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-200/60 shadow-2xs">
-                  <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 mb-6">
-                    <Wallet size={26} />
-                  </div>
-                  <h3 className="text-lg font-extrabold text-gray-900 mb-2">Paiement Sécurisé (Escrow)</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    Vos fonds via Mobile Money (MTN / Moov) restent bloqués sur un compte neutre jusqu'à la réception physique de votre colis.
-                  </p>
-                </div>
-
-                <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-200/60 shadow-2xs">
-                  <div className="w-14 h-14 rounded-2xl bg-coral-50 border border-coral-100 flex items-center justify-center text-coral-500 mb-6">
-                    <QrCode size={26} />
-                  </div>
-                  <h3 className="text-lg font-extrabold text-gray-900 mb-2">Validation par Code OTP</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    À la remise du colis, vous donnez votre code secret OTP à 6 chiffres au livreur uniquement si vous êtes 100% satisfait.
-                  </p>
-                </div>
-
-                <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-200/60 shadow-2xs">
-                  <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 mb-6">
-                    <Bike size={26} />
-                  </div>
-                  <h3 className="text-lg font-extrabold text-gray-900 mb-2">Livraison Express Locale</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    Des livreurs de proximité contrôlés et géolocalisés assurent l'expédition rapide dans tout Cotonou, Calavi et environs.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.section>
-
-          {/* --- 6. TÉMOIGNAGES CLIENTS --- */}
-          <motion.section
-            variants={sectionVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
-            className="py-16 md:py-24 bg-white"
-          >
-            <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="text-center max-w-2xl mx-auto mb-12">
-                <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight">
-                  Ce que disent nos acheteurs
-                </h2>
-                <p className="text-sm text-gray-500 font-medium mt-1">Des retours authentiques de clients au Bénin</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {TESTIMONIALS.map((t, i) => (
-                  <div key={i} className="bg-[#F7F6F2] rounded-3xl p-6 md:p-8 border border-gray-200/60 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-center gap-1 text-amber-400 mb-4">
-                        {[...Array(t.rating)].map((_, idx) => (
-                          <Star key={idx} size={16} className="fill-amber-400" />
-                        ))}
-                      </div>
-                      <p className="text-sm text-gray-700 italic leading-relaxed mb-6">
-                        "{t.quote}"
-                      </p>
-                    </div>
-                    <div className="pt-4 border-t border-gray-200/60 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-extrabold text-gray-900">{t.author}</p>
-                        <p className="text-[11px] text-gray-500 font-medium">{t.location}</p>
-                      </div>
-                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded-full border border-teal-100">
-                        {t.role}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.section>
 
           <Footer />
         </>

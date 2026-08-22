@@ -290,6 +290,55 @@ export default function CommentCaMarchePage() {
           </div>
         </section>
 
+        {/* --- 2.5 SECTION RÉASSURANCE & GARANTIES (Transférée de la Home) --- */}
+        <section className="py-14 md:py-20 bg-[#F1EFE8] border-y border-stone-200/80">
+          <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+            <div className="text-center max-w-2xl mx-auto mb-12">
+              <span className="text-xs font-extrabold text-teal-800 uppercase tracking-widest bg-teal-50 px-3 py-1 rounded-full border border-teal-100">
+                Achetez en toute sérénité
+              </span>
+              <h2 className="text-2xl md:text-4xl font-extrabold text-gray-900 tracking-tight mt-3">
+                Pourquoi nos clients adorent Ayiba
+              </h2>
+              <p className="text-sm md:text-base text-gray-600 font-medium mt-2">
+                Chaque commande est sécurisée par le système d'escrow Mobile Money et vérifiée à la livraison par un code OTP confidentiel.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-stone-200/80 shadow-xs">
+                <div className="w-14 h-14 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 mb-6">
+                  <Wallet size={28} />
+                </div>
+                <h3 className="text-lg font-extrabold text-gray-900 mb-2">Paiement Sécurisé (Escrow)</h3>
+                <p className="text-sm text-gray-600 leading-relaxed font-medium">
+                  Vos fonds via Mobile Money (MTN / Moov / Celtiis) restent bloqués sur un compte neutre jusqu'à la réception physique de votre colis.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-stone-200/80 shadow-xs">
+                <div className="w-14 h-14 rounded-2xl bg-coral-50 border border-coral-100 flex items-center justify-center text-coral-500 mb-6">
+                  <QrCode size={28} />
+                </div>
+                <h3 className="text-lg font-extrabold text-gray-900 mb-2">Validation par Code OTP</h3>
+                <p className="text-sm text-gray-600 leading-relaxed font-medium">
+                  À la remise du colis, vous donnez votre code secret OTP à 6 chiffres au livreur uniquement si vous êtes 100% satisfait du produit.
+                </p>
+              </div>
+
+              <div className="bg-white rounded-3xl p-6 md:p-8 border border-stone-200/80 shadow-xs">
+                <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600 mb-6">
+                  <Bike size={28} />
+                </div>
+                <h3 className="text-lg font-extrabold text-gray-900 mb-2">Livraison Express Locale</h3>
+                <p className="text-sm text-gray-600 leading-relaxed font-medium">
+                  Des livreurs de proximité contrôlés et géolocalisés assurent l'expédition rapide dans tout Cotonou, Calavi, Porto-Novo et environs.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* --- 3. TABLEAU COMPARATIF : SANS AYIBA VS AVEC AYIBA --- */}
         <section className="py-14 md:py-20 bg-white border-y border-stone-200/60">
           <div className="max-w-5xl mx-auto px-4 md:px-8">

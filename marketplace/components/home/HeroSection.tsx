@@ -19,7 +19,7 @@ export function HeroSection() {
           fill
           priority
           sizes="100vw"
-          className="object-cover object-center"
+          className="object-cover object-[75%_center] md:object-[85%_center]"
           onError={(e) => {
             // Fallback si l'image n'est pas encore présente
             (e.currentTarget as HTMLElement).style.display = 'none';

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Search, ShoppingCart, User, Settings, LogOut, LayoutDashboard, X, ChevronDown, Store, Bike, Clock, ShoppingBag, MessageSquare, FileText, ShieldCheck, Heart, MapPin, HelpCircle, PackageSearch, FileQuestion, QrCode, LogIn, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/Button";
-import { AuthModal } from "@/components/ui/AuthModal";
 import { CartDrawer } from "@/components/ui/CartDrawer";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { useCart } from "@/context/CartContext";
@@ -45,7 +44,6 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [partnerMenuOpen, setPartnerMenuOpen] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [showSearchOverlay, setShowSearchOverlay] = useState(false);
@@ -377,7 +375,7 @@ export function Navbar() {
             </button>
 
             {!user && (
-              <button onClick={() => setAuthModalOpen(true)} className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-5 py-2 text-sm transition-all duration-200 active:scale-95 shadow-md shadow-coral-500/20 rounded-xl cursor-pointer">
+              <button onClick={() => router.push("/connexion")} className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-5 py-2 text-sm transition-all duration-200 active:scale-95 shadow-md shadow-coral-500/20 rounded-xl cursor-pointer">
                 Connexion
               </button>
             )}
@@ -660,7 +658,7 @@ export function Navbar() {
 
       {/* Drawer mobile : ne s'ouvre plus que pour un utilisateur connecté (voir handleAccountIconClick).
           Le contenu "visiteur non connecté" a été retiré : ces liens (CGU, Confidentialité) vivent déjà
-          dans le footer, et l'action de connexion ouvre désormais l'AuthModal directement. */}
+          dans le footer, et l'action de connexion navigue désormais vers /connexion. */}
       <div className={`fixed inset-0 z-[60] md:hidden transition-opacity duration-300 ${mobileOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}>
         <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
         <div className={`absolute top-0 right-0 h-full w-[85%] max-w-xs bg-white shadow-xl transition-transform duration-300 ease-out flex flex-col ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
@@ -798,7 +796,7 @@ export function Navbar() {
               </div>
             ) : (
               <button
-                onClick={() => { setMobileOpen(false); setAuthModalOpen(true); }}
+                onClick={() => { setMobileOpen(false); router.push("/connexion"); }}
                 className="w-full bg-coral-500 hover:bg-coral-600 text-white font-bold py-3 px-4 text-sm flex items-center justify-center gap-2 shadow-md shadow-coral-500/20 active:scale-95 transition-all cursor-pointer"
               >
                 <LogIn size={18} />
@@ -810,7 +808,6 @@ export function Navbar() {
       </div>
 
 
-      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       <CartDrawer />
       <LogoutConfirmModal
         open={showLogoutModal}

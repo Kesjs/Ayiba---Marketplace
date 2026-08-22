@@ -8,7 +8,6 @@ import { Footer } from "@/components/home/Footer";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { useRouter } from "next/navigation";
 import { useUser } from "@/lib/hooks/useUser";
-import { AuthModal } from "@/components/ui/AuthModal";
 import { ContactModal } from "@/components/modals/ContactModal";
 
 export default function BoutiquesPage() {
@@ -17,8 +16,6 @@ export default function BoutiquesPage() {
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [contactTarget, setContactTarget] = useState<string | null>(null);
   const [contactStore, setContactStore] = useState<BoutiquePublique | null>(null);
 
   useEffect(() => {
@@ -49,8 +46,7 @@ export default function BoutiquesPage() {
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
-      setContactTarget(store.id);
-      setAuthModalOpen(true);
+      router.push(`/connexion?redirect=/messages?vendeur=${store.id}`);
       return;
     }
     setContactStore(store);
@@ -155,13 +151,6 @@ export default function BoutiquesPage() {
       </main>
 
       <Footer />
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        intendedRole={null}
-        redirectTo={contactTarget ? `/messages?vendeur=${contactTarget}` : undefined}
-      />
 
       {contactStore && user && (
         <ContactModal

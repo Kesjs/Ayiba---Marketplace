@@ -8,7 +8,6 @@ import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { Button } from "@/components/ui/Button";
-import { AuthModal } from "@/components/ui/AuthModal";
 import { ContactModal } from "@/components/modals/ContactModal";
 import { getBoutiqueParId, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { getArticlesPublics, type ArticlePublic } from "@/lib/queries/articles";
@@ -39,7 +38,6 @@ export default function BoutiqueDetailPage() {
   const [storeProducts, setStoreProducts] = useState<ArticlePublic[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
@@ -140,7 +138,9 @@ export default function BoutiqueDetailPage() {
 
   const handleContact = () => {
     if (!user) {
-      setAuthModalOpen(true);
+      if (store) {
+        router.push(`/connexion?redirect=/messages?vendeur=${store.id}`);
+      }
       return;
     }
     if (!store) return;
@@ -149,7 +149,7 @@ export default function BoutiqueDetailPage() {
 
   const handleToggleFavorite = async (productId: string) => {
     if (!user) {
-      setAuthModalOpen(true);
+      router.push("/connexion");
       return;
     }
     const isFav = favoriteIds.has(productId);
@@ -460,13 +460,6 @@ export default function BoutiqueDetailPage() {
       </main>
 
       <Footer />
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        intendedRole={null}
-        redirectTo={`/messages?vendeur=${store.id}`}
-      />
 
       {user && (
         <ContactModal

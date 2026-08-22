@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/Button";
 import { ProductCardModern } from "@/components/ui/ProductCardVariants";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
-import { AuthModal } from "@/components/ui/AuthModal";
 import { ContactModal } from "@/components/modals/ContactModal";
 import { useRouter } from "next/navigation";
 import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
@@ -105,7 +104,6 @@ export default function Home() {
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [contactTarget, setContactTarget] = useState<string | null>(null);
   const [contactStore, setContactStore] = useState<BoutiquePublique | null>(null);
 
@@ -115,8 +113,7 @@ export default function Home() {
   const handleContactBoutique = (e: React.MouseEvent, store: BoutiquePublique) => {
     e.stopPropagation();
     if (!user) {
-      setContactTarget(store.id);
-      setAuthModalOpen(true);
+      router.push(`/connexion?redirect=/messages?vendeur=${store.id}`);
       return;
     }
     setContactStore(store);
@@ -306,7 +303,7 @@ export default function Home() {
 
   const handleToggleFavorite = async (productId: string) => {
     if (!user) {
-      setAuthModalOpen(true);
+      router.push("/connexion");
       return;
     }
     const isFav = favoriteIds.has(productId);
@@ -1128,13 +1125,6 @@ export default function Home() {
           }
         }
       `}</style>
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        intendedRole={null}
-        redirectTo={contactTarget ? `/messages?vendeur=${contactTarget}` : undefined}
-      />
 
       {contactStore && user && (
         <ContactModal

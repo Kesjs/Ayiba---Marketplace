@@ -1,16 +1,17 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { AuthModal } from "@/components/ui/AuthModal";
+import { useRouter } from "next/navigation";
 
 export function CTASection() {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [intendedRole, setIntendedRole] = useState<"vendeur" | "livreur" | null>(null);
+  const router = useRouter();
 
   const openAuth = (role: "vendeur" | "livreur" | null) => {
-    setIntendedRole(role);
-    setAuthModalOpen(true);
+    if (role) {
+      router.push(`/connexion?role=${role}`);
+    } else {
+      router.push("/connexion");
+    }
   };
 
   return (
@@ -49,12 +50,6 @@ export function CTASection() {
           </Button>
         </div>
       </div>
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => { setAuthModalOpen(false); setIntendedRole(null); }}
-        intendedRole={intendedRole}
-      />
     </section>
   );
 }

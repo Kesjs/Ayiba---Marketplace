@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
-import { AuthModal } from "@/components/ui/AuthModal";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { getRedirectPathForRole, isValidRole } from "@/lib/auth-utils";
@@ -164,7 +163,6 @@ const FAQS = [
 ];
 
 export default function DevenirVendeurPage() {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const router = useRouter();
 
@@ -259,7 +257,7 @@ export default function DevenirVendeurPage() {
               <div className="flex flex-col sm:flex-row gap-4 mb-12">
                 <Button
                   variant="primary"
-                  onClick={() => setAuthModalOpen(true)}
+                  onClick={() => router.push("/connexion?role=vendeur")}
                   className="text-base font-medium"
                 >
                   Créer ma boutique gratuitement
@@ -1505,7 +1503,7 @@ export default function DevenirVendeurPage() {
               </p>
               <Button
                 variant="secondary"
-                onClick={() => setAuthModalOpen(true)}
+                onClick={() => router.push("/connexion?role=vendeur")}
               >
                 Démarrer maintenant
               </Button>
@@ -1584,7 +1582,7 @@ export default function DevenirVendeurPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-10">
               <Button
                 variant="primary"
-                onClick={() => setAuthModalOpen(true)}
+                onClick={() => router.push("/connexion?role=vendeur")}
                 className="text-lg font-medium py-4 px-8"
               >
                 Créer ma boutique
@@ -1613,12 +1611,6 @@ export default function DevenirVendeurPage() {
       </div>
 
       <Footer />
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        intendedRole="vendeur"
-      />
     </>
   );
 }

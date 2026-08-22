@@ -1,16 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { AuthModal } from "@/components/ui/AuthModal";
+import { useRouter } from "next/navigation";
 
 export function SellerLivreurSection() {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [intendedRole, setIntendedRole] = useState<"vendeur" | "livreur" | null>(null);
+  const router = useRouter();
 
   const openAuth = (role: "vendeur" | "livreur") => {
-    setIntendedRole(role);
-    setAuthModalOpen(true);
+    router.push(`/connexion?role=${role}`);
   };
 
   return (
@@ -78,12 +75,6 @@ export function SellerLivreurSection() {
           </div>
         </div>
       </div>
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => { setAuthModalOpen(false); setIntendedRole(null); }}
-        intendedRole={intendedRole}
-      />
     </section>
   );
 }

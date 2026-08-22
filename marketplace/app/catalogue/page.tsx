@@ -11,7 +11,6 @@ import { Footer } from '@/components/home/Footer'
 import { useCart } from '@/context/CartContext'
 import { useToast } from '@/context/ToastContext'
 import { WelcomeAddressModal } from '@/components/onboarding/WelcomeAddressModal'
-import { AuthModal } from '@/components/ui/AuthModal'
 import { createClient } from '@/lib/supabase/client'
 import { toggleFavorite, fetchFavoriteIds, getProductUrl } from '@/lib/catalogue'
 import { Search, SlidersHorizontal, LayoutGrid, List, X, ChevronDown } from 'lucide-react'
@@ -39,7 +38,6 @@ function CatalogueContent() {
   const sortMenuRef = useRef<HTMLDivElement>(null)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   // Utilisateur courant (pour l'état des favoris et savoir s'il est vendeur) — page publique, accessible aussi aux invités.
   const [userRole, setUserRole] = useState<string | null>(null)
@@ -154,7 +152,7 @@ function CatalogueContent() {
 
   const handleToggleFavorite = async (productId: string) => {
     if (!userId) {
-      setAuthModalOpen(true)
+      router.push('/connexion')
       return
     }
     const isFav = favoriteIds.has(productId)
@@ -331,11 +329,6 @@ function CatalogueContent() {
         </div>
       </main>
       <Footer />
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        intendedRole={null}
-      />
     </>
   )
 }

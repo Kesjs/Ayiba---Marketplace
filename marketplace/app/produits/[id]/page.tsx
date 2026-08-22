@@ -10,7 +10,6 @@ import { useUser } from '@/lib/hooks/useUser'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/Button'
 import { Navbar } from '@/components/ui/Navbar'
-import { AuthModal } from '@/components/ui/AuthModal'
 import { ContactModal } from '@/components/modals/ContactModal'
 import { ReportProductModal } from '@/components/modals/ReportProductModal'
 import { Footer } from '@/components/home/Footer'
@@ -169,7 +168,6 @@ export default function ProductDetailPage() {
   const [variantes, setVariantes] = useState<Variante[]>([])
   const [selectedVarianteId, setSelectedVarianteId] = useState<string | null>(null)
   const [variantesError, setVariantesError] = useState<string | null>(null)
-  const [authModalOpen, setAuthModalOpen] = useState(false)
   const [contactModalOpen, setContactModalOpen] = useState(false)
   const [reportModalOpen, setReportModalOpen] = useState(false)
   const [questions, setQuestions] = useState<ArticleQuestion[]>([])
@@ -180,10 +178,6 @@ export default function ProductDetailPage() {
   const [totalReviewsCount, setTotalReviewsCount] = useState(0)
   const [loadingMoreReviews, setLoadingMoreReviews] = useState(false)
   const [lightboxOpen, setLightboxOpen] = useState(false)
-  // Où renvoyer l'utilisateur une fois connecté : /checkout après un "Acheter
-  // maintenant" en étant déconnecté, null pour les autres usages (favoris...)
-  // où on veut juste rester sur la page produit.
-  const [authRedirectTo, setAuthRedirectTo] = useState<string | null>(null)
 
   useEffect(() => {
     fetchProduct()
@@ -454,8 +448,7 @@ export default function ProductDetailPage() {
     // connecté via la modale, il arrive directement sur le checkout avec son
     // panier intact, au lieu d'être bounce vers /explorer.
     if (!user) {
-      setAuthRedirectTo('/checkout')
-      setAuthModalOpen(true)
+      router.push('/connexion?redirect=/checkout')
       return
     }
     router.push('/checkout')
@@ -464,8 +457,7 @@ export default function ProductDetailPage() {
   const handleToggleFavorite = async () => {
     if (!product) return
     if (!user) {
-      setAuthRedirectTo(null)
-      setAuthModalOpen(true)
+      router.push('/connexion')
       return
     }
     try {
@@ -479,8 +471,7 @@ export default function ProductDetailPage() {
 
   const handleToggleFavoriteSimilar = async (productId: string) => {
     if (!user) {
-      setAuthRedirectTo(null)
-      setAuthModalOpen(true)
+      router.push('/connexion')
       return
     }
     const isFav = similarFavoriteIds.has(productId)
@@ -501,7 +492,7 @@ export default function ProductDetailPage() {
   const handleContactSeller = () => {
     if (!product) return
     if (!user) {
-      setAuthModalOpen(true)
+      router.push('/connexion')
       return
     }
     setContactModalOpen(true)
@@ -1212,13 +1203,6 @@ export default function ProductDetailPage() {
       <ScrollToTop />
 
       <Footer />
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        intendedRole={null}
-        redirectTo={authRedirectTo}
-      />
 
       {product && user && (
         <ContactModal

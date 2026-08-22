@@ -16,7 +16,6 @@ import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
 import { getDistanceRoutiereKm } from '@/lib/osrm'
 import { validateBeninPhone } from '@/lib/validation'
-import { AuthModal } from '@/components/ui/AuthModal'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
   Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, MapPin,
@@ -212,6 +211,12 @@ export default function CheckoutPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userLoading, user, items.length, paiementCheckoutId, profile?.role])
+
+  useEffect(() => {
+    if (!userLoading && !user) {
+      router.push('/connexion?redirect=/checkout')
+    }
+  }, [user, userLoading, router])
 
   useEffect(() => {
     if (profile) {
@@ -589,16 +594,7 @@ export default function CheckoutPage() {
   }
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-white">
-        <Navbar />
-        <AuthModal
-          isOpen={true}
-          onClose={() => router.push('/')}
-          redirectTo="/checkout"
-        />
-      </div>
-    )
+    return null
   }
 
   if (items.length === 0 && etape === 'livraison' && !paiementCheckoutId) {

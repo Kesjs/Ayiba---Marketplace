@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
 import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
-import { AuthModal } from "@/components/ui/AuthModal";
 import { Button } from "@/components/ui/Button";
 import { createClient } from "@/lib/supabase/client";
 import { getRedirectPathForRole, isValidRole } from "@/lib/auth-utils";
@@ -157,7 +156,7 @@ const FAQS = [
 ];
 
 export default function DevenirLivreurPage() {
-  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const router = useRouter();
   const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   return (
@@ -168,7 +167,7 @@ export default function DevenirLivreurPage() {
         {/* ═══════════════════════════════════════════════════════
             HERO - Lazy-loaded
         ═══════════════════════════════════════════════════════ */}
-        <HeroSection benefits={THREE_BENEFITS} onCTAClick={() => setAuthModalOpen(true)} />
+        <HeroSection benefits={THREE_BENEFITS} onCTAClick={() => router.push("/connexion?role=livreur")} />
 
         {/* ═══════════════════════════════════════════════════════
             COMMENT ÇA MARCHE - Lazy-loaded
@@ -455,7 +454,7 @@ export default function DevenirLivreurPage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button
                 variant="primary"
-                onClick={() => setAuthModalOpen(true)}
+                onClick={() => router.push("/connexion?role=livreur")}
                 className="bg-white text-teal-700 hover:bg-gray-50 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 min-w-[220px] font-medium px-8 py-4"
               >
                 Commencer maintenant
@@ -487,12 +486,6 @@ export default function DevenirLivreurPage() {
       </div>
 
       <Footer />
-
-      <AuthModal
-        isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
-        intendedRole="livreur"
-      />
     </>
   );
 }

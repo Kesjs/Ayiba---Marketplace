@@ -35,7 +35,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-xl bg-white/95 backdrop-blur-md p-6 sm:p-8 md:p-10 rounded-3xl border border-gray-100 shadow-xl shadow-gray-900/5"
+          className="max-w-[460px] bg-white/95 backdrop-blur-md p-6 sm:p-7 rounded-3xl border border-gray-100 shadow-xl shadow-gray-900/5"
         >
           {/* Badge Chaleureux */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-coral-50 border border-coral-100 mb-5">
@@ -46,12 +46,12 @@ export function HeroSection() {
           </div>
 
           {/* Titre Principal Éditorial */}
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-gray-900 tracking-tight leading-[1.15] mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-[40px] font-extrabold text-gray-900 tracking-tight leading-[1.15] mb-3">
             Trouvez des pépites uniques créées près de chez vous.
           </h1>
 
           {/* Sous-titre */}
-          <p className="text-sm sm:text-base text-gray-600 font-medium leading-relaxed mb-8">
+          <p className="text-[13px] sm:text-sm text-gray-600 font-medium leading-relaxed mb-6">
             Mode, décoration, gadgets et créations locales à Cotonou, Calavi et Porto-Novo. Achetez directement auprès de créateurs et vendeurs locaux vérifiés.
           </p>
 

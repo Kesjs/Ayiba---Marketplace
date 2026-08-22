@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getRedirectPathForRole, isValidRole } from "@/lib/auth-utils";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { LiveSearchBar } from "@/components/ui/LiveSearchBar";
+import { MegaMenu } from "@/components/ui/MegaMenu";
 
 const supabase = createClient();
 
@@ -203,7 +204,7 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`sticky top-0 z-50 md:h-16 bg-white/95 backdrop-blur-md transition-shadow duration-300 ${
+        className={`sticky top-0 z-50 flex flex-col bg-white/95 backdrop-blur-md transition-shadow duration-300 ${
           scrolled ? "shadow-[0_4px_20px_rgba(0,0,0,0.06)]" : "shadow-[0_1px_0_rgba(0,0,0,0.04)]"
         }`}
       >
@@ -612,6 +613,9 @@ export function Navbar() {
         <div className="md:hidden px-4 pb-3">
           <LiveSearchBar />
         </div>
+
+        {/* Ligne 3 desktop : Mega Menu */}
+        <MegaMenu />
       </header>
 
       {showSearchOverlay && (

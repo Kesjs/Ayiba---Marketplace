@@ -25,6 +25,7 @@ import { toggleFavorite, fetchFavoriteIds, getProductUrl, getBoutiqueUrl } from 
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { HomeSkeleton } from "@/components/ui/Skeleton";
 import { HeroSection } from "@/components/home/HeroSection";
+import { DeliveryAssuranceBanner } from "@/components/home/DeliveryAssuranceBanner";
 
 // ============================================
 // VARIANTS D'ANIMATION (Framer Motion)
@@ -276,6 +277,7 @@ export default function Home() {
 
       {/* --- HERO SECTION (100% Acheteur) --- */}
       <HeroSection />
+      <DeliveryAssuranceBanner />
 
       {/* --- 1. BARRE DE CATÉGORIES (Sticky Pilules) --- */}
       {!dataLoading && categories.length > 0 && (

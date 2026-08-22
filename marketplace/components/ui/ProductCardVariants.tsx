@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Heart, Star, ShoppingBag } from "lucide-react";
+import { Heart, Star, ShoppingBag, Images } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface ProductCardProps {
@@ -128,7 +128,7 @@ export function ProductCardModern({
         {/* Indicateur multi-photos */}
         {photosCount != null && photosCount > 1 && (
           <span className="absolute bottom-2.5 left-2.5 bg-white/90 backdrop-blur-md text-gray-800 text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs">
-            <span>📷</span>
+            <Images size={12} className="text-gray-500" />
             {photosCount}
           </span>
         )}

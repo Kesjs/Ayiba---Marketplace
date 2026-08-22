@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ProductCardModern } from '@/components/ui/ProductCardVariants'
 import { ProductCardSkeleton } from '@/components/ui/Skeleton'
 import { Button } from '@/components/ui/Button'
-import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from '@/lib/queries/articles'
+import { getArticlesPublics, getCategoriesActives, getCategoriesFormulaire, type ArticlePublic, type CategorieArbre } from '@/lib/queries/articles'
 import { Navbar } from '@/components/ui/Navbar'
 import { Footer } from '@/components/home/Footer'
 import { useCart } from '@/context/CartContext'
@@ -26,6 +26,7 @@ function CatalogueContent() {
   const [allProducts, setAllProducts] = useState<ArticlePublic[]>([])
   const [products, setProducts] = useState<ArticlePublic[]>([])
   const [categoryOptions, setCategoryOptions] = useState<{ nom: string; slug: string }[]>([])
+  const [categoryTree, setCategoryTree] = useState<CategorieArbre[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('categorie') || 'Tout')
@@ -84,10 +85,11 @@ function CatalogueContent() {
       setLoading(true)
       setError(null)
       try {
-        const [articles, cats] = await Promise.all([getArticlesPublics(), getCategoriesActives()])
+        const [articles, cats, tree] = await Promise.all([getArticlesPublics(), getCategoriesActives(), getCategoriesFormulaire({ activesUniquement: true })])
         if (cancelled) return
         setAllProducts(articles)
         setCategoryOptions(cats)
+        setCategoryTree(tree)
       } catch (err) {
         console.error('Erreur chargement catalogue:', err)
         if (!cancelled) setError('Impossible de charger les produits.')
@@ -122,7 +124,16 @@ function CatalogueContent() {
     }
 
     if (selectedCategory !== 'Tout') {
-      filtered = filtered.filter(p => p.categorie?.nom === selectedCategory)
+      const grandeCategorie = categoryTree.find(c => c.nom === selectedCategory)
+      if (grandeCategorie) {
+        // Clic sur une grande catégorie (ex: "Femmes") : tous les articles
+        // de ses sous-catégories, puisque les grandes catégories elles-mêmes
+        // ne portent jamais d'article directement.
+        const nomsEnfants = new Set(grandeCategorie.sousCategories.map(s => s.nom))
+        filtered = filtered.filter(p => p.categorie?.nom && nomsEnfants.has(p.categorie.nom))
+      } else {
+        filtered = filtered.filter(p => p.categorie?.nom === selectedCategory)
+      }
     }
 
     if (searchQuery) {
@@ -137,7 +148,7 @@ function CatalogueContent() {
     if (sortBy === 'price-desc') filtered.sort((a, b) => (b.prix_promo ?? b.prix) - (a.prix_promo ?? a.prix))
 
     setProducts(filtered)
-  }, [allProducts, selectedCategory, searchQuery, sortBy, userRole, userId, promoOnly])
+  }, [allProducts, selectedCategory, categoryTree, searchQuery, sortBy, userRole, userId, promoOnly])
 
   const handleAddToCart = (product: ArticlePublic) => {
     addItem({

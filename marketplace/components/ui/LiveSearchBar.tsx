@@ -201,7 +201,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          className="w-full bg-gray-100/70 hover:bg-gray-100 focus:bg-white border border-transparent focus:border-coral-400/80 rounded-2xl py-2.5 pl-11 pr-24 text-[13px] md:text-[14px] font-medium outline-none focus:ring-4 focus:ring-coral-500/10 shadow-xs focus:shadow-lg transition-all duration-300 placeholder:text-gray-400 text-gray-900"
+          className="w-full bg-gray-100/70 hover:bg-gray-100 focus:bg-white border border-transparent focus:border-coral-400/80 py-2.5 pl-11 pr-24 text-[13px] md:text-[14px] font-medium outline-none focus:ring-4 focus:ring-coral-500/10 shadow-xs focus:shadow-lg transition-all duration-300 placeholder:text-gray-400 text-gray-900"
         />
 
         <div className="absolute right-2 flex items-center gap-1">
@@ -212,7 +212,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                 setQuery("");
                 inputRef.current?.focus();
               }}
-              className="p-1 hover:bg-gray-200/80 rounded-full text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
+              className="p-1 hover:bg-gray-200/80 text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
               aria-label="Effacer"
             >
               <X size={14} />
@@ -221,7 +221,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
 
           <button
             type="submit"
-            className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-3.5 py-1.5 rounded-xl text-xs transition-all duration-200 shadow-sm shadow-coral-500/20 active:scale-95 flex items-center gap-1 cursor-pointer"
+            className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-3.5 py-1.5 text-xs transition-all duration-200 shadow-sm shadow-coral-500/20 active:scale-95 flex items-center gap-1 cursor-pointer"
           >
             <span>Chercher</span>
           </button>
@@ -236,7 +236,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute left-0 right-0 top-full mt-2 bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl rounded-3xl overflow-hidden z-50 p-3 max-h-[85vh] overflow-y-auto"
+            className="absolute left-0 right-0 top-full mt-2 bg-white/95 backdrop-blur-xl border border-gray-100 shadow-2xl overflow-hidden z-50 p-3 max-h-[85vh] overflow-y-auto"
           >
             {/* ETAT 1 : L'utilisateur n'a rien tapé ou < 2 caractères */}
             {!debouncedQuery || debouncedQuery.length < 2 ? (
@@ -255,12 +255,12 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                           key={term}
                           type="button"
                           onClick={() => handleLaunchSearch(term)}
-                          className="group flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-50 hover:bg-coral-50 text-gray-700 hover:text-coral-600 text-xs font-medium transition-colors border border-gray-100 hover:border-coral-100 cursor-pointer"
+                          className="group flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-coral-50 text-gray-700 hover:text-coral-600 text-xs font-medium transition-colors border border-gray-100 hover:border-coral-100 cursor-pointer"
                         >
                           <span>{term}</span>
                           <span
                             onClick={(e) => removeRecentSearch(e, term)}
-                            className="p-0.5 rounded-full hover:bg-coral-200/50 text-gray-400 group-hover:text-coral-600 transition-colors"
+                            className="p-0.5 hover:bg-coral-200/50 text-gray-400 group-hover:text-coral-600 transition-colors"
                           >
                             <X size={11} />
                           </span>
@@ -282,9 +282,9 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                           key={cat}
                           type="button"
                           onClick={() => handleLaunchSearch(cat)}
-                          className="flex items-center gap-2 p-2 rounded-xl hover:bg-coral-50/60 text-left text-xs font-semibold text-gray-700 hover:text-coral-600 transition-colors group cursor-pointer"
+                          className="flex items-center gap-2 p-2 hover:bg-coral-50/60 text-left text-xs font-semibold text-gray-700 hover:text-coral-600 transition-colors group cursor-pointer"
                         >
-                          <div className="w-6 h-6 rounded-lg bg-coral-100/60 flex items-center justify-center text-coral-600 group-hover:scale-110 transition-transform">
+                          <div className="w-6 h-6 bg-coral-100/60 flex items-center justify-center text-coral-600 group-hover:scale-110 transition-transform">
                             <Tag size={12} />
                           </div>
                           <span className="truncate">{cat}</span>
@@ -316,7 +316,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                               key={c.id}
                               type="button"
                               onClick={() => handleLaunchSearch(c.nom)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-coral-50 text-coral-600 font-semibold text-xs hover:bg-coral-100 transition-colors cursor-pointer"
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-coral-50 text-coral-600 font-semibold text-xs hover:bg-coral-100 transition-colors cursor-pointer"
                             >
                               <Tag size={12} />
                               <span>{c.nom}</span>
@@ -342,12 +342,12 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                                 onSearchSubmit?.();
                                 router.push(getProductUrl(product));
                               }}
-                              className="flex items-center gap-3 p-2 rounded-2xl hover:bg-coral-50/50 transition-colors cursor-pointer group"
+                              className="flex items-center gap-3 p-2 hover:bg-coral-50/50 transition-colors cursor-pointer group"
                             >
                               <img
                                 src={product.photos[0] || "/images/hero-illustration.png"}
                                 alt={product.nom}
-                                className="w-11 h-11 object-cover rounded-xl border border-gray-100 group-hover:scale-105 transition-transform"
+                                className="w-11 h-11 object-cover border border-gray-100 group-hover:scale-105 transition-transform"
                               />
                               <div className="flex flex-col text-left flex-1 min-w-0">
                                 <span className="text-xs font-bold text-gray-900 truncate group-hover:text-coral-600 transition-colors">
@@ -374,7 +374,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                     <button
                       type="button"
                       onClick={() => handleLaunchSearch(query)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 bg-coral-50 hover:bg-coral-100 text-coral-600 font-bold text-xs rounded-2xl transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 bg-coral-50 hover:bg-coral-100 text-coral-600 font-bold text-xs transition-colors cursor-pointer"
                     >
                       <span>Voir tous les résultats pour "{query}"</span>
                       <ChevronRight size={14} />

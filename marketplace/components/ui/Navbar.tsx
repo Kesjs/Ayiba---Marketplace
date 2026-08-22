@@ -205,10 +205,8 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`sticky top-0 z-50 md:h-16 transition-all duration-300 ${
-          scrolled
-            ? "bg-white/90 backdrop-blur-md shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
-            : "bg-coral-50/60 backdrop-blur-sm"
+        className={`sticky top-0 z-50 md:h-16 bg-white/95 backdrop-blur-md transition-shadow duration-300 ${
+          scrolled ? "shadow-[0_4px_20px_rgba(0,0,0,0.06)]" : "shadow-[0_1px_0_rgba(0,0,0,0.04)]"
         }`}
       >
         <div className="flex items-center justify-between h-14 md:h-full px-4 md:px-8 lg:px-12 max-w-7xl mx-auto w-full gap-4 md:gap-8">
@@ -233,7 +231,7 @@ export function Navbar() {
               >
                 <button
                   onClick={() => setPartnerMenuOpen((v) => !v)}
-                  className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 rounded-lg bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 cursor-pointer"
+                  className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 cursor-pointer"
                 >
                   <Store size={16} className="text-gray-500 group-hover/partner:text-coral-500 transition-colors" />
                   <span className="hidden sm:inline">Devenir Partenaire</span>
@@ -241,14 +239,14 @@ export function Navbar() {
                 </button>
 
                 <div className={`absolute right-0 top-full pt-2 w-64 origin-top-right transition-all duration-300 z-50 ${partnerMenuOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}>
-                  <div className="bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden p-2">
+                  <div className="bg-white border border-gray-100 shadow-2xl overflow-hidden p-2">
                     <div className="flex flex-col gap-1">
                       <a 
                         href="/devenir-vendeur" 
                         onClick={() => setPartnerMenuOpen(false)} 
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 rounded-xl text-gray-700 hover:text-coral-600 transition-all group/item"
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 text-gray-700 hover:text-coral-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-8 h-8 bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
                           <Store size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -260,9 +258,9 @@ export function Navbar() {
                       <a 
                         href="/devenir-livreur" 
                         onClick={() => setPartnerMenuOpen(false)} 
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 rounded-xl text-gray-700 hover:text-teal-600 transition-all group/item"
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 text-gray-700 hover:text-teal-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-8 h-8 bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
                           <Bike size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -285,7 +283,7 @@ export function Navbar() {
             >
               <button
                 onClick={() => setHelpMenuOpen((v) => !v)}
-                className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 rounded-lg bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 cursor-pointer"
+                className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 cursor-pointer"
               >
                 <HelpCircle size={16} className="text-gray-500 group-hover/help:text-coral-500 transition-colors" />
                 <span className="hidden sm:inline">Aide</span>
@@ -293,14 +291,14 @@ export function Navbar() {
               </button>
 
               <div className={`absolute right-0 top-full pt-2 w-64 origin-top-right transition-all duration-300 z-50 ${helpMenuOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}>
-                <div className="bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden p-2">
+                <div className="bg-white border border-gray-100 shadow-2xl overflow-hidden p-2">
                   <div className="flex flex-col gap-1">
                     <a 
                       href="/faq" 
                       onClick={() => setHelpMenuOpen(false)} 
-                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 rounded-xl text-gray-700 hover:text-coral-600 transition-all group/item"
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 text-gray-700 hover:text-coral-600 transition-all group/item"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-8 h-8 bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
                         <FileQuestion size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -312,9 +310,9 @@ export function Navbar() {
                     <a 
                       href="/centre-aide" 
                       onClick={() => setHelpMenuOpen(false)} 
-                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-amber-50 rounded-xl text-gray-700 hover:text-amber-600 transition-all group/item"
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-amber-50 text-gray-700 hover:text-amber-600 transition-all group/item"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-8 h-8 bg-amber-50 flex items-center justify-center text-amber-500 group-hover/item:bg-white shadow-xs shrink-0">
                         <HelpCircle size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -326,9 +324,9 @@ export function Navbar() {
                     <a 
                       href="/politique-livraison" 
                       onClick={() => setHelpMenuOpen(false)} 
-                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 rounded-xl text-gray-700 hover:text-teal-600 transition-all group/item"
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 text-gray-700 hover:text-teal-600 transition-all group/item"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-8 h-8 bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
                         <QrCode size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -340,9 +338,9 @@ export function Navbar() {
                     <a 
                       href="/politique-remboursement" 
                       onClick={() => setHelpMenuOpen(false)} 
-                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-rose-50 rounded-xl text-gray-700 hover:text-rose-600 transition-all group/item"
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-rose-50 text-gray-700 hover:text-rose-600 transition-all group/item"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-8 h-8 bg-rose-50 flex items-center justify-center text-rose-500 group-hover/item:bg-white shadow-xs shrink-0">
                         <ShieldCheck size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -354,9 +352,9 @@ export function Navbar() {
                     <a 
                       href="/contact" 
                       onClick={() => setHelpMenuOpen(false)} 
-                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-gray-50 rounded-xl text-gray-700 hover:text-gray-900 transition-all group/item border-t border-gray-100 mt-1 pt-3"
+                      className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-gray-50 text-gray-700 hover:text-gray-900 transition-all group/item border-t border-gray-100 mt-1 pt-3"
                     >
-                      <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-8 h-8 bg-gray-100 flex items-center justify-center text-gray-600 group-hover/item:bg-white shadow-xs shrink-0">
                         <MessageSquare size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -369,7 +367,7 @@ export function Navbar() {
               </div>
             </div>
 
-            <button onClick={openCart} className="relative w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50 transition-colors duration-200" aria-label="Voir le panier">
+            <button onClick={openCart} className="relative w-9 h-9 flex items-center justify-center hover:bg-gray-50 transition-colors duration-200" aria-label="Voir le panier">
               <ShoppingCart size={20} className="text-gray-600" />
               {itemCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-coral-400 text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
@@ -379,7 +377,7 @@ export function Navbar() {
             </button>
 
             {!user && (
-              <button onClick={() => setAuthModalOpen(true)} className="bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-xl px-5 py-2 text-sm transition-all duration-200 active:scale-95 shadow-md shadow-coral-500/20 cursor-pointer">
+              <button onClick={() => setAuthModalOpen(true)} className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-5 py-2 text-sm transition-all duration-200 active:scale-95 shadow-md shadow-coral-500/20 cursor-pointer">
                 Connexion
               </button>
             )}
@@ -388,7 +386,7 @@ export function Navbar() {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-gray-50 transition-all duration-300"
+                  className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 transition-all duration-300"
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
                     {profile?.avatar_url ? (
@@ -409,7 +407,7 @@ export function Navbar() {
                 </button>
 
                 <div className={`absolute right-0 top-full pt-2 w-56 origin-top-right transition-all duration-300 ${userMenuOpen ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 -translate-y-2 pointer-events-none"}`}>
-                  <div className="bg-white border border-gray-100 shadow-2xl rounded-2xl overflow-hidden">
+                  <div className="bg-white border border-gray-100 shadow-2xl overflow-hidden">
                     <div className="px-4 py-4 bg-gray-50/50 border-b border-gray-100">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
@@ -436,47 +434,47 @@ export function Navbar() {
                           temps et déjà accessible via le logo, donc pas de lien
                           dédié ici. Les autres rôles gardent leur propre dashboard. */}
                       {userRole !== "client" && (
-                        <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                        <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-all text-sm text-gray-700 font-medium">
                           <LayoutDashboard size={18} className="text-gray-400" />
                           <span>Mon dashboard</span>
                         </a>
                       )}
                       {userRole === "vendeur" ? (
                         <>
-                          <a href="/commandes" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                          <a href="/commandes" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-all text-sm text-gray-700 font-medium">
                             <ShoppingBag size={18} className="text-gray-400" />
                             <span>Mes achats</span>
                           </a>
-                          <a href="/vendeur/commandes" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                          <a href="/vendeur/commandes" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-all text-sm text-gray-700 font-medium">
                             <Store size={18} className="text-gray-400" />
                             <span>Mes ventes</span>
                           </a>
                         </>
                       ) : (
-                        <a href="/commandes" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                        <a href="/commandes" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-all text-sm text-gray-700 font-medium">
                           <ShoppingBag size={18} className="text-gray-400" />
                           <span>Mes commandes</span>
                         </a>
                       )}
                       {userRole === "client" && (
                         <>
-                          <a href="/favoris" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                          <a href="/favoris" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-all text-sm text-gray-700 font-medium">
                             <Heart size={18} className="text-gray-400" />
                             <span>Favoris</span>
                           </a>
-                          <a href="/messages" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                          <a href="/messages" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-all text-sm text-gray-700 font-medium">
                             <MessageSquare size={18} className="text-gray-400" />
                             <span>Messages</span>
                           </a>
                         </>
                       )}
                       {userRole === "client" ? (
-                        <a href="/menu" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                        <a href="/menu" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-all text-sm text-gray-700 font-medium">
                           <Settings size={18} className="text-gray-400" />
                           <span>Compte</span>
                         </a>
                       ) : (
-                        <a href="/profil" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 rounded-xl transition-all text-sm text-gray-700 font-medium">
+                        <a href="/profil" className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-all text-sm text-gray-700 font-medium">
                           <Settings size={18} className="text-gray-400" />
                           <span>Mon profil</span>
                         </a>
@@ -484,7 +482,7 @@ export function Navbar() {
                     </div>
                     <div className="h-px bg-gray-100 mx-2" />
                     <div className="p-2">
-                      <button onClick={() => { setUserMenuOpen(false); setShowLogoutModal(true); }} className="flex items-center gap-3 w-full px-4 py-3 hover:bg-red-50 rounded-xl transition-all text-left text-sm text-red-500 font-bold">
+                      <button onClick={() => { setUserMenuOpen(false); setShowLogoutModal(true); }} className="flex items-center gap-3 w-full px-4 py-3 hover:bg-red-50 transition-all text-left text-sm text-red-500 font-bold">
                         <LogOut size={18} />
                         <span>Déconnexion</span>
                       </button>
@@ -500,7 +498,7 @@ export function Navbar() {
             <div className="relative">
               <button
                 onClick={() => setHelpMenuOpen((v) => !v)}
-                className="p-1.5 text-gray-700 hover:text-coral-500 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                className="p-1.5 text-gray-700 hover:text-coral-500 hover:bg-gray-50 transition-colors cursor-pointer"
                 aria-label="Aide"
               >
                 <HelpCircle size={19} />
@@ -508,14 +506,14 @@ export function Navbar() {
 
               {helpMenuOpen && (
                 <div className="absolute right-0 top-full pt-2 w-64 origin-top-right z-50 shadow-2xl">
-                  <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden p-2">
+                  <div className="bg-white border border-gray-100 overflow-hidden p-2">
                     <div className="flex flex-col gap-1">
                       <a 
                         href="/faq" 
                         onClick={() => setHelpMenuOpen(false)} 
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 rounded-xl text-gray-700 hover:text-coral-600 transition-all group/item"
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 text-gray-700 hover:text-coral-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-8 h-8 bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
                           <FileQuestion size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -527,9 +525,9 @@ export function Navbar() {
                       <a 
                         href="/centre-aide" 
                         onClick={() => setHelpMenuOpen(false)} 
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-amber-50 rounded-xl text-gray-700 hover:text-amber-600 transition-all group/item"
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-amber-50 text-gray-700 hover:text-amber-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center text-amber-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-8 h-8 bg-amber-50 flex items-center justify-center text-amber-500 group-hover/item:bg-white shadow-xs shrink-0">
                           <HelpCircle size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -541,9 +539,9 @@ export function Navbar() {
                       <a 
                         href="/politique-livraison" 
                         onClick={() => setHelpMenuOpen(false)} 
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 rounded-xl text-gray-700 hover:text-teal-600 transition-all group/item"
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 text-gray-700 hover:text-teal-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-8 h-8 bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
                           <QrCode size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -555,9 +553,9 @@ export function Navbar() {
                       <a 
                         href="/politique-remboursement" 
                         onClick={() => setHelpMenuOpen(false)} 
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-rose-50 rounded-xl text-gray-700 hover:text-rose-600 transition-all group/item"
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-rose-50 text-gray-700 hover:text-rose-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center text-rose-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-8 h-8 bg-rose-50 flex items-center justify-center text-rose-500 group-hover/item:bg-white shadow-xs shrink-0">
                           <ShieldCheck size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -569,9 +567,9 @@ export function Navbar() {
                       <a 
                         href="/contact" 
                         onClick={() => setHelpMenuOpen(false)} 
-                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-gray-50 rounded-xl text-gray-700 hover:text-gray-900 transition-all group/item border-t border-gray-100 mt-1 pt-3"
+                        className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-gray-50 text-gray-700 hover:text-gray-900 transition-all group/item border-t border-gray-100 mt-1 pt-3"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-8 h-8 bg-gray-100 flex items-center justify-center text-gray-600 group-hover/item:bg-white shadow-xs shrink-0">
                           <MessageSquare size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -586,7 +584,7 @@ export function Navbar() {
             </div>
 
             {/* Bouton Panier Mobile */}
-            <button onClick={openCart} className="relative p-1.5 text-gray-700 hover:text-coral-500 rounded-lg hover:bg-gray-50 transition-colors" aria-label="Voir le panier">
+            <button onClick={openCart} className="relative p-1.5 text-gray-700 hover:text-coral-500 hover:bg-gray-50 transition-colors" aria-label="Voir le panier">
               <ShoppingCart size={19} />
               {itemCount > 0 && (
                 <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
@@ -598,7 +596,7 @@ export function Navbar() {
             {/* Icône compte mobile (Pilule d'origine) */}
             <button
               onClick={handleAccountIconClick}
-              className="h-10 flex items-center justify-center rounded-xl border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden shrink-0 ml-1 cursor-pointer"
+              className="h-10 flex items-center justify-center border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden shrink-0 ml-1 cursor-pointer"
               aria-label={!user ? "Connexion ou inscription" : "Menu du compte"}
             >
               <span className="flex items-center justify-center px-3 h-full">
@@ -634,7 +632,7 @@ export function Navbar() {
                 placeholder="Que cherchez-vous ?"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-100 rounded-full py-3 pl-12 pr-4 text-base outline-none"
+                className="w-full bg-gray-100 py-3 pl-12 pr-4 text-base outline-none"
                 autoFocus
               />
             </form>
@@ -646,7 +644,7 @@ export function Navbar() {
                 <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">Recherches récentes</p>
                 <div className="space-y-1">
                   {["iPhone 13", "Moto neuve", "Pagne wax", "Riz local", "Chaussures"].map((item, i) => (
-                    <button key={i} onClick={() => handleSuggestionClick(item)} className="flex items-center gap-3 w-full p-3 hover:bg-gray-50 rounded-xl text-left">
+                    <button key={i} onClick={() => handleSuggestionClick(item)} className="flex items-center gap-3 w-full p-3 hover:bg-gray-50 text-left">
                       <Clock size={18} className="text-gray-400" />
                       <span>{item}</span>
                     </button>
@@ -668,7 +666,7 @@ export function Navbar() {
         <div className={`absolute top-0 right-0 h-full w-[85%] max-w-xs bg-white shadow-xl transition-transform duration-300 ease-out flex flex-col ${mobileOpen ? "translate-x-0" : "translate-x-full"}`}>
           <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100">
             <LogoAyiba className="h-8 w-auto" />
-            <button onClick={() => setMobileOpen(false)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-50" aria-label="Fermer le menu">
+            <button onClick={() => setMobileOpen(false)} className="w-9 h-9 flex items-center justify-center hover:bg-gray-50" aria-label="Fermer le menu">
               <X size={20} className="text-gray-600" />
             </button>
           </div>
@@ -685,10 +683,10 @@ export function Navbar() {
                     <a
                       href="/devenir-vendeur"
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50/80 border border-gray-100 hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-3.5 bg-gray-50/80 border border-gray-100 hover:bg-gray-100 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-coral-50 text-coral-600 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 bg-coral-50 text-coral-600 flex items-center justify-center shrink-0">
                           <Store size={20} />
                         </div>
                         <div className="min-w-0">
@@ -702,10 +700,10 @@ export function Navbar() {
                     <a
                       href="/devenir-livreur"
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-between p-3.5 rounded-2xl bg-gray-50/80 border border-gray-100 hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-between p-3.5 bg-gray-50/80 border border-gray-100 hover:bg-gray-100 transition-colors"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
+                        <div className="w-10 h-10 bg-teal-50 text-teal-600 flex items-center justify-center shrink-0">
                           <Bike size={20} />
                         </div>
                         <div className="min-w-0">
@@ -720,28 +718,28 @@ export function Navbar() {
               </div>
             ) : (
               <div className="flex flex-col gap-1">
-                <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <a href={userRole && isValidRole(userRole) ? getRedirectPathForRole(userRole) : "/"} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                   <LayoutDashboard size={20} className="text-gray-400" />
                   <span>{userRole === "client" ? "Découvrir la boutique" : "Mon dashboard"}</span>
                 </a>
                 {userRole === "vendeur" ? (
                   <>
-                    <a href="/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                    <a href="/commandes" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                       <ShoppingBag size={20} className="text-gray-400" />
                       <span>Mes achats</span>
                     </a>
-                    <a href="/vendeur/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                    <a href="/vendeur/commandes" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                       <Store size={20} className="text-gray-400" />
                       <span>Mes ventes</span>
                     </a>
                   </>
                 ) : (
-                  <a href="/commandes" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                  <a href="/commandes" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                     <ShoppingBag size={20} className="text-gray-400" />
                     <span>Mes commandes</span>
                   </a>
                 )}
-                <a href="/messages" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <a href="/messages" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                   <MessageSquare size={20} className="text-gray-400" />
                   <span>Messages</span>
                 </a>
@@ -749,29 +747,29 @@ export function Navbar() {
                 <div className="h-px bg-gray-100 my-2 mx-4" />
                 <button
                   onClick={() => { setMobileOpen(false); setLocationModalOpen(true); }}
-                  className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-coral-50 text-coral-600 transition-colors text-sm font-bold text-left"
+                  className="flex items-center gap-3 w-full px-4 py-3 hover:bg-coral-50 text-coral-600 transition-colors text-sm font-bold text-left"
                 >
                   <MapPin size={20} className="text-coral-500" />
                   <span>Lieu : {userLocation}</span>
                 </button>
-                <a href="/faq" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <a href="/faq" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                   <FileQuestion size={20} className="text-gray-400" />
                   <span>Questions fréquentes (FAQ)</span>
                 </a>
-                <a href="/centre-aide" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <a href="/centre-aide" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                   <HelpCircle size={20} className="text-gray-400" />
                   <span>Centre d'assistance</span>
                 </a>
-                <a href="/cgu" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <a href="/cgu" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                   <FileText size={20} className="text-gray-400" />
                   <span>Conditions générales</span>
                 </a>
-                <a href="/privacy" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
+                <a href="/privacy" className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700">
                   <ShieldCheck size={20} className="text-gray-400" />
                   <span>Confidentialité</span>
                 </a>
 
-                <button onClick={() => { setMobileOpen(false); setShowLogoutModal(true); }} className="flex items-center gap-3 w-full px-4 py-3 rounded-lg hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
+                <button onClick={() => { setMobileOpen(false); setShowLogoutModal(true); }} className="flex items-center gap-3 w-full px-4 py-3 hover:bg-red-50 text-red-500 transition-colors text-sm font-medium text-left mt-2">
                   <LogOut size={20} />
                   <span>Déconnexion</span>
                 </button>
@@ -801,7 +799,7 @@ export function Navbar() {
             ) : (
               <button
                 onClick={() => { setMobileOpen(false); setAuthModalOpen(true); }}
-                className="w-full bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-xl py-3 px-4 text-sm flex items-center justify-center gap-2 shadow-md shadow-coral-500/20 active:scale-95 transition-all cursor-pointer"
+                className="w-full bg-coral-500 hover:bg-coral-600 text-white font-bold py-3 px-4 text-sm flex items-center justify-center gap-2 shadow-md shadow-coral-500/20 active:scale-95 transition-all cursor-pointer"
               >
                 <LogIn size={18} />
                 <span>Se connecter / S'inscrire</span>
@@ -834,18 +832,18 @@ export function Navbar() {
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              className="bg-white rounded-2xl p-6 max-w-md w-full relative shadow-xl"
+              className="bg-white p-6 max-w-md w-full relative shadow-xl"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() => setLocationModalOpen(false)}
-                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
+                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100"
               >
                 <X size={18} />
               </button>
 
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
+                <div className="w-10 h-10 bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
                   <MapPin size={20} />
                 </div>
                 <div>
@@ -873,7 +871,7 @@ export function Navbar() {
                     );
                   }
                 }}
-                className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-xl bg-coral-500 text-white font-bold text-sm hover:bg-coral-600 transition-colors mb-4 shadow-md shadow-coral-500/20 cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-coral-500 text-white font-bold text-sm hover:bg-coral-600 transition-colors mb-4 shadow-md shadow-coral-500/20 cursor-pointer"
               >
                 <MapPin size={16} />
                 Détecter ma position actuelle
@@ -896,7 +894,7 @@ export function Navbar() {
                       localStorage.setItem("ayiba_user_location", fullLoc);
                       setLocationModalOpen(false);
                     }}
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-bold text-left transition-all cursor-pointer ${
+                    className={`py-2.5 px-3 border text-xs font-bold text-left transition-all cursor-pointer ${
                       userLocation.startsWith(city)
                         ? "border-coral-500 bg-coral-50 text-coral-600"
                         : "border-gray-100 hover:border-gray-200 bg-gray-50/50 text-gray-700"

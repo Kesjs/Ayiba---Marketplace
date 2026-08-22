@@ -231,7 +231,7 @@ export function Navbar() {
               >
                 <button
                   onClick={() => setPartnerMenuOpen((v) => !v)}
-                  className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 cursor-pointer"
+                  className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 rounded-xl cursor-pointer"
                 >
                   <Store size={16} className="text-gray-500 group-hover/partner:text-coral-500 transition-colors" />
                   <span className="hidden sm:inline">Devenir Partenaire</span>
@@ -283,7 +283,7 @@ export function Navbar() {
             >
               <button
                 onClick={() => setHelpMenuOpen((v) => !v)}
-                className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 cursor-pointer"
+                className="text-[13px] font-semibold text-gray-700 hover:text-coral-500 flex items-center gap-1 md:gap-1.5 px-2 py-1.5 md:px-3 md:py-2 bg-gray-50/50 hover:bg-coral-50 transition-all duration-300 border border-transparent hover:border-coral-100 rounded-xl cursor-pointer"
               >
                 <HelpCircle size={16} className="text-gray-500 group-hover/help:text-coral-500 transition-colors" />
                 <span className="hidden sm:inline">Aide</span>
@@ -367,7 +367,7 @@ export function Navbar() {
               </div>
             </div>
 
-            <button onClick={openCart} className="relative w-9 h-9 flex items-center justify-center hover:bg-gray-50 transition-colors duration-200" aria-label="Voir le panier">
+            <button onClick={openCart} className="relative w-9 h-9 flex items-center justify-center hover:bg-gray-50 transition-colors duration-200 rounded-xl cursor-pointer" aria-label="Voir le panier">
               <ShoppingCart size={20} className="text-gray-600" />
               {itemCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-coral-400 text-white text-[10px] font-semibold rounded-full flex items-center justify-center">
@@ -377,7 +377,7 @@ export function Navbar() {
             </button>
 
             {!user && (
-              <button onClick={() => setAuthModalOpen(true)} className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-5 py-2 text-sm transition-all duration-200 active:scale-95 shadow-md shadow-coral-500/20 cursor-pointer">
+              <button onClick={() => setAuthModalOpen(true)} className="bg-coral-500 hover:bg-coral-600 text-white font-bold px-5 py-2 text-sm transition-all duration-200 active:scale-95 shadow-md shadow-coral-500/20 rounded-xl cursor-pointer">
                 Connexion
               </button>
             )}
@@ -386,7 +386,7 @@ export function Navbar() {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setUserMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 transition-all duration-300"
+                  className="flex items-center gap-2 px-2.5 py-1.5 hover:bg-gray-50 transition-all duration-300 rounded-xl cursor-pointer"
                 >
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-coral-50 border border-coral-100 flex items-center justify-center shrink-0">
                     {profile?.avatar_url ? (
@@ -584,7 +584,7 @@ export function Navbar() {
             </div>
 
             {/* Bouton Panier Mobile */}
-            <button onClick={openCart} className="relative p-1.5 text-gray-700 hover:text-coral-500 hover:bg-gray-50 transition-colors" aria-label="Voir le panier">
+            <button onClick={openCart} className="relative p-1.5 text-gray-700 hover:text-coral-500 hover:bg-gray-50 transition-colors rounded-xl cursor-pointer" aria-label="Voir le panier">
               <ShoppingCart size={19} />
               {itemCount > 0 && (
                 <span className="absolute top-0.5 right-0.5 w-4 h-4 bg-coral-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
@@ -596,7 +596,7 @@ export function Navbar() {
             {/* Icône compte mobile (Pilule d'origine) */}
             <button
               onClick={handleAccountIconClick}
-              className="h-10 flex items-center justify-center border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden shrink-0 ml-1 cursor-pointer"
+              className="h-10 flex items-center justify-center border border-coral-200 hover:border-coral-300 transition-colors overflow-hidden shrink-0 ml-1 rounded-xl cursor-pointer"
               aria-label={!user ? "Connexion ou inscription" : "Menu du compte"}
             >
               <span className="flex items-center justify-center px-3 h-full">

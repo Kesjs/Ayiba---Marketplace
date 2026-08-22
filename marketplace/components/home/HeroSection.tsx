@@ -8,25 +8,25 @@ import { ArrowRight, Store, Star, ShieldCheck, Sparkles, MapPin } from "lucide-r
 export function HeroSection() {
   return (
     <section className="relative w-full min-h-[540px] md:min-h-[600px] overflow-hidden bg-[#F1EFE8] flex items-center">
-      {/* Background Subtle Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-r from-[#F1EFE8] via-[#F1EFE8]/90 to-transparent z-10 w-full md:w-3/4 pointer-events-none" />
+      {/* Background Subtle Gradient Overlay (Désactivé selon demande) */}
+      {/* <div className="absolute inset-0 bg-gradient-to-r from-[#F1EFE8] via-[#F1EFE8]/90 to-transparent z-10 w-full md:w-3/4 pointer-events-none" /> */}
 
       {/* Hero Visual Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/images/hero/acheter-1.jpg"
+          src="/images/hero/hero-artisan.webp"
           alt="Artisanat et création locale au Bénin"
           fill
           priority
           sizes="100vw"
-          className="object-cover object-right md:object-center opacity-85"
+          className="object-cover object-center"
           onError={(e) => {
             // Fallback si l'image n'est pas encore présente
             (e.currentTarget as HTMLElement).style.display = 'none';
           }}
         />
-        {/* Soft Warm Vignette Overlay */}
-        <div className="absolute inset-0 bg-[#4A1B0C]/10 mix-blend-multiply pointer-events-none" />
+        {/* Léger Overlay (Très discret) */}
+        <div className="absolute inset-0 bg-black/5 pointer-events-none" />
       </div>
 
       {/* Hero Content Container */}

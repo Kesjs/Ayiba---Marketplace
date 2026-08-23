@@ -79,10 +79,9 @@ export async function GET(request: Request) {
           .eq("id", user.id)
           .single();
 
-        const estValide = profil && (profil as Record<string, string>)[statutField] === "valide";
-
         if (estValide) {
-          return NextResponse.redirect(`${targetOrigin}/${userData.role}/dashboard`);
+          const validDest = userData.role === "vendeur" ? "vendeur/dashboard" : "livreur/missions";
+          return NextResponse.redirect(`${targetOrigin}/${validDest}`);
         }
         return NextResponse.redirect(`${targetOrigin}/${userData.role}/kyc`);
       }

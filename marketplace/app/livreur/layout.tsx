@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { LivreurStatusBanner } from "@/components/livreur/LivreurStatusBanner";
+import { LivreurStatusBannerGate } from "@/components/livreur/LivreurStatusBannerGate";
 
 export default async function LivreurLayout({
   children,
@@ -25,7 +25,7 @@ export default async function LivreurLayout({
   return (
     <div className="flex flex-col h-dvh overflow-hidden">
       {livreur && (
-        <LivreurStatusBanner statut={livreur.statut_verification} raisonRejet={livreur.raison_rejet} />
+        <LivreurStatusBannerGate statut={livreur.statut_verification} raisonRejet={livreur.raison_rejet} />
       )}
       {/* flex-1 + min-h-0 : le bandeau garde sa hauteur naturelle, le reste
           du contenu prend l'espace restant. overflow-y-auto ici (et pas sur

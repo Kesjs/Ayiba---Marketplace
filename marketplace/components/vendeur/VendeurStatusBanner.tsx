@@ -5,14 +5,21 @@ import Link from "next/link";
 import { Clock, AlertCircle, ArrowRight } from "lucide-react";
 
 interface VendeurStatusBannerProps {
-  statut: string;
+  statut?: string | null;
   raisonRejet?: string | null;
 }
 
 export function VendeurStatusBanner({ statut, raisonRejet }: VendeurStatusBannerProps) {
-  if (statut === "valide") return null;
+  if (!statut || statut === "valide" || statut === "non_soumis" || statut === "brouillon") {
+    return null;
+  }
 
   const isPending = statut === "en_attente";
+  const isRefused = statut === "refuse";
+
+  if (!isPending && !isRefused) {
+    return null;
+  }
 
   return (
     <AnimatePresence>
@@ -50,7 +57,7 @@ export function VendeurStatusBanner({ statut, raisonRejet }: VendeurStatusBanner
               : `Vérification refusée${raisonRejet ? ` — ${raisonRejet}` : "."}`}
           </p>
 
-          {!isPending && (
+          {isRefused && (
             <Link
               href="/vendeur/kyc"
               className="flex items-center gap-1 text-[13px] font-semibold text-red-700 hover:text-red-800 transition-colors shrink-0 whitespace-nowrap"

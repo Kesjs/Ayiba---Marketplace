@@ -5,14 +5,21 @@ import Link from "next/link";
 import { Clock, AlertCircle, ArrowRight } from "lucide-react";
 
 interface LivreurStatusBannerProps {
-  statut: string;
+  statut?: string | null;
   raisonRejet?: string | null;
 }
 
 export function LivreurStatusBanner({ statut, raisonRejet }: LivreurStatusBannerProps) {
-  if (statut === "valide") return null;
+  if (!statut || statut === "valide" || statut === "non_soumis" || statut === "brouillon") {
+    return null;
+  }
 
   const isPending = statut === "en_attente";
+  const isRefused = statut === "refuse";
+
+  if (!isPending && !isRefused) {
+    return null;
+  }
 
   return (
     <AnimatePresence>

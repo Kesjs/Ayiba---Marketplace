@@ -260,7 +260,16 @@ function AuthForm() {
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         setLoading(false);
-        if (signInError) return setError(translateError(signInError));
+        if (signInError) {
+          const errMsg = (signInError.message || "").toLowerCase();
+          if (errMsg.includes("email not confirmed")) {
+            setVerifiedEmail(email);
+            setMode("verification-inscription");
+            setResendCooldown(0);
+            return;
+          }
+          return setError(translateError(signInError));
+        }
 
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -281,15 +290,38 @@ function AuthForm() {
             ? redirectTo.replace("/vendeur/messages", "/messages")
             : redirectTo;
 
-        const destination = resolvedRedirect
-          ? resolvedRedirect
-          : userData?.role === "vendeur"
-          ? "/vendeur/dashboard"
-          : userData?.role === "livreur"
-          ? "/livreur/missions"
-          : userData?.role === "admin"
-          ? "/admin/dashboard"
-          : "/catalogue";
+        let destination = resolvedRedirect;
+
+        if (!destination) {
+          if (userData?.role === "vendeur") {
+            const { data: vendeurData } = await supabase
+              .from("vendeurs")
+              .select("statut")
+              .eq("id", user?.id)
+              .maybeSingle();
+
+            const isSubmitted =
+              vendeurData?.statut &&
+              vendeurData.statut !== "non_soumis" &&
+              vendeurData.statut !== "brouillon";
+
+            destination = isSubmitted ? "/vendeur/dashboard" : "/vendeur/kyc";
+          } else if (userData?.role === "livreur") {
+            const { data: livreurData } = await supabase
+              .from("livreurs")
+              .select("statut_verification")
+              .eq("id", user?.id)
+              .maybeSingle();
+
+            destination = livreurData?.statut_verification === "valide"
+              ? "/livreur/missions"
+              : "/livreur/kyc";
+          } else if (userData?.role === "admin") {
+            destination = "/admin/dashboard";
+          } else {
+            destination = "/catalogue";
+          }
+        }
 
         window.location.href = destination;
       }

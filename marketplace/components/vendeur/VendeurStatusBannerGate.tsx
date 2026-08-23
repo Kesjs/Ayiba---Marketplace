@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { VendeurStatusBanner } from "@/components/vendeur/VendeurStatusBanner";
 
 interface VendeurStatusBannerGateProps {
-  statut: string;
+  statut?: string | null;
   raisonRejet?: string | null;
 }
 

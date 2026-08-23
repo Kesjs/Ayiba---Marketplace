@@ -18,6 +18,7 @@ interface Slide {
   image: string;
   imageAlt: string;
   imagePosition: string;
+  tabLabel: string;
 }
 
 const SLIDES: Slide[] = [
@@ -33,6 +34,7 @@ const SLIDES: Slide[] = [
     image: "/images/hero/hero-artisan.webp",
     imageAlt: "Vendeuse préparant ses articles pour Ayiba",
     imagePosition: "object-[75%_center] md:object-[85%_center]",
+    tabLabel: "Espace Vendeur",
   },
   {
     id: "livreur",
@@ -46,6 +48,7 @@ const SLIDES: Slide[] = [
     image: "/illustrations/delivery.svg",
     imageAlt: "Illustration livreur Ayiba",
     imagePosition: "object-center",
+    tabLabel: "Espace Livreur",
   },
 ];
 
@@ -73,25 +76,27 @@ export function HeroSection() {
   const slide = SLIDES[index];
   const t = THEME[slide.theme];
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % SLIDES.length);
-    }, AUTO_ROTATE_MS);
-    return () => clearInterval(timer);
-  }, []);
+  // Le défilement automatique a été retiré. Le carrousel se contrôle désormais manuellement via les points.
 
-  const Dots = ({ className = "" }: { className?: string }) => (
-    <div className={`flex items-center gap-1.5 ${className}`}>
-      {SLIDES.map((s, i) => (
-        <button
-          key={s.id}
-          onClick={() => setIndex(i)}
-          aria-label={`Voir : ${s.badge}`}
-          className={`h-1.5 rounded-full transition-all duration-300 ${
-            i === index ? `w-6 ${t.dotActive}` : "w-1.5 bg-gray-300"
-          }`}
-        />
-      ))}
+  const Tabs = ({ className = "" }: { className?: string }) => (
+    <div className={`flex items-center p-1.5 bg-gray-100/80 backdrop-blur-sm rounded-xl ${className}`}>
+      {SLIDES.map((s, i) => {
+        const isActive = i === index;
+        const activeTheme = THEME[s.theme];
+        return (
+          <button
+            key={s.id}
+            onClick={() => setIndex(i)}
+            className={`flex-1 px-4 py-2.5 rounded-lg text-[13px] md:text-sm font-bold transition-all duration-300 ${
+              isActive
+                ? `bg-white shadow-sm ${activeTheme.badgeText}`
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-200/50"
+            }`}
+          >
+            {s.tabLabel}
+          </button>
+        );
+      })}
     </div>
   );
 
@@ -149,13 +154,13 @@ export function HeroSection() {
 
               <Link
                 href={slide.ctaHref}
-                className={`inline-flex items-center justify-center gap-2.5 w-full px-6 py-3.5 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all duration-200 active:scale-[0.98] mb-4 ${t.cta}`}
+                className={`inline-flex items-center justify-center gap-2.5 w-full px-6 py-3.5 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all duration-200 active:scale-[0.98] mb-6 ${t.cta}`}
               >
                 <span>{slide.ctaLabel}</span>
                 <ArrowRight size={16} strokeWidth={2.5} />
               </Link>
 
-              <Dots className="justify-center" />
+              <Tabs className="w-full" />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -211,16 +216,18 @@ export function HeroSection() {
                 {slide.subtitle}
               </p>
 
-              <div className="flex items-center gap-5">
-                <Link
-                  href={slide.ctaHref}
-                  className={`inline-flex items-center justify-center gap-2.5 px-6 py-3.5 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all duration-200 active:scale-[0.98] ${t.cta}`}
-                >
-                  <span>{slide.ctaLabel}</span>
-                  <ArrowRight size={16} strokeWidth={2.5} />
-                </Link>
+              <div className="flex flex-col gap-6">
+                <div>
+                  <Link
+                    href={slide.ctaHref}
+                    className={`inline-flex items-center justify-center gap-2.5 px-6 py-3.5 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all duration-200 active:scale-[0.98] ${t.cta}`}
+                  >
+                    <span>{slide.ctaLabel}</span>
+                    <ArrowRight size={16} strokeWidth={2.5} />
+                  </Link>
+                </div>
 
-                <Dots />
+                <Tabs className="w-full" />
               </div>
             </motion.div>
           </AnimatePresence>

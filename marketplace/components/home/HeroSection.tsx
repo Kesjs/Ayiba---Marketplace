@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, Store, Star, ShieldCheck, Sparkles, MapPin } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 export function HeroSection() {
   return (
@@ -73,38 +73,6 @@ export function HeroSection() {
             </Link>
           </div>
 
-          {/* Badges de Réassurance */}
-          <div className="mt-8 pt-6 border-t border-gray-100 grid grid-cols-3 gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
-                <Store size={15} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-gray-900">Vendeurs</span>
-                <span className="text-[10px] font-medium text-gray-500">Vérifiés</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600 shrink-0">
-                <ShieldCheck size={15} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-gray-900">Mobile Money</span>
-                <span className="text-[10px] font-medium text-gray-500">Escrow 100%</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                <MapPin size={15} />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xs font-black text-gray-900">Livraison</span>
-                <span className="text-[10px] font-medium text-gray-500">Code OTP</span>
-              </div>
-            </div>
-          </div>
         </motion.div>
       </div>
     </section>

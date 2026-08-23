@@ -13,7 +13,7 @@ import { Navbar } from "@/components/ui/Navbar";
 import { Footer } from "@/components/home/Footer";
 import { ContactModal } from "@/components/modals/ContactModal";
 import { useRouter } from "next/navigation";
-import { getArticlesPublics, getCategoriesActives, type ArticlePublic } from "@/lib/queries/articles";
+import { getArticlesPublics, getCategoriesFormulaire, type ArticlePublic, type CategorieArbre } from "@/lib/queries/articles";
 import { getBoutiquesPopulaires, type BoutiquePublique } from "@/lib/queries/vendeurs";
 import { resolveCategoryIcon } from "@/lib/constants/category-icons";
 import { useUser } from "@/lib/hooks/useUser";
@@ -77,7 +77,7 @@ export default function Home() {
   const supabase = useMemo(() => createClient(), []);
 
   const [articles, setArticles] = useState<ArticlePublic[]>([]);
-  const [categories, setCategories] = useState<{ id: string; nom: string; slug: string; icone: string | null; couleur: string | null }[]>([]);
+  const [categories, setCategories] = useState<CategorieArbre[]>([]);
   const [boutiques, setBoutiques] = useState<BoutiquePublique[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
@@ -158,7 +158,7 @@ export default function Home() {
           getArticlesPublics({
             excludeVendeurId: profile?.role === "vendeur" ? profile.id : undefined,
           }),
-          getCategoriesActives(),
+          getCategoriesFormulaire({ activesUniquement: true }),
           getBoutiquesPopulaires(),
         ]);
         if (cancelled) return;
@@ -215,9 +215,19 @@ export default function Home() {
 
   const articlesMelanges = useMemo(() => melanger(articles), [articles]);
 
+  const grandeCategorieActive = useMemo(
+    () => categories.find(c => c.nom === activeTab) ?? null,
+    [categories, activeTab]
+  );
+
   const filteredProducts = activeTab === "Tout"
     ? articlesMelanges
-    : articlesMelanges.filter(a => a.categorie?.nom === activeTab);
+    : grandeCategorieActive
+      ? articlesMelanges.filter(a => {
+          const nomsEnfants = new Set(grandeCategorieActive.sousCategories.map(s => s.nom));
+          return a.categorie?.nom && nomsEnfants.has(a.categorie.nom);
+        })
+      : articlesMelanges.filter(a => a.categorie?.nom === activeTab);
 
   const productsToShow = filteredProducts.slice(0, visibleProductsCount);
 

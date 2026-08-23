@@ -285,7 +285,7 @@ export interface CategorieArbre {
  * déduire le type de taille pertinent (pointures pour les chaussures,
  * S/M/L pour les vêtements) sans dépendre du libellé affiché.
  */
-export async function getCategoriesFormulaire(options?: { activesUniquement?: boolean }): Promise<CategorieArbre[]> {
+export async function getCategoriesFormulaire(options?: { activesUniquement?: boolean; avecArticlesUniquement?: boolean }): Promise<CategorieArbre[]> {
   const supabase = createClient();
   let query = supabase
     .from("categories")
@@ -305,15 +305,34 @@ export async function getCategoriesFormulaire(options?: { activesUniquement?: bo
     icone: string | null;
   }
 
-  const toutes: CategorieBrute[] = data || [];
+  let toutes: CategorieBrute[] = data || [];
+
+  if (options?.avecArticlesUniquement) {
+    // On ne garde que les sous-catégories qui portent au moins un article
+    // réellement publié — les grandes catégories elles-mêmes ne portent
+    // jamais d'article directement (voir plus haut).
+    const { data: articlesData, error: articlesError } = await supabase
+      .from("articles")
+      .select("categorie_id")
+      .eq("statut", "publie")
+      .eq("actif", true);
+    if (articlesError) throw articlesError;
+    const idsAvecArticles = new Set((articlesData || []).map((a: { categorie_id: string }) => a.categorie_id));
+    toutes = toutes.filter((c) => !c.parent_id || idsAvecArticles.has(c.id));
+  }
+
   const parents = toutes.filter((c: CategorieBrute) => !c.parent_id);
-  return parents.map((p: CategorieBrute) => ({
-    id: p.id,
-    nom: p.nom,
-    slug: p.slug,
-    icone: p.icone,
-    sousCategories: toutes
-      .filter((c: CategorieBrute) => c.parent_id === p.id)
-      .map((c: CategorieBrute) => ({ id: c.id, nom: c.nom, slug: c.slug, icone: c.icone })),
-  }));
+  return parents
+    .map((p: CategorieBrute) => ({
+      id: p.id,
+      nom: p.nom,
+      slug: p.slug,
+      icone: p.icone,
+      sousCategories: toutes
+        .filter((c: CategorieBrute) => c.parent_id === p.id)
+        .map((c: CategorieBrute) => ({ id: c.id, nom: c.nom, slug: c.slug, icone: c.icone })),
+    }))
+    // Une grande catégorie sans aucune sous-catégorie restante (donc sans
+    // article) n'a rien à afficher dans le menu.
+    .filter((p) => !options?.avecArticlesUniquement || p.sousCategories.length > 0);
 }

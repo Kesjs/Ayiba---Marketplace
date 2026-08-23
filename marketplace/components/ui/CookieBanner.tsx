@@ -43,8 +43,8 @@ export function CookieBanner() {
         animate={{ y: 0, opacity: 1, scale: 1 }}
         exit={{ y: 80, opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className={`fixed left-4 right-4 z-[100] max-w-3xl mx-auto bg-white/95 backdrop-blur-xl border border-gray-200/90 shadow-2xl rounded-3xl p-5 md:p-6 transition-all duration-300 ${
-          hideBottomNav ? "bottom-4" : "bottom-20 lg:bottom-6"
+        className={`fixed left-0 right-0 z-[100] bg-white/95 backdrop-blur-xl border-t border-gray-200/90 shadow-2xl rounded-t-2xl p-5 md:left-4 md:right-4 md:max-w-3xl md:mx-auto md:border md:rounded-3xl md:p-6 transition-all duration-300 ${
+          hideBottomNav ? "bottom-0 md:bottom-4" : "bottom-20 lg:bottom-6"
         }`}
         aria-label="Bandeau d'information sur les cookies"
       >

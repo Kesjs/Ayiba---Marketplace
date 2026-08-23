@@ -11,7 +11,7 @@ export function MegaMenu() {
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
 
   useEffect(() => {
-    getCategoriesFormulaire({ activesUniquement: true })
+    getCategoriesFormulaire({ activesUniquement: true, avecArticlesUniquement: true })
       .then(data => setCategories(data))
       .catch(console.error);
   }, []);

@@ -19,6 +19,7 @@ interface Slide {
   imageAlt: string;
   imagePosition: string;
   tabLabel: string;
+  hasFade?: boolean;
 }
 
 const SLIDES: Slide[] = [
@@ -31,10 +32,11 @@ const SLIDES: Slide[] = [
     subtitle: "Rejoignez les créateurs et vendeurs qui vendent déjà sur Ayiba, sans site web ni frais de démarrage.",
     ctaLabel: "Devenir vendeur",
     ctaHref: "/devenir-vendeur",
-    image: "/images/hero/hero-artisan.webp",
-    imageAlt: "Vendeuse préparant ses articles pour Ayiba",
-    imagePosition: "object-[75%_center] md:object-[85%_center]",
+    image: "/images/hero/hero-vendeur.jpg",
+    imageAlt: "Vendeuse sur son téléphone mobile",
+    imagePosition: "object-[80%_center] md:object-right",
     tabLabel: "Espace Vendeur",
+    hasFade: true,
   },
   {
     id: "livreur",
@@ -151,6 +153,7 @@ export function HeroSection() {
                 priority
                 sizes="100vw"
                 className={`object-cover ${slide.imagePosition}`}
+                style={slide.hasFade ? { maskImage: 'linear-gradient(to right, transparent 0%, black 40%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 40%)' } : {}}
               />
               <div className="absolute inset-0 bg-black/5 pointer-events-none" />
             </motion.div>
@@ -213,6 +216,7 @@ export function HeroSection() {
                 priority
                 sizes="100vw"
                 className={`object-cover ${slide.imagePosition}`}
+                style={slide.hasFade ? { maskImage: 'linear-gradient(to right, transparent 0%, black 30%)', WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 30%)' } : {}}
               />
               <div className="absolute inset-0 bg-black/5 pointer-events-none" />
             </motion.div>

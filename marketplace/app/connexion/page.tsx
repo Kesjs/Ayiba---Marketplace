@@ -420,7 +420,7 @@ function AuthForm() {
           ) : mode !== "mot-de-passe-oublie" ? (
             <>
               <h2 className="text-[22px] font-extrabold text-gray-900 mb-1.5">
-                {mode === "connexion" ? "Bon retour parmi nous 👋" : "Bienvenue sur Ayiba 🎉"}
+                {mode === "connexion" ? "Bon retour parmi nous" : "Bienvenue sur Ayiba"}
               </h2>
               <p className={`text-[14px] text-gray-600 leading-relaxed ${isClientSignup ? "mb-3" : "mb-6"}`}>
                 {mode === "connexion" 
@@ -651,9 +651,9 @@ function AuthForm() {
 
 export default function ConnexionPage() {
   return (
-    <div className="min-h-screen flex w-full bg-white">
+    <div className="h-screen w-full flex bg-white overflow-hidden">
       {/* Video Side (Hidden on Mobile) */}
-      <div className="hidden lg:flex lg:w-1/2 relative bg-gray-900">
+      <div className="hidden lg:flex lg:w-1/2 h-full relative bg-gray-900">
         <video
           autoPlay
           loop
@@ -670,16 +670,18 @@ export default function ConnexionPage() {
       </div>
 
       {/* Form Side */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 sm:px-8 md:px-16 lg:px-24 py-12 lg:py-0 overflow-y-auto max-h-screen">
-        <div className="w-full max-w-sm mx-auto mb-10 flex justify-center lg:justify-start">
-          <a href="/" className="hover:opacity-80 transition-opacity">
-            <LogoAyiba className="h-8 md:h-10 w-auto" />
-          </a>
+      <div className="w-full lg:w-1/2 h-full overflow-y-auto relative">
+        <div className="min-h-full flex flex-col justify-center px-4 sm:px-8 md:px-16 lg:px-24 py-12">
+          <div className="w-full max-w-sm mx-auto mb-10 flex justify-center lg:justify-start">
+            <a href="/" className="hover:opacity-80 transition-opacity">
+              <LogoAyiba className="h-8 md:h-10 w-auto" />
+            </a>
+          </div>
+          
+          <Suspense fallback={<div className="w-full max-w-sm mx-auto h-[400px] bg-gray-50 animate-pulse rounded-2xl" />}>
+            <AuthForm />
+          </Suspense>
         </div>
-        
-        <Suspense fallback={<div className="w-full max-w-sm mx-auto h-[400px] bg-gray-50 animate-pulse rounded-2xl" />}>
-          <AuthForm />
-        </Suspense>
       </div>
     </div>
   );

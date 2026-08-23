@@ -266,6 +266,7 @@ export interface CategorieArbre {
   id: string;
   nom: string;
   slug: string;
+  icone: string | null;
   sousCategories: { id: string; nom: string; slug: string; icone: string | null }[];
 }
 
@@ -310,6 +311,7 @@ export async function getCategoriesFormulaire(options?: { activesUniquement?: bo
     id: p.id,
     nom: p.nom,
     slug: p.slug,
+    icone: p.icone,
     sousCategories: toutes
       .filter((c: CategorieBrute) => c.parent_id === p.id)
       .map((c: CategorieBrute) => ({ id: c.id, nom: c.nom, slug: c.slug, icone: c.icone })),

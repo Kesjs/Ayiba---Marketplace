@@ -39,16 +39,17 @@ export function CookieBanner() {
   return (
     <AnimatePresence>
       <motion.aside
-        initial={{ y: 80, opacity: 0, scale: 0.95 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 80, opacity: 0, scale: 0.95 }}
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 80, opacity: 0 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className={`fixed left-0 right-0 z-[100] bg-white/95 backdrop-blur-xl border-t border-gray-200/90 shadow-2xl rounded-t-2xl p-5 md:left-4 md:right-4 md:max-w-3xl md:mx-auto md:border md:rounded-3xl md:p-6 transition-all duration-300 ${
-          hideBottomNav ? "bottom-0 md:bottom-4" : "bottom-20 lg:bottom-6"
+        className={`fixed left-0 right-0 z-[100] w-full bg-white/98 backdrop-blur-xl border-t border-gray-200 shadow-2xl transition-all duration-300 ${
+          hideBottomNav ? "bottom-0" : "bottom-16 lg:bottom-0"
         }`}
         aria-label="Bandeau d'information sur les cookies"
       >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-4.5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-8">
           {/* Section Texte + Icône */}
           <div className="flex items-start gap-4 min-w-0">
             <div className="w-12 h-12 rounded-2xl bg-coral-50 text-coral-500 border border-coral-100/60 flex items-center justify-center shrink-0 shadow-xs">
@@ -98,7 +99,8 @@ export function CookieBanner() {
             </button>
           </div>
         </div>
-      </motion.aside>
-    </AnimatePresence>
-  );
+      </div>
+    </motion.aside>
+  </AnimatePresence>
+);
 }

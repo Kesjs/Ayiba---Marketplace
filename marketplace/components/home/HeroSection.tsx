@@ -33,7 +33,7 @@ const SLIDES: Slide[] = [
     ctaHref: "/devenir-vendeur",
     image: "/images/hero/hero-vendeur.webp",
     imageAlt: "Vendeuse sur son téléphone mobile",
-    imagePosition: "object-[80%_center] md:object-center",
+    imagePosition: "object-[center_top] sm:object-[75%_top] md:object-[85%_top] lg:object-[80%_15%]",
     tabLabel: "Espace Vendeur",
   },
   {
@@ -47,7 +47,7 @@ const SLIDES: Slide[] = [
     ctaHref: "/devenir-livreur",
     image: "/images/hero/hero-livreur.webp",
     imageAlt: "Livreur partenaire Ayiba",
-    imagePosition: "object-[80%_center] md:object-center",
+    imagePosition: "object-[center_top] sm:object-[75%_top] md:object-[85%_top] lg:object-[80%_15%]",
     tabLabel: "Espace Livreur",
   },
 ];
@@ -129,7 +129,7 @@ export function HeroSection() {
     <section className="relative w-full overflow-hidden bg-[#F1EFE8]">
       {/* ============ MOBILE : image en bloc + carte qui chevauche le bas ============ */}
       <div className="md:hidden">
-        <div className="relative w-full h-[380px] overflow-hidden">
+        <div className="relative w-full h-[400px] overflow-hidden">
           <AnimatePresence initial={false} custom={direction}>
             <motion.div
               key={slide.id}
@@ -157,7 +157,7 @@ export function HeroSection() {
           </AnimatePresence>
         </div>
 
-        <div className="relative z-10 -mt-14 px-4 pb-6">
+        <div className="relative z-10 -mt-12 px-4 pb-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={slide.id}

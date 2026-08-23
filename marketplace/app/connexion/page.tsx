@@ -63,8 +63,8 @@ const getRoleConfig = (role: "vendeur" | "livreur" | null | undefined) => {
       iconColor: "text-coral-500",
       bgColor: "bg-coral-50",
       bgBorder: "border-coral-100",
-      roleTitle: "Bienvenue sur Ayiba",
-      roleSubtitle: "Commencez à vendre en quelques minutes",
+      roleTitle: "Espace Vendeur Ayiba",
+      roleSubtitle: "Gérez votre boutique et développez vos ventes sans frais cachés.",
       buttonColor: "bg-coral-400 hover:bg-coral-600",
     };
   }
@@ -74,8 +74,8 @@ const getRoleConfig = (role: "vendeur" | "livreur" | null | undefined) => {
       iconColor: "text-teal-600",
       bgColor: "bg-teal-50",
       bgBorder: "border-teal-100",
-      roleTitle: "Rejoins notre équipe",
-      roleSubtitle: "Gagnez de l'argent en livrant",
+      roleTitle: "Espace Livreur Partenaire",
+      roleSubtitle: "Livrez à votre rythme, paiements instantanés par Mobile Money.",
       buttonColor: "bg-teal-500 hover:bg-teal-600",
     };
   }
@@ -419,14 +419,18 @@ function AuthForm() {
             </div>
           ) : mode !== "mot-de-passe-oublie" ? (
             <>
-              <h2 className="text-[20px] font-bold text-gray-900 mb-1">Bienvenue sur Ayiba</h2>
-              <p className={`text-[14px] text-gray-600 ${isClientSignup ? "mb-2" : "mb-5"}`}>
-                {mode === "connexion" ? "Heureux de te revoir !" : "Rejoins-nous en quelques secondes"}
+              <h2 className="text-[22px] font-extrabold text-gray-900 mb-1.5">
+                {mode === "connexion" ? "Bon retour parmi nous 👋" : "Bienvenue sur Ayiba 🎉"}
+              </h2>
+              <p className={`text-[14px] text-gray-600 leading-relaxed ${isClientSignup ? "mb-3" : "mb-6"}`}>
+                {mode === "connexion" 
+                  ? "Retrouvez vos boutiques préférées et accédez à vos commandes en un clic." 
+                  : "Créez votre compte pour acheter des créations locales et suivre vos livraisons."}
               </p>
               {isClientSignup && (
                 <div className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1 mb-5">
                   <ShoppingBag size={12} className="text-gray-400" />
-                  <span className="text-[11px] font-medium text-gray-500">Compte client</span>
+                  <span className="text-[11px] font-medium text-gray-500">Création de compte client</span>
                 </div>
               )}
             </>
@@ -655,6 +659,7 @@ export default function ConnexionPage() {
           loop
           muted
           playsInline
+          poster="/images/hero/hero-artisan.webp"
           className="absolute inset-0 w-full h-full object-cover"
         >
           <source src="/0_Woman_Online_Shopping_1280x720.mp4" type="video/mp4" />

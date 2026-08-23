@@ -137,12 +137,7 @@ export function HeroSection() {
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className="bg-white p-6 rounded-3xl border border-gray-100 shadow-xl shadow-gray-900/10 text-center"
             >
-              <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border mb-4 ${t.badgeBg}`}>
-                <slide.badgeIcon size={14} className={t.badgeIcon} />
-                <span className={`text-xs font-bold tracking-wide uppercase ${t.badgeText}`}>
-                  {slide.badge}
-                </span>
-              </div>
+              <Tabs className="w-full mb-5" />
 
               <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight leading-[1.2] mb-3">
                 {slide.h1}
@@ -154,13 +149,11 @@ export function HeroSection() {
 
               <Link
                 href={slide.ctaHref}
-                className={`inline-flex items-center justify-center gap-2.5 w-full px-6 py-3.5 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all duration-200 active:scale-[0.98] mb-6 ${t.cta}`}
+                className={`inline-flex items-center justify-center gap-2.5 w-full px-6 py-3.5 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all duration-200 active:scale-[0.98] ${t.cta}`}
               >
                 <span>{slide.ctaLabel}</span>
                 <ArrowRight size={16} strokeWidth={2.5} />
               </Link>
-
-              <Tabs className="w-full" />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -201,12 +194,7 @@ export function HeroSection() {
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               className="max-w-[460px] bg-white/95 backdrop-blur-md p-7 rounded-3xl border border-gray-100 shadow-xl shadow-gray-900/5"
             >
-              <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border mb-5 ${t.badgeBg}`}>
-                <slide.badgeIcon size={14} className={t.badgeIcon} />
-                <span className={`text-xs font-bold tracking-wide uppercase ${t.badgeText}`}>
-                  {slide.badge}
-                </span>
-              </div>
+              <Tabs className="w-full mb-6" />
 
               <h1 className="text-3xl lg:text-[40px] font-extrabold text-gray-900 tracking-tight leading-[1.15] mb-3">
                 {slide.h1}
@@ -216,18 +204,14 @@ export function HeroSection() {
                 {slide.subtitle}
               </p>
 
-              <div className="flex flex-col gap-6">
-                <div>
-                  <Link
-                    href={slide.ctaHref}
-                    className={`inline-flex items-center justify-center gap-2.5 px-6 py-3.5 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all duration-200 active:scale-[0.98] ${t.cta}`}
-                  >
-                    <span>{slide.ctaLabel}</span>
-                    <ArrowRight size={16} strokeWidth={2.5} />
-                  </Link>
-                </div>
-
-                <Tabs className="w-full" />
+              <div>
+                <Link
+                  href={slide.ctaHref}
+                  className={`inline-flex items-center justify-center gap-2.5 px-6 py-3.5 text-white font-extrabold text-sm rounded-2xl shadow-md transition-all duration-200 active:scale-[0.98] ${t.cta}`}
+                >
+                  <span>{slide.ctaLabel}</span>
+                  <ArrowRight size={16} strokeWidth={2.5} />
+                </Link>
               </div>
             </motion.div>
           </AnimatePresence>

@@ -71,10 +71,35 @@ const THEME = {
   },
 } as const;
 
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? "100%" : "-100%",
+    opacity: 0.8,
+  }),
+  center: {
+    zIndex: 1,
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    zIndex: 0,
+    x: direction < 0 ? "100%" : "-100%",
+    opacity: 0.8,
+  }),
+};
+
 export function HeroSection() {
   const [index, setIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+  
   const slide = SLIDES[index];
   const t = THEME[slide.theme];
+
+  const handleTabClick = (newIndex: number) => {
+    if (newIndex === index) return;
+    setDirection(newIndex > index ? 1 : -1);
+    setIndex(newIndex);
+  };
 
   // Le défilement automatique a été retiré. Le carrousel se contrôle désormais manuellement via les points.
 
@@ -86,7 +111,7 @@ export function HeroSection() {
         return (
           <button
             key={s.id}
-            onClick={() => setIndex(i)}
+            onClick={() => handleTabClick(i)}
             className={`flex-1 px-4 py-2.5 rounded-lg text-[13px] md:text-sm font-bold transition-all duration-300 ${
               isActive
                 ? `bg-white shadow-sm ${activeTheme.badgeText}`
@@ -105,13 +130,18 @@ export function HeroSection() {
       {/* ============ MOBILE : image en bloc + carte qui chevauche le bas ============ */}
       <div className="md:hidden">
         <div className="relative w-full h-[380px] overflow-hidden">
-          <AnimatePresence mode="wait">
+          <AnimatePresence initial={false} custom={direction}>
             <motion.div
               key={slide.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5 }}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.2 },
+              }}
               className="absolute inset-0"
             >
               <Image
@@ -161,14 +191,19 @@ export function HeroSection() {
 
       {/* ============ DESKTOP : image plein fond + carte flottante ============ */}
       <div className="hidden md:flex relative min-h-[600px] items-center">
-        <div className="absolute inset-0 z-0">
-          <AnimatePresence mode="wait">
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <AnimatePresence initial={false} custom={direction}>
             <motion.div
               key={slide.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.6 }}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{
+                x: { type: "spring", stiffness: 300, damping: 30 },
+                opacity: { duration: 0.2 },
+              }}
               className="absolute inset-0"
             >
               <Image

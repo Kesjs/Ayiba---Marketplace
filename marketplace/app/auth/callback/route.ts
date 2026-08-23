@@ -77,7 +77,9 @@ export async function GET(request: Request) {
           .from(table)
           .select(statutField)
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
+
+        const estValide = profil && (profil as Record<string, string>)[statutField] === "valide";
 
         if (estValide) {
           const validDest = userData.role === "vendeur" ? "vendeur/dashboard" : "livreur/missions";

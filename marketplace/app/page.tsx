@@ -158,7 +158,7 @@ export default function Home() {
           getArticlesPublics({
             excludeVendeurId: profile?.role === "vendeur" ? profile.id : undefined,
           }),
-          getCategoriesFormulaire({ activesUniquement: true }),
+          getCategoriesFormulaire({ activesUniquement: true, avecArticlesUniquement: true }),
           getBoutiquesPopulaires(),
         ]);
         if (cancelled) return;

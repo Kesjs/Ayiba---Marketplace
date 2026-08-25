@@ -22,26 +22,36 @@ export function AuthHeaderBack({ className = "", fallbackUrl = "/" }: AuthHeader
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleBack}
-      className={`group relative inline-flex items-center gap-2.5 py-1.5 px-2.5 -ml-2.5 rounded-xl transition-all duration-200 hover:bg-gray-100/80 active:scale-[0.98] cursor-pointer text-left ${className}`}
-      title="Retour à la page précédente"
-      aria-label="Retour"
-    >
-      {/* Back Arrow with smooth slide-in hover effect */}
-      <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-coral-500 flex items-center justify-center text-gray-500 group-hover:text-white transition-all duration-200 shadow-2xs shrink-0">
-        <ArrowLeft size={16} className="transition-transform duration-200 group-hover:-translate-x-0.5" />
-      </div>
-
-      {/* Logo and optional subtle 'Retour' hint */}
-      <div className="flex flex-col">
-        <LogoAyiba className="h-7 md:h-8 w-auto transition-opacity duration-200" />
-        <span className="text-[10px] font-semibold text-gray-400 group-hover:text-coral-600 transition-colors -mt-0.5 tracking-tight flex items-center gap-1">
+    <div className={`flex items-center gap-3.5 ${className}`}>
+      {/* Bouton Flèche Retour style Stripe Checkout */}
+      <button
+        type="button"
+        onClick={handleBack}
+        className="group flex items-center gap-2 py-1.5 px-2.5 -ml-2.5 rounded-full hover:bg-gray-100 active:scale-95 transition-all duration-200 cursor-pointer"
+        aria-label="Retour à la page précédente"
+        title="Retour à la page précédente"
+      >
+        <div className="w-8 h-8 rounded-full border border-gray-200 bg-white group-hover:border-coral-400 group-hover:bg-coral-50 flex items-center justify-center text-gray-500 group-hover:text-coral-600 transition-all duration-200 shadow-2xs">
+          <ArrowLeft size={15} className="transition-transform duration-200 group-hover:-translate-x-0.5" />
+        </div>
+        <span className="text-xs font-bold text-gray-500 group-hover:text-gray-900 transition-colors">
           Retour
         </span>
-      </div>
-    </button>
+      </button>
+
+      {/* Séparateur discret */}
+      <div className="h-5 w-[1px] bg-gray-200/80 shrink-0" />
+
+      {/* Logo Ayiba Officiel sur la même ligne */}
+      <button
+        type="button"
+        onClick={handleBack}
+        className="hover:opacity-85 active:scale-98 transition-all cursor-pointer flex items-center"
+        title="Retour"
+      >
+        <LogoAyiba className="h-8 md:h-9 w-auto" />
+      </button>
+    </div>
   );
 }
 

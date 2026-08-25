@@ -1,0 +1,16 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fond blanc pur avec coins légèrement arrondis ou transparent -->
+  <rect width="512" height="512" rx="112" fill="#FFFFFF"/>
+  <g transform="translate(106, 76) scale(3.2)">
+    <!-- Jambe gauche du A -->
+    <path d="M45 25L20 80" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+    <!-- Jambe droite du A qui descend pour faire la queue du Y -->
+    <path d="M45 25L70 55V80" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+    <!-- Bras droit du Y qui se détache -->
+    <path d="M70 55L95 25" stroke="#D85A30" stroke-width="8" stroke-linecap="round"/>
+    <!-- Barre du A style anse de panier de marché -->
+    <path d="M30 60C38 64 52 64 60 60" stroke="#D85A30" stroke-width="6" stroke-linecap="round"/>
+    <!-- Le Point Teal de la Sécurité / Validation -->
+    <circle cx="95" cy="13" r="5.5" fill="#1D9E75"/>
+  </g>
+</svg>

@@ -13,21 +13,27 @@
   "icons": [
     {
       "src": "/favicon.png",
-      "sizes": "32x32",
+      "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "/logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/logo.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -36,21 +42,21 @@
       "short_name": "Catalogue",
       "description": "Parcourir toutes les catégories de produits",
       "url": "/catalogue",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Rechercher",
       "short_name": "Rechercher",
       "description": "Trouver des articles près de chez moi",
       "url": "/recherche",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Ouvrir ma boutique",
       "short_name": "Vendre",
       "description": "Devenir vendeur partenaire sur Ayiba",
       "url": "/devenir-vendeur",
-      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

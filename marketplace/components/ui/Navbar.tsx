@@ -204,14 +204,14 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`sticky top-0 z-50 flex flex-col bg-white/95 backdrop-blur-md transition-shadow duration-300 ${
-          scrolled ? "shadow-[0_4px_20px_rgba(0,0,0,0.06)]" : "shadow-[0_1px_0_rgba(0,0,0,0.04)]"
+        className={`sticky top-0 z-50 flex flex-col bg-white border-b border-gray-200/80 transition-shadow duration-200 ${
+          scrolled ? "shadow-sm shadow-black/5" : ""
         }`}
       >
-        <div className="flex items-center justify-between h-14 md:h-full px-4 md:px-8 lg:px-12 max-w-7xl mx-auto w-full gap-4 md:gap-8">
+        <div className="flex items-center justify-between py-3 md:py-3.5 px-4 md:px-8 lg:px-12 max-w-7xl mx-auto w-full gap-4 md:gap-8">
           <div className="flex items-center gap-3 md:gap-4 shrink-0">
             <a href="/" className="flex items-center shrink-0 opacity-100 hover:opacity-80 transition-opacity duration-200">
-              <LogoAyiba className="h-8 w-auto md:h-10" />
+              <LogoAyiba className="h-8 w-auto md:h-9" />
             </a>
           </div>
 

@@ -2,6 +2,7 @@ import Image from "next/image";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { CartPlusIcon } from "@/components/ui/CartPlusIcon";
 
 interface ProductCardProps {
   image: string;
@@ -141,7 +142,7 @@ export function ProductCard({
             }}
             className="w-full mt-2 py-3 bg-gray-950 text-white rounded-[16px] text-sm font-bold hover:bg-coral-500 transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-gray-200"
           >
-            <i className="ti ti-shopping-cart text-lg" />
+            <CartPlusIcon size={18} />
             Ajouter au panier
           </button>
         )}

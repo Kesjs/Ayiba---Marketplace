@@ -11,25 +11,26 @@ export function DeliveryAssuranceBanner() {
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, height: 0, padding: 0 }}
-          className="w-full bg-white px-4 pt-4 pb-2 flex justify-center overflow-hidden"
+          className="w-full bg-[#FAF9F6] border-b border-gray-200/70 px-4 py-2 flex justify-center"
         >
-          <div className="relative bg-[#F7F6F2] border border-gray-200/60 shadow-sm rounded-2xl p-4 pr-12 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 max-w-4xl w-full text-center sm:text-left">
-            <div className="flex items-center gap-2 text-gray-700 bg-white p-2 rounded-xl shrink-0 shadow-xs">
-              <ShieldCheck size={20} className="text-gray-700" />
-              <QrCode size={20} className="text-gray-700" />
+          <div className="relative flex items-center justify-center gap-2.5 max-w-4xl w-full text-center text-xs font-medium text-gray-700 pr-8">
+            <div className="flex items-center gap-1 text-teal-700 bg-teal-50 px-2 py-0.5 rounded-md border border-teal-100/80 shrink-0 font-bold">
+              <ShieldCheck size={13} />
+              <span>Garantie</span>
             </div>
-            <p className="text-sm font-medium text-gray-800 leading-snug">
-              <span className="font-bold">Faites-vous livrer en toute sérénité :</span> votre paiement est bloqué jusqu'à ce que vous validiez la réception avec votre code secret ou QR code.
+            <p className="leading-snug truncate sm:whitespace-normal">
+              <span className="font-semibold text-gray-900">Livraison en toute sérénité :</span> paiement sécurisé bloqué jusqu'à validation de votre colis.
             </p>
             <button
+              type="button"
               onClick={() => setIsVisible(false)}
-              className="absolute top-1/2 -translate-y-1/2 right-3 p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-200/50 rounded-full transition-colors"
+              className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-700 rounded-md transition-colors"
               aria-label="Fermer"
             >
-              <X size={16} strokeWidth={2.5} />
+              <X size={14} />
             </button>
           </div>
         </motion.div>

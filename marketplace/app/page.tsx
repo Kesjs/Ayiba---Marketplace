@@ -428,17 +428,17 @@ export default function Home() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
-              className="py-12 md:py-16 bg-white"
+              className="py-8 md:py-12 bg-white"
             >
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 mb-6 md:mb-8">
-                  <div className="flex items-center gap-3 md:gap-4">
-                    <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
-                      <Zap size={22} />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-coral-50 flex items-center justify-center text-coral-500 shrink-0">
+                      <Zap size={20} />
                     </div>
                     <div>
-                      <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Ventes flash</h2>
-                      <p className="text-gray-500 text-xs md:text-sm mt-0.5">Offres limitées proposées par nos boutiques créatrices</p>
+                      <h2 className="text-lg md:text-2xl font-extrabold text-gray-900 tracking-tight">Ventes flash</h2>
+                      <p className="text-gray-500 text-xs mt-0.5">Offres limitées proposées par nos boutiques créatrices</p>
                     </div>
                   </div>
 
@@ -506,20 +506,20 @@ export default function Home() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
-            className="py-14 md:py-20 bg-[#F7F6F2] border-y border-gray-200/60"
+            className="py-10 md:py-14 bg-[#F7F6F2] border-y border-gray-200/60"
           >
             <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-8 md:mb-12">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 mb-6 md:mb-8">
                 <div>
-                  <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Pour vous</h2>
-                  <p className="text-gray-600 text-xs md:text-sm mt-1">Sélection d'articles des créateurs locaux</p>
+                  <h2 className="text-lg md:text-2xl font-extrabold text-gray-900 tracking-tight">Pour vous</h2>
+                  <p className="text-gray-600 text-xs mt-0.5">Sélection d'articles des créateurs locaux</p>
                 </div>
 
                 <div className="flex items-center gap-4">
                   <Link href="/catalogue">
-                    <Button variant="outline" className="h-10 px-5 text-xs font-bold rounded-xl border-gray-300 bg-white hover:bg-gray-50 shadow-2xs">
+                    <Button variant="outline" className="h-9 px-4 text-xs font-bold rounded-xl border-gray-300 bg-white hover:bg-gray-50 shadow-2xs">
                       Voir tout le catalogue
-                      <ArrowRight size={14} className="ml-2" />
+                      <ArrowRight size={13} className="ml-1.5" />
                     </Button>
                   </Link>
                 </div>
@@ -598,15 +598,15 @@ export default function Home() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
-              className="py-12 md:py-16 bg-white border-b border-gray-100"
+              className="py-8 md:py-12 bg-white border-b border-gray-100"
             >
               <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
-                <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-6">
                   <div>
-                    <h2 className="text-xl md:text-2xl lg:text-3xl font-extrabold text-gray-900 tracking-tight">Explorer les boutiques</h2>
-                    <p className="text-gray-500 text-xs md:text-sm mt-1">Découvrez les artisans et commerçants passionnés de votre ville</p>
+                    <h2 className="text-lg md:text-2xl font-extrabold text-gray-900 tracking-tight">Explorer les boutiques</h2>
+                    <p className="text-gray-500 text-xs mt-0.5">Découvrez les artisans et commerçants passionnés de votre ville</p>
                   </div>
-                  <Link href="/boutiques" className="text-xs md:text-sm font-bold text-coral-600 hover:underline whitespace-nowrap ml-3">
+                  <Link href="/boutiques" className="text-xs font-bold text-coral-600 hover:underline whitespace-nowrap ml-3">
                     Voir toutes les boutiques
                   </Link>
                 </div>

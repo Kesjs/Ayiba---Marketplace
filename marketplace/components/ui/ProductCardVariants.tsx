@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Heart, Star, ShoppingBag, Images } from "lucide-react";
+import { Heart, Star, Images } from "lucide-react";
+import { CartPlusIcon } from "@/components/ui/CartPlusIcon";
 import { useState, useEffect } from "react";
 
 interface ProductCardProps {
@@ -207,7 +208,7 @@ export function ProductCardModern({
             }`}
             aria-label={enRupture ? "Produit en rupture de stock" : "Ajouter au panier"}
           >
-            <ShoppingBag
+            <CartPlusIcon
               size={15}
             />
           </button>

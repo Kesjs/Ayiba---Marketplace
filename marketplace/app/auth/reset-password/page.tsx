@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ShieldAlert } from "lucide-react";
@@ -83,9 +85,9 @@ export default function ResetPasswordPage() {
           <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
             <ShieldAlert size={28} className="text-red-500" />
           </div>
-          <h1 className="text-lg font-bold text-gray-900 mb-2">Lien invalide ou expiré</h1>
+          <h1 className="text-lg font-bold text-gray-900 mb-2">Session invalide ou expirée</h1>
           <p className="text-sm text-gray-500 leading-relaxed mb-6">
-            Ce lien de réinitialisation n'est plus valide. Demande un nouveau lien pour continuer.
+            Ta session de réinitialisation a expiré. Retourne à la page de connexion et demande un nouveau code.
           </p>
           <button
             onClick={() => router.push("/")}

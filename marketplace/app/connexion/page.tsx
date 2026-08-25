@@ -3,19 +3,20 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag } from "lucide-react";
+import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { validateBeninPhone, validatePasswordStrength } from "@/lib/validation";
 import { useSmartGeolocation } from "@/lib/hooks/useSmartGeolocation";
 import { getAppUrl } from "@/lib/url";
 import LogoAyiba from "@/components/ui/LogoAyiba";
+import OTPInput from "@/components/ui/OTPInput";
 
 type Mode =
   | "connexion"
   | "inscription"
   | "mot-de-passe-oublie"
-  | "verification-inscription"
-  | "verification-reset";
+  | "otp-inscription"
+  | "otp-reset";
 
 const RESEND_COOLDOWN = 45;
 
@@ -124,10 +125,14 @@ function AuthForm() {
   const [telephone, setTelephone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [otpError, setOtpError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpSuccess, setOtpSuccess] = useState(false);
+  const [otpCodeSent, setOtpCodeSent] = useState(false);
 
-  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [otpEmail, setOtpEmail] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resending, setResending] = useState(false);
 
@@ -140,9 +145,28 @@ function AuthForm() {
     return () => clearInterval(timer);
   }, [resendCooldown]);
 
+  // Reset OTP error when user goes back
   useEffect(() => {
-    const isVerificationStep = mode === "verification-inscription" || mode === "verification-reset";
-    if (!isVerificationStep) {
+    setOtpError(null);
+    setOtpSuccess(false);
+    setOtpCodeSent(false);
+  }, [mode]);
+
+  // Auto-envoie un nouveau code si l'user arrive sur l'écran OTP sans code actif
+  // (ex : il revient se connecter après avoir quitté sans confirmer)
+  useEffect(() => {
+    const isOtpStep = mode === "otp-inscription" || mode === "otp-reset";
+    if (isOtpStep && resendCooldown === 0 && otpEmail && !otpCodeSent && !resending) {
+      // Petit délai pour laisser le temps à l'UI de s'afficher
+      const t = setTimeout(() => handleResend(), 400);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, otpEmail]);
+
+  useEffect(() => {
+    const isOtpStep = mode === "otp-inscription" || mode === "otp-reset";
+    if (!isOtpStep) {
       const t = setTimeout(() => emailInputRef.current?.focus(), 50);
       return () => clearTimeout(t);
     }
@@ -163,6 +187,7 @@ function AuthForm() {
 
   const resetFormFields = () => {
     setError(null);
+    setOtpError(null);
     setPhoneError(null);
     setPassword("");
     setConfirmPassword("");
@@ -189,8 +214,8 @@ function AuthForm() {
         setLoading(false);
         if (resetError) return setError(translateError(resetError));
 
-        setVerifiedEmail(email);
-        setMode("verification-reset");
+        setOtpEmail(email);
+        setMode("otp-reset");
         setResendCooldown(RESEND_COOLDOWN);
         return;
       }
@@ -240,9 +265,10 @@ function AuthForm() {
         }
 
         if (!data.session) {
-          setVerifiedEmail(email);
-          setMode("verification-inscription");
+          setOtpEmail(email);
+          setMode("otp-inscription");
           setResendCooldown(RESEND_COOLDOWN);
+          setOtpCodeSent(true); // Supabase a déjà envoyé le code au signUp
           return;
         }
 
@@ -263,8 +289,8 @@ function AuthForm() {
         if (signInError) {
           const errMsg = (signInError.message || "").toLowerCase();
           if (errMsg.includes("email not confirmed")) {
-            setVerifiedEmail(email);
-            setMode("verification-inscription");
+            setOtpEmail(email);
+            setMode("otp-inscription");
             setResendCooldown(0);
             return;
           }
@@ -332,23 +358,25 @@ function AuthForm() {
   };
 
   const handleResend = async () => {
-    if (!verifiedEmail || resendCooldown > 0) return;
+    if (!otpEmail || resendCooldown > 0) return;
     setResending(true);
     setError(null);
+    setOtpError(null);
     try {
       const { error: resendError } =
-        mode === "verification-inscription"
+        mode === "otp-inscription"
           ? await supabase.auth.resend({
               type: "signup",
-              email: verifiedEmail,
+              email: otpEmail,
               options: { emailRedirectTo: `${getAppUrl()}/auth/callback` },
             })
-          : await supabase.auth.resetPasswordForEmail(verifiedEmail, {
+          : await supabase.auth.resetPasswordForEmail(otpEmail, {
               redirectTo: `${getAppUrl()}/auth/callback?next=/auth/reset-password`,
             });
 
       if (resendError) return setError(translateError(resendError));
       setResendCooldown(RESEND_COOLDOWN);
+      setOtpCodeSent(true);
     } catch (err) {
       setError(translateError(err));
     } finally {
@@ -356,15 +384,70 @@ function AuthForm() {
     }
   };
 
+  const handleVerifyOtp = async (token: string) => {
+    if (!otpEmail) return;
+    setOtpLoading(true);
+    setOtpError(null);
+    try {
+      if (mode === "otp-inscription") {
+        const { data, error: verifyError } = await supabase.auth.verifyOtp({
+          email: otpEmail,
+          token,
+          type: "signup",
+        });
+        if (verifyError) {
+          setOtpError("Code incorrect ou expiré. Vérifie ta boîte mail ou renvoie un code.");
+          setOtpLoading(false);
+          return;
+        }
+        setOtpSuccess(true);
+        // Créer la ligne users si c'est un client
+        if (isClientSignup && data.user) {
+          await supabase.from("users").upsert({
+            id: data.user.id,
+            phone: telephone,
+            full_name: nomComplet.trim(),
+            role: "client",
+          });
+          syncGeoToProfileIfNeeded(data.user.id).catch(() => {});
+        }
+        setTimeout(() => {
+          router.push(intendedRole ? `/${intendedRole}/kyc` : redirectTo || "/catalogue?welcome=1");
+        }, 800);
+      } else {
+        // otp-reset
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          email: otpEmail,
+          token,
+          type: "recovery",
+        });
+        if (verifyError) {
+          setOtpError("Code incorrect ou expiré. Vérifie ta boîte mail ou renvoie un code.");
+          setOtpLoading(false);
+          return;
+        }
+        setOtpSuccess(true);
+        setTimeout(() => {
+          router.push("/auth/reset-password");
+        }, 800);
+      }
+    } catch (err) {
+      setOtpError(translateError(err));
+      setOtpLoading(false);
+    }
+  };
+
   const handleEditEmail = () => {
-    setVerifiedEmail(null);
-    setMode(mode === "verification-inscription" ? "inscription" : "mot-de-passe-oublie");
+    setOtpEmail(null);
+    setOtpError(null);
+    setOtpSuccess(false);
+    setMode(mode === "otp-inscription" ? "inscription" : "mot-de-passe-oublie");
     resetFormFields();
     setResendCooldown(0);
   };
 
-  const isVerificationStep = mode === "verification-inscription" || mode === "verification-reset";
-  const mailProvider = verifiedEmail ? getMailProviderLink(verifiedEmail) : null;
+  const isOtpStep = mode === "otp-inscription" || mode === "otp-reset";
+  const mailProvider = otpEmail ? getMailProviderLink(otpEmail) : null;
 
   const isSubmitDisabled =
     loading ||
@@ -382,58 +465,92 @@ function AuthForm() {
 
   return (
     <div className="w-full max-w-sm mx-auto">
-      {isVerificationStep ? (
+      {isOtpStep ? (
         <div className="text-center">
+          {/* Icon */}
           <div
-            className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
-              mode === "verification-inscription" ? "bg-teal-50" : "bg-coral-50"
+            className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 transition-all duration-500 ${
+              otpSuccess
+                ? "bg-teal-50"
+                : mode === "otp-inscription"
+                ? "bg-teal-50"
+                : "bg-coral-50"
             }`}
           >
-            {mode === "verification-inscription" ? (
+            {otpSuccess ? (
+              <CheckCircle2 size={28} className="text-teal-600" />
+            ) : mode === "otp-inscription" ? (
               <Mail size={28} className="text-teal-600" />
             ) : (
               <KeyRound size={28} className="text-coral-500" />
             )}
           </div>
-          <h2 className="text-[18px] font-bold text-gray-900 mb-2">Vérifie ta boîte mail</h2>
-          <p className="text-[14px] text-gray-600 leading-relaxed mb-1">
-            Nous avons envoyé un lien de {mode === "verification-inscription" ? "confirmation" : "réinitialisation"} à
-          </p>
-          <p className="text-[14px] font-bold text-gray-900 mb-6 break-all">{verifiedEmail}</p>
 
-          {mailProvider && (
-            <a
-              href={mailProvider.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 mb-3 transition-colors"
-            >
-              Ouvrir {mailProvider.name} <ExternalLink size={14} />
-            </a>
+          <h2 className="text-[18px] font-bold text-gray-900 mb-1">
+            {otpSuccess ? "Vérifié !" : "Entrez votre code"}
+          </h2>
+          {!otpSuccess && (
+            <>
+              <p className="text-[13px] text-gray-500 leading-relaxed mb-0.5">
+                Code envoyé à
+              </p>
+              <p className="text-[14px] font-semibold text-gray-900 mb-5 break-all">{otpEmail}</p>
+            </>
+          )}
+          {otpSuccess && (
+            <p className="text-[13px] text-gray-500 mb-6">Redirection en cours…</p>
           )}
 
-          {error && (
-            <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mb-3 text-left">
-              <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
-              <p className="text-[12.5px] text-red-700 leading-relaxed">{error}</p>
+          {/* OTP Pad */}
+          {!otpSuccess && (
+            <div className="mb-5">
+              <OTPInput
+                length={6}
+                onComplete={handleVerifyOtp}
+                loading={otpLoading}
+                error={!!otpError}
+                onReset={() => setOtpError(null)}
+              />
             </div>
           )}
 
-          <button
-            onClick={handleResend}
-            disabled={resendCooldown > 0 || resending}
-            className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4 transition-colors"
-          >
-            <RefreshCw size={14} className={resending ? "animate-spin" : ""} />
-            {resendCooldown > 0 ? `Renvoyer (${resendCooldown}s)` : resending ? "Envoi..." : "Renvoyer l'email"}
-          </button>
+          {/* Error */}
+          {otpError && (
+            <div className="flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2.5 mb-4 text-left">
+              <AlertCircle size={16} className="text-red-500 shrink-0 mt-0.5" />
+              <p className="text-[12.5px] text-red-700 leading-relaxed">{otpError}</p>
+            </div>
+          )}
 
-          <button
-            onClick={handleEditEmail}
-            className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500 transition-colors"
-          >
-            <Pencil size={12} /> Mauvaise adresse ? Modifier
-          </button>
+          {/* Resend + open mail */}
+          {!otpSuccess && (
+            <>
+              {mailProvider && (
+                <a
+                  href={mailProvider.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 mb-3 transition-colors"
+                >
+                  Ouvrir {mailProvider.name} <ExternalLink size={14} />
+                </a>
+              )}
+              <button
+                onClick={handleResend}
+                disabled={resendCooldown > 0 || resending}
+                className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4 transition-colors"
+              >
+                <RefreshCw size={14} className={resending ? "animate-spin" : ""} />
+                {resendCooldown > 0 ? `Renvoyer (${resendCooldown}s)` : resending ? "Envoi..." : "Renvoyer le code"}
+              </button>
+              <button
+                onClick={handleEditEmail}
+                className="inline-flex items-center gap-1.5 text-[13px] text-gray-500 hover:text-coral-500 transition-colors"
+              >
+                <Pencil size={12} /> Mauvaise adresse ? Modifier
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <>

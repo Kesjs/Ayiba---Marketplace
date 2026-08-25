@@ -8,6 +8,7 @@ import { Lock, Eye, EyeOff, AlertCircle, CheckCircle2, ShieldAlert } from "lucid
 import { createClient } from "@/lib/supabase/client";
 import { validatePasswordStrength } from "@/lib/validation";
 import LogoAyiba from "@/components/ui/LogoAyiba";
+import AuthHeaderBack from "@/components/ui/AuthHeaderBack";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -127,7 +128,7 @@ export default function ResetPasswordPage() {
   // Formulaire
   return (
     <div className="h-[100dvh] overflow-hidden flex flex-col items-center justify-center gap-6 px-4">
-      <LogoAyiba className="h-9 w-auto shrink-0" />
+      <AuthHeaderBack />
       <div className="max-w-sm w-full bg-white rounded-2xl border border-gray-100 shadow-sm p-6 md:p-8 max-h-[75dvh] overflow-y-auto">
         <div className="w-14 h-14 bg-coral-50 rounded-2xl flex items-center justify-center mb-5">
           <Lock size={24} className="text-coral-500" />

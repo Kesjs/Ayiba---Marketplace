@@ -9,6 +9,7 @@ import { validateBeninPhone, validatePasswordStrength } from "@/lib/validation";
 import { useSmartGeolocation } from "@/lib/hooks/useSmartGeolocation";
 import { getAppUrl } from "@/lib/url";
 import LogoAyiba from "@/components/ui/LogoAyiba";
+import AuthHeaderBack from "@/components/ui/AuthHeaderBack";
 import OTPInput from "@/components/ui/OTPInput";
 
 type Mode =
@@ -821,10 +822,8 @@ export default function ConnexionPage() {
       {/* Form Side */}
       <div className="w-full lg:w-1/2 h-full overflow-y-auto relative">
         <div className="min-h-full flex flex-col justify-center px-4 sm:px-8 md:px-16 lg:px-24 py-12">
-          <div className="w-full max-w-sm mx-auto mb-10 flex justify-center lg:justify-start">
-            <a href="/" className="hover:opacity-80 transition-opacity">
-              <LogoAyiba className="h-8 md:h-10 w-auto" />
-            </a>
+          <div className="w-full max-w-sm mx-auto mb-8 flex justify-start">
+            <AuthHeaderBack />
           </div>
           
           <Suspense fallback={<div className="w-full max-w-sm mx-auto h-[400px] bg-gray-50 animate-pulse rounded-2xl" />}>

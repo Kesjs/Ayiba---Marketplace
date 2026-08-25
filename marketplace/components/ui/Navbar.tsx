@@ -112,32 +112,14 @@ export function Navbar() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
-        e.preventDefault();
-        if (window.innerWidth >= 768) {
-          searchInputRef.current?.focus();
-        } else {
-          setShowSearchOverlay(true);
-          setTimeout(() => mobileSearchInputRef.current?.focus(), 100);
-        }
-      }
-
-      if (e.key === "Escape") {
-        if (showSearchOverlay) {
-          setShowSearchOverlay(false);
-          setSearchQuery("");
-        } else if (document.activeElement === searchInputRef.current) {
-          if (searchQuery) {
-            setSearchQuery("");
-          } else {
-            searchInputRef.current?.blur();
-          }
-        }
+      if (e.key === "Escape" && showSearchOverlay) {
+        setShowSearchOverlay(false);
+        setSearchQuery("");
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showSearchOverlay, searchQuery]);
+  }, [showSearchOverlay]);
 
   useEffect(() => {
     function handleScroll() {

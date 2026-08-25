@@ -139,6 +139,36 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Raccourci clavier "/" et "Cmd/Ctrl + K" pour activer la recherche instantanément
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      const activeTag = document.activeElement?.tagName;
+      const isEditable =
+        activeTag === "INPUT" ||
+        activeTag === "TEXTAREA" ||
+        (document.activeElement as HTMLElement)?.isContentEditable;
+
+      // Touche "/" ou "Cmd+K" / "Ctrl+K"
+      if (
+        (e.key === "/" && !isEditable) ||
+        ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k")
+      ) {
+        e.preventDefault();
+        inputRef.current?.focus();
+        setIsOpen(true);
+      }
+
+      // Touche Echap pour fermer la recherche si le champ est actif
+      if (e.key === "Escape" && document.activeElement === inputRef.current) {
+        inputRef.current?.blur();
+        setIsOpen(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const saveSearchTerm = (term: string) => {
     if (!term.trim()) return;
     const cleanTerm = term.trim();

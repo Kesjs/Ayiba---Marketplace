@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, History, TrendingUp, Sparkles, ChevronRight, Tag } from "lucide-react";
+import { Search, X, History, TrendingUp, Sparkles, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { ARTICLE_CARD_SELECT, ArticleCardRow, mapArticleRow, fetchArticleRatings, ArticleCard, getProductUrl } from "@/lib/catalogue";
@@ -85,35 +85,65 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
 
     async function executeLiveSearch() {
       try {
-        const [productsRes, categoriesRes] = await Promise.all([
-          supabase
-            .from("articles")
-            .select(ARTICLE_CARD_SELECT)
-            .eq("statut", "publie")
-            .eq("actif", true)
-            .or(`nom.ilike.%${debouncedQuery}%,description.ilike.%${debouncedQuery}%,tags_seo.ilike.%${debouncedQuery}%`)
-            .limit(4),
-          supabase
+        const term = debouncedQuery;
+
+        interface CatDbRow {
+          id: string;
+          nom: string;
+          parent_id: string | null;
+        }
+
+        const { data: catData } = await supabase
+          .from("categories")
+          .select("id, nom, parent_id")
+          .ilike("nom", `%${term}%`)
+          .limit(4);
+
+        const matchedCats = (catData || []) as CatDbRow[];
+        let catIds: string[] = [];
+        if (matchedCats.length > 0) {
+          const directIds = matchedCats.map((c: CatDbRow) => c.id);
+          const { data: subData } = await supabase
             .from("categories")
-            .select("id, nom")
-            .ilike("nom", `%${debouncedQuery}%`)
-            .limit(3),
-        ]);
+            .select("id, nom, parent_id")
+            .in("parent_id", directIds);
+          const subCats = (subData || []) as CatDbRow[];
+          catIds = Array.from(new Set([...directIds, ...subCats.map((s: CatDbRow) => s.id)]));
+        }
+
+        // 2. Recherche produits par nom, description, tags SEO ou catégorie
+        let queryBuilder = supabase
+          .from("articles")
+          .select(ARTICLE_CARD_SELECT)
+          .eq("statut", "publie")
+          .eq("actif", true);
+
+        if (catIds.length > 0) {
+          queryBuilder = queryBuilder.or(
+            `nom.ilike.%${term}%,description.ilike.%${term}%,tags_seo.ilike.%${term}%,categorie_id.in.(${catIds.join(",")})`
+          );
+        } else {
+          queryBuilder = queryBuilder.or(
+            `nom.ilike.%${term}%,description.ilike.%${term}%,tags_seo.ilike.%${term}%`
+          );
+        }
+
+        const { data: productsData } = await queryBuilder.limit(4);
 
         if (!isMounted) return;
 
-        if (productsRes.data) {
-          const rows = productsRes.data as unknown as ArticleCardRow[];
+        if (matchedCats && matchedCats.length > 0) {
+          setLiveCategories(matchedCats as CategoryItem[]);
+        } else {
+          setLiveCategories([]);
+        }
+
+        if (productsData && productsData.length > 0) {
+          const rows = productsData as unknown as ArticleCardRow[];
           const ratings = await fetchArticleRatings(supabase, rows.map((r) => r.id));
           setLiveProducts(rows.map((r) => mapArticleRow(r, ratings)));
         } else {
           setLiveProducts([]);
-        }
-
-        if (categoriesRes.data) {
-          setLiveCategories(categoriesRes.data as CategoryItem[]);
-        } else {
-          setLiveCategories([]);
         }
       } catch (err) {
         console.error("Live search error:", err);
@@ -148,7 +178,6 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
         activeTag === "TEXTAREA" ||
         (document.activeElement as HTMLElement)?.isContentEditable;
 
-      // Touche "/" ou "Cmd+K" / "Ctrl+K"
       if (
         (e.key === "/" && !isEditable) ||
         ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k")
@@ -158,7 +187,6 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
         setIsOpen(true);
       }
 
-      // Touche Echap pour fermer la recherche si le champ est actif
       if (e.key === "Escape" && document.activeElement === inputRef.current) {
         inputRef.current?.blur();
         setIsOpen(false);
@@ -194,6 +222,13 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
     setIsOpen(false);
     onSearchSubmit?.();
     router.push(`/recherche?q=${encodeURIComponent(searchTerm.trim())}`);
+  };
+
+  const handleSelectCategory = (catName: string) => {
+    saveSearchTerm(catName);
+    setIsOpen(false);
+    onSearchSubmit?.();
+    router.push(`/catalogue?categorie=${encodeURIComponent(catName)}`);
   };
 
   const handleSubmitForm = (e: React.FormEvent) => {
@@ -305,7 +340,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                         <button
                           key={cat}
                           type="button"
-                          onClick={() => handleLaunchSearch(cat)}
+                          onClick={() => handleSelectCategory(cat)}
                           className="flex items-center gap-2 p-2 hover:bg-coral-50/70 text-left text-xs font-bold text-gray-800 hover:text-coral-600 transition-colors rounded-xl group cursor-pointer"
                         >
                           <div className="w-6 h-6 rounded-lg bg-coral-100/60 flex items-center justify-center text-coral-600 group-hover:scale-110 transition-transform">
@@ -337,7 +372,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                             <button
                               key={c.id}
                               type="button"
-                              onClick={() => handleLaunchSearch(c.nom)}
+                              onClick={() => handleSelectCategory(c.nom)}
                               className="flex items-center gap-1.5 px-3 py-1.5 bg-coral-50 text-coral-600 font-extrabold text-xs rounded-xl hover:bg-coral-100 transition-colors cursor-pointer"
                             >
                               <Tag size={12} />
@@ -386,19 +421,20 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
                         </div>
                       </div>
                     ) : (
-                      <div className="text-center py-6 text-gray-500 text-xs font-medium">
-                        Aucun produit ne correspond à "<span className="font-semibold text-gray-800">{query}</span>"
+                      <div className="py-6 text-center text-xs text-gray-400">
+                        Aucun produit trouvé pour « {debouncedQuery} »
                       </div>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={() => handleLaunchSearch(query)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-2 bg-coral-50 hover:bg-coral-100 text-coral-600 font-extrabold text-xs rounded-xl transition-colors cursor-pointer"
-                    >
-                      <span>Voir tous les résultats pour "{query}"</span>
-                      <ChevronRight size={14} />
-                    </button>
+                    <div className="pt-2 border-t border-gray-100">
+                      <button
+                        type="button"
+                        onClick={() => handleLaunchSearch(debouncedQuery)}
+                        className="w-full py-2.5 text-center text-xs font-extrabold text-coral-600 hover:bg-coral-50 rounded-xl transition-colors cursor-pointer"
+                      >
+                        Voir tous les résultats pour « {debouncedQuery} » →
+                      </button>
+                    </div>
                   </>
                 )}
               </div>

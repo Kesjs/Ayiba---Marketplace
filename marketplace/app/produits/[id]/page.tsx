@@ -553,8 +553,39 @@ export default function ProductDetailPage() {
     { label: "Vendu par", value: product.vendeur.full_name },
   ]
 
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.nom,
+    image: product.photos,
+    description: product.description || product.nom,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "XOF",
+      price: product.prix,
+      availability: ruptureStock ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
+      seller: {
+        "@type": "Person",
+        name: product.vendeur.full_name,
+      },
+    },
+    ...(product.rating > 0 && product.reviewCount > 0
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: product.rating,
+            reviewCount: product.reviewCount,
+          },
+        }
+      : {}),
+  };
+
   return (
     <div className="min-h-screen bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <Navbar />
 
       <main className="max-w-7xl mx-auto px-4 py-6 md:py-8 pb-28 md:pb-8">

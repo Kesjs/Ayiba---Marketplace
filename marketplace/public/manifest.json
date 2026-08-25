@@ -1,20 +1,21 @@
 {
-  "name": "Ayiba - Marketplace de proximité",
+  "name": "Ayiba — La Marketplace de Proximité au Bénin",
   "short_name": "Ayiba",
-  "description": "Trouve des produits près de chez toi, livrés en toute sécurité",
+  "description": "Achetez et vendez facilement au Bénin : Mode, artisanat, beauté, électronique. Livraisons rapides et paiements sécurisés.",
   "start_url": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#FF6653",
-  "categories": ["shopping", "business"],
+  "theme_color": "#D85A30",
+  "categories": ["shopping", "business", "lifestyle"],
+  "lang": "fr-BJ",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/logo.png",
@@ -31,24 +32,24 @@
   ],
   "shortcuts": [
     {
-      "name": "Mes commandes",
-      "short_name": "Commandes",
-      "description": "Suivre et consulter mes commandes",
-      "url": "/commandes",
+      "name": "Catalogue & Produits",
+      "short_name": "Catalogue",
+      "description": "Parcourir toutes les catégories de produits",
+      "url": "/catalogue",
       "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
     {
-      "name": "Rechercher un produit",
+      "name": "Rechercher",
       "short_name": "Rechercher",
       "description": "Trouver des articles près de chez moi",
       "url": "/recherche",
       "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     },
     {
-      "name": "Vendre un article",
+      "name": "Ouvrir ma boutique",
       "short_name": "Vendre",
-      "description": "Ajouter un nouvel article sur Ayiba",
-      "url": "/vendeur/articles/nouveau",
+      "description": "Devenir vendeur partenaire sur Ayiba",
+      "url": "/devenir-vendeur",
       "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
     }
   ]

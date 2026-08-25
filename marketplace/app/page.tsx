@@ -95,37 +95,6 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState("Tout");
   const [visibleProductsCount, setVisibleProductsCount] = useState(20);
-
-  // Mouse Drag Scroll pour les catégories sur Desktop
-  const [isDraggingCat, setIsDraggingCat] = useState(false);
-  const [catStartX, setCatStartX] = useState(0);
-  const [catScrollLeft, setCatScrollLeft] = useState(0);
-  const catDragDistanceRef = useRef(0);
-
-  const handleCatMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    setIsDraggingCat(true);
-    catDragDistanceRef.current = 0;
-    setCatStartX(e.pageX - e.currentTarget.offsetLeft);
-    setCatScrollLeft(e.currentTarget.scrollLeft);
-  };
-
-  const handleCatMouseLeave = () => {
-    setIsDraggingCat(false);
-  };
-
-  const handleCatMouseUp = () => {
-    setIsDraggingCat(false);
-  };
-
-  const handleCatMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!isDraggingCat) return;
-    e.preventDefault();
-    const x = e.pageX - e.currentTarget.offsetLeft;
-    const walk = (x - catStartX) * 1.6;
-    catDragDistanceRef.current += Math.abs(e.movementX);
-    e.currentTarget.scrollLeft = catScrollLeft - walk;
-  };
-
   const [countdown, setCountdown] = useState<{ h: number; m: number; s: number } | null>(null);
 
   const { isValide: isLivreurValide, loading: livreurStatutLoading } =
@@ -285,87 +254,9 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-white font-sans antialiased text-[#2C2C2A]">
       <Navbar />
 
-      {/* --- HERO SECTION (100% Acheteur) --- */}
+      {/* --- HERO SECTION --- */}
       <HeroSection />
       <DeliveryAssuranceBanner />
-
-      {/* --- 1. BARRE DE CATÉGORIES (Sticky Pilules) --- */}
-      {/* Mobile uniquement : sur desktop, le MegaMenu de la Navbar remplit déjà ce rôle
-          (évite d'avoir deux barres de catégories qui font doublon). */}
-      {!dataLoading && categories.length > 0 && (
-        <section className="md:hidden border-b border-gray-100 bg-white sticky top-14 z-30 shadow-2xs">
-          <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12 py-2.5">
-            <div className="relative flex items-center gap-1.5">
-              <div className="sticky left-0 z-20 shrink-0 bg-white pr-2 py-0.5 flex items-center gap-2">
-                <button
-                  onClick={() => {
-                    setActiveTab("Tout");
-                    setVisibleProductsCount(20);
-                    document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 border ${
-                    activeTab === 'Tout'
-                      ? 'bg-coral-500 text-white border-coral-500 shadow-md shadow-coral-500/20 scale-[1.02]'
-                      : 'bg-gray-50 hover:bg-white text-gray-700 hover:text-coral-600 border-gray-200/70 hover:border-coral-300 shadow-2xs'
-                  }`}
-                >
-                  <div className={`p-1 rounded-full flex items-center justify-center ${
-                    activeTab === 'Tout' ? 'bg-white/25 text-white' : 'bg-white text-coral-500 shadow-xs group-hover:scale-110'
-                  } transition-transform duration-200`}>
-                    <Menu size={14} strokeWidth={2.2} />
-                  </div>
-                  <span>Tout</span>
-                </button>
-                <div className="h-6 w-[1.5px] bg-gray-300 shrink-0" />
-              </div>
-
-              <div
-                id="cat-scroll"
-                onMouseDown={handleCatMouseDown}
-                onMouseLeave={handleCatMouseLeave}
-                onMouseUp={handleCatMouseUp}
-                onMouseMove={handleCatMouseMove}
-                onWheel={(e) => {
-                  if (Math.abs(e.deltaX) < Math.abs(e.deltaY)) {
-                    e.currentTarget.scrollBy({ left: e.deltaY, behavior: 'auto' });
-                  }
-                }}
-                className={`flex items-center gap-2.5 overflow-x-auto no-scrollbar snap-x py-1 w-full select-none ${
-                  isDraggingCat ? 'cursor-grabbing' : 'cursor-grab'
-                }`}
-              >
-                {categories.map((cat) => {
-                  const Icon = resolveCategoryIcon(cat.icone);
-                  const isSelected = activeTab === cat.nom;
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        if (catDragDistanceRef.current > 10) return;
-                        setActiveTab(cat.nom);
-                        setVisibleProductsCount(20);
-                        document.getElementById('pour-vous')?.scrollIntoView({ behavior: 'smooth' });
-                      }}
-                      className={`group flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all duration-200 shrink-0 snap-start border ${
-                        isSelected
-                          ? 'bg-coral-500 text-white border-coral-500 shadow-md shadow-coral-500/20 scale-[1.02]'
-                          : 'bg-gray-50 hover:bg-white text-gray-700 hover:text-coral-600 border-gray-200/70 hover:border-coral-300 shadow-2xs'
-                      }`}
-                    >
-                      <div className={`p-1 rounded-full flex items-center justify-center ${
-                        isSelected ? 'bg-white/25 text-white' : 'bg-white text-coral-500 shadow-xs group-hover:scale-110'
-                      } transition-transform duration-200`}>
-                        <Icon size={14} strokeWidth={2.2} />
-                      </div>
-                      <span>{cat.nom}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
 
       {dataLoading ? (
         <div className="pt-4">

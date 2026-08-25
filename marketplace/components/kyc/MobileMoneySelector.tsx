@@ -176,13 +176,23 @@ export function MobileMoneySelector({
           <input
             type="tel"
             inputMode="numeric"
+            maxLength={14}
             value={numeroPourAffichage(phoneNumber)}
-            onChange={(e) => onPhoneChange(e.target.value)}
-            placeholder="01 97 00 00 00"
+            onChange={(e) => {
+              // Garder uniquement les chiffres et limiter à 10 chiffres max
+              const cleaned = e.target.value.replace(/\D/g, "");
+              if (cleaned.length <= 10) {
+                onPhoneChange(cleaned);
+              }
+            }}
+            placeholder="01 97 00 11 22"
             className="flex-1 px-4 py-3 text-sm bg-transparent focus:outline-none"
           />
         </div>
-        {touched && error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
+        <p className="mt-1.5 text-[11px] text-gray-400">
+          Format béninois à 10 chiffres (ex: 01 97 00 11 22) ou 8 chiffres
+        </p>
+        {touched && error && <p className="mt-1 text-xs text-red-600 font-medium">{error}</p>}
       </div>
 
       {/* Récap — comble le vide vertical utilement plutôt que de le laisser vide */}

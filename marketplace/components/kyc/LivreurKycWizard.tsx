@@ -25,6 +25,7 @@ import { useToast } from "@/context/ToastContext";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { WizardHeader } from "@/components/ui/WizardHeader";
+import { validateBeninPhone } from "@/lib/validation";
 import type { WizardStep } from "./StepIndicator";
 
 const WIZARD_STEPS: WizardStep[] = [
@@ -343,7 +344,7 @@ export function LivreurKycWizard() {
           data.longitude !== null
         );
       case 5:
-        return data.mobileMoneyNetwork !== null && data.mobileMoneyNumber.length === 8;
+        return data.mobileMoneyNetwork !== null && validateBeninPhone(data.mobileMoneyNumber).isValid;
       default:
         return true;
     }

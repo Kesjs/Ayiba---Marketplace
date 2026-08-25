@@ -39,9 +39,17 @@ function CatalogueContent() {
   const sortMenuRef = useRef<HTMLDivElement>(null)
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
-
-  // Utilisateur courant (pour l'état des favoris et savoir s'il est vendeur) — page publique, accessible aussi aux invités.
   const [userRole, setUserRole] = useState<string | null>(null)
+
+  // Synchronise l'état dès que l'URL change (clic sur une catégorie dans la navbar ou le dropdown)
+  useEffect(() => {
+    const cat = searchParams.get('categorie')
+    setSelectedCategory(cat || 'Tout')
+    const search = searchParams.get('search')
+    if (search !== null) {
+      setSearchQuery(search)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -205,7 +213,10 @@ function CatalogueContent() {
                   {categories.map((cat) => (
                     <button
                       key={cat}
-                      onClick={() => setSelectedCategory(cat)}
+                      onClick={() => {
+                        setSelectedCategory(cat);
+                        router.push(cat === 'Tout' ? '/catalogue' : `/catalogue?categorie=${encodeURIComponent(cat)}`);
+                      }}
                       className={`w-full text-left px-3 py-2 rounded-xl text-sm font-bold transition-colors ${
                         selectedCategory === cat
                           ? 'bg-coral-50 text-coral-600'
@@ -221,9 +232,6 @@ function CatalogueContent() {
 
             {/* Main Content */}
             <div className="flex-1">
-              {/* Filtres, tri et bascule grille/liste regroupés sur une même
-                  ligne (avant : "Filtres" dans le hero, "Trier par" dans la
-                  sidebar, toggle ici — trois emplacements différents). */}
               <div className="flex flex-wrap items-center gap-3 mb-8">
                 <Button
                   onClick={() => setShowFilters(!showFilters)}
@@ -332,7 +340,7 @@ function CatalogueContent() {
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">Aucun résultat</h3>
                   <p className="text-gray-500 mb-8 max-w-xs mx-auto">Nous n'avons trouvé aucun produit correspondant à votre recherche.</p>
-                  <Button onClick={() => { setSelectedCategory('Tout'); setSearchQuery(''); }}>Réinitialiser</Button>
+                  <Button onClick={() => { setSelectedCategory('Tout'); setSearchQuery(''); router.push('/catalogue'); }}>Réinitialiser</Button>
                 </div>
               )}
             </div>

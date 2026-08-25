@@ -31,6 +31,7 @@ export function MegaMenu() {
             >
               <Link
                 href={`/catalogue?categorie=${encodeURIComponent(cat.nom)}`}
+                onClick={() => setActiveCategoryId(null)}
                 className={`text-sm font-medium transition-colors hover:text-coral-600 ${
                   activeCategoryId === cat.id ? "text-coral-600" : "text-gray-700"
                 }`}

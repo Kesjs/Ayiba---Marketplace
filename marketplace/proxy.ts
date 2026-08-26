@@ -125,6 +125,41 @@ export async function proxy(req: NextRequest) {
     if (livreurRoutes.some((r) => path.startsWith(r)) && !roles.includes("livreur")) {
       return NextResponse.redirect(new URL("/catalogue", req.url));
     }
+
+    // KYC obligatoire avant tout accès au dashboard vendeur/livreur : tant que le
+    // dossier n'est pas validé, on redirige vers la page KYC elle-même (seule route
+    // exclue de ce blocage, sinon boucle infinie), où le wizard/l'écran d'attente
+    // gère déjà l'affichage correct (formulaire, "en cours de vérification", refus)
+    // et propose une déconnexion. Couvre statut null (jamais commencé), en_attente
+    // et refuse — seul 'valide' laisse passer.
+    if (
+      vendeurRoutes.some((r) => path.startsWith(r)) &&
+      roles.includes("vendeur") &&
+      !path.startsWith("/vendeur/kyc")
+    ) {
+      const { data: vendeur } = await supabase
+        .from("vendeurs")
+        .select("statut")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (vendeur?.statut !== "valide") {
+        return NextResponse.redirect(new URL("/vendeur/kyc", req.url));
+      }
+    }
+    if (
+      livreurRoutes.some((r) => path.startsWith(r)) &&
+      roles.includes("livreur") &&
+      !path.startsWith("/livreur/kyc")
+    ) {
+      const { data: livreur } = await supabase
+        .from("livreurs")
+        .select("statut_verification")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (livreur?.statut_verification !== "valide") {
+        return NextResponse.redirect(new URL("/livreur/kyc", req.url));
+      }
+    }
     if (adminRoutes.some((r) => path.startsWith(r)) && userData?.role !== "admin") {
       return NextResponse.redirect(new URL("/catalogue", req.url));
     }

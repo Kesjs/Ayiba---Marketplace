@@ -23,6 +23,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useToast } from "@/context/ToastContext";
 import { AdresseForm } from "@/components/adresse/AdresseForm";
 import LogoAyiba from "@/components/ui/LogoAyiba";
+import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
 import { WizardHeader } from "@/components/ui/WizardHeader";
 import { validateBeninPhone } from "@/lib/validation";
 import type { WizardStep } from "./StepIndicator";
@@ -150,6 +151,7 @@ export function VendeurKycWizard() {
   const [error, setError] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const totalSteps = WIZARD_STEPS.length;
 
   const [existingPhotoProfilUrl, setExistingPhotoProfilUrl] = useState<string | null>(null);
@@ -314,6 +316,13 @@ export function VendeurKycWizard() {
       data.commune.trim().length > 0 ||
       data.mobileMoneyNumber.length > 0
     );
+  };
+
+  const confirmLogoutAndGoHome = async () => {
+    setShowLogoutModal(false);
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/");
   };
 
   const handleCancel = () => {
@@ -528,12 +537,18 @@ export function VendeurKycWizard() {
     const isValide = vendeurStatut === "valide";
     return (
       <div className="h-full bg-gray-50 flex flex-col overflow-hidden">
+        <LogoutConfirmModal
+          open={showLogoutModal}
+          onConfirm={confirmLogoutAndGoHome}
+          onCancel={() => setShowLogoutModal(false)}
+        />
+
         <div className="bg-white border-b border-gray-100 px-4 py-4 md:px-8">
           <div className="max-w-2xl mx-auto flex items-center gap-3">
             <button
-              onClick={() => router.push("/")}
+              onClick={() => setShowLogoutModal(true)}
               className="shrink-0 flex items-center rounded-full hover:opacity-80 transition-opacity"
-              aria-label="Accueil"
+              aria-label="Accueil (déconnexion)"
             >
               <LogoAyiba className="h-7 w-auto" />
             </button>
@@ -579,14 +594,14 @@ export function VendeurKycWizard() {
               <p className="text-sm text-gray-500 mt-1.5">
                 {isValide
                   ? "Ton identité et ta boutique sont validées. Tout est en ordre."
-                  : "Ton dossier a bien été envoyé — activation sous 24-48h. En attendant, ton dashboard est accessible : tu peux configurer ta boutique et ajouter des articles, ils resteront privés jusqu'à validation."}
+                  : "Ton dossier a bien été envoyé — activation sous 24-48h. Dashboard, articles et ventes restent verrouillés jusqu'à validation."}
               </p>
             </div>
             <button
-              onClick={() => router.push("/vendeur/dashboard")}
+              onClick={() => (isValide ? router.push("/vendeur/dashboard") : setShowLogoutModal(true))}
               className="w-full h-12 rounded-2xl bg-coral-500 hover:bg-coral-600 text-white font-bold text-sm transition-colors"
             >
-              Aller au dashboard
+              {isValide ? "Aller au dashboard" : "Se déconnecter"}
             </button>
             <button
               onClick={() => setEditMode(true)}

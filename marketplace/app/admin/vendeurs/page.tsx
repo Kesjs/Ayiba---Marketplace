@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { CheckCircle2, XCircle, MapPin, Wallet, IdCard } from "lucide-react";
 
 const TABS = [
+  { key: "non_soumis", label: "Non soumis" },
   { key: "en_attente", label: "En attente" },
   { key: "valide", label: "Validés" },
   { key: "refuse", label: "Refusés" },
@@ -22,22 +23,25 @@ export default function AdminVendeursPage() {
   const [rejectTarget, setRejectTarget] = useState<VendeurKyc | null>(null);
   const [detailTarget, setDetailTarget] = useState<VendeurKyc | null>(null);
 
-  const filtered = vendeurs.filter((v) => v.statut === tab);
+  const filtered = vendeurs.filter((v) => (tab === "non_soumis" ? v.statut === null : v.statut === tab));
 
   return (
     <DashboardLayout role="admin" title="Validation vendeurs (KYC)">
       <div className="flex gap-2 mb-8">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              tab === t.key ? "bg-gray-900 text-white" : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
-            }`}
-          >
-            {t.label} {t.key === "en_attente" && filtered.length > 0 && tab === t.key ? `(${filtered.length})` : ""}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const count = vendeurs.filter((v) => (t.key === "non_soumis" ? v.statut === null : v.statut === t.key)).length;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                tab === t.key ? "bg-gray-900 text-white" : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
+              }`}
+            >
+              {t.label} {count > 0 ? `(${count})` : ""}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -48,7 +52,9 @@ export default function AdminVendeursPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-[32px] border border-gray-50 p-16 text-center">
-          <p className="text-gray-400 font-medium">Aucun vendeur dans cette catégorie.</p>
+          <p className="text-gray-400 font-medium">
+            {tab === "non_soumis" ? "Aucun dossier non soumis." : "Aucun vendeur dans cette catégorie."}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -61,12 +67,18 @@ export default function AdminVendeursPage() {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <h3 className="font-bold text-gray-900">{v.nom_boutique || "Sans nom de boutique"}</h3>
-                  <p className="text-sm text-gray-500">{v.nom_complet}</p>
+                  <p className="text-sm text-gray-500">{v.nom_complet || "—"}</p>
                 </div>
-                <StatusBadge variant={v.statut === "valide" ? "success" : v.statut === "refuse" ? "error" : "pending"}>
-                  {v.statut === "valide" ? "Validé" : v.statut === "refuse" ? "Refusé" : "En attente"}
+                <StatusBadge variant={v.statut === "valide" ? "success" : v.statut === "refuse" ? "error" : v.statut === "en_attente" ? "pending" : "neutral"}>
+                  {v.statut === "valide" ? "Validé" : v.statut === "refuse" ? "Refusé" : v.statut === "en_attente" ? "En attente" : "Non soumis"}
                 </StatusBadge>
               </div>
+
+              {v.statut === null && (
+                <p className="text-xs text-gray-400 mb-4">
+                  En cours depuis le {new Date(v.created_at).toLocaleDateString("fr-FR")}
+                </p>
+              )}
 
               <div className="space-y-2 mb-4 text-sm text-gray-600">
                 <div className="flex items-center gap-2">

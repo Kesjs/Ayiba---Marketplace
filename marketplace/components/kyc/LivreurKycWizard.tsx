@@ -101,6 +101,37 @@ function StatutIndicator({ statut }: { statut: string }) {
   );
 }
 
+type DraftStatus = "idle" | "saving" | "saved" | "error";
+
+// Même indicateur que côté vendeur (VendeurKycWizard.tsx) : rassure le
+// livreur que sa progression est déjà en sécurité côté serveur, pas
+// seulement dans le localStorage de son téléphone.
+function DraftStatusIndicator({ status }: { status: DraftStatus }) {
+  if (status === "idle") return null;
+  if (status === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-400 shrink-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-gray-300 animate-pulse" />
+        <span className="hidden xs:inline">Enregistrement...</span>
+      </span>
+    );
+  }
+  if (status === "error") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 shrink-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+        <span className="hidden xs:inline">Non enregistré, réessaie</span>
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-600 shrink-0">
+      <span className="w-1.5 h-1.5 rounded-full bg-teal-500" />
+      <span className="hidden xs:inline">Enregistré</span>
+    </span>
+  );
+}
+
 function ConfirmModal({
   open,
   onConfirm,
@@ -172,6 +203,12 @@ export function LivreurKycWizard() {
   const [editMode, setEditMode] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const { showToast } = useToast();
+
+  // Sauvegarde progressive — même principe que VendeurKycWizard.tsx.
+  const [draftStatus, setDraftStatus] = useState<DraftStatus>("idle");
+  const [uploadingPhotoProfil, setUploadingPhotoProfil] = useState(false);
+  const [uploadingPhotoCni, setUploadingPhotoCni] = useState(false);
+  const [uploadingPhotoVehicule, setUploadingPhotoVehicule] = useState(false);
 
   // Miniature pour le récap : priorité au fichier fraîchement choisi, sinon
   // l'URL déjà enregistrée en base.
@@ -276,6 +313,109 @@ export function LivreurKycWizard() {
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
+  // Envoie l'état accumulé vers /api/livreur-kyc-draft, en tâche de fond,
+  // sans jamais bloquer la navigation dans le wizard.
+  const saveDraftToServer = async (overrides?: {
+    photoProfilUrl?: string | null;
+    photoCniPath?: string | null;
+    photoVehiculeUrl?: string | null;
+  }) => {
+    setDraftStatus("saving");
+    try {
+      const res = await fetch("/api/livreur-kyc-draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nomComplet: data.nomComplet,
+          typeVehicule: data.typeVehicule,
+          plaqueImmatriculation: needsPlaque ? data.plaqueImmatriculation : null,
+          quartier: data.quartier,
+          commune: data.commune,
+          latitude: data.latitude,
+          longitude: data.longitude,
+          mobileMoneyNetwork: data.mobileMoneyNetwork,
+          mobileMoneyNumber: data.mobileMoneyNumber,
+          photoProfilUrl: overrides?.photoProfilUrl !== undefined ? overrides.photoProfilUrl : existingPhotoProfilUrl,
+          photoCniPath: overrides?.photoCniPath !== undefined ? overrides.photoCniPath : existingPhotoCniPath,
+          photoVehiculeUrl:
+            overrides?.photoVehiculeUrl !== undefined ? overrides.photoVehiculeUrl : existingPhotoVehiculeUrl,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      setDraftStatus("saved");
+    } catch {
+      setDraftStatus("error");
+    }
+  };
+
+  // Upload immédiat dès le choix du fichier, comme côté vendeur. On vide
+  // ensuite data.photoXxx : PhotoUpload/DocumentUpload gardent leur propre
+  // aperçu en interne, et handleSubmit n'a plus besoin de re-uploader.
+  const handlePhotoProfilChange = async (file: File | null) => {
+    update("photoProfil", file);
+    if (!file) return;
+    setUploadingPhotoProfil(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const path = `${user.id}/profil-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      setExistingPhotoProfilUrl(url);
+      update("photoProfil", null);
+      await saveDraftToServer({ photoProfilUrl: url });
+    } catch {
+      setDraftStatus("error");
+    } finally {
+      setUploadingPhotoProfil(false);
+    }
+  };
+
+  const handlePhotoCniChange = async (file: File | null) => {
+    update("photoCni", file);
+    if (!file) return;
+    setUploadingPhotoCni(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const path = `${user.id}/cni-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("kyc-documents").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      setExistingPhotoCniPath(path);
+      update("photoCni", null);
+      await saveDraftToServer({ photoCniPath: path });
+    } catch {
+      setDraftStatus("error");
+    } finally {
+      setUploadingPhotoCni(false);
+    }
+  };
+
+  const handlePhotoVehiculeChange = async (file: File | null) => {
+    update("photoVehicule", file);
+    if (!file) return;
+    setUploadingPhotoVehicule(true);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const path = `${user.id}/vehicule-${Date.now()}.jpg`;
+      const { error: upErr } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+      setExistingPhotoVehiculeUrl(url);
+      update("photoVehicule", null);
+      await saveDraftToServer({ photoVehiculeUrl: url });
+    } catch {
+      setDraftStatus("error");
+    } finally {
+      setUploadingPhotoVehicule(false);
+    }
+  };
+
   const clearDraft = () => {
     if (typeof window !== "undefined") {
       localStorage.removeItem(STORAGE_KEY);
@@ -356,6 +496,7 @@ export function LivreurKycWizard() {
   };
 
   const handleNext = () => {
+    saveDraftToServer();
     if (step < totalSteps) {
       goToStep(step + 1);
     } else {
@@ -607,7 +748,13 @@ export function LivreurKycWizard() {
         isRecap={isRecap}
         onCancel={handleCancel}
         cancelLabel="Annuler l'inscription"
-        trailing={livreurStatut ? <StatutIndicator statut={livreurStatut} /> : undefined}
+        trailing={
+          livreurStatut ? (
+            <StatutIndicator statut={livreurStatut} />
+          ) : (
+            <DraftStatusIndicator status={draftStatus} />
+          )
+        }
       />
 
       <div className="flex-1 flex items-start md:items-center justify-center px-4 py-8">
@@ -671,12 +818,14 @@ export function LivreurKycWizard() {
                       <PhotoUpload
                         label="Photo de profil"
                         helperText={
-                          existingPhotoProfilUrl
+                          uploadingPhotoProfil
+                            ? "Envoi en cours..."
+                            : existingPhotoProfilUrl
                             ? "Une photo est déjà enregistrée — touche pour la remplacer"
                             : "Une photo claire de ton visage"
                         }
                         value={data.photoProfil}
-                        onChange={(file) => update("photoProfil", file)}
+                        onChange={handlePhotoProfilChange}
                         aspect="square"
                       />
                     </div>
@@ -696,8 +845,14 @@ export function LivreurKycWizard() {
                     <DocumentUpload
                       label="Ajouter la CNI (recto)"
                       value={data.photoCni}
-                      onChange={(file) => update("photoCni", file)}
-                      existingFileLabel={existingPhotoCniPath ? "Document déjà enregistré" : null}
+                      onChange={handlePhotoCniChange}
+                      existingFileLabel={
+                        uploadingPhotoCni
+                          ? "Envoi en cours..."
+                          : existingPhotoCniPath
+                          ? "Document déjà enregistré"
+                          : null
+                      }
                     />
 
                     <p className="text-xs text-gray-400 text-center px-2">
@@ -747,12 +902,14 @@ export function LivreurKycWizard() {
                         <PhotoUpload
                           label="Photo du véhicule"
                           helperText={
-                            existingPhotoVehiculeUrl
+                            uploadingPhotoVehicule
+                              ? "Envoi en cours..."
+                              : existingPhotoVehiculeUrl
                               ? "Une photo est déjà enregistrée — touche pour la remplacer"
                               : undefined
                           }
                           value={data.photoVehicule}
-                          onChange={(file) => update("photoVehicule", file)}
+                          onChange={handlePhotoVehiculeChange}
                           aspect="wide"
                         />
 

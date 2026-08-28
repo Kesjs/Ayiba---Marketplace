@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { CheckCircle2, XCircle, MapPin, Wallet, IdCard, Bike } from "lucide-react";
 
 const TABS = [
+  { key: "non_soumis", label: "Non soumis" },
   { key: "en_attente", label: "En attente" },
   { key: "valide", label: "Validés" },
   { key: "refuse", label: "Refusés" },
@@ -22,22 +23,29 @@ export default function AdminLivreursPage() {
   const [rejectTarget, setRejectTarget] = useState<LivreurKyc | null>(null);
   const [detailTarget, setDetailTarget] = useState<LivreurKyc | null>(null);
 
-  const filtered = livreurs.filter((l) => l.statut_verification === tab);
+  const filtered = livreurs.filter((l) =>
+    tab === "non_soumis" ? l.statut_verification === null : l.statut_verification === tab
+  );
 
   return (
     <DashboardLayout role="admin" title="Validation livreurs (KYC)">
       <div className="flex gap-2 mb-8">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              tab === t.key ? "bg-gray-900 text-white" : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
+        {TABS.map((t) => {
+          const count = livreurs.filter((l) =>
+            t.key === "non_soumis" ? l.statut_verification === null : l.statut_verification === t.key
+          ).length;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                tab === t.key ? "bg-gray-900 text-white" : "bg-white text-gray-500 border border-gray-100 hover:bg-gray-50"
+              }`}
+            >
+              {t.label} {count > 0 ? `(${count})` : ""}
+            </button>
+          );
+        })}
       </div>
 
       {loading ? (
@@ -48,7 +56,9 @@ export default function AdminLivreursPage() {
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-[32px] border border-gray-50 p-16 text-center">
-          <p className="text-gray-400 font-medium">Aucun livreur dans cette catégorie.</p>
+          <p className="text-gray-400 font-medium">
+            {tab === "non_soumis" ? "Aucun dossier non soumis." : "Aucun livreur dans cette catégorie."}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -59,11 +69,17 @@ export default function AdminLivreursPage() {
               className="bg-white rounded-[32px] border border-gray-50 shadow-sm p-6 cursor-pointer hover:border-gray-200 transition-colors"
             >
               <div className="flex items-start justify-between mb-4">
-                <h3 className="font-bold text-gray-900">{l.nom_complet}</h3>
-                <StatusBadge variant={l.statut_verification === "valide" ? "success" : l.statut_verification === "refuse" ? "error" : "pending"}>
-                  {l.statut_verification === "valide" ? "Validé" : l.statut_verification === "refuse" ? "Refusé" : "En attente"}
+                <h3 className="font-bold text-gray-900">{l.nom_complet || "—"}</h3>
+                <StatusBadge variant={l.statut_verification === "valide" ? "success" : l.statut_verification === "refuse" ? "error" : l.statut_verification === "en_attente" ? "pending" : "neutral"}>
+                  {l.statut_verification === "valide" ? "Validé" : l.statut_verification === "refuse" ? "Refusé" : l.statut_verification === "en_attente" ? "En attente" : "Non soumis"}
                 </StatusBadge>
               </div>
+
+              {l.statut_verification === null && (
+                <p className="text-xs text-gray-400 mb-4">
+                  En cours depuis le {new Date(l.created_at).toLocaleDateString("fr-FR")}
+                </p>
+              )}
 
               <div className="space-y-2 mb-4 text-sm text-gray-600">
                 <div className="flex items-center gap-2">

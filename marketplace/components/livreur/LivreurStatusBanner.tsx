@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Clock, AlertCircle, ArrowRight } from "lucide-react";
+import { Clock, AlertCircle, ClipboardList, ArrowRight } from "lucide-react";
 
 interface LivreurStatusBannerProps {
   statut?: string | null;
@@ -10,16 +10,38 @@ interface LivreurStatusBannerProps {
 }
 
 export function LivreurStatusBanner({ statut, raisonRejet }: LivreurStatusBannerProps) {
-  if (!statut || statut === "valide" || statut === "non_soumis" || statut === "brouillon") {
+  // Même logique que VendeurStatusBanner.tsx : `undefined` = pas de ligne
+  // livreurs chargée, rien à afficher. `null` = une ligne existe (compte
+  // créé, éventuellement des étapes du KYC déjà enregistrées via la
+  // sauvegarde progressive) mais le dossier n'a jamais été soumis.
+  if (statut === undefined || statut === "valide" || statut === "non_soumis" || statut === "brouillon") {
     return null;
   }
 
+  const isIncomplete = statut === null;
   const isPending = statut === "en_attente";
   const isRefused = statut === "refuse";
 
-  if (!isPending && !isRefused) {
+  if (!isIncomplete && !isPending && !isRefused) {
     return null;
   }
+
+  const bg = isIncomplete
+    ? "rgba(255, 247, 237, 0.85)"
+    : isPending
+    ? "rgba(255, 251, 235, 0.85)"
+    : "rgba(254, 242, 242, 0.85)";
+
+  const iconBg = isIncomplete ? "bg-orange-100" : isPending ? "bg-amber-100" : "bg-red-100";
+  const iconColor = isIncomplete ? "text-orange-600" : isPending ? "text-amber-600" : "text-red-600";
+  const textColor = isIncomplete ? "text-orange-800" : isPending ? "text-amber-800" : "text-red-800";
+  const linkColor = isIncomplete ? "text-orange-700" : isPending ? "text-amber-700" : "text-red-700";
+
+  const message = isIncomplete
+    ? "Ton dossier livreur n'est pas encore soumis — tu ne peux pas encore recevoir de missions."
+    : isPending
+    ? "Vérification de ton compte en cours — activation sous 24-48h."
+    : `Vérification refusée${raisonRejet ? ` — ${raisonRejet}` : "."}`;
 
   return (
     <AnimatePresence>
@@ -28,44 +50,26 @@ export function LivreurStatusBanner({ statut, raisonRejet }: LivreurStatusBanner
         animate={{ opacity: 1, height: "auto" }}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
         className="sticky top-0 z-40 w-full backdrop-blur-md border-b border-black/[0.06]"
-        style={{
-          backgroundColor: isPending
-            ? "rgba(255, 251, 235, 0.85)"
-            : "rgba(254, 242, 242, 0.85)",
-        }}
+        style={{ backgroundColor: bg }}
       >
         <Link
           href="/livreur/kyc"
           className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-2.5"
         >
-          <div
-            className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
-              isPending ? "bg-amber-100" : "bg-red-100"
-            }`}
-          >
-            {isPending ? (
-              <Clock size={14} className="text-amber-600" />
+          <div className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${iconBg}`}>
+            {isIncomplete ? (
+              <ClipboardList size={14} className={iconColor} />
+            ) : isPending ? (
+              <Clock size={14} className={iconColor} />
             ) : (
-              <AlertCircle size={14} className="text-red-600" />
+              <AlertCircle size={14} className={iconColor} />
             )}
           </div>
 
-          <p
-            className={`flex-1 text-[13px] font-medium leading-snug ${
-              isPending ? "text-amber-800" : "text-red-800"
-            }`}
-          >
-            {isPending
-              ? "Vérification de ton compte en cours — activation sous 24-48h."
-              : `Vérification refusée${raisonRejet ? ` — ${raisonRejet}` : "."}`}
-          </p>
+          <p className={`flex-1 text-[13px] font-medium leading-snug ${textColor}`}>{message}</p>
 
-          <span
-            className={`flex items-center gap-1 text-[13px] font-semibold shrink-0 whitespace-nowrap ${
-              isPending ? "text-amber-700" : "text-red-700"
-            }`}
-          >
-            {isPending ? "Voir" : "Corriger"}
+          <span className={`flex items-center gap-1 text-[13px] font-semibold shrink-0 whitespace-nowrap ${linkColor}`}>
+            {isIncomplete ? "Compléter" : isPending ? "Voir" : "Corriger"}
             <ArrowRight size={13} />
           </span>
         </Link>

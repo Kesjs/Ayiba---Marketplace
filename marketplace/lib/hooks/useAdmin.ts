@@ -109,7 +109,7 @@ export interface VendeurKyc {
   en_pause: boolean | null;
   mobile_money_network: string | null;
   mobile_money_number: string | null;
-  statut: string;
+  statut: string | null;
   raison_rejet: string | null;
   created_at: string;
   // Infos jointes depuis public.users (coordonnées de contact, réputation)
@@ -176,7 +176,7 @@ export interface LivreurKyc {
   plaque_immatriculation: string | null;
   mobile_money_network: string | null;
   mobile_money_number: string | null;
-  statut_verification: string;
+  statut_verification: string | null;
   raison_rejet: string | null;
   created_at: string;
 }

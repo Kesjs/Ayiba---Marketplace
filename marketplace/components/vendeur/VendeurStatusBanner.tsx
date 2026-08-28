@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Clock, AlertCircle, ArrowRight } from "lucide-react";
+import { Clock, AlertCircle, ClipboardList, ArrowRight } from "lucide-react";
 
 interface VendeurStatusBannerProps {
   statut?: string | null;
@@ -10,16 +10,44 @@ interface VendeurStatusBannerProps {
 }
 
 export function VendeurStatusBanner({ statut, raisonRejet }: VendeurStatusBannerProps) {
-  if (!statut || statut === "valide" || statut === "non_soumis" || statut === "brouillon") {
+  // `undefined` = on n'a pas encore chargé la ligne vendeurs (ou pas de ligne
+  // du tout) : rien à afficher. `null` en revanche EST une donnée : une
+  // ligne vendeurs existe (compte créé, éventuellement des étapes du KYC déjà
+  // enregistrées via la sauvegarde progressive) mais le dossier n'a jamais
+  // été soumis — c'est justement le cas qu'on veut arrêter de laisser passer
+  // inaperçu.
+  if (statut === undefined || statut === "valide" || statut === "non_soumis" || statut === "brouillon") {
     return null;
   }
 
+  const isIncomplete = statut === null;
   const isPending = statut === "en_attente";
   const isRefused = statut === "refuse";
 
-  if (!isPending && !isRefused) {
+  if (!isIncomplete && !isPending && !isRefused) {
     return null;
   }
+
+  const bg = isIncomplete
+    ? "rgba(255, 247, 237, 0.85)" // coral clair — cohérent avec le badge "orange" du centre d'attention du dashboard
+    : isPending
+    ? "rgba(255, 251, 235, 0.85)"
+    : "rgba(254, 242, 242, 0.85)";
+
+  const iconBg = isIncomplete ? "bg-orange-100" : isPending ? "bg-amber-100" : "bg-red-100";
+  const iconColor = isIncomplete ? "text-orange-600" : isPending ? "text-amber-600" : "text-red-600";
+  const textColor = isIncomplete ? "text-orange-800" : isPending ? "text-amber-800" : "text-red-800";
+  const linkColor = isIncomplete ? "text-orange-700 hover:text-orange-800" : "text-red-700 hover:text-red-800";
+
+  const message = isIncomplete
+    ? "Ton dossier vendeur n'est pas encore soumis — ta boutique reste invisible tant que ce n'est pas fait."
+    : isPending
+    ? "Vérification de ton compte en cours — activation sous 24-48h."
+    : `Vérification refusée${raisonRejet ? ` — ${raisonRejet}` : "."}`;
+
+  // "Compléter"/"Corriger" pour incomplet et refusé (une action à faire) ;
+  // rien pour en_attente (il n'y a rien à faire d'autre qu'attendre).
+  const showCta = isIncomplete || isRefused;
 
   return (
     <AnimatePresence>
@@ -28,41 +56,27 @@ export function VendeurStatusBanner({ statut, raisonRejet }: VendeurStatusBanner
         animate={{ opacity: 1, height: "auto" }}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
         className="sticky top-0 z-40 w-full backdrop-blur-md border-b border-black/[0.06]"
-        style={{
-          backgroundColor: isPending
-            ? "rgba(255, 251, 235, 0.85)"
-            : "rgba(254, 242, 242, 0.85)",
-        }}
+        style={{ backgroundColor: bg }}
       >
         <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-2.5">
-          <div
-            className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${
-              isPending ? "bg-amber-100" : "bg-red-100"
-            }`}
-          >
-            {isPending ? (
-              <Clock size={14} className="text-amber-600" />
+          <div className={`flex items-center justify-center w-7 h-7 rounded-full shrink-0 ${iconBg}`}>
+            {isIncomplete ? (
+              <ClipboardList size={14} className={iconColor} />
+            ) : isPending ? (
+              <Clock size={14} className={iconColor} />
             ) : (
-              <AlertCircle size={14} className="text-red-600" />
+              <AlertCircle size={14} className={iconColor} />
             )}
           </div>
 
-          <p
-            className={`flex-1 text-[13px] font-medium leading-snug ${
-              isPending ? "text-amber-800" : "text-red-800"
-            }`}
-          >
-            {isPending
-              ? "Vérification de ton compte en cours — activation sous 24-48h."
-              : `Vérification refusée${raisonRejet ? ` — ${raisonRejet}` : "."}`}
-          </p>
+          <p className={`flex-1 text-[13px] font-medium leading-snug ${textColor}`}>{message}</p>
 
-          {isRefused && (
+          {showCta && (
             <Link
               href="/vendeur/kyc"
-              className="flex items-center gap-1 text-[13px] font-semibold text-red-700 hover:text-red-800 transition-colors shrink-0 whitespace-nowrap"
+              className={`flex items-center gap-1 text-[13px] font-semibold transition-colors shrink-0 whitespace-nowrap ${linkColor}`}
             >
-              Corriger
+              {isIncomplete ? "Compléter" : "Corriger"}
               <ArrowRight size={13} />
             </Link>
           )}

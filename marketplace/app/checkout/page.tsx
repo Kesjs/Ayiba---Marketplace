@@ -15,7 +15,7 @@ import { StepIndicator, type WizardStep } from '@/components/kyc/StepIndicator'
 import { MobileMoneySelector } from '@/components/kyc/MobileMoneySelector'
 import { PaiementWaitingOverlay } from '@/components/checkout/PaiementWaitingOverlay'
 import { getDistanceRoutiereKm } from '@/lib/osrm'
-import { validateBeninPhone } from '@/lib/validation'
+import { formatBeninPhoneInput, validateBeninPhone } from '@/lib/validation'
 import {
   ChevronLeft, ChevronDown, ShoppingBag, Wallet, ShieldCheck,
   Plus, Minus, Trash2, Loader2, Home, Briefcase, MoreHorizontal, MapPin,
@@ -385,8 +385,14 @@ export default function CheckoutPage() {
         return
       }
 
-      if (!nomClient.trim() || !telephone.trim()) {
-        showToast('Indique ton nom et un numéro de téléphone', 'error')
+      if (nomClient.trim().length < 2) {
+        showToast('Indique ton nom complet pour la livraison', 'error')
+        return
+      }
+
+      const telephoneValide = validateBeninPhone(telephone)
+      if (!telephoneValide.isValid) {
+        showToast(telephoneValide.error || 'Entre un numéro béninois valide', 'error')
         return
       }
 
@@ -453,13 +459,15 @@ export default function CheckoutPage() {
   }
 
   const declencherPaiement = async () => {
+    let telephoneMomoValide: ReturnType<typeof validateBeninPhone> | null = null
     if (methodePaiement === 'moto') {
       if (!reseau) {
         showToast('Choisis un réseau Mobile Money', 'error')
         return
       }
-      if (!telephoneMomo.trim()) {
-        showToast('Indique le numéro Mobile Money', 'error')
+      telephoneMomoValide = validateBeninPhone(telephoneMomo)
+      if (!telephoneMomoValide.isValid) {
+        showToast(telephoneMomoValide.error || 'Entre un numéro Mobile Money béninois valide', 'error')
         return
       }
     }
@@ -501,7 +509,7 @@ export default function CheckoutPage() {
           groupes,
           montant: totalGeneral,
           methodePaiement,
-          ...(methodePaiement === 'moto' ? { reseau, telephone: telephoneMomo.trim() } : {}),
+          ...(methodePaiement === 'moto' && telephoneMomoValide ? { reseau, telephone: telephoneMomoValide.formatted } : {}),
           nomClient: nomClient.trim(),
         }),
         signal: controller.signal,
@@ -525,15 +533,21 @@ export default function CheckoutPage() {
       console.error('[checkout] initier paiement error:', err)
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Le serveur n'a pas répondu à temps (souvent un cold start).
-        setErreurInitiation("Le serveur met trop de temps à répondre. Réessaie dans quelques secondes.")
+        const message = "Le serveur met trop de temps à répondre. Réessaie dans quelques secondes."
+        setErreurInitiation(message)
+        showToast(message, 'error')
       } else if (err instanceof TypeError) {
         // fetch() échoue avec un TypeError ("Load failed", "Failed to fetch"...)
         // uniquement quand la requête n'a jamais atteint le serveur : coupure
         // réseau, wifi/4G instable, etc. — jamais une erreur métier GeniusPay.
-        setErreurInitiation("Connexion réseau interrompue. Vérifie ta connexion et réessaie.")
+        const message = "Connexion réseau interrompue. Vérifie ta connexion et réessaie."
+        setErreurInitiation(message)
+        showToast(message, 'error')
       } else {
         // Erreur métier renvoyée par notre API (GeniusPay, validation, etc.)
-        setErreurInitiation(err instanceof Error ? err.message : 'Impossible de démarrer le paiement')
+        const message = err instanceof Error ? err.message : 'Impossible de démarrer le paiement'
+        setErreurInitiation(message)
+        showToast(message, 'error')
       }
     } finally {
       clearTimeout(timeoutId)
@@ -800,13 +814,21 @@ export default function CheckoutPage() {
                   placeholder="Nom complet"
                   className="h-11 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
                 />
-                <input
-                  type="tel"
-                  value={telephone}
-                  onChange={(e) => setTelephone(e.target.value)}
-                  placeholder="Téléphone"
-                  className="h-11 rounded-lg border border-gray-200 px-3 text-sm focus:outline-none focus:border-coral-400"
-                />
+                <div className="h-11 flex rounded-lg overflow-hidden border border-gray-200 focus-within:border-coral-400">
+                  <span className="inline-flex items-center gap-2 px-3 bg-gray-50 border-r border-gray-200 text-sm text-gray-500 font-medium">
+                    <span aria-hidden="true">🇧🇯</span>
+                    +229
+                  </span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    value={telephone}
+                    onChange={(e) => setTelephone(formatBeninPhoneInput(e.target.value))}
+                    placeholder="01 97 00 11 22"
+                    aria-label="Numéro de téléphone béninois"
+                    className="min-w-0 flex-1 bg-white px-3 text-sm focus:outline-none"
+                  />
+                </div>
               </div>
             </section>
 

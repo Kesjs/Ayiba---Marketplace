@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatBeninPhoneInput } from "@/lib/validation";
 
 interface MobileMoneyOption {
   id: "mtn" | "moov";
@@ -114,7 +115,7 @@ export function MobileMoneySelector({
               type="tel"
               inputMode="numeric"
               value={phoneNumber}
-              onChange={(e) => onPhoneChange(e.target.value)}
+              onChange={(e) => onPhoneChange(formatBeninPhoneInput(e.target.value))}
               placeholder="01 97 00 00 00"
               className="flex-1 px-4 py-3 text-sm bg-transparent focus:outline-none"
             />

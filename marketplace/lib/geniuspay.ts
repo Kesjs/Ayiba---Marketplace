@@ -178,7 +178,11 @@ export async function declencherPaiementParCarte({
  * était parfois vide). On garde quand même un filet générique par sécurité.
  */
 export function extraireMessageErreurGeniusPay(json: any, httpStatus?: number): string {
-  if (json?.error?.message) return json.error.message;
+  const message = String(json?.error?.message || "");
+  if (/invalid phone|phone number.*length|invalid.*telephone/i.test(message)) {
+    return "Le numéro Mobile Money est invalide. Vérifie le format béninois : 97 00 11 22 ou 01 97 00 11 22.";
+  }
+  if (message) return message;
   if (json?.error?.code) return `Erreur GeniusPay (${json.error.code})`;
   if (httpStatus) return `Échec du déclenchement du paiement (GeniusPay, HTTP ${httpStatus})`;
   return "Échec du déclenchement du paiement (GeniusPay)";

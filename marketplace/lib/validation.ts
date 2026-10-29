@@ -70,6 +70,15 @@ export function validateBeninPhone(phone: string): {
   }
 }
 
+/** Normalise la saisie du champ téléphone local, sans l'indicatif +229. */
+export function formatBeninPhoneInput(value: string): string {
+  const digits = value.replace(/\D/g, '').replace(/^229/, '').slice(0, 10)
+  const groups = digits.startsWith('01')
+    ? [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 6), digits.slice(6, 8), digits.slice(8, 10)]
+    : [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 6), digits.slice(6, 8)]
+  return groups.filter(Boolean).join(' ')
+}
+
 /**
  * Formats a phone number for display
  * @param phone - The phone number to format (should include +229)

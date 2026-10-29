@@ -23,7 +23,7 @@ import { useToast } from "@/context/ToastContext";
 import { createClient } from "@/lib/supabase/client";
 import { toggleFavorite, fetchFavoriteIds, getProductUrl, getBoutiqueUrl } from "@/lib/catalogue";
 import { motion, AnimatePresence, Variants } from "framer-motion";
-import { HomeSkeleton } from "@/components/ui/Skeleton";
+import { HomeProductsSkeleton } from "@/components/ui/Skeleton";
 import { HeroSection } from "@/components/home/HeroSection";
 import { DeliveryAssuranceBanner } from "@/components/home/DeliveryAssuranceBanner";
 
@@ -224,7 +224,7 @@ export default function Home() {
 
   const handleToggleFavorite = async (productId: string) => {
     if (!user) {
-      router.push('/connexion');
+      router.push(`/connexion?redirect=${encodeURIComponent('/')}`);
       return;
     }
     const isFav = favoriteIds.has(productId);
@@ -244,8 +244,8 @@ export default function Home() {
 
   if (userLoading || shouldRedirectToDashboard) {
     return (
-      <div className="min-h-screen bg-white">
-        <HomeSkeleton />
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="w-8 h-8 border-4 border-coral-500 border-t-transparent rounded-full animate-spin" aria-label="Chargement" />
       </div>
     );
   }
@@ -258,10 +258,8 @@ export default function Home() {
       <HeroSection />
       <DeliveryAssuranceBanner />
 
-      {dataLoading ? (
-        <div className="pt-4">
-          <HomeSkeleton />
-        </div>
+      {dataLoading && articles.length === 0 ? (
+        <HomeProductsSkeleton />
       ) : (
         <>
           {dataError && (

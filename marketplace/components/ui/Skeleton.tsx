@@ -78,3 +78,22 @@ export function HomeSkeleton() {
     </div>
   );
 }
+
+export function HomeProductsSkeleton() {
+  return (
+    <section className="py-10 md:py-14 bg-[#F7F6F2] border-y border-gray-200/60" aria-label="Chargement des produits">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-12">
+        <div className="flex items-center justify-between mb-6 md:mb-8">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-3 w-56" />
+          </div>
+          <Skeleton className="h-9 w-36 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {Array.from({ length: 8 }, (_, index) => <ProductCardSkeleton key={index} />)}
+        </div>
+      </div>
+    </section>
+  );
+}

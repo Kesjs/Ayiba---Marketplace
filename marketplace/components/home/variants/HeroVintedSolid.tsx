@@ -30,7 +30,11 @@ export function HeroVintedSolid() {
     return () => window.clearInterval(interval);
   }, [role, sellerImages.length]);
 
-  const heroImage = role === "vendeur" ? sellerImages[sellerImageIndex] : "/images/hero/hero-livreur.webp";
+  const carouselImages = role === "vendeur" ? sellerImages : ["/images/hero/hero-livreur-choisi.png"];
+  const visibleImageIndex = role === "vendeur" ? sellerImageIndex : 0;
+  const imageAlt = role === "vendeur"
+    ? "Vendeuse béninoise présentant des produits dans sa boutique"
+    : "Livreur béninois à moto présentant un colis dans les rues de Cotonou";
 
   return (
     <section className="relative w-full overflow-hidden bg-[#FBFBF9] border-b border-gray-200">
@@ -38,16 +42,25 @@ export function HeroVintedSolid() {
       {/* ================= DESKTOP (md+) ================= */}
       <div className="hidden md:flex relative min-h-[500px] lg:min-h-[540px] items-center">
         {/* Background Photo */}
-        <div className="absolute inset-0 z-0">
-          <Image
-            key={`${role}-${heroImage}`}
-            src={heroImage}
-            alt={role === "vendeur" ? "Créatrice présentant une création dans son atelier" : "Livreur partenaire Ayiba présentant une commande"}
-            fill
-            priority
-            sizes="100vw"
-            className="hero-role-image object-cover object-[82%_top] lg:object-[80%_top]"
-          />
+        <div className="absolute inset-0 z-0 bg-[#d8c7b8]">
+          <div
+            className="hero-carousel-track flex h-full w-full transition-transform duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ transform: `translate3d(-${visibleImageIndex * 100}%, 0, 0)` }}
+          >
+            {carouselImages.map((image, index) => (
+              <div key={image} className="relative min-w-full h-full">
+                <Image
+                  src={image}
+                  alt={imageAlt}
+                  fill
+                  priority={index === 0}
+                  loading={index === 0 ? "eager" : "lazy"}
+                  sizes="100vw"
+                  className="object-cover object-[82%_top] lg:object-[80%_top]"
+                />
+              </div>
+            ))}
+          </div>
           {/* Subtle gradient to ensure left card legibility */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#FBFBF9]/80 via-transparent to-transparent w-2/3" />
         </div>
@@ -60,7 +73,7 @@ export function HeroVintedSolid() {
             <div className="hero-role-switch flex items-center p-1 bg-gray-100 rounded-xl mb-4">
               <button
                 type="button"
-                onClick={() => setRole("vendeur")}
+                onClick={() => { setRole("vendeur"); setSellerImageIndex(0); }}
                 className={`min-h-11 flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
                   role === "vendeur"
                     ? "bg-white text-gray-900 shadow-xs border border-gray-200/60"
@@ -72,7 +85,7 @@ export function HeroVintedSolid() {
               </button>
               <button
                 type="button"
-                onClick={() => setRole("livreur")}
+                onClick={() => { setRole("livreur"); setSellerImageIndex(0); }}
                 className={`min-h-11 flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
                   role === "livreur"
                     ? "bg-white text-gray-900 shadow-xs border border-gray-200/60"
@@ -152,16 +165,25 @@ export function HeroVintedSolid() {
       {/* ================= MOBILE (< md) ================= */}
       <div className="md:hidden">
         {/* Photo Top Frame showing full head/face */}
-        <div className="relative w-full h-[260px] bg-gray-100 overflow-hidden">
-          <Image
-            key={`${role}-${heroImage}`}
-            src={heroImage}
-            alt={role === "vendeur" ? "Créatrice présentant une création dans son atelier" : "Livreur partenaire Ayiba présentant une commande"}
-            fill
-            priority
-            sizes="100vw"
-            className="hero-role-image object-cover object-[center_top]"
-          />
+        <div className="relative w-full h-[260px] bg-[#d8c7b8] overflow-hidden">
+          <div
+            className="hero-carousel-track flex h-full w-full transition-transform duration-1000 ease-[cubic-bezier(0.22,1,0.36,1)]"
+            style={{ transform: `translate3d(-${visibleImageIndex * 100}%, 0, 0)` }}
+          >
+            {carouselImages.map((image, index) => (
+              <div key={image} className="relative min-w-full h-full">
+                <Image
+                  src={image}
+                  alt={imageAlt}
+                  fill
+                  priority={index === 0}
+                  loading={index === 0 ? "eager" : "lazy"}
+                  sizes="100vw"
+                  className="object-cover object-[center_top]"
+                />
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Card Body */}
@@ -170,7 +192,7 @@ export function HeroVintedSolid() {
           <div className="hero-role-switch flex items-center p-1 bg-gray-100 rounded-xl mb-3.5">
             <button
               type="button"
-              onClick={() => setRole("vendeur")}
+              onClick={() => { setRole("vendeur"); setSellerImageIndex(0); }}
               className={`min-h-11 flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
                 role === "vendeur"
                   ? "bg-white text-gray-900 shadow-xs border border-gray-200/60"
@@ -182,7 +204,7 @@ export function HeroVintedSolid() {
             </button>
             <button
               type="button"
-              onClick={() => setRole("livreur")}
+              onClick={() => { setRole("livreur"); setSellerImageIndex(0); }}
               className={`min-h-11 flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
                 role === "livreur"
                   ? "bg-white text-gray-900 shadow-xs border border-gray-200/60"

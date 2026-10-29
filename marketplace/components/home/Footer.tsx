@@ -39,14 +39,14 @@ export function Footer() {
   const showInstallBanner = !isStandalone && (canInstallNative || isIOS);
 
   return (
-    <footer className="py-12 px-4 bg-gray-50 border-t border-gray-100 md:px-8 lg:px-12">
+    <footer className="py-10 px-4 bg-gray-50 border-t border-gray-100 md:px-8 lg:px-12">
       <div className="max-w-7xl mx-auto">
 
         {/* --- Cartes CTA Vendeur & Livreur Compactes & Remarquables --- */}
-        <div className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-3">
           <Link
             href="/devenir-vendeur"
-            className="group relative overflow-hidden bg-gradient-to-r from-coral-500 via-coral-500 to-coral-600 rounded-2xl p-5 text-white shadow-md shadow-coral-500/10 hover:shadow-xl hover:shadow-coral-500/20 hover:scale-[1.01] transition-all duration-300 flex items-center justify-between gap-4"
+            className="group relative overflow-hidden bg-coral-500 rounded-xl p-4 text-white shadow-sm shadow-coral-500/10 hover:bg-coral-600 hover:shadow-md transition-all duration-300 flex items-center justify-between gap-3"
           >
             <BorderBeam size={180} duration={8} colorFrom="#FFFFFF" colorTo="#FCD34D" borderWidth={2} />
             <div className="flex items-center gap-3.5 min-w-0 z-10">
@@ -66,7 +66,7 @@ export function Footer() {
 
           <Link
             href="/devenir-livreur"
-            className="group relative overflow-hidden bg-gradient-to-r from-gray-900 via-gray-900 to-slate-800 rounded-2xl p-5 text-white shadow-md shadow-gray-900/10 hover:shadow-xl hover:shadow-gray-900/25 hover:scale-[1.01] transition-all duration-300 flex items-center justify-between gap-4"
+            className="group relative overflow-hidden bg-gray-900 rounded-xl p-4 text-white shadow-sm shadow-gray-900/10 hover:bg-gray-800 hover:shadow-md transition-all duration-300 flex items-center justify-between gap-3"
           >
             <BorderBeam size={180} duration={8} colorFrom="#14B8A6" colorTo="#38BDF8" borderWidth={2} delay={4} />
             <div className="flex items-center gap-3.5 min-w-0 z-10">
@@ -87,12 +87,12 @@ export function Footer() {
 
         {/* PWA / App Banner - Section responsive mobile-first */}
         {showInstallBanner && (
-        <div className="mb-16 p-6 md:p-10 bg-white rounded-[32px] border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-8">
+        <div className="mb-10 p-5 md:p-6 bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-5">
           <div className="flex-1 text-center md:text-left">
             <div className="inline-flex items-center gap-2 bg-coral-50 text-coral-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-4">
               Expérience Mobile-First
             </div>
-            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-3 tracking-tight">Utilisez Ayiba comme une application</h3>
+            <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 tracking-tight">Utilisez Ayiba comme une application</h3>
             <p className="text-sm text-gray-500 font-medium max-w-md leading-relaxed">
               Installez Ayiba sur votre écran d'accueil pour une expérience ultra-fluide,
               même sans passer par le Play Store.
@@ -114,15 +114,15 @@ export function Footer() {
         </div>
         )}
 
-        <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-4 lg:gap-16">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4 lg:gap-12">
 
           {/* Colonne 1 — Marque */}
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-            <LogoAyiba className="h-8 w-auto mb-6" />
+            <LogoAyiba className="h-8 w-auto mb-4" />
             <p className="text-[14px] text-gray-500 leading-relaxed max-w-[260px] font-medium">
               La marketplace de confiance qui connecte Cotonou et Calavi. Sécurité, Proximité, Qualité.
             </p>
-            <div className="flex items-center gap-4 mt-6">
+            <div className="flex items-center gap-4 mt-4">
               {[
                 { icon: "ti-brand-facebook", href: "#", bg: "bg-blue-50 text-blue-600" },
                 { icon: "ti-brand-instagram", href: "#", bg: "bg-pink-50 text-pink-600" },
@@ -141,8 +141,8 @@ export function Footer() {
 
           {/* Colonne 2 — Acheter */}
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-5">Acheter</h3>
-            <div className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-4">Acheter</h3>
+            <div className="flex flex-col gap-2.5">
               {footerLinks.acheter.map((l, i) => (
                 <a
                   key={i}
@@ -157,8 +157,8 @@ export function Footer() {
 
           {/* Colonne 3 — Vendre */}
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-5">Partenaires</h3>
-            <div className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-4">Partenaires</h3>
+            <div className="flex flex-col gap-2.5">
               {footerLinks.vendre.map((l, i) => (
                 <a
                   key={i}
@@ -173,8 +173,8 @@ export function Footer() {
 
           {/* Colonne 4 — Aide */}
           <div className="flex flex-col items-center sm:items-start text-center sm:text-left">
-            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-5">Aide & Légal</h3>
-            <div className="flex flex-col gap-3">
+            <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest mb-4">Aide & Légal</h3>
+            <div className="flex flex-col gap-2.5">
               {footerLinks.aide.map((l, i) => (
                 <a
                   key={i}
@@ -190,7 +190,7 @@ export function Footer() {
         </div>
 
         {/* Bas du footer */}
-        <div className="mt-12 pt-8 border-t border-gray-200">
+        <div className="mt-10 pt-6 border-t border-gray-200">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <p className="text-sm text-gray-400 font-medium flex items-center gap-1.5">
               © 2026 Ayiba • Marketplace 100% Béninoise 🇧🇯

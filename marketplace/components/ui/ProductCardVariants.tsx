@@ -179,7 +179,7 @@ export function ProductCardModern({
         {/* Ligne prix + bouton panier */}
         <div className="flex items-center justify-between mt-1 gap-2">
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
-            <p className={`text-base font-extrabold whitespace-nowrap tracking-tight ${discount ? 'text-coral-600' : 'text-gray-900'}`}>
+            <p className={`text-[1.05rem] font-mono font-bold tabular-nums whitespace-nowrap tracking-[-0.03em] text-gray-950 ${discount ? 'text-gray-950' : ''}`}>
               {price.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>
             </p>
             {discount && (
@@ -199,7 +199,7 @@ export function ProductCardModern({
             onClick={handleAddToCart}
             disabled={enRupture}
             aria-disabled={enRupture}
-            className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+            className={`group/cart shrink-0 h-8 rounded-full flex items-center justify-center gap-1.5 overflow-hidden transition-[width,background-color,color,box-shadow] duration-300 ease-out w-8 hover:w-[7.25rem] ${
               enRupture
                 ? "bg-gray-100 text-gray-300 cursor-not-allowed"
                 : justAdded
@@ -211,6 +211,11 @@ export function ProductCardModern({
             <CartPlusIcon
               size={15}
             />
+            {!enRupture && (
+              <span className="max-w-0 overflow-hidden whitespace-nowrap text-xs font-bold opacity-0 transition-[max-width,opacity] duration-200 group-hover/cart:max-w-[5.25rem] group-hover/cart:opacity-100">
+                Ajouter
+              </span>
+            )}
           </button>
         </div>
       </div>

@@ -94,7 +94,7 @@ export default function Home() {
   };
 
   const [activeTab, setActiveTab] = useState("Tout");
-  const [visibleProductsCount, setVisibleProductsCount] = useState(20);
+  const [visibleProductsCount, setVisibleProductsCount] = useState(12);
   const [countdown, setCountdown] = useState<{ h: number; m: number; s: number } | null>(null);
 
   const { isValide: isLivreurValide, loading: livreurStatutLoading } =
@@ -420,7 +420,7 @@ export default function Home() {
                 <div className="flex items-center gap-2 mb-6">
                   <span className="text-xs font-semibold text-gray-500">Filtré par :</span>
                   <button
-                    onClick={() => { setActiveTab('Tout'); setVisibleProductsCount(20); }}
+                    onClick={() => { setActiveTab('Tout'); setVisibleProductsCount(12); }}
                     className="flex items-center gap-2 px-3 py-1 rounded-full bg-coral-50 text-coral-600 border border-coral-200 text-xs font-bold hover:bg-coral-100 transition-colors"
                   >
                     {activeTab} <span className="text-coral-400 ml-1">×</span>
@@ -512,10 +512,10 @@ export default function Home() {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") router.push(getBoutiqueUrl(store));
                       }}
-                      className="group flex flex-col shrink-0 w-60 md:w-68 p-5 bg-[#F1EFE8] rounded-3xl border border-gray-200/60 hover:border-coral-300 hover:bg-white hover:shadow-xl hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer"
+                    className="group flex flex-col shrink-0 w-56 md:w-64 p-4 bg-[#F1EFE8] rounded-2xl border border-gray-200/60 hover:border-coral-300 hover:bg-white hover:shadow-lg hover:shadow-coral-500/5 transition-all duration-300 cursor-pointer"
                     >
                       <div className="relative mb-4">
-                        <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-white shadow-xs transition-transform duration-300 group-hover:scale-105 bg-coral-50 flex items-center justify-center relative">
+                        <div className="w-14 h-14 rounded-xl overflow-hidden border-2 border-white shadow-xs transition-transform duration-300 group-hover:scale-105 bg-coral-50 flex items-center justify-center relative">
                           {store.logo && (
                             <img
                               src={store.logo}

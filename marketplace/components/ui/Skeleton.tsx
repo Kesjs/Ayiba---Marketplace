@@ -8,14 +8,16 @@ export function Skeleton({ className }: { className?: string }) {
 
 export function ProductCardSkeleton() {
   return (
-    <div className="flex flex-col bg-white border border-gray-100 rounded-lg overflow-hidden">
-      <Skeleton className="h-48 w-full" />
-      <div className="p-3 flex flex-col gap-2">
+    <div className="flex flex-col w-full text-left">
+      <Skeleton className="aspect-square w-full rounded-2xl" />
+      <div className="px-1 pt-3 flex flex-col gap-2">
         <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-4/5" />
         <Skeleton className="h-3 w-24" />
-        <Skeleton className="h-5 w-20 mt-2" />
-        <Skeleton className="h-9 w-full mt-3" />
+        <div className="flex items-center justify-between mt-1">
+          <Skeleton className="h-5 w-20" />
+          <Skeleton className="h-8 w-8 rounded-full" />
+        </div>
       </div>
     </div>
   );

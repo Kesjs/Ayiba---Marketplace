@@ -227,7 +227,7 @@ export function Navbar() {
                         onClick={() => setPartnerMenuOpen(false)} 
                         className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 text-gray-700 hover:text-coral-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-7 flex items-center justify-center text-coral-500 shrink-0">
                           <Store size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -241,7 +241,7 @@ export function Navbar() {
                         onClick={() => setPartnerMenuOpen(false)} 
                         className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 text-gray-700 hover:text-teal-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-7 flex items-center justify-center text-teal-600 shrink-0">
                           <Bike size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -279,7 +279,7 @@ export function Navbar() {
                       onClick={() => setHelpMenuOpen(false)} 
                       className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 text-gray-700 hover:text-coral-600 transition-all group/item"
                     >
-                      <div className="w-8 h-8 bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-7 flex items-center justify-center text-coral-500 shrink-0">
                         <FileQuestion size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -293,7 +293,7 @@ export function Navbar() {
                       onClick={() => setHelpMenuOpen(false)} 
                       className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-amber-50 text-gray-700 hover:text-amber-600 transition-all group/item"
                     >
-                      <div className="w-8 h-8 bg-amber-50 flex items-center justify-center text-amber-500 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-7 flex items-center justify-center text-amber-500 shrink-0">
                         <HelpCircle size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -307,7 +307,7 @@ export function Navbar() {
                       onClick={() => setHelpMenuOpen(false)} 
                       className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 text-gray-700 hover:text-teal-600 transition-all group/item"
                     >
-                      <div className="w-8 h-8 bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-7 flex items-center justify-center text-teal-600 shrink-0">
                         <QrCode size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -321,7 +321,7 @@ export function Navbar() {
                       onClick={() => setHelpMenuOpen(false)} 
                       className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-rose-50 text-gray-700 hover:text-rose-600 transition-all group/item"
                     >
-                      <div className="w-8 h-8 bg-rose-50 flex items-center justify-center text-rose-500 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-7 flex items-center justify-center text-rose-500 shrink-0">
                         <ShieldCheck size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -335,7 +335,7 @@ export function Navbar() {
                       onClick={() => setHelpMenuOpen(false)} 
                       className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-gray-50 text-gray-700 hover:text-gray-900 transition-all group/item border-t border-gray-100 mt-1 pt-3"
                     >
-                      <div className="w-8 h-8 bg-gray-100 flex items-center justify-center text-gray-600 group-hover/item:bg-white shadow-xs shrink-0">
+                      <div className="w-7 flex items-center justify-center text-gray-600 shrink-0">
                         <MessageSquare size={16} />
                       </div>
                       <div className="flex flex-col text-left">
@@ -494,7 +494,7 @@ export function Navbar() {
                         onClick={() => setHelpMenuOpen(false)} 
                         className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-coral-50 text-gray-700 hover:text-coral-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 bg-coral-50 flex items-center justify-center text-coral-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-7 flex items-center justify-center text-coral-500 shrink-0">
                           <FileQuestion size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -508,7 +508,7 @@ export function Navbar() {
                         onClick={() => setHelpMenuOpen(false)} 
                         className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-amber-50 text-gray-700 hover:text-amber-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 bg-amber-50 flex items-center justify-center text-amber-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-7 flex items-center justify-center text-amber-500 shrink-0">
                           <HelpCircle size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -522,7 +522,7 @@ export function Navbar() {
                         onClick={() => setHelpMenuOpen(false)} 
                         className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-teal-50 text-gray-700 hover:text-teal-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 bg-teal-50 flex items-center justify-center text-teal-600 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-7 flex items-center justify-center text-teal-600 shrink-0">
                           <QrCode size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -536,7 +536,7 @@ export function Navbar() {
                         onClick={() => setHelpMenuOpen(false)} 
                         className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-rose-50 text-gray-700 hover:text-rose-600 transition-all group/item"
                       >
-                        <div className="w-8 h-8 bg-rose-50 flex items-center justify-center text-rose-500 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-7 flex items-center justify-center text-rose-500 shrink-0">
                           <ShieldCheck size={16} />
                         </div>
                         <div className="flex flex-col text-left">
@@ -550,7 +550,7 @@ export function Navbar() {
                         onClick={() => setHelpMenuOpen(false)} 
                         className="flex items-center gap-3 w-full px-3.5 py-2.5 hover:bg-gray-50 text-gray-700 hover:text-gray-900 transition-all group/item border-t border-gray-100 mt-1 pt-3"
                       >
-                        <div className="w-8 h-8 bg-gray-100 flex items-center justify-center text-gray-600 group-hover/item:bg-white shadow-xs shrink-0">
+                        <div className="w-7 flex items-center justify-center text-gray-600 shrink-0">
                           <MessageSquare size={16} />
                         </div>
                         <div className="flex flex-col text-left">

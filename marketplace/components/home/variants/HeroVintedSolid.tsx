@@ -1,12 +1,36 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ShieldCheck, Zap, Store, Bike } from "lucide-react";
 
 export function HeroVintedSolid() {
   const [role, setRole] = useState<"vendeur" | "livreur">("vendeur");
+  const [sellerImageIndex, setSellerImageIndex] = useState(0);
+
+  const sellerImages = [
+    "/images/hero/hero-vendeur-boutique.png",
+    "/images/hero/hero-vendeur-montres.png",
+    "/images/hero/hero-vendeur-sacs.png",
+    "/images/hero/hero-vendeur-maison.png",
+    "/images/hero/hero-vendeur-tech.png",
+    "/images/hero/hero-vendeur-chaussures.png",
+    "/images/hero/hero-vendeur-electromenager.png",
+    "/images/hero/hero-vendeur-divers.png",
+  ];
+
+  useEffect(() => {
+    if (role !== "vendeur") return;
+
+    const interval = window.setInterval(() => {
+      setSellerImageIndex((current) => (current + 1) % sellerImages.length);
+    }, 5200);
+
+    return () => window.clearInterval(interval);
+  }, [role, sellerImages.length]);
+
+  const heroImage = role === "vendeur" ? sellerImages[sellerImageIndex] : "/images/hero/hero-livreur.webp";
 
   return (
     <section className="relative w-full overflow-hidden bg-[#FBFBF9] border-b border-gray-200">
@@ -16,12 +40,13 @@ export function HeroVintedSolid() {
         {/* Background Photo */}
         <div className="absolute inset-0 z-0">
           <Image
-            src={role === "vendeur" ? "/images/hero/hero-vendeur.webp" : "/images/hero/hero-livreur.webp"}
-            alt="Ayiba Marketplace"
+            key={`${role}-${heroImage}`}
+            src={heroImage}
+            alt={role === "vendeur" ? "Créatrice présentant une création dans son atelier" : "Livreur partenaire Ayiba présentant une commande"}
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[82%_top] lg:object-[80%_top]"
+            className="hero-role-image object-cover object-[82%_top] lg:object-[80%_top]"
           />
           {/* Subtle gradient to ensure left card legibility */}
           <div className="absolute inset-0 bg-gradient-to-r from-[#FBFBF9]/80 via-transparent to-transparent w-2/3" />
@@ -32,11 +57,11 @@ export function HeroVintedSolid() {
           <div className="max-w-[370px] bg-white rounded-2xl border border-gray-200 shadow-md shadow-black/5 p-6">
             
             {/* Segmented Switcher */}
-            <div className="flex items-center p-1 bg-gray-100 rounded-xl mb-4">
+            <div className="hero-role-switch flex items-center p-1 bg-gray-100 rounded-xl mb-4">
               <button
                 type="button"
                 onClick={() => setRole("vendeur")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`min-h-11 flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
                   role === "vendeur"
                     ? "bg-white text-gray-900 shadow-xs border border-gray-200/60"
                     : "text-gray-500 hover:text-gray-900"
@@ -48,7 +73,7 @@ export function HeroVintedSolid() {
               <button
                 type="button"
                 onClick={() => setRole("livreur")}
-                className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`min-h-11 flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
                   role === "livreur"
                     ? "bg-white text-gray-900 shadow-xs border border-gray-200/60"
                     : "text-gray-500 hover:text-gray-900"
@@ -60,6 +85,7 @@ export function HeroVintedSolid() {
             </div>
 
             {/* Content */}
+            <div key={role} className="hero-role-content">
             {role === "vendeur" ? (
               <>
                 <h1 className="text-xl lg:text-[23px] font-extrabold text-gray-900 tracking-tight leading-[1.2] mb-2">
@@ -117,6 +143,7 @@ export function HeroVintedSolid() {
                 </Link>
               </>
             )}
+            </div>
 
           </div>
         </div>
@@ -127,23 +154,24 @@ export function HeroVintedSolid() {
         {/* Photo Top Frame showing full head/face */}
         <div className="relative w-full h-[260px] bg-gray-100 overflow-hidden">
           <Image
-            src={role === "vendeur" ? "/images/hero/hero-vendeur.webp" : "/images/hero/hero-livreur.webp"}
-            alt="Ayiba Marketplace"
+            key={`${role}-${heroImage}`}
+            src={heroImage}
+            alt={role === "vendeur" ? "Créatrice présentant une création dans son atelier" : "Livreur partenaire Ayiba présentant une commande"}
             fill
             priority
             sizes="100vw"
-            className="object-cover object-[center_top]"
+            className="hero-role-image object-cover object-[center_top]"
           />
         </div>
 
         {/* Card Body */}
         <div className="p-4 bg-white border-t border-gray-200">
           {/* Segmented Switcher */}
-          <div className="flex items-center p-1 bg-gray-100 rounded-xl mb-3.5">
+          <div className="hero-role-switch flex items-center p-1 bg-gray-100 rounded-xl mb-3.5">
             <button
               type="button"
               onClick={() => setRole("vendeur")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`min-h-11 flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
                 role === "vendeur"
                   ? "bg-white text-gray-900 shadow-xs border border-gray-200/60"
                   : "text-gray-500 hover:text-gray-900"
@@ -155,7 +183,7 @@ export function HeroVintedSolid() {
             <button
               type="button"
               onClick={() => setRole("livreur")}
-              className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`min-h-11 flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 ${
                 role === "livreur"
                   ? "bg-white text-gray-900 shadow-xs border border-gray-200/60"
                   : "text-gray-500 hover:text-gray-900"
@@ -166,6 +194,7 @@ export function HeroVintedSolid() {
             </button>
           </div>
 
+          <div key={role} className="hero-role-content">
           {role === "vendeur" ? (
             <>
               <h1 className="text-lg font-extrabold text-gray-900 tracking-tight leading-[1.2] mb-1.5">
@@ -199,6 +228,7 @@ export function HeroVintedSolid() {
               </Link>
             </>
           )}
+          </div>
         </div>
       </div>
 

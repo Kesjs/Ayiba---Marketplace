@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -24,6 +24,7 @@ import {
 import dynamic from "next/dynamic";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useLivreurMissions, type MissionCommande, type CodesLivraison } from "@/app/hooks/useLivreurMissions";
+import { createClient } from "@/lib/supabase/client";
 
 const DeliveryMap = dynamic(() => import("@/components/dashboard/DeliveryMap"), {
   ssr: false,
@@ -57,6 +58,39 @@ export default function LivreurMissionsPage() {
   const [activeTab, setActiveTab] = useState<"a-confirmer" | "en-cours">("a-confirmer");
   const [actionEnCours, setActionEnCours] = useState<string | null>(null);
   const [enLigne, setEnLigne] = useState(true);
+  const [statutEnregistrement, setStatutEnregistrement] = useState(false);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase
+        .from("livreurs")
+        .select("en_pause")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (active && data) setEnLigne(!data.en_pause);
+    })();
+    return () => { active = false; };
+  }, [supabase]);
+
+  const handleToggleDisponibilite = async () => {
+    const nextEnLigne = !enLigne;
+    setStatutEnregistrement(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setStatutEnregistrement(false);
+      return;
+    }
+    const { error } = await supabase
+      .from("livreurs")
+      .update({ en_pause: !nextEnLigne })
+      .eq("id", user.id);
+    if (!error) setEnLigne(nextEnLigne);
+    setStatutEnregistrement(false);
+  };
 
   const statCards = [
     {
@@ -123,7 +157,7 @@ export default function LivreurMissionsPage() {
   };
 
   return (
-    <DashboardLayout role="livreur" title="Mes Missions">
+    <DashboardLayout role="livreur" title="Mes Courses">
       {loading ? (
         <DashboardSkeleton />
       ) : error ? (
@@ -153,16 +187,17 @@ export default function LivreurMissionsPage() {
                 <h2 className="text-xl font-bold text-gray-900">
                   {enLigne ? "Prêt à rouler" : "Tu es hors ligne"}
                 </h2>
-                <p className="text-sm text-gray-500 mt-0.5">
+                  <p className="text-sm text-gray-500 mt-0.5">
                   {enLigne
-                    ? "Tu reçois les nouvelles missions en temps réel."
-                    : "Repasse en ligne pour recevoir des missions."}
+                    ? "Tu reçois les nouvelles courses en temps réel."
+                    : "Repasse en ligne pour recevoir des courses."}
                 </p>
               </div>
             </div>
 
             <button
-              onClick={() => setEnLigne((v) => !v)}
+              onClick={handleToggleDisponibilite}
+              disabled={statutEnregistrement}
               className={`relative flex items-center gap-3 pl-4 pr-1.5 py-1.5 rounded-full border transition-colors shrink-0 self-start sm:self-auto ${
                 enLigne
                   ? "bg-teal-50 border-teal-200"
@@ -172,7 +207,7 @@ export default function LivreurMissionsPage() {
               <span
                 className={`text-sm font-bold ${enLigne ? "text-teal-700" : "text-gray-500"}`}
               >
-                {enLigne ? "En ligne" : "Hors ligne"}
+                {statutEnregistrement ? "Enregistrement..." : enLigne ? "En ligne" : "Hors ligne"}
               </span>
               <span
                 className={`relative w-11 h-7 rounded-full transition-colors duration-300 ${
@@ -278,7 +313,7 @@ export default function LivreurMissionsPage() {
                       text={
                         enLigne
                           ? "Reste en ligne, la prochaine ne devrait pas tarder."
-                          : "Passe en ligne pour commencer à recevoir des missions."
+                          : "Passe en ligne pour commencer à recevoir des courses."
                       }
                     />
                   ) : (

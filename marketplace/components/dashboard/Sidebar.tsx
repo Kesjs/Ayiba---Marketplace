@@ -99,7 +99,7 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
     // La bottom bar mobile se limite à 4 onglets (LIVREUR_NAV_ITEMS) ;
     // le sidebar desktop a la place d'afficher toutes les sections.
     livreur: [
-      { name: "Missions", icon: Truck, path: "/livreur/missions", requiresValidation: true },
+      { name: "Courses", icon: Truck, path: "/livreur/missions", requiresValidation: true },
       { name: "Paiements", icon: Wallet, path: "/livreur/paiements", requiresValidation: true },
       { name: "Messages", icon: MessageSquare, path: "/livreur/messages", requiresValidation: true },
       { name: "Historique", icon: History, path: "/livreur/historique", requiresValidation: true },

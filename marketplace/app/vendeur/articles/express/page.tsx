@@ -21,6 +21,7 @@ import {
   Image as ImageIcon,
   AlertCircle,
   Zap,
+  Copy as CopyIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import Link from "next/link";
@@ -86,6 +87,7 @@ interface ExpressCardProps {
   flatCategories: { id: string; nom: string }[];
   onUpdate: (id: string, field: keyof ExpressCard, value: any) => void;
   onRemove: (id: string) => void;
+  onDuplicate: (id: string) => void;
   onAddPhotos: (id: string, files: FileList) => void;
   onRemovePhoto: (cardId: string, photoId: string) => void;
   onGenerateDescription: (id: string) => void;
@@ -97,6 +99,7 @@ function ProductCard({
   flatCategories,
   onUpdate,
   onRemove,
+  onDuplicate,
   onAddPhotos,
   onRemovePhoto,
   onGenerateDescription,
@@ -147,6 +150,14 @@ function ProductCard({
             aria-label="Supprimer cette carte"
           >
             <Trash2 size={15} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDuplicate(card.id)}
+            className="p-1.5 rounded-xl text-gray-400 hover:text-coral-500 hover:bg-coral-50 transition-colors"
+            aria-label="Dupliquer cette carte"
+          >
+            <CopyIcon size={15} />
           </button>
         </div>
       </div>
@@ -386,6 +397,24 @@ export default function AjoutExpressPage() {
   const handleRemoveCard = useCallback((id: string) => {
     setCards((prev) => prev.filter((c) => c.id !== id));
   }, []);
+
+  const handleDuplicateCard = useCallback((id: string) => {
+    setCards((prev) => {
+      const source = prev.find((card) => card.id === id);
+      if (!source) return prev;
+      const copy: ExpressCard = {
+        ...source,
+        id: crypto.randomUUID(),
+        photos: source.photos.map((photo) => ({ ...photo, id: crypto.randomUUID() })),
+        aiLoading: false,
+      };
+      const index = prev.findIndex((card) => card.id === id);
+      const next = [...prev];
+      next.splice(index + 1, 0, copy);
+      return next;
+    });
+    showToast("Carte dupliquée — modifie seulement ce qui change.", "info");
+  }, [showToast]);
 
   const handleUpdateCard = useCallback(
     (id: string, field: keyof ExpressCard, value: any) => {
@@ -777,6 +806,7 @@ export default function AjoutExpressPage() {
                   flatCategories={flatCategories}
                   onUpdate={handleUpdateCard}
                   onRemove={handleRemoveCard}
+                  onDuplicate={handleDuplicateCard}
                   onAddPhotos={handleAddPhotosToCard}
                   onRemovePhoto={handleRemovePhotoFromCard}
                   onGenerateDescription={handleGenerateDescription}

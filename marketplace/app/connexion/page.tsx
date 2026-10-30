@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag, CheckCircle2, Loader2 } from "lucide-react";
+import { Mail, Check, ArrowLeft, AlertCircle, RefreshCw, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { validateBeninPhone } from "@/lib/validation";
 import { useSmartGeolocation } from "@/lib/hooks/useSmartGeolocation";
@@ -107,17 +107,6 @@ const getRoleConfig = (role: "vendeur" | "livreur" | null | undefined) => {
   };
 };
 
-function getMailProviderLink(email: string): { name: string; url: string } | null {
-  const domain = email.split("@")[1]?.toLowerCase();
-  if (!domain) return null;
-  if (domain.includes("gmail")) return { name: "Gmail", url: "https://mail.google.com" };
-  if (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live")) {
-    return { name: "Outlook", url: "https://outlook.live.com/mail" };
-  }
-  if (domain.includes("yahoo")) return { name: "Yahoo Mail", url: "https://mail.yahoo.com" };
-  return null;
-}
-
 function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -138,7 +127,13 @@ function AuthForm() {
   const [nomComplet, setNomComplet] = useState("");
   const [telephone, setTelephone] = useState("");
   const [telephoneFormatted, setTelephoneFormatted] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    searchParams.get("error") === "role"
+      ? intendedRole === "livreur"
+        ? "Ce compte n’est pas enregistré comme livreur. Utilise le parcours Devenir livreur pour accéder à cet espace."
+        : "Ce compte n’est pas enregistré dans cet espace partenaire."
+      : null
+  );
   const [otpError, setOtpError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -209,9 +204,18 @@ function AuthForm() {
 
     const { data: userData } = await supabase
       .from("users")
-      .select("role")
+      .select("role, account_roles")
       .eq("id", userId)
       .single();
+
+    const roles = userData?.account_roles ?? [userData?.role ?? "client"];
+    const hasRequestedRole = !intendedRole || roles.includes(intendedRole);
+
+    // A role-specific login must never let a client or another role enter the
+    // requested workspace just because a redirect URL was supplied.
+    if (intendedRole && !hasRequestedRole) {
+      return "/connexion?role=" + intendedRole + "&error=role";
+    }
 
     const resolvedRedirect =
       redirectTo && userData?.role === "vendeur" && redirectTo.startsWith("/messages")
@@ -220,7 +224,15 @@ function AuthForm() {
         ? redirectTo.replace("/vendeur/messages", "/messages")
         : redirectTo;
 
-    if (resolvedRedirect) return resolvedRedirect;
+    if (resolvedRedirect) {
+      if (intendedRole === "livreur" && !resolvedRedirect.startsWith("/livreur")) {
+        return "/livreur/missions?platform=delivery";
+      }
+      if (intendedRole === "vendeur" && !resolvedRedirect.startsWith("/vendeur")) {
+        return "/vendeur/dashboard";
+      }
+      return resolvedRedirect;
+    }
 
     if (userData?.role === "vendeur") {
       const { data: vendeurData } = await supabase
@@ -381,6 +393,24 @@ function AuthForm() {
           setOtpLoading(false);
           return;
         }
+        if (intendedRole) {
+          const { data: profile } = await supabase
+            .from("users")
+            .select("role, account_roles")
+            .eq("id", data.user?.id ?? "")
+            .single();
+          const roles = profile?.account_roles ?? [profile?.role ?? "client"];
+          if (!roles.includes(intendedRole)) {
+            await supabase.auth.signOut();
+            setOtpError(
+              intendedRole === "livreur"
+                ? "Ce compte n’est pas encore enregistré comme livreur. Utilise le parcours Devenir livreur pour créer ou compléter ton accès."
+                : "Ce compte n’est pas enregistré dans cet espace partenaire."
+            );
+            setOtpLoading(false);
+            return;
+          }
+        }
         setOtpSuccess(true);
         if (isClientSignup && data.user) {
           await supabase.from("users").upsert({
@@ -435,8 +465,6 @@ function AuthForm() {
   };
 
   const isOtpStep = mode === "otp-connexion" || mode === "otp-inscription" || mode === "otp-reset";
-  const mailProvider = otpEmail ? getMailProviderLink(otpEmail) : null;
-
   const isSubmitDisabled =
     loading ||
     !email ||
@@ -508,23 +536,14 @@ function AuthForm() {
             </div>
           )}
 
-          {/* Resend + open mail */}
+          {/* Le code se valide automatiquement dès que les 6 chiffres sont saisis. */}
           {!otpSuccess && (
             <>
-              {mailProvider && (
-                <a
-                  href={mailProvider.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-gray-800 mb-3 transition-colors"
-                >
-                  Ouvrir {mailProvider.name} <ExternalLink size={14} />
-                </a>
-              )}
+              <p className="text-[12px] text-gray-500 mb-3">La connexion se fait automatiquement dès que le code est complet.</p>
               <button
                 onClick={handleResend}
                 disabled={resendCooldown > 0 || resending}
-                className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4 transition-colors"
+                className="w-full flex items-center justify-center gap-2 border border-coral-200 rounded-lg py-2.5 text-sm font-medium text-coral-600 hover:bg-coral-50 disabled:border-gray-200 disabled:text-gray-400 disabled:opacity-100 mb-4 transition-colors"
               >
                 <RefreshCw size={14} className={resending ? "animate-spin" : ""} />
                 {resendCooldown > 0 ? `Renvoyer dans ${resendCooldown} s` : resending ? "Envoi..." : "Renvoyer le code"}

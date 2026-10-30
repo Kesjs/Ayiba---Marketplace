@@ -5,6 +5,7 @@ import { Bell, ArrowLeft, Search, X, ShoppingCart, Menu } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LogoAyiba from "@/components/ui/LogoAyiba";
+import LogoAyibaDelivery from "@/components/ui/LogoAyibaDelivery";
 import { NotificationsDropdown, type Notification } from "./NotificationsDropdown";
 import { AccountDropdown, type AccountLink } from "./AccountDropdown";
 import { LogoutConfirmModal } from "@/components/ui/LogoutConfirmModal";
@@ -53,6 +54,8 @@ interface DashboardHeaderProps {
    * la bordure de la sidebar, qui passait derrière le header sticky). */
   onToggleSidebar?: () => void;
   sidebarCollapsed?: boolean;
+  /** Affiche la sous-marque Delivery dans le même shell livreur. */
+  deliveryMode?: boolean;
 }
 
 export function DashboardHeader({
@@ -79,6 +82,7 @@ export function DashboardHeader({
   showCart = false,
   onToggleSidebar,
   sidebarCollapsed = false,
+  deliveryMode = false,
 }: DashboardHeaderProps) {
   const router = useRouter();
   const { itemCount, openCart } = useCart();
@@ -172,7 +176,11 @@ export function DashboardHeader({
           dessous ne porte plus que le contenu (salutation/retour/titre). */}
       <div className="lg:hidden flex items-center justify-between gap-3 px-4 h-12 border-b border-gray-50">
         <div className="flex items-center">
-          <LogoAyiba className="h-6 w-auto" />
+          {deliveryMode ? (
+            <LogoAyibaDelivery className="h-7 w-auto max-w-[180px]" />
+          ) : (
+            <LogoAyiba className="h-6 w-auto" />
+          )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0" ref={topBarRef}>
@@ -305,7 +313,7 @@ export function DashboardHeader({
             onClick={onBoutiqueClick}
             className="flex items-center gap-1 text-sm font-bold text-gray-900"
           >
-            {boutiqueName || "Ma boutique"}
+            {boutiqueName || (deliveryMode ? "Ayiba Delivery" : "Ma boutique")}
           </button>
         </div>
 

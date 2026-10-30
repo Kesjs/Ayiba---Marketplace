@@ -525,8 +525,8 @@ export default function LivreurParametresPage() {
                 title={form.enPause ? "Réactiver mon compte" : "Suspendre temporairement mon compte"}
                 description={
                   form.enPause
-                    ? "Tu redeviendras visible et recevras de nouveau des missions."
-                    : "Tu ne recevras plus de nouvelles missions tant que ton compte est en pause."
+                    ? "Tu redeviendras visible et recevras de nouveau des courses."
+                    : "Tu ne recevras plus de nouvelles courses tant que ton compte est en pause."
                 }
                 actionLabel={form.enPause ? "Réactiver" : "Mettre en pause"}
                 tone="amber"
@@ -551,8 +551,8 @@ export default function LivreurParametresPage() {
         title={form.enPause ? "Réactiver mon compte" : "Suspendre temporairement mon compte"}
         description={
           form.enPause
-            ? "Ton compte redeviendra visible et tu recevras de nouveau des missions."
-            : "Tu ne recevras plus de nouvelles missions tant que ton compte est en pause. Tu pourras le réactiver à tout moment depuis cette page."
+            ? "Ton compte redeviendra visible et tu recevras de nouveau des courses."
+            : "Tu ne recevras plus de nouvelles courses tant que ton compte est en pause. Tu pourras le réactiver à tout moment depuis cette page."
         }
         error={pauseError}
         confirmLabel={form.enPause ? "Réactiver" : "Mettre en pause"}

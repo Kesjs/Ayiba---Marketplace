@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Store, User, Settings, ShoppingBag } from "lucide-react";
 import { Sidebar } from "./Sidebar";
@@ -27,6 +27,8 @@ interface DashboardLayoutProps {
    * page par page si besoin (ex: écrans plein écran comme la messagerie). */
   searchable?: boolean;
   searchPlaceholder?: string;
+  /** Déclinaison Delivery du même espace livreur et de la même session. */
+  deliveryMode?: boolean;
 }
 
 // Liens rapides du menu compte (clic avatar). Chaque rôle n'a pas la même
@@ -75,11 +77,33 @@ export function DashboardLayout({
   fullHeight = false,
   searchable,
   searchPlaceholder = "Rechercher un produit...",
+  deliveryMode: forcedDeliveryMode,
 }: DashboardLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isDeliveryContext, setIsDeliveryContext] = useState(Boolean(forcedDeliveryMode));
   const router = useRouter();
   const { profile, exitDemoMode } = useUser();
   const badges = useBadgeCounts(profile?.id, role);
+
+  useEffect(() => {
+    if (forcedDeliveryMode !== undefined) {
+      setIsDeliveryContext(forcedDeliveryMode);
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    setIsDeliveryContext(
+      params.get("platform") === "delivery" || window.location.hostname.startsWith("delivery.")
+    );
+  }, [forcedDeliveryMode]);
+
+  const isDeliveryMode = isDeliveryContext;
+
+  const withDeliveryContext = (href: string | undefined) => {
+    if (!href || role !== "livreur" || !isDeliveryMode || !href.startsWith("/livreur")) {
+      return href;
+    }
+    return `${href}${href.includes("?") ? "&" : "?"}platform=delivery`;
+  };
 
   const displayName = userName || profile?.full_name || "Utilisateur";
   const prenom = displayName.split(" ")[0];
@@ -88,7 +112,7 @@ export function DashboardLayout({
 
   const accountSubtitle: Record<"admin" | "vendeur" | "livreur" | "client", string> = {
     vendeur: boutiqueName || "Vendeur Ayiba",
-    livreur: "Livreur Ayiba",
+    livreur: isDeliveryMode ? "Livreur Ayiba Delivery" : "Livreur Ayiba",
     admin: "Administrateur",
     client: "Client Ayiba",
   };
@@ -110,6 +134,7 @@ export function DashboardLayout({
         avatarUrl={profile?.avatar_url}
         isCollapsed={isCollapsed}
         onToggleCollapse={() => setIsCollapsed((c) => !c)}
+        deliveryMode={isDeliveryMode}
       />
 
       <main
@@ -121,19 +146,23 @@ export function DashboardLayout({
           boutiqueName={boutiqueName}
           title={title || "Tableau de bord"}
           greeting={personalized ? `${saluerSelonHeure()} ${prenom} 👋` : undefined}
-          subtitle={personalized ? "Bon retour sur Ayiba" : undefined}
+          subtitle={personalized ? (isDeliveryMode ? "Bon retour sur Ayiba Delivery" : "Bon retour sur Ayiba") : undefined}
           avatarUrl={profile?.avatar_url}
           fullName={displayName}
           notificationsCount={badges.notifications}
           notifications={badges.notificationsList}
-          backHref={backHref}
+          backHref={withDeliveryContext(backHref)}
           backLabel={backLabel}
           accountSubtitle={accountSubtitle[role]}
-          accountLinks={ROLE_ACCOUNT_LINKS[role]}
+          accountLinks={ROLE_ACCOUNT_LINKS[role].map((link) => ({
+            ...link,
+            href: withDeliveryContext(link.href) ?? link.href,
+          }))}
           onLogout={handleLogout}
           showSearch={showSearch}
           searchPlaceholder={searchPlaceholder}
           showCart={role === "vendeur" || role === "client"}
+          deliveryMode={isDeliveryMode}
           onToggleSidebar={() => setIsCollapsed((c) => !c)}
           sidebarCollapsed={isCollapsed}
         />

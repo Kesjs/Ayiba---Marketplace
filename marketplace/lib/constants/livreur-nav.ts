@@ -18,7 +18,7 @@ export interface LivreurNavItem {
 // 4 onglets directs, pas de tiroir "Menu" : Historique et Paramètres
 // vivent comme des raccourcis à l'intérieur de la page Profil.
 export const LIVREUR_NAV_ITEMS: LivreurNavItem[] = [
-  { label: "Missions", href: "/livreur/missions", icon: Truck, badgeKey: "missions", requiresValidation: true },
+  { label: "Courses", href: "/livreur/missions", icon: Truck, badgeKey: "missions", requiresValidation: true },
   { label: "Paiements", href: "/livreur/paiements", icon: Wallet, requiresValidation: true },
   { label: "Messages", href: "/livreur/messages", icon: MessageSquare, badgeKey: "messages", requiresValidation: true },
   { label: "Profil", href: "/livreur/profil", icon: User },

@@ -172,7 +172,7 @@ export default function LivreurHistoriquePage() {
               <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300">
                 <History size={26} />
               </div>
-              <p className="font-bold text-gray-700 mb-1">Aucune mission trouvée</p>
+              <p className="font-bold text-gray-700 mb-1">Aucune course trouvée</p>
               <p className="text-sm text-gray-400 max-w-xs mx-auto">
                 Aucune livraison ne correspond à la période sélectionnée.
               </p>

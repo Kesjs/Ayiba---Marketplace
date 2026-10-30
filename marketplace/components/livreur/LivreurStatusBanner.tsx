@@ -38,7 +38,7 @@ export function LivreurStatusBanner({ statut, raisonRejet }: LivreurStatusBanner
   const linkColor = isIncomplete ? "text-orange-700" : isPending ? "text-amber-700" : "text-red-700";
 
   const message = isIncomplete
-    ? "Ton dossier livreur n'est pas encore soumis — tu ne peux pas encore recevoir de missions."
+    ? "Ton dossier livreur n'est pas encore soumis — tu ne peux pas encore recevoir de courses."
     : isPending
     ? "Vérification de ton compte en cours — activation sous 24-48h."
     : `Vérification refusée${raisonRejet ? ` — ${raisonRejet}` : "."}`;

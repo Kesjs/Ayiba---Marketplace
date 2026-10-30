@@ -29,6 +29,7 @@ import { useUser } from "@/lib/hooks/useUser";
 import { useLivreurVerificationStatut } from "@/lib/hooks/useLivreurVerificationStatut";
 import { useToast } from "@/context/ToastContext";
 import LogoAyiba from "@/components/ui/LogoAyiba";
+import LogoAyibaDelivery from "@/components/ui/LogoAyibaDelivery";
 
 interface SidebarProps {
   role: "admin" | "vendeur" | "livreur" | "client";
@@ -38,6 +39,7 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   onCartClick?: () => void;
   cartItemCount?: number;
+  deliveryMode?: boolean;
 }
 
 interface SidebarChildItem {
@@ -53,7 +55,7 @@ interface SidebarMenuItem {
   requiresValidation?: boolean;
 }
 
-export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollapse, onCartClick, cartItemCount = 0 }: SidebarProps) {
+export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollapse, onCartClick, cartItemCount = 0, deliveryMode = false }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { exitDemoMode, profile } = useUser();
@@ -122,6 +124,11 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
     useLivreurVerificationStatut(role === "livreur");
   const { showToast } = useToast();
 
+  const withDeliveryContext = (path: string) => {
+    if (role !== "livreur" || !deliveryMode || !path.startsWith("/livreur")) return path;
+    return `${path}${path.includes("?") ? "&" : "?"}platform=delivery`;
+  };
+
   // Item parent (ex. "Achats") actuellement déplié — un seul ouvert à la
   // fois. Ouvert par défaut si on se trouve déjà sur une de ses sous-pages,
   // pour ne pas cacher l'endroit où on est.
@@ -163,7 +170,11 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
         {isCollapsed ? (
           <LogoAyiba iconOnly className="h-8 w-8 shrink-0" />
         ) : (
-          <LogoAyiba className="h-8 w-auto shrink-0" />
+          deliveryMode ? (
+            <LogoAyibaDelivery className="h-9 w-auto max-w-[190px] shrink-0" />
+          ) : (
+            <LogoAyiba className="h-8 w-auto shrink-0" />
+          )
         )}
       </div>
 
@@ -259,7 +270,7 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
                       return (
                         <Link
                           key={child.path}
-                          href={child.path}
+                          href={withDeliveryContext(child.path)}
                           className={`
                             block px-3 py-2 rounded-lg text-[13px] font-semibold whitespace-nowrap transition-colors
                             ${childActive
@@ -280,7 +291,7 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
           return (
             <Link
               key={item.path}
-              href={item.path!}
+              href={withDeliveryContext(item.path!)}
               className={`
                 flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
                 ${isActive
@@ -305,7 +316,7 @@ export function Sidebar({ role, userName, avatarUrl, isCollapsed, onToggleCollap
           du menu de nav au-dessus par une bordure. */}
       <div className="p-3 border-t border-gray-100 space-y-1">
         <Link
-          href={settingsPath[role]}
+          href={withDeliveryContext(settingsPath[role])}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors ${isCollapsed ? "justify-center px-0" : ""}`}
         >
           <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden shrink-0">

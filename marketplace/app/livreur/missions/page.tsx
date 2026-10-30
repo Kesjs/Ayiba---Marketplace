@@ -309,7 +309,7 @@ export default function LivreurMissionsPage() {
                     <EmptyState
                       key="empty-confirmer"
                       icon={Radio}
-                      title="Aucune mission pour l'instant"
+                      title="Aucune course pour l'instant"
                       text={
                         enLigne
                           ? "Reste en ligne, la prochaine ne devrait pas tarder."
@@ -340,7 +340,7 @@ export default function LivreurMissionsPage() {
                     key="empty-en-cours"
                     icon={PackageCheck}
                     title="Aucune course active"
-                    text="Accepte une mission dans l'onglet « À confirmer » pour démarrer une livraison."
+                    text="Accepte une course dans l'onglet « À confirmer » pour démarrer une livraison."
                   />
                 ) : (
                   enCours.map((mission) => (
@@ -559,7 +559,7 @@ function MissionACConfirmerCard({
           onClick={onAccepter}
           className="flex-[2] h-12 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-black transition-all shadow-lg shadow-gray-900/10 disabled:opacity-50"
         >
-          {disabled ? "..." : "Accepter la mission"}
+          {disabled ? "..." : "Accepter la course"}
         </motion.button>
       </div>
     </div>

@@ -67,6 +67,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ received: true })
   }
 
+  // Une transaction Delivery est finalisée séparément des commandes
+  // marketplace : elle arrive dans sa propre intention de paiement et ne
+  // doit jamais passer par finaliser_paiement_checkout.
+  const { data: deliveryIntent } = await admin
+    .from('delivery_payment_intents')
+    .select('id')
+    .eq('transaction_reference', String(reference))
+    .maybeSingle()
+
+  if (deliveryIntent) {
+    if (nomEvenement === 'payment.success') {
+      const { error } = await admin.rpc('finaliser_paiement_delivery', {
+        p_transaction_reference: String(reference),
+      })
+      if (error) {
+        console.error('[paiements/webhook] finaliser_paiement_delivery error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+    } else if (['payment.failed', 'payment.cancelled', 'payment.expired'].includes(nomEvenement)) {
+      await admin.rpc('marquer_echec_paiement_delivery', {
+        p_transaction_reference: String(reference),
+        p_raison: nomEvenement,
+      })
+    }
+    return NextResponse.json({ received: true })
+  }
+
   switch (nomEvenement) {
     case 'payment.success': {
       const { data, error } = await admin.rpc('finaliser_paiement_checkout', {

@@ -12,6 +12,7 @@ import {
   Users,
   Package,
   MessageSquare,
+  Route,
   Lock,
   Settings,
   ChevronRight,
@@ -53,6 +54,7 @@ const SECTIONS: MenuSection[] = [
     titre: "Commandes & argent",
     liens: [
       { label: "Commandes", href: "/admin/commandes", icon: ShoppingBag },
+      { label: "Delivery", href: "/admin/delivery", icon: Route, description: "Courses, livreurs et paiements en direct" },
       { label: "Paiements & retraits", href: "/admin/paiements", icon: Wallet },
     ],
   },

@@ -25,6 +25,7 @@ import dynamic from "next/dynamic";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { useLivreurMissions, type MissionCommande, type CodesLivraison } from "@/app/hooks/useLivreurMissions";
 import { createClient } from "@/lib/supabase/client";
+import { DeliveryCourseInbox } from "@/components/delivery/DeliveryCourseInbox";
 
 const DeliveryMap = dynamic(() => import("@/components/dashboard/DeliveryMap"), {
   ssr: false,
@@ -59,7 +60,13 @@ export default function LivreurMissionsPage() {
   const [actionEnCours, setActionEnCours] = useState<string | null>(null);
   const [enLigne, setEnLigne] = useState(true);
   const [statutEnregistrement, setStatutEnregistrement] = useState(false);
+  const [deliveryMode, setDeliveryMode] = useState(false);
   const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setDeliveryMode(params.get("platform") === "delivery" || window.location.hostname.startsWith("delivery."));
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -157,7 +164,7 @@ export default function LivreurMissionsPage() {
   };
 
   return (
-    <DashboardLayout role="livreur" title="Mes Courses">
+    <DashboardLayout role="livreur" title={deliveryMode ? "Courses Delivery" : "Mes Courses"}>
       {loading ? (
         <DashboardSkeleton />
       ) : error ? (
@@ -227,6 +234,8 @@ export default function LivreurMissionsPage() {
               </span>
             </button>
           </motion.div>
+
+          {deliveryMode && <DeliveryCourseInbox />}
 
           {/* Stat cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">

@@ -135,7 +135,7 @@ function AddressField({ label, placeholder, dot, text, picked, onText, onPick }:
           }
           if (e.key === "Escape") setOpen(false);
         }}
-        className="h-14 w-full rounded-2xl bg-gray-50 pl-11 pr-11 text-base font-semibold text-gray-900 outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-coral-400"
+        className="h-14 w-full rounded-xl bg-gray-50 pl-11 pr-11 text-base font-semibold text-gray-900 outline-none transition placeholder:font-medium placeholder:text-gray-400 focus:bg-white focus:ring-2 focus:ring-coral-400"
       />
       <span className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center">
         {loading ? (
@@ -194,7 +194,7 @@ function BookingCard({ info, onTrip }: { info: RouteInfo | null; onTrip: (f: Pla
   };
 
   return (
-    <form onSubmit={submit} className="mt-8 w-full max-w-[500px] rounded-3xl border border-gray-100 bg-white p-3 shadow-[0_24px_60px_-24px_rgba(44,44,42,.35)] sm:p-4">
+    <form onSubmit={submit} className="mt-8 w-full max-w-[500px] rounded-2xl border border-gray-100 bg-white p-3 shadow-[0_24px_60px_-24px_rgba(44,44,42,.35)] sm:p-4">
       <div className="relative space-y-2">
         <AddressField label="Adresse de départ" placeholder="Où récupérer le colis ?" dot="bg-teal-400" text={fromText} picked={!!from} onText={setFromText} onPick={setFrom} />
         <AddressField label="Adresse d’arrivée" placeholder="Où le livrer ?" dot="bg-coral-400" text={toText} picked={!!to} onText={setToText} onPick={setTo} />
@@ -243,7 +243,7 @@ function HeroVisual({ trip, onRoute }: { trip: { from: Place; to: Place }; onRou
 
   return (
     <div
-      className="relative aspect-[4/5] w-full overflow-hidden rounded-[32px] bg-gray-50 sm:aspect-[8/7] lg:aspect-auto lg:h-[640px]"
+      className="relative aspect-[4/5] w-full overflow-hidden rounded-[24px] bg-gray-50 sm:aspect-[8/7] lg:aspect-auto lg:h-[640px]"
       onPointerMove={(e) => {
         if (e.pointerType !== "mouse") return;
         const r = e.currentTarget.getBoundingClientRect();
@@ -262,11 +262,11 @@ function HeroVisual({ trip, onRoute }: { trip: { from: Place; to: Place }; onRou
         Suivi en direct
       </motion.div>
 
-      <motion.div style={reduce ? undefined : { x: cardX, y: cardY }} className="absolute inset-x-4 bottom-4 rounded-3xl bg-white p-4 shadow-[0_20px_50px_-12px_rgba(44,44,42,.45)] md:inset-x-auto md:bottom-6 md:left-6 md:w-[340px]">
+      <motion.div style={reduce ? undefined : { x: cardX, y: cardY }} className="absolute inset-x-4 bottom-4 rounded-2xl bg-white p-4 shadow-[0_20px_50px_-12px_rgba(44,44,42,.45)] md:inset-x-auto md:bottom-6 md:left-6 md:w-[340px]">
         <div className="flex items-center gap-3">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-teal-400 bg-white">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo.png" alt="" className="h-[150%] w-[150%] max-w-none object-contain" />
+            <img src="/icon-ayiba-delivery.svg" alt="" className="h-[78%] w-[78%] max-w-none object-contain" />
           </span>
           <div className="min-w-0 flex-1 overflow-hidden">
             <AnimatePresence mode="wait" initial={false}>

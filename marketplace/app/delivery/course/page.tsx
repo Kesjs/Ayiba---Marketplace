@@ -14,6 +14,20 @@ import { formatFcfa, type DeliveryQuote } from "@/lib/delivery";
 
 const emptyAddress: AdresseFormValue = { adresse_complete: "", quartier: "", commune: "", latitude: 0, longitude: 0 };
 
+function addressFromRouteParams(prefix: "depart" | "destination"): AdresseFormValue {
+  if (typeof window === "undefined") return { ...emptyAddress };
+  const params = new URLSearchParams(window.location.search);
+  const latitude = Number(params.get(`${prefix}Lat`));
+  const longitude = Number(params.get(`${prefix}Lng`));
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude === 0 || longitude === 0) return { ...emptyAddress };
+  return {
+    ...emptyAddress,
+    adresse_complete: params.get(prefix) || (prefix === "depart" ? "Point de départ" : "Destination"),
+    latitude,
+    longitude,
+  };
+}
+
 function Field({ label, value, onChange, placeholder, type = "text" }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; type?: string }) {
   return (
     <label className="block">
@@ -33,8 +47,8 @@ export default function CreateDeliveryCoursePage() {
   const router = useRouter();
   const { user, profile, loading: userLoading } = useUser();
   const { showToast } = useToast();
-  const [depart, setDepart] = useState<AdresseFormValue>(emptyAddress);
-  const [destination, setDestination] = useState<AdresseFormValue>(emptyAddress);
+  const [depart, setDepart] = useState<AdresseFormValue>(() => addressFromRouteParams("depart"));
+  const [destination, setDestination] = useState<AdresseFormValue>(() => addressFromRouteParams("destination"));
   const [departNom, setDepartNom] = useState("");
   const [departTelephone, setDepartTelephone] = useState(profile?.phone || "");
   const [destinationNom, setDestinationNom] = useState("");
@@ -51,36 +65,40 @@ export default function CreateDeliveryCoursePage() {
     () => depart.latitude !== 0 && destination.latitude !== 0,
     [depart.latitude, destination.latitude],
   );
+  const visibleQuote = addressesReady && !quoteLoading ? quote : null;
 
   useEffect(() => {
     if (!userLoading && !user) {
-      router.replace(`/connexion?redirect=${encodeURIComponent("/delivery/course")}`);
+      const redirect = typeof window !== "undefined" ? `${window.location.pathname}${window.location.search}` : "/delivery/course";
+      router.replace(`/connexion?redirect=${encodeURIComponent(redirect)}`);
     }
   }, [router, user, userLoading]);
 
   useEffect(() => {
     if (!addressesReady) {
-      setQuote(null);
       return;
     }
     const controller = new AbortController();
-    setQuoteLoading(true);
-    setError(null);
-    fetch(`/api/delivery/tarif?departLat=${depart.latitude}&departLng=${depart.longitude}&destinationLat=${destination.latitude}&destinationLng=${destination.longitude}`, { signal: controller.signal })
-      .then(async (response) => {
+    const chargerTarif = async () => {
+      setQuoteLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`/api/delivery/tarif?departLat=${depart.latitude}&departLng=${depart.longitude}&destinationLat=${destination.latitude}&destinationLng=${destination.longitude}`, { signal: controller.signal });
         const body = await response.json();
         if (!response.ok) throw new Error(body.error || "Le tarif n’a pas pu être calculé.");
         setQuote(body.quote);
-      })
-      .catch((reason) => {
-        if (reason.name !== "AbortError") setError(reason.message);
-      })
-      .finally(() => setQuoteLoading(false));
+      } catch (reason) {
+        if (reason instanceof Error && reason.name !== "AbortError") setError(reason.message);
+      } finally {
+        setQuoteLoading(false);
+      }
+    };
+    void chargerTarif();
     return () => controller.abort();
   }, [addressesReady, depart.latitude, depart.longitude, destination.latitude, destination.longitude]);
 
   const handleSubmit = async () => {
-    if (!addressesReady || !quote?.disponible) return;
+    if (!addressesReady || quoteLoading || !visibleQuote?.disponible) return;
     setSubmitting(true);
     setError(null);
     try {
@@ -141,11 +159,21 @@ export default function CreateDeliveryCoursePage() {
               <div className="mt-7 grid gap-5 md:grid-cols-2">
                 <div className="rounded-2xl bg-white p-4 text-gray-900">
                   <div className="mb-3 flex items-center gap-2 text-sm font-bold"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#e8f1ee] text-[#1d9e75]">A</span> Départ</div>
-                  <AdresseForm onValider={setDepart} labelBouton="Utiliser ce départ" />
+                  <AdresseForm
+                    key={`depart-${depart.latitude}-${depart.longitude}`}
+                    valeurInitiale={depart.latitude !== 0 ? depart : null}
+                    onValider={setDepart}
+                    labelBouton="Utiliser ce départ"
+                  />
                 </div>
                 <div className="rounded-2xl bg-white p-4 text-gray-900">
                   <div className="mb-3 flex items-center gap-2 text-sm font-bold"><span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#fff0eb] text-[#d85a30]">B</span> Destination</div>
-                  <AdresseForm onValider={setDestination} labelBouton="Utiliser cette destination" />
+                  <AdresseForm
+                    key={`destination-${destination.latitude}-${destination.longitude}`}
+                    valeurInitiale={destination.latitude !== 0 ? destination : null}
+                    onValider={setDestination}
+                    labelBouton="Utiliser cette destination"
+                  />
                 </div>
               </div>
             </motion.div>
@@ -172,15 +200,15 @@ export default function CreateDeliveryCoursePage() {
 
           <aside className="lg:sticky lg:top-6">
             <div className="overflow-hidden rounded-[28px] border border-gray-100 bg-white shadow-sm">
-              <div className="border-b border-gray-100 p-6"><p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Votre estimation</p><div className="mt-3 flex items-end justify-between gap-3"><div><p className="text-4xl font-semibold tracking-[-0.05em] text-gray-900">{quoteLoading ? "—" : quote ? formatFcfa(quote.montant) : "—"}</p><p className="mt-1 text-sm text-gray-500">montant estimé avant confirmation</p></div><div className="rounded-2xl bg-gray-50 p-3 text-gray-400"><Box size={22} /></div></div></div>
+              <div className="border-b border-gray-100 p-6"><p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Votre estimation</p><div className="mt-3 flex items-end justify-between gap-3"><div><p className="text-4xl font-semibold tracking-[-0.05em] text-gray-900">{quoteLoading ? "—" : visibleQuote ? formatFcfa(visibleQuote.montant) : "—"}</p><p className="mt-1 text-sm text-gray-500">montant estimé avant confirmation</p></div><div className="rounded-2xl bg-gray-50 p-3 text-gray-400"><Box size={22} /></div></div></div>
               <div className="space-y-4 p-6">
                 <div className="flex items-start gap-3"><MapPin size={17} className="mt-0.5 text-[#1d9e75]" /><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wider text-gray-400">Départ</p><p className="mt-1 truncate text-sm font-semibold text-gray-800">{depart.adresse_complete || "À sélectionner"}</p></div></div>
                 <div className="ml-2 h-5 border-l border-dashed border-gray-300" />
                 <div className="flex items-start gap-3"><MapPin size={17} className="mt-0.5 text-[#d85a30]" /><div className="min-w-0"><p className="text-xs font-bold uppercase tracking-wider text-gray-400">Destination</p><p className="mt-1 truncate text-sm font-semibold text-gray-800">{destination.adresse_complete || "À sélectionner"}</p></div></div>
-                <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-4 text-sm"><div className="rounded-2xl bg-gray-50 p-3"><p className="text-xs text-gray-400">Distance</p><p className="mt-1 font-bold text-gray-900">{quote ? `${quote.distance_km.toFixed(1)} km` : "—"}</p></div><div className="rounded-2xl bg-gray-50 p-3"><p className="text-xs text-gray-400">Durée estimée</p><p className="mt-1 flex items-center gap-1 font-bold text-gray-900"><Clock3 size={14} />{quote ? `${Math.max(5, Math.round((quote.distance_km / 25) * 60 + 3))} min` : "—"}</p></div></div>
-                {quote && !quote.disponible && <p className="rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Cette distance dépasse actuellement la zone de livraison disponible.</p>}
+                <div className="grid grid-cols-2 gap-3 border-t border-gray-100 pt-4 text-sm"><div className="rounded-2xl bg-gray-50 p-3"><p className="text-xs text-gray-400">Distance</p><p className="mt-1 font-bold text-gray-900">{visibleQuote ? `${visibleQuote.distance_km.toFixed(1)} km` : "—"}</p></div><div className="rounded-2xl bg-gray-50 p-3"><p className="text-xs text-gray-400">Durée estimée</p><p className="mt-1 flex items-center gap-1 font-bold text-gray-900"><Clock3 size={14} />{visibleQuote ? `${Math.max(5, Math.round((visibleQuote.distance_km / 25) * 60 + 3))} min` : "—"}</p></div></div>
+                {visibleQuote && !visibleQuote.disponible && <p className="rounded-2xl bg-amber-50 p-3 text-sm font-semibold text-amber-800">Cette distance dépasse actuellement la zone de livraison disponible.</p>}
                 {error && <p role="alert" className="rounded-2xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-                <Button type="button" onClick={handleSubmit} disabled={!quote?.disponible || submitting} className="w-full py-4">{submitting ? <><Loader2 size={17} className="animate-spin" /> Création...</> : <>Confirmer la course <ArrowRight size={17} /></>}</Button>
+                <Button type="button" onClick={handleSubmit} disabled={!visibleQuote?.disponible || submitting} className="w-full py-4">{submitting ? <><Loader2 size={17} className="animate-spin" /> Création...</> : <>Confirmer la course <ArrowRight size={17} /></>}</Button>
                 <div className="flex items-start gap-2 text-xs leading-5 text-gray-500"><ShieldCheck size={15} className="mt-0.5 shrink-0 text-teal-600" />Le montant final peut être ajusté selon le trajet réel. Vous le verrez avant le paiement à l’arrivée.</div>
               </div>
             </div>

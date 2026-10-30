@@ -252,8 +252,8 @@ function VendeurArticleCard({
   const photo = getPrincipalePhoto(item.article_images);
 
   return (
-    <div className="flex flex-col w-full">
-      <div className="relative aspect-square bg-gray-50 rounded-xl overflow-hidden mb-2 group/image">
+    <div className="flex flex-col w-full rounded-2xl border border-gray-100 bg-white p-2.5 transition-shadow hover:shadow-md">
+      <div className="relative aspect-square bg-[#F1EFE8] rounded-2xl overflow-hidden mb-2.5 group/image shadow-xs">
         {photo ? (
           <Image
             src={photo}
@@ -312,11 +312,11 @@ function VendeurArticleCard({
       </div>
 
       <div className="flex flex-col gap-1 px-0.5">
-        <p className="text-[10px] font-bold text-coral-500 uppercase tracking-widest truncate">
+        <p className="text-[10px] font-extrabold text-coral-600 uppercase tracking-widest truncate">
           {categorieLabel}
         </p>
 
-        <p className="text-xs text-gray-600 font-medium line-clamp-2 min-h-[2.2em]">{item.nom}</p>
+        <p className="text-xs text-gray-900 font-semibold line-clamp-2 min-h-[2.2em] leading-tight">{item.nom}</p>
 
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-[10px] text-gray-400">{item.stock === null ? "Illimité" : `${item.stock} en stock`}</span>
@@ -335,11 +335,11 @@ function VendeurArticleCard({
         {/* Prix et statut sur des lignes séparées : sur une carte à 2 colonnes,
             les mettre côte à côte (justify-between + nowrap) fait déborder le
             badge hors de la carte dès que le prix barré s'ajoute. */}
-        <p className="text-base font-black text-gray-900 mt-0.5 truncate">
+        <p className="text-[1.05rem] font-mono font-bold tabular-nums tracking-[-0.03em] text-gray-950 mt-0.5 truncate">
           {item.prix_promo != null ? (
             <>
               {item.prix_promo.toLocaleString("fr-FR")} <span className="text-[11px] font-bold">FCFA</span>{" "}
-              <span className="text-[11px] font-medium text-gray-400 line-through">
+                <span className="text-[11px] font-medium text-gray-400 line-through tracking-normal">
                 {item.prix.toLocaleString("fr-FR")}
               </span>
             </>
@@ -375,7 +375,7 @@ function VendeurArticleRow({
 
   return (
     <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 shadow-sm p-3">
-      <div className="relative w-14 h-14 shrink-0 bg-gray-50 rounded-xl overflow-hidden">
+      <div className="relative w-14 h-14 shrink-0 bg-[#F1EFE8] rounded-xl overflow-hidden">
         {photo ? (
           <Image
             src={photo}
@@ -404,7 +404,7 @@ function VendeurArticleRow({
         </div>
         <p className="text-sm text-gray-800 font-semibold truncate">{item.nom}</p>
         <div className="flex items-center gap-2 mt-0.5">
-          <p className="text-sm font-black text-gray-900 whitespace-nowrap">
+          <p className="text-sm font-mono font-bold tabular-nums tracking-[-0.03em] text-gray-950 whitespace-nowrap">
             {item.prix_promo != null ? (
               <>
                 {item.prix_promo.toLocaleString("fr-FR")} <span className="text-[10px] font-bold">FCFA</span>{" "}

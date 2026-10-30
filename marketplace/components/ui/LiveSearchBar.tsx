@@ -257,7 +257,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => setIsOpen(true)}
-          className="w-full bg-[#F1EFE8]/70 hover:bg-[#F1EFE8] focus:bg-white border border-gray-200/60 focus:border-coral-400 py-2.5 pl-11 pr-24 text-[13px] md:text-[14px] font-medium outline-none focus:ring-4 focus:ring-coral-500/10 rounded-2xl shadow-2xs focus:shadow-xl transition-all duration-300 placeholder:text-gray-400 text-gray-900"
+          className="w-full bg-[#F1EFE8]/70 hover:bg-[#F1EFE8] focus:bg-white border border-gray-200/60 focus:border-coral-400 py-2.5 pl-11 pr-24 text-[13px] md:text-[14px] font-medium outline-none focus:ring-4 focus:ring-coral-500/10 rounded-xl shadow-2xs focus:shadow-xl transition-all duration-300 placeholder:text-gray-400 text-gray-900"
         />
 
         <div className="absolute right-2 flex items-center gap-1.5">
@@ -283,7 +283,7 @@ export function LiveSearchBar({ className = "", placeholder, onSearchSubmit, aut
 
           <button
             type="submit"
-            className="bg-coral-500 hover:bg-coral-600 active:scale-95 text-white font-extrabold px-3.5 py-1.5 text-xs rounded-xl transition-all duration-200 shadow-md shadow-coral-500/20 flex items-center gap-1 cursor-pointer"
+            className="bg-coral-500 hover:bg-coral-600 active:scale-95 text-white font-extrabold px-3.5 py-1.5 text-xs rounded-lg transition-all duration-200 shadow-md shadow-coral-500/20 flex items-center gap-1 cursor-pointer"
           >
             <span>Chercher</span>
           </button>

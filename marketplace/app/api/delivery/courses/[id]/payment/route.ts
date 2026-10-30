@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { declencherPaiementMobileMoney, declencherPaiementParCarte } from "@/lib/geniuspay";
-import { getAppUrl } from "@/lib/url";
 import { getDeliveryUser } from "@/lib/delivery-server";
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
@@ -43,6 +42,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
   if (intentError || !intent) return NextResponse.json({ error: "Impossible de préparer le paiement." }, { status: 500 });
 
   try {
+    const deliveryOrigin = new URL(req.url).origin;
     const common = {
       montant: amount,
       description: `Ayiba Delivery — ${course.numero}`,
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     };
     const payment = method === "mobile_money"
       ? await declencherPaiementMobileMoney({ ...common, reseau: network!, telephone: body.phone.trim() })
-      : await declencherPaiementParCarte({ ...common, successUrl: `${getAppUrl()}/delivery/courses/${course.id}?payment=success`, errorUrl: `${getAppUrl()}/delivery/courses/${course.id}?payment=error` });
+      : await declencherPaiementParCarte({ ...common, successUrl: `${deliveryOrigin}/delivery/courses/${course.id}?payment=success`, errorUrl: `${deliveryOrigin}/delivery/courses/${course.id}?payment=error` });
 
     await auth.admin.from("delivery_payment_intents").update({ transaction_reference: payment.reference, payment_url: "paymentUrl" in payment ? payment.paymentUrl : null, updated_at: new Date().toISOString() }).eq("id", intent.id);
     await auth.admin.from("courses_delivery").update({ statut_paiement: "en_attente", payment_intent_id: intent.id, updated_at: new Date().toISOString() }).eq("id", course.id);

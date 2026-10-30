@@ -2,6 +2,29 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const DELIVERY_HOSTS = new Set(["delivery.ayiba.shop", "www.delivery.ayiba.shop"]);
+const ADMIN_HOSTS = new Set(["admin.ayiba.shop", "www.admin.ayiba.shop"]);
+
+function getHostRewrite(req: NextRequest) {
+  const host = req.headers.get("host")?.split(":")[0].toLowerCase();
+  const pathname = req.nextUrl.pathname;
+
+  if (pathname.startsWith("/_next") || pathname.startsWith("/api") || pathname.includes(".")) {
+    return null;
+  }
+
+  const target = DELIVERY_HOSTS.has(host ?? "")
+    ? pathname === "/" ? "/delivery" : null
+    : ADMIN_HOSTS.has(host ?? "")
+      ? pathname === "/" ? "/admin/dashboard" : null
+      : null;
+
+  if (!target) return null;
+  const url = req.nextUrl.clone();
+  url.pathname = target;
+  return url;
+}
+
 // Headers de cache pour les pages publiques (contenu statique côté vendeur/livreur
 // et fichiers image sont déjà exclus par le matcher plus bas, donc pas besoin
 // de les gérer ici).
@@ -31,7 +54,10 @@ function applyCacheHeaders(res: NextResponse, path: string) {
 }
 
 export async function proxy(req: NextRequest) {
-  let res = NextResponse.next({ request: req });
+  const hostRewrite = getHostRewrite(req);
+  let res = hostRewrite
+    ? NextResponse.rewrite(hostRewrite)
+    : NextResponse.next({ request: req });
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

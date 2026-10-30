@@ -66,7 +66,7 @@ export default function AdminLoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@ayiba.bj"
+          placeholder="admin@ayiba.shop"
                 className="w-full h-10 px-3 bg-gray-800 border border-gray-700 rounded text-sm text-white placeholder-gray-500 focus:outline-none focus:border-coral-400"
                 required
               />

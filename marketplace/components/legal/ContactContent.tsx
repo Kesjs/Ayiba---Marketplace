@@ -7,8 +7,8 @@ const CANAUX = [
     icon: Mail,
     title: "Par email",
     desc: "Pour toute question générale ou un problème avec une commande.",
-    action: "ayiba.marketplace@gmail.com",
-    href: "mailto:ayiba.marketplace@gmail.com",
+    action: "support@ayiba.shop",
+    href: "mailto:support@ayiba.shop",
     color: "coral",
   },
   {

@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
         reseau: reseau as 'mtn' | 'moov',
         telephone: telephone!.trim(),
         nomClient: nomClient?.trim() || 'Client Ayiba',
-        emailClient: user.email || `client-${user.id}@ayiba.app`,
+        emailClient: user.email || `client-${user.id}@ayiba.shop`,
         metadata: { paiement_checkout_id: paiementCheckout.id, user_id: user.id },
       })
 
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
         montant,
         description,
         nomClient: nomClient?.trim() || 'Client Ayiba',
-        emailClient: user.email || `client-${user.id}@ayiba.app`,
+        emailClient: user.email || `client-${user.id}@ayiba.shop`,
         successUrl: `${getAppUrl()}/checkout?success=true&paiement=${paiementCheckout.id}`,
         errorUrl: `${getAppUrl()}/checkout?error=true&paiement=${paiementCheckout.id}`,
         metadata: { paiement_checkout_id: paiementCheckout.id, user_id: user.id },

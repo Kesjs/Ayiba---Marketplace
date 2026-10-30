@@ -47,7 +47,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
       montant: amount,
       description: `Ayiba Delivery — ${course.numero}`,
       nomClient: auth.user.user_metadata?.full_name || "Client Ayiba",
-      emailClient: auth.user.email || `client-${auth.user.id}@ayiba.app`,
+      emailClient: auth.user.email || `client-${auth.user.id}@ayiba.shop`,
       metadata: { delivery_payment_intent_id: intent.id, delivery_course_id: course.id, user_id: auth.user.id },
     };
     const payment = method === "mobile_money"

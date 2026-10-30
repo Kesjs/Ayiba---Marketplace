@@ -433,7 +433,7 @@ export default function AdminParametresPage() {
             </div>
             <input
               type="email"
-              placeholder="admin@ayiba.com"
+              placeholder="admin@ayiba.shop"
               value={notifEmailAdmin}
               onChange={(e) => setNotifEmailAdmin(e.target.value)}
               className="w-full h-12 px-4 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500/20 transition-shadow"

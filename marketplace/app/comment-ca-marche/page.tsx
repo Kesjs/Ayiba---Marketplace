@@ -153,7 +153,7 @@ export default function CommentCaMarchePage() {
     {
       question: "Que se passe-t-il si l'article reçu ne correspond pas à la commande ?",
       answer:
-        "C'est l'avantage de la sécurité Ayiba ! Vous pouvez refuser de présenter votre QR Code ou Code OTP au livreur si le colis n'est pas conforme. L'argent reste bloqué en toute sécurité sur notre compte Escrow. Notre équipe de support (ayiba.marketplace@gmail.com) intervient immédiatement pour annuler la transaction et vous rembourser intégralement.",
+        "C'est l'avantage de la sécurité Ayiba ! Vous pouvez refuser de présenter votre QR Code ou Code OTP au livreur si le colis n'est pas conforme. L'argent reste bloqué en toute sécurité sur notre compte Escrow. Notre équipe de support (support@ayiba.shop) intervient immédiatement pour annuler la transaction et vous rembourser intégralement.",
     },
     {
       question: "Quels sont les moyens de paiement acceptés ?",

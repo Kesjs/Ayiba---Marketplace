@@ -130,7 +130,7 @@ export default function RootLayout({
         },
         contactPoint: {
           "@type": "ContactPoint",
-          email: "ayiba.marketplace@gmail.com",
+          email: "support@ayiba.shop",
           contactType: "customer service",
           areaServed: "BJ",
           availableLanguage: "French",

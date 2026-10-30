@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import LogoAyiba from "@/components/ui/LogoAyiba";
 import Link from "next/link";
 import { Share, PlusSquare, Store, Bike, ArrowRight } from "lucide-react";
@@ -36,7 +36,25 @@ const footerLinks = {
 export function Footer() {
   const { canInstallNative, isIOS, isStandalone, promptInstall } = useInstallApp();
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [newsletterState, setNewsletterState] = useState<"idle" | "loading" | "success" | "error">("idle");
   const showInstallBanner = !isStandalone && (canInstallNative || isIOS);
+
+  const handleNewsletterSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setNewsletterState("loading");
+    try {
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email: newsletterEmail }),
+      });
+      setNewsletterState(response.ok ? "success" : "error");
+      if (response.ok) setNewsletterEmail("");
+    } catch {
+      setNewsletterState("error");
+    }
+  };
 
   return (
     <footer className="py-10 px-4 bg-gray-50 border-t border-gray-100 md:px-8 lg:px-12">
@@ -94,7 +112,7 @@ export function Footer() {
             </div>
             <h3 className="text-lg md:text-xl font-bold text-gray-900 mb-2 tracking-tight">Utilisez Ayiba comme une application</h3>
             <p className="text-sm text-gray-500 font-medium max-w-md leading-relaxed">
-              Installez Ayiba sur votre écran d'accueil pour une expérience ultra-fluide,
+              Installez Ayiba sur votre écran d&apos;accueil pour une expérience ultra-fluide,
               même sans passer par le Play Store.
             </p>
           </div>
@@ -108,11 +126,43 @@ export function Footer() {
               onClick={() => (canInstallNative ? promptInstall() : setShowIOSInstructions(true))}
             >
               <i className="ti ti-device-mobile text-xl group-hover:scale-110 transition-transform" />
-              <span className="text-sm font-bold">Installer l'Application</span>
+              <span className="text-sm font-bold">Installer l&apos;Application</span>
             </button>
           </div>
         </div>
         )}
+
+        <section className="mb-10 overflow-hidden rounded-2xl bg-gray-900 px-5 py-6 text-white shadow-sm md:px-8 md:py-7" aria-labelledby="newsletter-title">
+          <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between md:gap-8">
+            <div className="max-w-xl">
+              <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-coral-300">Les bonnes nouvelles d’Ayiba</p>
+              <h2 id="newsletter-title" className="text-xl font-extrabold tracking-tight md:text-2xl">Des trouvailles locales, directement dans ta boîte.</h2>
+              <p className="mt-2 text-sm leading-relaxed text-gray-300">Nouveautés, boutiques à découvrir et offres utiles. Pas de bruit, seulement l’essentiel.</p>
+            </div>
+            <form onSubmit={handleNewsletterSubmit} className="w-full max-w-md">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <label htmlFor="newsletter-email" className="sr-only">Ton adresse email</label>
+                <input
+                  id="newsletter-email"
+                  type="email"
+                  required
+                  value={newsletterEmail}
+                  onChange={(event) => { setNewsletterEmail(event.target.value); setNewsletterState("idle"); }}
+                  placeholder="ton@email.com"
+                  className="h-12 min-w-0 flex-1 rounded-xl border border-white/15 bg-white/10 px-4 text-sm font-medium text-white outline-none transition placeholder:text-gray-400 focus:border-coral-300 focus:bg-white/15"
+                />
+                <button type="submit" disabled={newsletterState === "loading"} className="h-12 shrink-0 rounded-xl bg-coral-500 px-5 text-sm font-extrabold text-white transition hover:bg-coral-400 disabled:cursor-wait disabled:opacity-60">
+                  {newsletterState === "loading" ? "Inscription…" : "S’inscrire"}
+                </button>
+              </div>
+              <p className="mt-2 min-h-5 text-xs text-gray-400" aria-live="polite">
+                {newsletterState === "success" && "C’est noté. Bienvenue dans la communauté Ayiba."}
+                {newsletterState === "error" && "L’inscription n’a pas pu aboutir. Réessaie dans un instant."}
+                {newsletterState === "idle" && "Désinscription possible à tout moment."}
+              </p>
+            </form>
+          </div>
+        </section>
 
         <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4 lg:gap-12">
 

@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Mail, Lock, Eye, EyeOff, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag, CheckCircle2 } from "lucide-react";
+import { Mail, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { validateBeninPhone, validatePasswordStrength } from "@/lib/validation";
+import { validateBeninPhone } from "@/lib/validation";
 import { useSmartGeolocation } from "@/lib/hooks/useSmartGeolocation";
 import { getAppUrl } from "@/lib/url";
 import LogoAyiba from "@/components/ui/LogoAyiba";
@@ -16,10 +16,11 @@ type Mode =
   | "connexion"
   | "inscription"
   | "mot-de-passe-oublie"
+  | "otp-connexion"
   | "otp-inscription"
   | "otp-reset";
 
-const RESEND_COOLDOWN = 45;
+const RESEND_COOLDOWN = 60;
 
 const translateError = (err: any): string => {
   if (!err) return "Une erreur est survenue. Veuillez réessayer.";
@@ -38,6 +39,9 @@ const translateError = (err: any): string => {
   }
   if (lowerMsg.includes("invalid login credentials") || lowerMsg.includes("invalid credentials")) {
     return "Email ou mot de passe incorrect.";
+  }
+  if (lowerMsg.includes("signups not allowed") || lowerMsg.includes("user not found")) {
+    return "Aucun compte trouvé avec cet email. Vérifie l'adresse ou inscris-toi d'abord.";
   }
   if (lowerMsg.includes("email not confirmed")) {
     return "Tu dois confirmer ton adresse email avant de te connecter.";
@@ -120,11 +124,9 @@ function AuthForm() {
   
   const [mode, setMode] = useState<Mode>(forceSignup ? "inscription" : "connexion");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [nomComplet, setNomComplet] = useState("");
   const [telephone, setTelephone] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
+  const [telephoneFormatted, setTelephoneFormatted] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [otpError, setOtpError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
@@ -138,7 +140,8 @@ function AuthForm() {
   const [resending, setResending] = useState(false);
 
   const roleConfig = getRoleConfig(intendedRole);
-  const isClientSignup = mode === "inscription" && !intendedRole;
+  const isClientSignup =
+    (mode === "inscription" || mode === "otp-inscription") && !intendedRole;
 
   useEffect(() => {
     if (resendCooldown <= 0) return;
@@ -156,7 +159,7 @@ function AuthForm() {
   // Auto-envoie un nouveau code si l'user arrive sur l'écran OTP sans code actif
   // (ex : il revient se connecter après avoir quitté sans confirmer)
   useEffect(() => {
-    const isOtpStep = mode === "otp-inscription" || mode === "otp-reset";
+    const isOtpStep = mode === "otp-connexion" || mode === "otp-inscription" || mode === "otp-reset";
     if (isOtpStep && resendCooldown === 0 && otpEmail && !otpCodeSent && !resending) {
       // Petit délai pour laisser le temps à l'UI de s'afficher
       const t = setTimeout(() => handleResend(), 400);
@@ -166,7 +169,7 @@ function AuthForm() {
   }, [mode, otpEmail]);
 
   useEffect(() => {
-    const isOtpStep = mode === "otp-inscription" || mode === "otp-reset";
+    const isOtpStep = mode === "otp-connexion" || mode === "otp-inscription" || mode === "otp-reset";
     if (!isOtpStep) {
       const t = setTimeout(() => emailInputRef.current?.focus(), 50);
       return () => clearTimeout(t);
@@ -176,29 +179,67 @@ function AuthForm() {
   const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   const isEmailValid = email.length > 0 && validateEmail(email);
 
-  const getPasswordStrength = (value: string) => {
-    if (value.length === 0) return null;
-    if (value.length < 8) return { label: "Trop court", color: "bg-red-400", width: "25%" };
-    if (!/[A-Z]/.test(value) || !/[0-9]/.test(value)) {
-      return { label: "Ajoute une majuscule et un chiffre", color: "bg-amber-400", width: "60%" };
-    }
-    return { label: "Solide", color: "bg-teal-500", width: "100%" };
-  };
-  const passwordStrength = mode === "inscription" ? getPasswordStrength(password) : null;
-
   const resetFormFields = () => {
     setError(null);
     setOtpError(null);
     setPhoneError(null);
-    setPassword("");
-    setConfirmPassword("");
     setNomComplet("");
     setTelephone("");
+    setTelephoneFormatted("");
   };
 
   const switchMode = (m: Mode) => {
     setMode(m);
     resetFormFields();
+  };
+
+  const resolveDestination = async (userId: string, isNewSignup = false) => {
+    syncGeoToProfileIfNeeded(userId).catch(() => {});
+
+    const { data: userData } = await supabase
+      .from("users")
+      .select("role")
+      .eq("id", userId)
+      .single();
+
+    const resolvedRedirect =
+      redirectTo && userData?.role === "vendeur" && redirectTo.startsWith("/messages")
+        ? redirectTo.replace("/messages", "/vendeur/messages")
+        : redirectTo && userData?.role !== "vendeur" && redirectTo.startsWith("/vendeur/messages")
+        ? redirectTo.replace("/vendeur/messages", "/messages")
+        : redirectTo;
+
+    if (resolvedRedirect) return resolvedRedirect;
+
+    if (userData?.role === "vendeur") {
+      const { data: vendeurData } = await supabase
+        .from("vendeurs")
+        .select("statut")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const isSubmitted =
+        vendeurData?.statut &&
+        vendeurData.statut !== "non_soumis" &&
+        vendeurData.statut !== "brouillon";
+
+      return isSubmitted ? "/vendeur/dashboard" : "/vendeur/kyc";
+    }
+
+    if (userData?.role === "livreur") {
+      const { data: livreurData } = await supabase
+        .from("livreurs")
+        .select("statut_verification")
+        .eq("id", userId)
+        .maybeSingle();
+
+      return livreurData?.statut_verification === "valide"
+        ? "/livreur/missions"
+        : "/livreur/kyc";
+    }
+
+    if (userData?.role === "admin") return "/admin/dashboard";
+    return isNewSignup ? "/catalogue?welcome=1" : "/catalogue";
   };
 
   const handleSubmit = async () => {
@@ -207,29 +248,26 @@ function AuthForm() {
 
     try {
       if (mode === "mot-de-passe-oublie") {
-        if (!validateEmail(email)) return setError("Adresse email invalide");
+        const normalizedEmail = email.trim().toLowerCase();
+        if (!validateEmail(normalizedEmail)) return setError("Adresse email invalide");
         setLoading(true);
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
           redirectTo: `${getAppUrl()}/auth/callback?next=/auth/reset-password`,
         });
         setLoading(false);
         if (resetError) return setError(translateError(resetError));
 
-        setOtpEmail(email);
+        setOtpEmail(normalizedEmail);
         setMode("otp-reset");
         setResendCooldown(RESEND_COOLDOWN);
+        setOtpCodeSent(true);
         return;
       }
 
-      if (!validateEmail(email)) return setError("Adresse email invalide");
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!validateEmail(normalizedEmail)) return setError("Adresse email invalide");
 
-      if (mode === "inscription") {
-        const strengthError = validatePasswordStrength(password);
-        if (strengthError) return setError(strengthError);
-        if (password !== confirmPassword) return setError("Les deux mots de passe ne correspondent pas");
-      } else {
-        if (password.length < 6) return setError("Le mot de passe doit contenir au moins 6 caractères");
-      }
+      const isSignup = mode === "inscription";
 
       let telephoneFormatted = "";
       if (isClientSignup) {
@@ -237,121 +275,35 @@ function AuthForm() {
         const phoneValidation = validateBeninPhone(telephone);
         if (!phoneValidation.isValid) return setPhoneError(phoneValidation.error || "Numéro de téléphone invalide");
         telephoneFormatted = phoneValidation.formatted;
+        setTelephoneFormatted(telephoneFormatted);
       }
 
       setLoading(true);
 
-      if (mode === "inscription") {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: `${getAppUrl()}/auth/callback`,
-            data: {
-              role: intendedRole ?? "client",
-              ...(isClientSignup
-                ? { full_name: nomComplet.trim(), phone: telephoneFormatted }
-                : {}),
-            },
-          },
-        });
+      const { error: otpSendError } = await supabase.auth.signInWithOtp({
+        email: normalizedEmail,
+        options: {
+          shouldCreateUser: isSignup,
+          ...(isSignup
+            ? {
+                data: {
+                  role: intendedRole ?? "client",
+                  ...(isClientSignup
+                    ? { full_name: nomComplet.trim(), phone: telephoneFormatted }
+                    : {}),
+                },
+              }
+            : {}),
+        },
+      });
 
-        setLoading(false);
+      setLoading(false);
+      if (otpSendError) return setError(translateError(otpSendError));
 
-        if (signUpError) return setError(translateError(signUpError));
-
-        if (data.user && data.user.identities && data.user.identities.length === 0) {
-          setError("Un compte existe déjà avec cet email. Connecte-toi plutôt.");
-          return;
-        }
-
-        if (!data.session) {
-          setOtpEmail(email);
-          setMode("otp-inscription");
-          setResendCooldown(RESEND_COOLDOWN);
-          setOtpCodeSent(true); // Supabase a déjà envoyé le code au signUp
-          return;
-        }
-
-        if (isClientSignup && data.user) {
-          await supabase.from("users").upsert({
-            id: data.user.id,
-            phone: telephoneFormatted,
-            full_name: nomComplet.trim(),
-            role: "client",
-          });
-          syncGeoToProfileIfNeeded(data.user.id).catch(() => {});
-        }
-
-        router.push(intendedRole ? `/${intendedRole}/kyc` : redirectTo || "/catalogue?welcome=1");
-      } else {
-        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-        setLoading(false);
-        if (signInError) {
-          const errMsg = (signInError.message || "").toLowerCase();
-          if (errMsg.includes("email not confirmed")) {
-            setOtpEmail(email);
-            setMode("otp-inscription");
-            setResendCooldown(0);
-            return;
-          }
-          return setError(translateError(signInError));
-        }
-
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (user?.id) {
-          syncGeoToProfileIfNeeded(user.id).catch(() => {});
-        }
-
-        const { data: userData } = await supabase
-          .from("users")
-          .select("role")
-          .eq("id", user?.id)
-          .single();
-
-        const resolvedRedirect =
-          redirectTo && userData?.role === "vendeur" && redirectTo.startsWith("/messages")
-            ? redirectTo.replace("/messages", "/vendeur/messages")
-            : redirectTo && userData?.role !== "vendeur" && redirectTo.startsWith("/vendeur/messages")
-            ? redirectTo.replace("/vendeur/messages", "/messages")
-            : redirectTo;
-
-        let destination = resolvedRedirect;
-
-        if (!destination) {
-          if (userData?.role === "vendeur") {
-            const { data: vendeurData } = await supabase
-              .from("vendeurs")
-              .select("statut")
-              .eq("id", user?.id)
-              .maybeSingle();
-
-            const isSubmitted =
-              vendeurData?.statut &&
-              vendeurData.statut !== "non_soumis" &&
-              vendeurData.statut !== "brouillon";
-
-            destination = isSubmitted ? "/vendeur/dashboard" : "/vendeur/kyc";
-          } else if (userData?.role === "livreur") {
-            const { data: livreurData } = await supabase
-              .from("livreurs")
-              .select("statut_verification")
-              .eq("id", user?.id)
-              .maybeSingle();
-
-            destination = livreurData?.statut_verification === "valide"
-              ? "/livreur/missions"
-              : "/livreur/kyc";
-          } else if (userData?.role === "admin") {
-            destination = "/admin/dashboard";
-          } else {
-            destination = "/catalogue";
-          }
-        }
-
-        window.location.href = destination;
-      }
+      setOtpEmail(normalizedEmail);
+      setMode(isSignup ? "otp-inscription" : "otp-connexion");
+      setResendCooldown(RESEND_COOLDOWN);
+      setOtpCodeSent(true);
     } catch (err) {
       setLoading(false);
       setError(translateError(err));
@@ -364,16 +316,32 @@ function AuthForm() {
     setError(null);
     setOtpError(null);
     try {
-      const { error: resendError } =
-        mode === "otp-inscription"
-          ? await supabase.auth.resend({
-              type: "signup",
+      const isAuthOtp = mode === "otp-connexion" || mode === "otp-inscription";
+      const { error: resendError } = isAuthOtp
+        ? (
+            await supabase.auth.signInWithOtp({
               email: otpEmail,
-              options: { emailRedirectTo: `${getAppUrl()}/auth/callback` },
+              options: {
+                shouldCreateUser: mode === "otp-inscription",
+                ...(mode === "otp-inscription"
+                  ? {
+                      data: {
+                        role: intendedRole ?? "client",
+                        ...(isClientSignup
+                          ? {
+                              full_name: nomComplet.trim(),
+                              phone: telephoneFormatted,
+                            }
+                          : {}),
+                      },
+                    }
+                  : {}),
+              },
             })
-          : await supabase.auth.resetPasswordForEmail(otpEmail, {
-              redirectTo: `${getAppUrl()}/auth/callback?next=/auth/reset-password`,
-            });
+          )
+        : await supabase.auth.resetPasswordForEmail(otpEmail, {
+            redirectTo: `${getAppUrl()}/auth/callback?next=/auth/reset-password`,
+          });
 
       if (resendError) return setError(translateError(resendError));
       setResendCooldown(RESEND_COOLDOWN);
@@ -390,11 +358,12 @@ function AuthForm() {
     setOtpLoading(true);
     setOtpError(null);
     try {
-      if (mode === "otp-inscription") {
+      const isAuthOtp = mode === "otp-connexion" || mode === "otp-inscription";
+      if (isAuthOtp) {
         const { data, error: verifyError } = await supabase.auth.verifyOtp({
           email: otpEmail,
           token,
-          type: "signup",
+          type: "email",
         });
         if (verifyError) {
           setOtpError("Code incorrect ou expiré. Vérifie ta boîte mail ou renvoie un code.");
@@ -402,18 +371,19 @@ function AuthForm() {
           return;
         }
         setOtpSuccess(true);
-        // Créer la ligne users si c'est un client
         if (isClientSignup && data.user) {
           await supabase.from("users").upsert({
             id: data.user.id,
-            phone: telephone,
+            phone: telephoneFormatted || validateBeninPhone(telephone).formatted || telephone,
             full_name: nomComplet.trim(),
             role: "client",
           });
-          syncGeoToProfileIfNeeded(data.user.id).catch(() => {});
         }
+        const destination = data.user
+          ? await resolveDestination(data.user.id, mode === "otp-inscription")
+          : "/catalogue";
         setTimeout(() => {
-          router.push(intendedRole ? `/${intendedRole}/kyc` : redirectTo || "/catalogue?welcome=1");
+          window.location.href = destination;
         }, 800);
       } else {
         // otp-reset
@@ -442,19 +412,23 @@ function AuthForm() {
     setOtpEmail(null);
     setOtpError(null);
     setOtpSuccess(false);
-    setMode(mode === "otp-inscription" ? "inscription" : "mot-de-passe-oublie");
+    setMode(
+      mode === "otp-inscription"
+        ? "inscription"
+        : mode === "otp-connexion"
+        ? "connexion"
+        : "mot-de-passe-oublie"
+    );
     resetFormFields();
     setResendCooldown(0);
   };
 
-  const isOtpStep = mode === "otp-inscription" || mode === "otp-reset";
+  const isOtpStep = mode === "otp-connexion" || mode === "otp-inscription" || mode === "otp-reset";
   const mailProvider = otpEmail ? getMailProviderLink(otpEmail) : null;
 
   const isSubmitDisabled =
     loading ||
     !email ||
-    (mode !== "mot-de-passe-oublie" && !password) ||
-    (mode === "inscription" && !confirmPassword) ||
     (isClientSignup && (!nomComplet.trim() || !telephone.trim()));
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -574,8 +548,8 @@ function AuthForm() {
               </h2>
               <p className={`text-[14px] text-gray-600 leading-relaxed ${isClientSignup ? "mb-3" : "mb-6"}`}>
                 {mode === "connexion" 
-                  ? "Retrouvez vos boutiques préférées et accédez à vos commandes en un clic." 
-                  : "Créez votre compte pour acheter des créations locales et suivre vos livraisons."}
+                  ? "Entre ton email, reçois un code à 6 chiffres et retrouve ton espace en quelques secondes."
+                  : "Crée ton compte avec un code à 6 chiffres, sans mot de passe à retenir."}
               </p>
               {isClientSignup && (
                 <div className="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-100 rounded-full px-2.5 py-1 mb-5">
@@ -595,7 +569,7 @@ function AuthForm() {
                 <ArrowLeft size={14} /> Retour
               </button>
               <h2 className="text-[20px] font-bold text-gray-900 mb-2">Mot de passe oublié</h2>
-              <p className="text-[14px] text-gray-600 mb-6">On t'envoie un lien pour le réinitialiser.</p>
+              <p className="text-[14px] text-gray-600 mb-6">On t'envoie un code pour réinitialiser ton accès.</p>
             </>
           )}
 
@@ -690,73 +664,9 @@ function AuthForm() {
           </div>
 
           {mode !== "mot-de-passe-oublie" && (
-            <div className="mb-1">
-              <div className="flex items-center border border-gray-200 rounded-lg px-3 focus-within:border-coral-400 transition-colors bg-white">
-                <Lock size={16} className="text-gray-400 shrink-0" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Mot de passe"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="flex-1 h-12 text-sm px-2 focus:outline-none bg-transparent"
-                  autoComplete={mode === "inscription" ? "new-password" : "current-password"}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                  className="text-gray-400 shrink-0 hover:text-gray-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-          )}
-
-          {passwordStrength && (
-            <div className="mb-4 mt-2">
-              <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
-                <div className={`h-full ${passwordStrength.color} transition-all duration-300`} style={{ width: passwordStrength.width }} />
-              </div>
-              <span className="text-[11px] text-gray-400 mt-1.5 block">{passwordStrength.label}</span>
-            </div>
-          )}
-
-          {mode === "inscription" && (
-            <div className="mb-2 mt-4">
-              <div
-                className={`flex items-center border rounded-lg px-3 transition-colors bg-white ${
-                  confirmPassword.length > 0
-                    ? password === confirmPassword
-                      ? "border-teal-300"
-                      : "border-red-300"
-                    : "border-gray-200 focus-within:border-coral-400"
-                }`}
-              >
-                <Lock size={16} className="text-gray-400 shrink-0" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Confirmer le mot de passe"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  className="flex-1 h-12 text-sm px-2 focus:outline-none bg-transparent"
-                  autoComplete="new-password"
-                />
-                {confirmPassword.length > 0 && password === confirmPassword && (
-                  <Check size={16} className="text-teal-500 shrink-0" />
-                )}
-              </div>
-            </div>
-          )}
-
-          {mode === "connexion" && (
-            <div className="flex justify-end mt-2 mb-3">
-              <button onClick={() => switchMode("mot-de-passe-oublie")} className="text-[12.5px] font-medium text-coral-500 hover:text-coral-600 transition-colors">
-                Mot de passe oublié ?
-              </button>
-            </div>
+            <p className="text-[12px] text-gray-500 mt-1 mb-3">
+              Un code unique sera envoyé à cette adresse. Tu pourras en demander un nouveau après 60 secondes.
+            </p>
           )}
 
           {error && (
@@ -774,10 +684,10 @@ function AuthForm() {
             {loading
               ? "Chargement..."
               : mode === "connexion"
-              ? "Se connecter"
+              ? "Recevoir mon code"
               : mode === "inscription"
               ? "Créer mon compte"
-              : "Envoyer le lien"}
+              : "Envoyer le code"}
           </button>
 
           {mode !== "mot-de-passe-oublie" && (

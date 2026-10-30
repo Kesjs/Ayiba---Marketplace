@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Mail, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag, CheckCircle2 } from "lucide-react";
+import { Mail, Check, ArrowLeft, AlertCircle, RefreshCw, ExternalLink, Pencil, KeyRound, Store, Bike, User, Phone, ShoppingBag, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { validateBeninPhone } from "@/lib/validation";
 import { useSmartGeolocation } from "@/lib/hooks/useSmartGeolocation";
@@ -26,7 +26,9 @@ const translateError = (err: any): string => {
   if (!err) return "Une erreur est survenue. Veuillez réessayer.";
 
   const message =
-    typeof err === "string" ? err : err.message || err.msg || err.error_description || "";
+    typeof err === "string"
+      ? err
+      : [err.message, err.code, err.msg, err.error_description].filter(Boolean).join(" ");
 
   if (!message || message.trim() === "") {
     return "Une erreur est survenue. Veuillez réessayer.";
@@ -49,8 +51,17 @@ const translateError = (err: any): string => {
   if (lowerMsg.includes("password") && (lowerMsg.includes("too short") || lowerMsg.includes("6"))) {
     return "Le mot de passe doit contenir au moins 6 caractères.";
   }
+  if (lowerMsg.includes("over_email_send_rate_limit") || lowerMsg.includes("email rate limit exceeded")) {
+    return "Le service d’envoi d’emails a atteint sa limite temporaire. Réessaie dans quelques minutes.";
+  }
+  if (lowerMsg.includes("email_address_not_authorized")) {
+    return "Cette adresse n’est pas encore autorisée par le service d’envoi. La configuration email d’Ayiba doit être finalisée pour permettre son utilisation.";
+  }
+  if (lowerMsg.includes("error sending confirmation email") || lowerMsg.includes("unexpected_failure")) {
+    return "Le serveur email a refusé l’envoi du code. La configuration email d’Ayiba doit être vérifiée avant de réessayer.";
+  }
   if (lowerMsg.includes("rate limit") || lowerMsg.includes("too many requests")) {
-    return "Trop de tentatives. Veuillez réessayer dans quelques instants.";
+    return "L’envoi des codes est temporairement limité. Attends quelques instants avant de réessayer.";
   }
   if (lowerMsg.includes("invalid email")) {
     return "Adresse email invalide.";
@@ -516,7 +527,7 @@ function AuthForm() {
                 className="w-full flex items-center justify-center gap-2 border border-gray-200 rounded-lg py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 mb-4 transition-colors"
               >
                 <RefreshCw size={14} className={resending ? "animate-spin" : ""} />
-                {resendCooldown > 0 ? `Renvoyer (${resendCooldown}s)` : resending ? "Envoi..." : "Renvoyer le code"}
+                {resendCooldown > 0 ? `Renvoyer dans ${resendCooldown} s` : resending ? "Envoi..." : "Renvoyer le code"}
               </button>
               <button
                 onClick={handleEditEmail}
@@ -665,8 +676,15 @@ function AuthForm() {
 
           {mode !== "mot-de-passe-oublie" && (
             <p className="text-[12px] text-gray-500 mt-1 mb-3">
-              Un code unique sera envoyé à cette adresse. Tu pourras en demander un nouveau après 60 secondes.
+              Un code unique à 6 chiffres sera envoyé à cette adresse.
             </p>
+          )}
+
+          {loading && (
+            <div className="flex items-center gap-2 rounded-lg border border-teal-100 bg-teal-50 px-3 py-2.5 text-[12.5px] text-teal-700" role="status" aria-live="polite">
+              <Loader2 size={15} className="shrink-0 animate-spin" />
+              <span>Envoi du code en cours…</span>
+            </div>
           )}
 
           {error && (
@@ -682,7 +700,7 @@ function AuthForm() {
             className={`w-full text-white rounded-xl px-4 py-3.5 text-sm font-bold shadow-md disabled:opacity-50 disabled:cursor-not-allowed mt-4 transition-all duration-200 active:scale-[0.98] ${roleConfig.buttonColor} shadow-coral-500/20`}
           >
             {loading
-              ? "Chargement..."
+              ? "Envoi du code..."
               : mode === "connexion"
               ? "Recevoir mon code"
               : mode === "inscription"
